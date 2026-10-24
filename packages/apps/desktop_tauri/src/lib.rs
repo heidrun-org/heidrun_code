@@ -31,6 +31,7 @@ mod system_sound;
 mod topic_clusters;
 mod usage;
 mod user_activity;
+mod user_launchers;
 mod voice_commands;
 mod voice_words;
 mod worktree_actions;
@@ -363,6 +364,9 @@ pub fn run() {
             macros::macros_hard_coded,
             macros::macros_personal_read,
             macros::macros_personal_write,
+            user_launchers::launchers_user_read,
+            user_launchers::launchers_user_write,
+            user_launchers::launcher_folder_exists,
             git::git_status,
             git::git_worktrees,
             git::forge_cli,

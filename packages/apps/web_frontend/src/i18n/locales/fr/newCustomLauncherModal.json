@@ -44,5 +44,10 @@
   "editTitle": "Modifier un lanceur personnalisé",
   "saveTitle": "Enregistrer les changements du lanceur personnalisé",
   "save": "Enregistrer",
-  "cancelEditTitle": "Annuler : le lanceur garde ses valeurs"
+  "cancelEditTitle": "Annuler : le lanceur garde ses valeurs",
+  "level": "Niveau",
+  "levelUser": "Utilisateur",
+  "levelWorkspace": "Espace de travail",
+  "levelUserHint": "Le lanceur personnalisé apparaît dans chaque espace de travail. Un dossier de travail courant qui n’est pas vide est lu depuis la racine de chaque espace de travail.",
+  "levelWorkspaceHint": "Le lanceur personnalisé apparaît seulement dans l’espace de travail {name}."
 }

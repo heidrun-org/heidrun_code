@@ -1,3 +1,4 @@
 {
-  "invalidConfig": "{path} n’est pas valide : {reason}"
+  "invalidConfig": "{path} n’est pas valide : {reason}",
+  "launcherFolderMissing": "Le lanceur personnalisé {launcher} ne démarre pas : le dossier {folder} n’existe pas dans l’espace de travail {workspace}."
 }

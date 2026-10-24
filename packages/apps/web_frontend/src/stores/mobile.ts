@@ -21,7 +21,7 @@ import {
 } from "./session";
 import { guardHit } from "./guards";
 import { macros, macrosOfProjectConfig, resolveMacroVariables, type Macro } from "./macros";
-import { launcherPane, launcherStatus, launcherWillType, loadProject, project, runLauncher, stopLauncher, workspaceCwd } from "./project";
+import { launcherPane, launcherStatus, launcherWillType, launchersOf, loadProject, project, runLauncher, stopLauncher, workspaceCwd } from "./project";
 import { paneName, agentKind } from "../lib/format";
 import type { AgentInfo } from "../lib/types";
 import { settings } from "./settings";
@@ -161,12 +161,13 @@ async function launcherList() {
   for (const w of sessionWorkspaces.value) {
     const p = await workspaceProject(w.workspace_id);
     const error = project.errors[w.workspace_id] ?? null;
-    if (!error && !p?.config.launchers.length) continue;
+    const launchers = p === undefined ? [] : launchersOf(w.workspace_id);
+    if (!error && launchers.length === 0) continue;
     list.push({
       id: w.workspace_id,
       label: w.label,
       error,
-      launchers: (p?.config.launchers ?? []).map((a) => ({
+      launchers: launchers.map((a) => ({
         id: a.id,
         label: a.label,
         description: a.description ?? null,
@@ -181,7 +182,7 @@ async function launcherList() {
 async function launch(params: Params) {
   const workspaceId = String(params.workspaceId ?? "");
   const p = await workspaceProject(workspaceId);
-  const launcher = p?.config.launchers.find((a) => a.id === params.launcherId);
+  const launcher = launchersOf(workspaceId).find((a) => a.id === params.launcherId);
   if (!p || !launcher) return { error: t("mobileStore.error.launcherNotFound") };
   if (params.action === "stop") {
     await stopLauncher(workspaceId, launcher);

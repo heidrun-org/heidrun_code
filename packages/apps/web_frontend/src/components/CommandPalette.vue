@@ -22,7 +22,7 @@ import {
 import { NewPane } from "../stores/new_pane";
 import { statusLabel, paneName } from "../lib/format";
 import { FONTS, openSettings, resetZoom, settings, zoom } from "../stores/settings";
-import { currentProject, runLauncher } from "../stores/project";
+import { currentProject, launchersOf, runLauncher } from "../stores/project";
 import { hardCodedMacros, macros, projectMacros, resolveMacroVariables } from "../stores/macros";
 import { insertIntoFocusedPane } from "../stores/input";
 import { search } from "../stores/search";
@@ -96,7 +96,7 @@ const items = computed<Item[]>(() => {
   const wsId = state.selectedWorkspaceId;
   const proj = currentProject.value;
   if (wsId && proj) {
-    for (const a of proj.config.launchers.filter((x) => !lower || x.label.toLowerCase().includes(lower) || x.command.toLowerCase().includes(lower))) {
+    for (const a of launchersOf(wsId).filter((x) => !lower || x.label.toLowerCase().includes(lower) || x.command.toLowerCase().includes(lower))) {
       list.push({ section: t("commandPalette.section.projectLaunchers"), label: a.label, hint: a.command, run: () => runLauncher(wsId, a) });
     }
   }

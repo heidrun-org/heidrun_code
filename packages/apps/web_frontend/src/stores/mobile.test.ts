@@ -6,6 +6,7 @@ import { handleMobileCall } from "./mobile";
 import { project, runLauncher, stopLauncher } from "./project";
 import { state } from "./session";
 import { settings } from "./settings";
+import { userLaunchers } from "./user_launchers";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(async () => undefined) }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => undefined) }));
@@ -31,8 +32,10 @@ vi.mock("./session", async (importOriginal) => ({
 }));
 
 const LAUNCHER = { id: "dev", label: "Dev server", command: "pnpm dev" };
+const USER_LAUNCHER = { id: "everywhere", label: "In every workspace", command: "make everywhere" };
 
 beforeEach(() => {
+  userLaunchers.list = [];
   settings.mobileTerminalTyping = true;
   vi.mocked(api.prompt).mockClear();
   vi.mocked(api.run).mockClear();
@@ -162,6 +165,23 @@ describe("the method launchers", () => {
         },
       ],
     });
+  });
+});
+
+describe("the method launchers, with launchers of the user level", () => {
+  it("lists the launchers of the user level first in every workspace whose project is loaded, even a workspace with no launcher of its own", async () => {
+    userLaunchers.list = [USER_LAUNCHER];
+    const answer = (await handleMobileCall("launchers", {})) as { workspaces: { id: string; launchers: { id: string }[] }[] };
+    expect(answer.workspaces.map((workspace) => workspace.id)).toEqual(["w1", "w2"]);
+    expect(answer.workspaces[0].launchers.map((launcher) => launcher.id)).toEqual(["everywhere", "dev"]);
+    expect(answer.workspaces[1].launchers.map((launcher) => launcher.id)).toEqual(["everywhere"]);
+  });
+
+  it("runs a launcher of the user level in the workspace that the phone names", async () => {
+    userLaunchers.list = [USER_LAUNCHER];
+    expect(await handleMobileCall("launch", { workspaceId: "w2", launcherId: "everywhere", action: "run" })).toEqual({ ok: true });
+    expect(guardHit).toHaveBeenCalledWith("make everywhere", "/work/website");
+    expect(runLauncher).toHaveBeenCalledWith("w2", USER_LAUNCHER, true, true);
   });
 });
 

@@ -143,6 +143,18 @@ export function parseProjectConfig(value: unknown): ProjectConfig {
   return result.data;
 }
 
+/**
+ * Validates the list of the user level launchers, read from the file `launchers.json`. Each launcher has the fields of a
+ * launcher of the key `launchers`. Throws an Error that names the fields.
+ */
+export function parseLauncherList(value: unknown): Launcher[] {
+  const result = z.array(launcherSchema).safeParse(value);
+  if (result.success === false) {
+    throw new Error(describeIssues(result.error));
+  }
+  return result.data;
+}
+
 /** Validates the `references` section alone. Throws an Error that names the fields. */
 export function parseReferences(value: unknown): ProjectReferences {
   const result = referencesSchema.safeParse(value);

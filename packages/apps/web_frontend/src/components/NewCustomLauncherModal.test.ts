@@ -37,6 +37,42 @@ async function mountNewCustomLauncherModal() {
   return { wrapper, project, newCustomLauncherModal };
 }
 
+/**
+ * Makes the fake file launchers.json answer, and reads it once, before the window opens.
+ * @param launchers - The user level launchers that the file holds.
+ * @returns The lists that the window wrote to the file, one list for each write.
+ */
+async function useUserLaunchersFile(launchers: unknown[] = []) {
+  const { invoke } = await import("@tauri-apps/api/core");
+  const writes: unknown[][] = [];
+  vi.mocked(invoke).mockImplementation((async (command: string, args?: { launchers?: unknown[] }) => {
+    if (command === "launchers_user_read") {
+      return { exists: true, launchers, error: null };
+    }
+    if (command === "launchers_user_write") {
+      writes.push(args?.launchers ?? []);
+    }
+    return null;
+  }) as never);
+  const { UserLaunchers } = await import("../stores/user_launchers");
+  await UserLaunchers.readOnce();
+  return writes;
+}
+
+/** Opens the window on the custom launcher `id`, after the project is set up by a first window that is closed again. */
+async function mountEditingWindow(id: string) {
+  const first = await mountNewCustomLauncherModal();
+  first.wrapper.unmount();
+  document.body.innerHTML = "";
+  const { newCustomLauncherModal } = await import("../stores/newCustomLauncher");
+  const { default: NewCustomLauncherModal } = await import("./NewCustomLauncherModal.vue");
+  newCustomLauncherModal.editedId = id;
+  newCustomLauncherModal.open = true;
+  const wrapper = mount(NewCustomLauncherModal, { attachTo: document.body });
+  await flushPromises();
+  return { wrapper, project: first.project };
+}
+
 describe("NewCustomLauncherModal", () => {
   it("is called Create a custom launcher", async () => {
     const { wrapper } = await mountNewCustomLauncherModal();
@@ -47,10 +83,108 @@ describe("NewCustomLauncherModal", () => {
   it("has the kind as radio buttons, then the name, then the command line", async () => {
     const { wrapper } = await mountNewCustomLauncherModal();
     const radios = wrapper.findAll("input[type=radio]");
-    expect(radios.map((radio) => radio.attributes("value"))).toEqual(["commandLine", "codingAgent"]);
+    expect(radios.map((radio) => radio.attributes("value"))).toEqual(["commandLine", "codingAgent", "user", "workspace"]);
     expect(wrapper.get("label[for=new-launcher-name]").text()).toBe("Name");
     expect(wrapper.get("label[for=new-launcher-command]").text()).toBe("Command line");
     expect(wrapper.get("label[for=new-launcher-name]").text()).not.toContain("optional");
+  });
+
+  it("has the level after the kind: the buttons User and Workspace, with the workspace level chosen first", async () => {
+    await useUserLaunchersFile();
+    const { wrapper } = await mountNewCustomLauncherModal();
+    const levelButtons = wrapper.findAll("input[data-launcher-level]");
+    expect(levelButtons.map((button) => button.attributes("value"))).toEqual(["user", "workspace"]);
+    expect(wrapper.text()).toContain("Level");
+    expect(wrapper.text()).toContain("User");
+    expect(wrapper.text()).toContain("Workspace");
+    expect((wrapper.get("input[data-launcher-level=workspace]").element as HTMLInputElement).checked).toBe(true);
+    expect((wrapper.get("input[data-launcher-level=user]").element as HTMLInputElement).checked).toBe(false);
+    const text = wrapper.text();
+    expect(text.indexOf("Kind")).toBeLessThan(text.indexOf("Level"));
+    expect(text.indexOf("Level")).toBeLessThan(text.indexOf("Name"));
+  });
+
+  it("says where the custom launcher shows, for the chosen level", async () => {
+    await useUserLaunchersFile();
+    const { wrapper } = await mountNewCustomLauncherModal();
+    expect(wrapper.get("[data-launcher-level-hint]").text()).toContain("shows only in the workspace");
+    await wrapper.get("input[data-launcher-level=user]").setValue(true);
+    expect(wrapper.get("[data-launcher-level-hint]").text()).toContain("shows in every workspace");
+    await wrapper.get("input[data-launcher-level=workspace]").setValue(true);
+    expect(wrapper.get("[data-launcher-level-hint]").text()).toContain("shows only in the workspace");
+  });
+
+  it("creates a custom launcher of the workspace level in the project, and writes nothing to the file of the user level", async () => {
+    const writes = await useUserLaunchersFile();
+    const { wrapper, project } = await mountNewCustomLauncherModal();
+    await wrapper.get("#new-launcher-name").setValue("only here");
+    await wrapper.get("#new-launcher-command").setValue("make here");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(project.byWorkspace["w1"]!.config.launchers.map((launcher) => launcher.label)).toEqual(["start the server", "only here"]);
+    expect(writes).toEqual([]);
+  });
+
+  it("creates a custom launcher of the user level in the file of the user level, and not in the project", async () => {
+    const writes = await useUserLaunchersFile([{ id: "old", label: "old one", command: "make old" }]);
+    const { wrapper, project, newCustomLauncherModal } = await mountNewCustomLauncherModal();
+    await wrapper.get("input[data-launcher-level=user]").setValue(true);
+    await wrapper.get("#new-launcher-name").setValue("everywhere");
+    await wrapper.get("#new-launcher-command").setValue("make everywhere");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(project.byWorkspace["w1"]!.config.launchers).toHaveLength(1);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toHaveLength(2);
+    expect(writes[0][1]).toMatchObject({ label: "everywhere", command: "make everywhere" });
+    expect(newCustomLauncherModal.open).toBe(false);
+  });
+
+  it("creates a custom launcher of the user level of the kind Coding agent, with its folder", async () => {
+    const writes = await useUserLaunchersFile();
+    const { wrapper } = await mountNewCustomLauncherModal();
+    await wrapper.get("input[data-launcher-level=user]").setValue(true);
+    await wrapper.get("input[name=new-launcher-kind][value=codingAgent]").setValue(true);
+    await wrapper.get("#new-launcher-name").setValue("review");
+    await wrapper.get("#new-launcher-folder").setValue("web");
+    await wrapper.get("#new-launcher-prompt").setValue("Review the last commit.");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(writes).toHaveLength(1);
+    expect(writes[0][0]).toMatchObject({ label: "review", cwd: "web", agent: { prompt: "Review the last commit." } });
+  });
+
+  it("edits a custom launcher of the user level: the level User is chosen, and the change stays in the file", async () => {
+    const writes = await useUserLaunchersFile([{ id: "u1", label: "everywhere", command: "make everywhere" }]);
+    const { wrapper, project } = await mountEditingWindow("u1");
+    expect((wrapper.get("input[data-launcher-level=user]").element as HTMLInputElement).checked).toBe(true);
+    expect((wrapper.get("#new-launcher-name").element as HTMLInputElement).value).toBe("everywhere");
+    await wrapper.get("#new-launcher-name").setValue("everywhere now");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(writes).toEqual([[{ id: "u1", label: "everywhere now", command: "make everywhere" }]]);
+    expect(project.byWorkspace["w1"]!.config.launchers).toHaveLength(1);
+  });
+
+  it("moves a custom launcher of the workspace level to the user level when the person chooses User", async () => {
+    const writes = await useUserLaunchersFile();
+    const { wrapper, project } = await mountEditingWindow("dev");
+    expect((wrapper.get("input[data-launcher-level=workspace]").element as HTMLInputElement).checked).toBe(true);
+    await wrapper.get("input[data-launcher-level=user]").setValue(true);
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(writes).toEqual([[{ id: "dev", label: "start the server", command: "make dev" }]]);
+    expect(project.byWorkspace["w1"]!.config.launchers).toEqual([]);
+  });
+
+  it("moves a custom launcher of the user level to the workspace level when the person chooses Workspace", async () => {
+    const writes = await useUserLaunchersFile([{ id: "u1", label: "everywhere", command: "make everywhere" }]);
+    const { wrapper, project } = await mountEditingWindow("u1");
+    await wrapper.get("input[data-launcher-level=workspace]").setValue(true);
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(project.byWorkspace["w1"]!.config.launchers.map((launcher) => launcher.id)).toEqual(["dev", "u1"]);
+    expect(writes).toEqual([[]]);
   });
 
   it("puts the focus in the name field", async () => {

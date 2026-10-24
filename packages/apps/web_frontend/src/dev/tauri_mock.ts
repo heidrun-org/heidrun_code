@@ -112,6 +112,13 @@ export class TauriMock {
 			case 'project_save':
 				TauriMockFixture.setProjectConfig((payload as { config: unknown }).config);
 				return null;
+			case 'launchers_user_read':
+				return TauriMockFixture.buildUserLaunchersFile();
+			case 'launchers_user_write':
+				TauriMockFixture.setUserLaunchers((payload as { launchers: unknown[] }).launchers);
+				return null;
+			case 'launcher_folder_exists':
+				return true;
 			case 'chat_references_synchronize':
 				return { repository: 'heidrun-org/heidrun', codeHostingError: null };
 			case 'chat_references_find':
