@@ -15,5 +15,7 @@
   "menu.delete": "Supprimer",
   "runInTab": "Lancer dans son onglet",
   "menu.edit": "Modifier",
-  "importTitle": "Importer les lanceurs du projet"
+  "importTitle": "Importer les lanceurs du projet",
+  "levelUser": "Niveau utilisateur",
+  "levelUserTitle": "Ce lanceur personnalisé apparaît dans chaque espace de travail."
 }

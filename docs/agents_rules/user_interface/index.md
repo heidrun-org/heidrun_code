@@ -1,7 +1,7 @@
 # User interface rules index
 
 - Created: 13 October 2026
-- Last updated: 23 October 2026
+- Last updated: 24 October 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../glossary/index.md)
@@ -11,6 +11,6 @@ This file lists the files and the subfolders of this folder, for agents and tool
 
 - [README.md](README.md): the overview of this folder, for people.
 - [heidrun_code_mobile/](heidrun_code_mobile/index.md): the screens of Heidrun Code Mobile, the mobile website on the phone.
-- [sidebars/](sidebars/index.md): the sidebars, the Source control section, the Code hosting section, and the Past chats section.
+- [sidebars/](sidebars/index.md): the sidebars, the Launchers section, the Source control section, the Code hosting section, and the Past chats section.
 - [window/](window/index.md): the layout, the status bar, the Statistics window, the Settings window, and the state of the window.
 - [workspaces_tabs_and_panes/](workspaces_tabs_and_panes/index.md): the workspace, the tabs, and the panes.

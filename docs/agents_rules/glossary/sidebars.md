@@ -1,11 +1,11 @@
 # Glossary of Heidrun Code: sidebars
 
 - Created: 14 October 2026
-- Last updated: 23 October 2026
+- Last updated: 24 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: sidebars](../user_interface/sidebars/index.md)
-- Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 425](https://github.com/heidrun-org/heidrun/issues/425), [issue 430](https://github.com/heidrun-org/heidrun/issues/430), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 446](https://github.com/heidrun-org/heidrun/issues/446), [issue 714](https://github.com/heidrun-org/heidrun/issues/714)
+- Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 425](https://github.com/heidrun-org/heidrun/issues/425), [issue 430](https://github.com/heidrun-org/heidrun/issues/430), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 446](https://github.com/heidrun-org/heidrun/issues/446), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 853](https://github.com/heidrun-org/heidrun_code/issues/853)
 
 This document gives one short definition for each word of the sidebars and their sidebar sections. The other words of Heidrun Code are in [index.md](index.md).
 
@@ -33,7 +33,7 @@ The sidebar section of the left sidebar that lists the launchers of the selected
 
 ### Launcher
 
-One item of the Launchers sidebar section: a name, a command line, and an optional folder, saved in the list `launchers` of the file `.heidrun/config.json`. A click on its button "Run" runs its command line in its own tab. A launcher is not a `script` of a file `package.json`: the window "Import launchers" reads those `scripts`, and it makes launchers from them. It replaces the word "script" and the word "action" for this item.
+One item of the Launchers sidebar section: a name, a command line, and an optional folder. A launcher has one of two levels: the user level, shown in every workspace and saved in the file `launchers.json` of the folder of the data of Heidrun Code, and the workspace level, shown only in one workspace and saved in the list `launchers` of the file `.heidrun/config.json`. The rules are in [launchers.md](../user_interface/sidebars/launchers.md). A click on its button "Run" runs its command line in its own tab. A launcher is not a `script` of a file `package.json`: the window "Import launchers" reads those `scripts`, and it makes launchers from them. It replaces the word "script" and the word "action" for this item.
 
 ### Source control sidebar section
 

@@ -1,10 +1,10 @@
 # User interface of Heidrun Code Mobile: the screens
 
 - Created: 16 October 2026
-- Last updated: 23 October 2026
+- Last updated: 24 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun Code: Heidrun Code Mobile](../../glossary/heidrun_code_mobile.md)
+- Related rules: [Glossary of Heidrun Code: Heidrun Code Mobile](../../glossary/heidrun_code_mobile.md), [User interface of Heidrun Code: launchers](../sidebars/launchers.md)
 - Related issue: [issue 581](https://github.com/heidrun-org/heidrun/issues/581)
 
 This file gives the rules of each screen of the mobile website of Heidrun Code Mobile. The code is in [mobile_website](../../../../packages/auxiliary/mobile_website/CONTEXT.md).
@@ -60,7 +60,7 @@ Every pane, grouped by workspace and then by tab, with a status dot. A pane that
 
 ## Launchers
 
-- The launchers of the project of each workspace, with the status "Not started", "Running", or "Finished", and the description or else the command.
+- The launchers of each workspace, the launchers of the user level first and then the launchers of the workspace level (see [launchers.md](../sidebars/launchers.md)), with the status "Not started", "Running", or "Finished", and the description or else the command.
 - The button Run runs the command of the launcher in its own tab on the computer, like the Launchers sidebar section. The button Stop sends Ctrl+C to the tab of a running launcher.
 
 ## The guards

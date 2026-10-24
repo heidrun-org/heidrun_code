@@ -11,8 +11,15 @@ import { t } from "../i18n/index";
 import { parseProjectConfig, type Launcher, type ProjectConfig, type ProjectGuard, type LauncherAgent } from "../lib/project_config";
 import { withBuiltInGuard, withProjectGuard, withoutProjectGuard } from "../lib/guards_edit";
 import { launcherNameFromCommand } from "../lib/launcher_name";
+import { UserLaunchers, userLaunchers } from "./user_launchers";
 
 export type { Launcher };
+
+/**
+ * The level of a custom launcher: "user" shows in every workspace, and "workspace" shows only in the workspace where the
+ * developer created it (issue #853).
+ */
+export type LauncherLevel = "user" | "workspace";
 
 export interface Detected {
   label: string;
@@ -89,11 +96,24 @@ export function launcherKey(launcher: { command: string; cwd?: string }): string
   return `${launcher.cwd ?? ""}\n${launcher.command}`;
 }
 
-/** The detected commands that are not yet launchers of the current project. */
+/**
+ * The launchers that a workspace shows: the launchers of the user level first, then the launchers of the workspace level,
+ * each group in the order of saving.
+ */
+export function launchersOf(workspaceId: string): Launcher[] {
+  return [...userLaunchers.list, ...(project.byWorkspace[workspaceId]?.config.launchers ?? [])];
+}
+
+/** The level of a launcher: "user" when the file of the user level has a launcher with this identifier, else "workspace". */
+export function launcherLevel(launcher: Launcher): LauncherLevel {
+  return userLaunchers.list.some((userLauncher) => userLauncher.id === launcher.id) ? "user" : "workspace";
+}
+
+/** The detected commands that are not yet launchers of the current project, at either level. */
 export function withoutImportedLaunchers(detected: Detected[]): Detected[] {
   const p = currentProject.value;
-  if (!p) return [];
-  const taken = new Set(p.config.launchers.map(launcherKey));
+  if (!p || !session.selectedWorkspaceId) return [];
+  const taken = new Set(launchersOf(session.selectedWorkspaceId).map(launcherKey));
   return detected.filter((d) => !taken.has(launcherKey(d)));
 }
 
@@ -104,16 +124,27 @@ function slug(label: string): string {
   return `${base}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+/** An identifier that no launcher of the workspace has, at either level. */
+function freshLauncherId(workspaceId: string, name: string): string {
+  const taken = new Set(launchersOf(workspaceId).map((launcher) => launcher.id));
+  let id = slug(name);
+  while (taken.has(id)) {
+    id = slug(name);
+  }
+  return id;
+}
+
 /**
  * Adds a custom launcher. Without a name, the name is the first 20 characters of the command. With `agent`, the launcher is of
  * the kind Coding agent: its command is the command line that starts the coding agent, and `cwd` is its folder.
- * `description` is optional text on several lines.
+ * `description` is optional text on several lines. `level` is "workspace" (the key `launchers` of the file
+ * `.heidrun/config.json` of the project) or "user" (the file `launchers.json` of the folder of the data of Heidrun Code).
  */
-export async function addLauncher(workspaceId: string, label: string, command: string, agent?: LauncherAgent, cwd?: string, description?: string) {
+export async function addLauncher(workspaceId: string, label: string, command: string, agent?: LauncherAgent, cwd?: string, description?: string, level: LauncherLevel = "workspace") {
   const p = project.byWorkspace[workspaceId];
   if (!p || !command.trim()) return;
   const name = label.trim() || launcherNameFromCommand(command);
-  const launcher: Launcher = { id: slug(name), label: name, command: command.trim() };
+  const launcher: Launcher = { id: freshLauncherId(workspaceId, name), label: name, command: command.trim() };
   if (agent !== undefined) {
     launcher.agent = agent;
   }
@@ -123,6 +154,10 @@ export async function addLauncher(workspaceId: string, label: string, command: s
   if (cwd !== undefined && cwd.trim() !== "") {
     launcher.cwd = cwd.trim();
   }
+  if (level === "user") {
+    await UserLaunchers.change((list) => [...list, launcher]);
+    return;
+  }
   p.config.launchers.push(launcher);
   await saveProject(workspaceId);
 }
@@ -130,18 +165,51 @@ export async function addLauncher(workspaceId: string, label: string, command: s
 export async function removeLauncher(workspaceId: string, id: string) {
   const p = project.byWorkspace[workspaceId];
   if (!p) return;
-  p.config.launchers = p.config.launchers.filter((a) => a.id !== id);
   delete project.panes[`${workspaceId}:${id}`];
+  if (userLaunchers.list.some((launcher) => launcher.id === id)) {
+    await UserLaunchers.change((list) => list.filter((launcher) => launcher.id !== id));
+    return;
+  }
+  p.config.launchers = p.config.launchers.filter((a) => a.id !== id);
   await saveProject(workspaceId);
 }
 
-/** Replaces the values of the custom launcher `id`. A field that `values` does not have is removed from the launcher. */
-export async function updateLauncher(workspaceId: string, id: string, values: Omit<Launcher, "id">) {
+/**
+ * Replaces the values of the custom launcher `id`. A field that `values` does not have is removed from the launcher. With
+ * `level`, the launcher moves to the end of the launchers of this level; without it, the launcher keeps its level and its
+ * place. The launcher is written at its new level first, so a failure never loses it.
+ */
+export async function updateLauncher(workspaceId: string, id: string, values: Omit<Launcher, "id">, level?: LauncherLevel) {
   const p = project.byWorkspace[workspaceId];
-  const index = p?.config.launchers.findIndex((x) => x.id === id) ?? -1;
-  if (p === undefined || index === -1) return;
-  p.config.launchers[index] = { id, ...values };
-  await saveProject(workspaceId);
+  if (p === undefined) return;
+  const isUser = userLaunchers.list.some((launcher) => launcher.id === id);
+  const index = p.config.launchers.findIndex((x) => x.id === id);
+  if (isUser === false && index === -1) return;
+  const launcher: Launcher = { id, ...values };
+  const oldLevel: LauncherLevel = isUser ? "user" : "workspace";
+  const newLevel = level ?? oldLevel;
+  if (newLevel === oldLevel) {
+    if (isUser) {
+      await UserLaunchers.change((list) => list.map((x) => (x.id === id ? launcher : x)));
+    } else {
+      p.config.launchers[index] = launcher;
+      await saveProject(workspaceId);
+    }
+    return;
+  }
+  if (newLevel === "user") {
+    if ((await UserLaunchers.change((list) => [...list, launcher])) === false) return;
+    p.config.launchers = p.config.launchers.filter((x) => x.id !== id);
+    await saveProject(workspaceId);
+    return;
+  }
+  const oldWorkspaceLaunchers = p.config.launchers;
+  p.config.launchers = [...oldWorkspaceLaunchers, launcher];
+  if ((await saveProject(workspaceId)) === false) {
+    p.config.launchers = oldWorkspaceLaunchers;
+    return;
+  }
+  await UserLaunchers.change((list) => list.filter((x) => x.id !== id));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -198,6 +266,15 @@ export function removeProjectGuard(workspaceId: string, name: string): Promise<b
   return changeGuards(workspaceId, (guards) => withoutProjectGuard(guards, name));
 }
 
+/** Does the desktop application say that the folder `folder` is not in `root`? An unknown answer is not a missing folder. */
+async function isFolderMissing(root: string, folder: string): Promise<boolean> {
+  try {
+    return (await invoke<boolean>("launcher_folder_exists", { root, folder })) === false;
+  } catch {
+    return false;
+  }
+}
+
 export function launcherPane(workspaceId: string, launcher: Launcher) {
   const paneId = project.panes[`${workspaceId}:${launcher.id}`];
   return paneId ? allPanes.value.find((p) => p.pane_id === paneId) ?? null : null;
@@ -231,6 +308,10 @@ export async function runLauncher(workspaceId: string, launcher: Launcher, rerun
   const cwd = existing
     ? existing.foreground_cwd || existing.cwd || null
     : launcher.cwd ? `${p.root.replace(/\/$/, "")}/${launcher.cwd}` : p.root;
+  if (existing === null && launcher.cwd && launcherLevel(launcher) === "user" && (await isFolderMissing(p.root, launcher.cwd))) {
+    toast(t("projectStore.launcherFolderMissing", { launcher: launcher.label, folder: launcher.cwd, workspace: workspaceLabel(workspaceId) }));
+    return;
+  }
   // A click that will type the command: through the guards first.
   const willType = launcherWillType(workspaceId, launcher, rerun);
   if (willType && !checked && !(await allowCommand(launcher.command, cwd, `${workspaceLabel(workspaceId)} · ${launcher.label}`))) return;
@@ -334,6 +415,7 @@ let started = false;
 export function startProjects() {
   if (started) return;
   started = true;
+  UserLaunchers.startReading();
   window.setInterval(pollBusy, 2500);
   window.setInterval(() => void reloadProjectWhenFileChanged(), CONFIG_READ_INTERVAL);
   // Load the project file of the workspace in view (launchers, badge, palette).

@@ -48,7 +48,10 @@ The Launchers sidebar section, in the left sidebar, lists the launchers of the s
 - Import launchers from the scripts of the file `package.json` in one click.
 - Create a custom launcher that runs a command line, or a coding agent with a prompt.
 
-Heidrun Code saves the launchers in the file `.heidrun/config.json` of the repository, so your team shares them.
+A launcher has one of two levels. Choose the level when you create a custom launcher, and change it later when you edit the custom launcher.
+
+- A launcher of the workspace level shows only in its workspace. Heidrun Code saves it in the file `.heidrun/config.json` of the repository, so your team shares it.
+- A launcher of the user level shows in every workspace. Heidrun Code saves it in the file `launchers.json` in its data folder on your computer, so it is not shared. Its folder, when it has one, is read from the root of each workspace.
 
 ![The Launchers sidebar section with five launchers, each with its description and its button Run.](/screenshots/features/launchers.png){width=300}
 

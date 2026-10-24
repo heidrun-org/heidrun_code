@@ -17,7 +17,8 @@ A Rust library and the `heidrun_code_ctrl` command line for controlling Heidrun 
 - Hard-coded macros live only in `src/hard_coded_macros.rs`. The application reads them through `macros_hard_coded`; no command changes them.
 - Personal macros live in `HEIDRUN_CODE_DIR/macros.json`, or `~/.config/heidrun_code/macros.json`. The desktop application uses this library to read and write them.
 - Project macros live in the `prompts` key of `.heidrun/config.json`; changes keep the other keys, their order, and unknown macro fields.
-- Launchers live in the `launchers` key of `.heidrun/config.json`; changes keep other keys, their order, and unknown launcher fields. The old `actions` key is read and replaced on write; a file with both keys is an error.
+- Workspace level launchers live in the `launchers` key of `.heidrun/config.json`; changes keep other keys, their order, and unknown launcher fields. The old `actions` key is read and replaced on write; a file with both keys is an error.
+- User level launchers live in `HEIDRUN_CODE_DIR/launchers.json`, or `~/.config/heidrun_code/launchers.json`, as a JSON list; `desktop_tauri` uses `read_user_launchers` and `write_user_launchers`, and the group `launchers` never changes it.
 - A launcher of the kind Coding agent keeps its `agent` field; `launchers update` refuses `--command` for it. `launchers add` makes only command line launchers, and `launchers delete` does not close a tab.
 - A new launcher's default name is the first 20 characters of its command line on one line. Its id is the lowercase name with dashes, then a dash and four characters, as in `stores/project.ts` of `web_frontend`.
 - The word replacement list of the voice input lives in `HEIDRUN_CODE_DIR/voice_words.json`, or `~/.config/heidrun_code/voice_words.json`: a JSON list of entries with the fields `id`, `whisper_writes`, and `heidrun_writes`. The group `voice_words` and `desktop_tauri` use the same four orders. An order refuses an empty text that Whisper writes, and a second entry with the same text (the case does not count); an empty text that Heidrun Code writes is allowed. The rules of the matching are in `voice_input`.
@@ -35,4 +36,4 @@ A Rust library and the `heidrun_code_ctrl` command line for controlling Heidrun 
 - The `SKILL.md` follows the layout of [heidrun_code_data](../../data_layers/heidrun_code_data/CONTEXT.md), from [issue #564](https://github.com/heidrun-org/heidrun/issues/564).
 - The Agent Plugin comes from [issue #679](https://github.com/heidrun-org/heidrun/issues/679).
 
-- The workspace commands come from [issue #657](https://github.com/heidrun-org/heidrun/issues/657). The group `voice_words` comes from [issue #836](https://github.com/heidrun-org/heidrun_code/issues/836).
+- The workspace commands come from [issue #657](https://github.com/heidrun-org/heidrun/issues/657). The group `voice_words` comes from [issue #836](https://github.com/heidrun-org/heidrun_code/issues/836). The user level file comes from [issue #853](https://github.com/heidrun-org/heidrun_code/issues/853).
