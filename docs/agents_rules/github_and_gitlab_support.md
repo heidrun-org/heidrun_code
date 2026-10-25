@@ -21,7 +21,7 @@ This file gives the rule for every agent that adds support for GitHub. Heidrun C
 
 - Every read of an issue, of a pull request, of a merge request, or of a list of them in the web page of the application goes through the function `runForgeCli` of `packages/apps/web_frontend/src/lib/forge_cli.ts`, which calls the Tauri command `forge_cli_cached`. No other code calls `gh` or `glab` for these reads, because each call to GitHub takes points of the GitHub rate limit, which every project and every coding agent of the account share ([issue 870](https://github.com/heidrun-org/heidrun_code/issues/870)).
 - The cache keeps an answer for ten minutes by default. With the option `isKeptUntilRefresh`, the kept answer is used whatever its age, and only a click on "Refresh" asks the hosting service again. With the option `isRefresh`, the hosting service is asked again.
-- The packages of the folder `packages/data_layers` are outside this rule: they copy GitHub into their SQLite file, which is their own cache.
+- The packages of the folder `submodules/heidrun_data/packages` are outside this rule: they copy GitHub into their SQLite file, which is their own cache.
 - Each call to `gh` or `glab` of the application writes a start line and an end line in the application log, as [application_log.md](application_log.md) says.
 
 ## The words

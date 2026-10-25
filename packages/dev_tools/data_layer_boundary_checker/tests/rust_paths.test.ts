@@ -48,14 +48,14 @@ describe('RustPaths.find', () => {
 		expect(pathTexts('pub(crate) fn f() { let data_layer_value = 1; }')).toEqual([]);
 	});
 
-	it('reads the path of heidrun_code_data', () => {
-		expect(pathTexts('let guard = heidrun_code_data::lock_database(path)?;')).toEqual(['heidrun_code_data::lock_database']);
+	it('reads the path of heidrun_data', () => {
+		expect(pathTexts('let guard = heidrun_data::lock_database(path)?;')).toEqual(['heidrun_data::lock_database']);
 	});
 });
 
 describe('RustPaths.isPackageName', () => {
-	it('is true for heidrun_code_data and for the names that start with data_layer_', () => {
-		expect(RustPaths.isPackageName('heidrun_code_data')).toBe(true);
+	it('is true for heidrun_data and for the names that start with data_layer_', () => {
+		expect(RustPaths.isPackageName('heidrun_data')).toBe(true);
 		expect(RustPaths.isPackageName('data_layer_code_hosting')).toBe(true);
 		expect(RustPaths.isPackageName('crate')).toBe(false);
 		expect(RustPaths.isPackageName('serde')).toBe(false);

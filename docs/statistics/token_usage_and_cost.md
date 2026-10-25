@@ -1,13 +1,13 @@
 # Token usage and cost
 
 - Created: 17 October 2026
-- Last updated: 17 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained description of the stored token usage and of the estimated cost
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Source "AI cost"](../agents_rules/user_interface/window/statistics_ai_cost.md), [Workspace selector](../agents_rules/user_interface/window/statistics_person_work_workspace.md), [Glossary of Heidrun Code: work of one person](../agents_rules/glossary/person_work.md)
 - Related issue: [issue 616](https://github.com/heidrun-org/heidrun/issues/616), [issue 482](https://github.com/heidrun-org/heidrun/issues/482), [issue 559](https://github.com/heidrun-org/heidrun/issues/559)
 
-This file says how Heidrun Code stores the tokens that the coding agents used, how it turns them into an estimated cost in US dollars, and how to ask for them. The package [`data_layer_coding_agents`](../../packages/data_layers/data_layer_coding_agents/README.md) owns the tables. The command `usage` of [`heidrun_code_data`](../../packages/data_layers/heidrun_code_data/README.md) and the source "AI cost" of the Statistics window read them. The general rules of the data layers are in [the_four_data_layers.md](the_four_data_layers.md).
+This file says how Heidrun Code stores the tokens that the coding agents used, how it turns them into an estimated cost in US dollars, and how to ask for them. The package [`data_layer_coding_agents`](../../submodules/heidrun_data/packages/data_layer_coding_agents/README.md) owns the tables. The command `usage` of [`heidrun_data`](../../submodules/heidrun_data/packages/heidrun_data/README.md) and the source "AI cost" of the Statistics window read them. The general rules of the data layers are in [the_four_data_layers.md](the_four_data_layers.md).
 
 ## What is stored
 
@@ -86,21 +86,21 @@ The plan is `SEARCH token_usage_minutes USING INDEX token_usage_minutes_by_minut
 The repository is `jeromeetienne/teamwright`, and its folder is `/Users/jetienne/webwork/teamwright`. The values below are those of the history of 17 October 2026. They grow as the history grows. Run the commands from the root of the repository of Heidrun Code. Read the history once before the first question. Later, the mode `update` reads only what changed:
 
 ```sh
-pnpm --silent data_layer:heidrun_code_data initialize coding_agents --repository jeromeetienne/teamwright --folder /Users/jetienne/webwork/teamwright
+pnpm --silent data_layer:heidrun_data initialize coding_agents --repository jeromeetienne/teamwright --folder /Users/jetienne/webwork/teamwright
 ```
 
 The tokens and the cost of 30 days, for each day of Paris, hour, or minute:
 
 ```sh
-pnpm --silent data_layer:heidrun_code_data usage --folder /Users/jetienne/webwork/teamwright --repository jeromeetienne/teamwright --since 2026-09-17 --until 2026-10-17 --time-zone Europe/Paris --by day --format table
-pnpm --silent data_layer:heidrun_code_data usage --folder /Users/jetienne/webwork/teamwright --repository jeromeetienne/teamwright --since 2026-09-17 --until 2026-10-17 --time-zone Europe/Paris --by hour --format jsonl
-pnpm --silent data_layer:heidrun_code_data usage --folder /Users/jetienne/webwork/teamwright --repository jeromeetienne/teamwright --since 2026-09-17 --until 2026-10-17 --time-zone Europe/Paris --by minute --format jsonl
+pnpm --silent data_layer:heidrun_data usage --folder /Users/jetienne/webwork/teamwright --repository jeromeetienne/teamwright --since 2026-09-17 --until 2026-10-17 --time-zone Europe/Paris --by day --format table
+pnpm --silent data_layer:heidrun_data usage --folder /Users/jetienne/webwork/teamwright --repository jeromeetienne/teamwright --since 2026-09-17 --until 2026-10-17 --time-zone Europe/Paris --by hour --format jsonl
+pnpm --silent data_layer:heidrun_data usage --folder /Users/jetienne/webwork/teamwright --repository jeromeetienne/teamwright --since 2026-09-17 --until 2026-10-17 --time-zone Europe/Paris --by minute --format jsonl
 ```
 
 The three groupings give 28 days with tokens, 354 hours, and 10037 minutes, and the same total in each: 8444959890 tokens and 2468.41 US dollars. The cost of each chat session in the same time range:
 
 ```sh
-pnpm --silent data_layer:heidrun_code_data usage --folder /Users/jetienne/webwork/teamwright --repository jeromeetienne/teamwright --since 2026-09-17 --until 2026-10-17 --time-zone Europe/Paris --by day --by-chat --format jsonl
+pnpm --silent data_layer:heidrun_data usage --folder /Users/jetienne/webwork/teamwright --repository jeromeetienne/teamwright --since 2026-09-17 --until 2026-10-17 --time-zone Europe/Paris --by day --by-chat --format jsonl
 ```
 
 The command `query` runs SQL. The same total with SQL:
@@ -157,7 +157,7 @@ WHERE repository = 'jeromeetienne/teamwright'
   AND minuteAt >= '2026-09-16T22:00:00.000Z' AND minuteAt < '2026-10-16T22:00:00.000Z';
 ```
 
-Run a SQL example with `pnpm --silent data_layer:heidrun_code_data query --format table "<sql>"`.
+Run a SQL example with `pnpm --silent data_layer:heidrun_data query --format table "<sql>"`.
 
 ## The Statistics window
 
@@ -180,7 +180,7 @@ The measurements use the Teamwright history on the computer of the developer, wi
 | Incremental `update`, nothing new | 1 chat session read | 1.0 second |
 | Incremental `update`, the chat sessions of the last 7 days | 430 chat sessions read, no row changed | 4.6 seconds |
 | Fetch of the price list | network, 2.9 megabytes | 0.13 seconds |
-| Retrieval of the 30 days with `heidrun_code_data usage`, tokens and dollars, whole process | by day, 28 rows | 49 milliseconds (median of 7 runs) |
+| Retrieval of the 30 days with `heidrun_data usage`, tokens and dollars, whole process | by day, 28 rows | 49 milliseconds (median of 7 runs) |
 | | by hour, 354 rows | 47 milliseconds |
 | | by minute, 10037 rows | 69 milliseconds |
 | One SQL statement on the file, without the start of a program | any of the examples above | 11 to 21 milliseconds |
@@ -199,11 +199,11 @@ The totals are not the same as those of the old path for two reasons. The old pa
 
 | Part | Place |
 | --- | --- |
-| The tables, the index, and the views | `packages/data_layers/data_layer_coding_agents/src/storage/token_usage_schema.rs` |
-| The rows and the queries | `packages/data_layers/data_layer_coding_agents/src/storage/token_usage_database.rs` and `usage_grouping.rs` |
-| The reading of the chat session files | `packages/data_layers/data_layer_coding_agents/src/coding_agents/token_usage_reader.rs` |
-| The prices | `packages/data_layers/data_layer_coding_agents/src/pricing/` and `src/storage/model_price_database.rs` |
-| The command `usage` | `packages/data_layers/heidrun_code_data/src/usage.rs` |
+| The tables, the index, and the views | `submodules/heidrun_data/packages/data_layer_coding_agents/src/storage/token_usage_schema.rs` |
+| The rows and the queries | `submodules/heidrun_data/packages/data_layer_coding_agents/src/storage/token_usage_database.rs` and `usage_grouping.rs` |
+| The reading of the chat session files | `submodules/heidrun_data/packages/data_layer_coding_agents/src/coding_agents/token_usage_reader.rs` |
+| The prices | `submodules/heidrun_data/packages/data_layer_coding_agents/src/pricing/` and `src/storage/model_price_database.rs` |
+| The command `usage` | `submodules/heidrun_data/packages/heidrun_data/src/usage.rs` |
 | The commands of the application | `packages/apps/desktop_tauri/src/statistics/ai_cost.rs`, and `past_chats/chats.rs` for the refresh of the prices in the background |
 | The tab | `packages/apps/web_frontend/src/components/PersonWorkTab.vue` and `lib/ai_cost.ts` |
 

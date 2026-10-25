@@ -128,7 +128,7 @@ export class InstallScriptRunner {
 		Fs.mkdirSync(binariesFolder, {
 			recursive: true,
 		});
-		for (const commandName of ['heidrun_code_ctrl', 'heidrun_code_data']) {
+		for (const commandName of ['heidrun_code_ctrl', 'heidrun_data']) {
 			Fs.writeFileSync(Path.join(binariesFolder, commandName), '#!/bin/sh\n', {
 				mode: 0o755,
 			});

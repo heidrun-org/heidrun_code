@@ -152,9 +152,9 @@ mod tests {
         // application and for the four data layer packages.
         let source_folders = [
             manifest_folder.join("src"),
-            manifest_folder.join("../../data_layers/data_layer_coding_agents/src"),
+            manifest_folder.join("../../../submodules/heidrun_data/packages/data_layer_coding_agents/src"),
             manifest_folder.join("../../auxiliary/mobile_server/src"),
-            manifest_folder.join("../../data_layers/data_layer_operation_log/src"),
+            manifest_folder.join("../../../submodules/heidrun_data/packages/data_layer_operation_log/src"),
         ];
         for file in source_folders.iter().flat_map(|folder| rust_files(folder)) {
             if file.file_name().is_some_and(|name| name == "environment_file.rs") {

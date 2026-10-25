@@ -1,6 +1,5 @@
 packages:
   - packages/apps/*
   - packages/auxiliary/*
-  - packages/data_layers/*
   - packages/dev_tools/*
   - packages/experiments/*

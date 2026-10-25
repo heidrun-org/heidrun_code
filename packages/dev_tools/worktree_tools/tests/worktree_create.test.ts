@@ -106,7 +106,7 @@ describe('WorktreeCreate', () => {
 			});
 			const bundledCommandsPath = TargetPaths.bundledCommandsPath(result.worktreePath);
 			expect(Fs.readFileSync(Path.join(bundledCommandsPath, 'heidrun_code_ctrl'), 'utf8')).toBe('heidrun_code_ctrl');
-			expect(Fs.readFileSync(Path.join(bundledCommandsPath, 'heidrun_code_data'), 'utf8')).toBe('heidrun_code_data');
+			expect(Fs.readFileSync(Path.join(bundledCommandsPath, 'heidrun_data'), 'utf8')).toBe('heidrun_data');
 		});
 
 		it.skipIf(process.platform !== 'darwin')('clones the compiled dependencies of the release folder', () => {

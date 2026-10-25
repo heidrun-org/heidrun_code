@@ -197,8 +197,6 @@ importers:
 
   packages/auxiliary/heidrun_code_ctrl: {}
 
-  packages/auxiliary/heidrun_ctrl: {}
-
   packages/auxiliary/mobile_server: {}
 
   packages/auxiliary/mobile_website:
@@ -244,20 +242,6 @@ importers:
       vue:
         specifier: ^3.5.43
         version: 3.5.43(typescript@5.9.3)
-
-  packages/data_layers/data_layer_code_hosting: {}
-
-  packages/data_layers/data_layer_coding_agents: {}
-
-  packages/data_layers/data_layer_operation_log: {}
-
-  packages/data_layers/data_layer_source_control: {}
-
-  packages/data_layers/data_layer_user_activity: {}
-
-  packages/data_layers/heidrun_code_data: {}
-
-  packages/data_layers/heidrun_data: {}
 
   packages/dev_tools/agents_rules_checker:
     devDependencies:

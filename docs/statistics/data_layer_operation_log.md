@@ -1,7 +1,7 @@
 # The operation log of the data layer
 
 - Created: 17 October 2026
-- Last updated: 18 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained description of the operation log of the data layer
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Rule: every operation of the data layer is recorded in the operation log](../agents_rules/data_layer_operation_log.md), [Glossary of Heidrun Code: the operation log of the data layer](../agents_rules/glossary/data_layer_operation_log.md)
@@ -11,19 +11,19 @@ This file describes the log of the operations that the data layer receives: what
 
 ## The questions that the log answers
 
-- Which program asks the data layer for what, and how often: the desktop application (`heidrun`) or the command line (`heidrun_code_data`), by package, operation name, and pattern of parameters.
+- Which program asks the data layer for what, and how often: the desktop application (`heidrun`) or the command line (`heidrun_data`), by package, operation name, and pattern of parameters.
 - Which operations are slow, and which part is slow: the collection from a source, the write in the SQLite file, the wait for the lock, or the query on the stored data.
 - Which operations repeat the same thing, which fail, and which never ended.
 - What a change of the code does to the timings: a recorded operation runs again, and the original time sits next to the replay time.
 
 ## What is recorded
 
-Every call of a public function of the four data layer packages and of `heidrun_code_data` is an operation. The library [`data_layer_operation_log`](../../packages/data_layers/data_layer_operation_log/README.md) writes two lines in the file `data_layer_operations.jsonl`, in the folder of the variable `HEIDRUN_CODE_DIR` (default `~/.config/heidrun_code`): a start line before the operation, and a completion line after it. The lines are JSON, one object on each line, and the field `v` holds the version of the format (now 2).
+Every call of a public function of the four data layer packages and of `heidrun_data` is an operation. The library [`data_layer_operation_log`](../../submodules/heidrun_data/packages/data_layer_operation_log/README.md) writes two lines in the file `data_layer_operations.jsonl`, in the folder of the variable `HEIDRUN_CODE_DIR` (default `~/.config/heidrun_code`): a start line before the operation, and a completion line after it. The lines are JSON, one object on each line, and the field `v` holds the version of the format (now 2).
 
 | Start event field | Meaning |
 | --- | --- |
 | `operationId`, `parentOperationId` | The identifier of the operation, and the identifier of the operation that was running on the same thread. An operation with a parent is a nested operation. |
-| `caller` | `heidrun` for the desktop application, `heidrun_code_data` for the command line, or the value of `HEIDRUN_CODE_OPERATION_LOG_CALLER`. |
+| `caller` | `heidrun` for the desktop application, `heidrun_data` for the command line, or the value of `HEIDRUN_CODE_OPERATION_LOG_CALLER`. |
 | `origin`, `replayOf` | `application`, or `replay` with the identifier of the original operation. |
 | `package`, `operationName`, `kind` | The package without the prefix `data_layer_`, the stable name of the public function that the operation calls, and `query`, `collection`, `synchronization`, `write`, or `lock`. |
 | `parameters`, `pattern` | The values that decide the workload (the repository, the dates, the grouping, the mode, the SQL statement, the path of the SQLite file), and the text that groups the operations that ask for the same thing: the SQL statement without its values, then the choices. |
@@ -49,19 +49,19 @@ Each name in the table is the operation name of the operations that call that fu
 | `code_hosting` | `refresh_code_hosting`, `synchronize` | `read_issues`, `read_pull_requests` | `upsert_issues`, `upsert_pull_requests` | `find_issues_opened_between`, `find_pull_requests_opened_between`, `find_issues_by_numbers`, `find_pull_requests_by_numbers`, `count_rows_without_label_colors`, `has_table`, `find_last_updated_at`, `count_rows`, `find_issue`, `find_pull_request`, `query` |
 | `user_activity` | `refresh_user_activity`, `synchronize` | `read_file` | `upsert_records` | `find_user_activity_records`, `find_records_overlapping`, `has_table`, `find_latest_ended_at`, `count_records`, `find_record`, `query` |
 | `coding_agents` | `refresh_chat_sessions`, `refresh_ai_cost`, `refresh_model_prices`, `refresh_model_prices_when_due`, `synchronize`, `synchronize_configuration`, `synchronize_token_usage`, `refresh_prices` | `read_chat_session_files`, `read_token_usage`, `read_configuration`, `find_claude_session_files`, `find_codex_session_files` | `upsert_chat_sessions`, `delete_chat_sessions_not_in`, `write_token_usage`, `write_configuration` | `find_chat_list`, `find_ai_cost`, `find_usage`, `find_chat_session`, `find_chat_sessions_in_folder`, `find_relations`, `find_relations_in_folder`, `has_chat_sessions_table`, `find_last_updated_at`, `find_last_updated_at_in_folder`, `count_rows`, `find_synchronization`, `find_synchronizations`, `find_latest_synchronization_of_folder`, `find_latest_price_version`, `load_latest_price_table`, `count_configuration_rows`, `find_configuration_item`, `explain_usage_query`, `query` |
-| `heidrun_code_data` | `synchronize` | `read_chat_session`, `read_commit`, `read_code_hosting`, `read_pull_request_diff`, `read_file_history` | none | `query`, `summarize_sources`, `read_usage` |
+| `heidrun_data` | `synchronize` | `read_chat_session`, `read_commit`, `read_code_hosting`, `read_pull_request_diff`, `read_file_history` | none | `query`, `summarize_sources`, `read_usage` |
 
 The desktop application calls only the functions `refresh_*` and `find_*` of the four packages ([data layer access](../agents_rules/data_layer_access.md)), so each of those calls is the top-level operation of a desktop call, and the lower operations of the table are nested inside it. A `refresh_*` call is a synchronization. When it chooses its mode while it runs (`refresh_code_hosting` and `refresh_chat_sessions`), the start event has no parameter `mode`, and the completion event says the mode in `details.mode`, which a summary reads to tell an initial import from an incremental synchronization. `refresh_ai_cost`, `refresh_model_prices`, and `refresh_model_prices_when_due` have no mode: the nested `synchronize_token_usage` operations of `refresh_ai_cost` have one. The lookups of the root and of the repository of a folder (`find_root`, `find_main_root`, `find_repository`, and `find_repository_key`) run the command `git` to name a folder. They read no data of the data layer, so they write no operation.
 
-`heidrun_code_data` also records the kind `lock`: `lock_database`, the wait for the lock of the SQLite file. A new public function includes the same instrumentation: see the [rule](../agents_rules/data_layer_operation_log.md). The names above are stable: a summary groups by them.
+`heidrun_data` also records the kind `lock`: `lock_database`, the wait for the lock of the SQLite file. A new public function includes the same instrumentation: see the [rule](../agents_rules/data_layer_operation_log.md). The names above are stable: a summary groups by them.
 
 ### Nested operations
 
-The nesting follows the call stack of one thread. `heidrun_code_data synchronize` holds one `lock_database` and one `synchronize` of each package; a `synchronize` holds its collections, its writes, and its queries. A summary counts only the top-level operations, so a read of 500 commits is not counted twice. The option `--nested` counts all of them.
+The nesting follows the call stack of one thread. `heidrun_data synchronize` holds one `lock_database` and one `synchronize` of each package; a `synchronize` holds its collections, its writes, and its queries. A summary counts only the top-level operations, so a read of 500 commits is not counted twice. The option `--nested` counts all of them.
 
 ### Unfinished operations
 
-The start line is written before the work, so an operation that never ends keeps only its start line. `heidrun_code_data operations` never shows it as a success:
+The start line is written before the work, so an operation that never ends keeps only its start line. `heidrun_data operations` never shows it as a success:
 
 - `running`: no completion line, the process still lives, and the operation is less than one hour old.
 - `interrupted`: no completion line, and the process is gone, or the operation is older than one hour (an operation that hangs).
@@ -89,7 +89,7 @@ An operation that is dropped without an end, or that panics, writes a failure wi
 
 ## What the log costs
 
-`heidrun_code_data operations overhead` runs the same operation 5000 times with the log off and with the log on in a temporary file, with a SQL statement of 200 characters. The result on 17 October 2026, with a release build:
+`heidrun_data operations overhead` runs the same operation 5000 times with the log off and with the log on in a temporary file, with a SQL statement of 200 characters. The result on 17 October 2026, with a release build:
 
 | Log | Mean | Median | 99th percentile | Longest |
 | --- | --- | --- | --- | --- |
@@ -100,7 +100,7 @@ An operation that is dropped without an end, or that panics, writes a failure wi
 - A stored-data query takes 0.3 ms to 0.4 ms on the Teamwright history, so the log adds about a third to it. It adds nothing that a person sees: the desktop application makes a few of these operations for a window.
 - With the log off, an operation costs one test of a flag.
 
-## Reading the log: `heidrun_code_data operations`
+## Reading the log: `heidrun_data operations`
 
 | Action | What it prints |
 | --- | --- |
@@ -114,11 +114,11 @@ An operation that is dropped without an end, or that panics, writes a failure wi
 The filters are `--caller`, `--package`, `--operation-name`, `--since`, `--until` (UTC), `--minimum-milliseconds`, `--state`, `--unfinished`, `--nested`, `--replays`, and `--only-replays`. The `workload` of a row is `stored_data_query`, `collection`, `initial_import` (a synchronization in the mode initialize), `incremental_synchronization` (the mode update), `synchronization` (no mode), `database_write`, or `lock_wait`. A summary tells an initial import from an incremental synchronization from a query by this word.
 
 ```bash
-pnpm --silent data_layer:heidrun_code_data operations info
-pnpm --silent data_layer:heidrun_code_data operations summary --format table
-pnpm --silent data_layer:heidrun_code_data operations summary --by parameters --repeated --format jsonl
-pnpm --silent data_layer:heidrun_code_data operations list --unfinished --nested --format jsonl
-pnpm --silent data_layer:heidrun_code_data operations list --slowest --limit 20 --format jsonl
+pnpm --silent data_layer:heidrun_data operations info
+pnpm --silent data_layer:heidrun_data operations summary --format table
+pnpm --silent data_layer:heidrun_data operations summary --by parameters --repeated --format jsonl
+pnpm --silent data_layer:heidrun_data operations list --unfinished --nested --format jsonl
+pnpm --silent data_layer:heidrun_data operations list --slowest --limit 20 --format jsonl
 ```
 
 ## Running a recorded operation again
@@ -134,14 +134,14 @@ The limits: a replay times the operation on the data of today, so the number of 
 
 ## Measurement on the Teamwright history
 
-The data: the repository `jeromeetienne/teamwright` on the computer of the developer on 17 October 2026, with a release build of `heidrun_code_data`, a new SQLite file, and a new folder `HEIDRUN_CODE_DIR` (so no cache of the scan existed). The commands:
+The data: the repository `jeromeetienne/teamwright` on the computer of the developer on 17 October 2026, with a release build of `heidrun_data`, a new SQLite file, and a new folder `HEIDRUN_CODE_DIR` (so no cache of the scan existed). The commands:
 
 ```bash
 export HEIDRUN_CODE_DIR=/tmp/demo/heidrun_dir HEIDRUN_CODE_OPERATION_LOG_FILE=/tmp/demo/operations.jsonl
 cd ~/webwork/teamwright
-heidrun_code_data initialize --database /tmp/demo/teamwright.sqlite --repository jeromeetienne/teamwright --folder .
-heidrun_code_data update --database /tmp/demo/teamwright.sqlite --repository jeromeetienne/teamwright --folder .
-heidrun_code_data operations summary --nested --format table
+heidrun_data initialize --database /tmp/demo/teamwright.sqlite --repository jeromeetienne/teamwright --folder .
+heidrun_data update --database /tmp/demo/teamwright.sqlite --repository jeromeetienne/teamwright --folder .
+heidrun_data operations summary --nested --format table
 ```
 
 The initial import wrote 1783 commits, 539 issues, 20 pull requests, 614 chat sessions, and 24796 minute rows of tokens. The log has 35 operations for it, and the four timings are separate:

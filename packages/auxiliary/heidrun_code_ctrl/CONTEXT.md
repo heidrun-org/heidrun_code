@@ -33,7 +33,7 @@ A Rust library and the `heidrun_code_ctrl` command line for controlling Heidrun 
 
 ## Background
 - The package comes from [issue #602](https://github.com/heidrun-org/heidrun/issues/602). The group `launchers` comes from [issue #649](https://github.com/heidrun-org/heidrun/issues/649).
-- The `SKILL.md` follows the layout of [heidrun_code_data](../../data_layers/heidrun_code_data/CONTEXT.md), from [issue #564](https://github.com/heidrun-org/heidrun/issues/564).
+- The `SKILL.md` follows the layout of [heidrun_data](../../../submodules/heidrun_data/packages/heidrun_data/CONTEXT.md), from [issue #564](https://github.com/heidrun-org/heidrun/issues/564).
 - The Agent Plugin comes from [issue #679](https://github.com/heidrun-org/heidrun/issues/679).
 
 - The workspace commands come from [issue #657](https://github.com/heidrun-org/heidrun/issues/657). The group `voice_words` comes from [issue #836](https://github.com/heidrun-org/heidrun_code/issues/836). The user level file comes from [issue #853](https://github.com/heidrun-org/heidrun_code/issues/853).

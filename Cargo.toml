@@ -9,17 +9,17 @@ members = [
     "packages/auxiliary/heidrun_code_ctrl",
     "packages/auxiliary/mobile_server",
     "packages/auxiliary/voice_input",
-    "packages/data_layers/data_layer_code_hosting",
-    "packages/data_layers/data_layer_coding_agents",
-    "packages/data_layers/data_layer_operation_log",
-    "packages/data_layers/data_layer_source_control",
-    "packages/data_layers/data_layer_user_activity",
-    "packages/data_layers/heidrun_code_data",
+    "submodules/heidrun_data/packages/data_layer_code_hosting",
+    "submodules/heidrun_data/packages/data_layer_coding_agents",
+    "submodules/heidrun_data/packages/data_layer_operation_log",
+    "submodules/heidrun_data/packages/data_layer_source_control",
+    "submodules/heidrun_data/packages/data_layer_user_activity",
+    "submodules/heidrun_data/packages/heidrun_data",
 ]
 # The experiments keep their own Cargo.lock and their own large dependencies
 exclude = [
     "packages/experiments",
-    "submodules",
+    "submodules/coding_agent_plugin",
     "tmp",
 ]
 

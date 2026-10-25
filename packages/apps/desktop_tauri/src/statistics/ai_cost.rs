@@ -73,8 +73,8 @@ fn synchronize(
     now: i64,
 ) -> Result<AiCostSynchronization, String> {
     // Two programs that write the SQLite file at the same time would fail with "database is locked". The command line
-    // heidrun_code_data takes the same lock.
-    let _guard = heidrun_code_data::lock_database(database_path)?;
+    // heidrun_data takes the same lock.
+    let _guard = heidrun_data::lock_database(database_path)?;
     refresh_ai_cost(database_path, &roots_of(folders), is_import_allowed, now)
 }
 

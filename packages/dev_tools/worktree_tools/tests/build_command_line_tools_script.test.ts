@@ -15,7 +15,7 @@ const __dirname = import.meta.dirname;
 
 /**
  * Runs a copy of `scripts/build_command_line_tools.sh` in a temporary repository, with a fake `cargo` that writes the
- * value of `MACOSX_DEPLOYMENT_TARGET` that it receives. The built tools are files with the name of the tool as content.
+ * value of `MACOSX_DEPLOYMENT_TARGET` that it receives, and its folder and its arguments. The built tools are files with the name of the tool as content.
  */
 class ToolsScriptRunner {
 	/** The temporary folders that the tests created. */
@@ -37,11 +37,11 @@ class ToolsScriptRunner {
 		Fs.mkdirSync(Path.join(rootPath, 'scripts'));
 		Fs.copyFileSync(ToolsScriptRunner.scriptPath, Path.join(rootPath, 'scripts', 'build_command_line_tools.sh'));
 		Fs.mkdirSync(Path.join(rootPath, 'packages', 'auxiliary', 'heidrun_code_ctrl'), { recursive: true });
-		Fs.mkdirSync(Path.join(rootPath, 'packages', 'data_layers', 'heidrun_code_data'), { recursive: true });
+		Fs.mkdirSync(Path.join(rootPath, 'submodules', 'heidrun_data', 'packages', 'heidrun_data'), { recursive: true });
 		const releasePath = Path.join(rootPath, 'packages', 'apps', 'desktop_tauri', 'target', 'release');
 		Fs.mkdirSync(releasePath, { recursive: true });
 		Fs.writeFileSync(Path.join(releasePath, 'heidrun_code_ctrl'), 'heidrun_code_ctrl');
-		Fs.writeFileSync(Path.join(releasePath, 'heidrun_code_data'), 'heidrun_code_data');
+		Fs.writeFileSync(Path.join(releasePath, 'heidrun_data'), 'heidrun_data');
 		Fs.writeFileSync(
 			Path.join(rootPath, 'packages', 'apps', 'desktop_tauri', 'tauri.conf.json'),
 			JSON.stringify(
@@ -84,6 +84,15 @@ class ToolsScriptRunner {
 	}
 
 	/**
+	 * Gives the file where the fake `cargo` writes its folder and its arguments, one line for each call.
+	 * @param rootPath The absolute path of the root of the temporary repository.
+	 * @returns The absolute path of the file.
+	 */
+	static callsPath(rootPath: string): string {
+		return Path.join(rootPath, 'cargo_calls.txt');
+	}
+
+	/**
 	 * Runs the script in a temporary repository.
 	 * @param rootPath The absolute path of the root of the temporary repository.
 	 * @param environment The variables to add to the environment of the script.
@@ -95,7 +104,12 @@ class ToolsScriptRunner {
 		Fs.mkdirSync(fakeBinPath);
 		Fs.writeFileSync(
 			Path.join(fakeBinPath, 'cargo'),
-			`#!/bin/sh\necho "\${MACOSX_DEPLOYMENT_TARGET:-none}" >> "${recordPath}"\n`,
+			[
+				'#!/bin/sh',
+				`echo "\${MACOSX_DEPLOYMENT_TARGET:-none}" >> "${recordPath}"`,
+				`echo "$(pwd -P)|$*" >> "${ToolsScriptRunner.callsPath(rootPath)}"`,
+				'',
+			].join('\n'),
 			{
 				mode: 0o755,
 			},
@@ -135,6 +149,16 @@ describe('scripts/build_command_line_tools.sh', () => {
 		expect(deploymentTargets).toEqual(['12.0', '12.0']);
 	});
 
+	it('builds heidrun_data at the root of the repository, so its compiled files go in the target of desktop_tauri', () => {
+		const rootPath = ToolsScriptRunner.create();
+		ToolsScriptRunner.run(rootPath, {});
+		const calls = Fs.readFileSync(ToolsScriptRunner.callsPath(rootPath), 'utf8').trim().split('\n');
+		expect(calls).toEqual([
+			`${Fs.realpathSync(Path.join(rootPath, 'packages', 'auxiliary', 'heidrun_code_ctrl'))}|build --release`,
+			`${Fs.realpathSync(rootPath)}|build --release --package heidrun_data`,
+		]);
+	});
+
 	it('copies the built tools when they are missing', () => {
 		const rootPath = ToolsScriptRunner.create();
 		ToolsScriptRunner.run(rootPath, {});
@@ -145,10 +169,10 @@ describe('scripts/build_command_line_tools.sh', () => {
 	it('keeps the date of a bundled tool that did not change, and copies a tool that changed', () => {
 		const rootPath = ToolsScriptRunner.create();
 		const sameToolPath = ToolsScriptRunner.writeBundledTool(rootPath, 'heidrun_code_ctrl', 'heidrun_code_ctrl');
-		const changedToolPath = ToolsScriptRunner.writeBundledTool(rootPath, 'heidrun_code_data', 'older build');
+		const changedToolPath = ToolsScriptRunner.writeBundledTool(rootPath, 'heidrun_data', 'older build');
 		ToolsScriptRunner.run(rootPath, {});
 		expect(Fs.statSync(sameToolPath).mtimeMs).toBe(ToolsScriptRunner.oldDate.getTime());
-		expect(Fs.readFileSync(changedToolPath, 'utf8')).toBe('heidrun_code_data');
+		expect(Fs.readFileSync(changedToolPath, 'utf8')).toBe('heidrun_data');
 		expect(Fs.statSync(changedToolPath).mtimeMs).not.toBe(ToolsScriptRunner.oldDate.getTime());
 	});
 });

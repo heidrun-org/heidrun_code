@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: the operation log of the data layer
 
 - Created: 17 October 2026
-- Last updated: 23 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [Rule: every operation of the data layer is recorded in the operation log](../data_layer_operation_log.md), [The operation log of the data layer](../../statistics/data_layer_operation_log.md)
@@ -11,7 +11,7 @@ This document gives one short definition for each word of the operation log of t
 
 ### Operation
 
-One call of a public function of a data layer package or of `heidrun_code_data`. An operation has a start event and a completion event in the operation log. An operation that has a start event and no completion event is an unfinished operation.
+One call of a public function of a data layer package or of `heidrun_data`. An operation has a start event and a completion event in the operation log. An operation that has a start event and no completion event is an unfinished operation.
 
 ### Operation name
 
@@ -19,7 +19,7 @@ The stable name of the public function that an operation calls, for example `fin
 
 ### Operation log
 
-The file `data_layer_operations.jsonl`, with one JSON line for each event. The application and the command line `heidrun_code_data` write it, and the command `heidrun_code_data operations` reads it. When it reaches 8 MiB, it becomes `data_layer_operations.jsonl.1`, and a new file starts.
+The file `data_layer_operations.jsonl`, with one JSON line for each event. The application and the command line `heidrun_data` write it, and the command `heidrun_data operations` reads it. When it reaches 8 MiB, it becomes `data_layer_operations.jsonl.1`, and a new file starts.
 
 ### Start event and completion event
 
@@ -27,7 +27,7 @@ The two lines of an operation. The start event is written before the function wo
 
 ### Caller
 
-The program that made the operation: `heidrun` for the desktop application, `heidrun_code_data` for the command line. The variable `HEIDRUN_CODE_OPERATION_LOG_CALLER` replaces it.
+The program that made the operation: `heidrun` for the desktop application, `heidrun_data` for the command line. The variable `HEIDRUN_CODE_OPERATION_LOG_CALLER` replaces it.
 
 ### Kind
 
@@ -51,11 +51,11 @@ An operation with no completion event. It is `running` when its process lives an
 
 ### Replay
 
-An operation that the command `heidrun_code_data operations replay` runs again. Its events have the origin `replay` and the identifier of the original operation. A summary of the real usage leaves it out.
+An operation that the command `heidrun_data operations replay` runs again. Its events have the origin `replay` and the identifier of the original operation. A summary of the real usage leaves it out.
 
 ### Snapshot
 
-A consistent copy of the SQLite file, made by `heidrun_code_data operations snapshot`. A replay of queries reads it.
+A consistent copy of the SQLite file, made by `heidrun_data operations snapshot`. A replay of queries reads it.
 
 ### Isolated database
 

@@ -72,8 +72,8 @@ fn refresh_code_hosting_for_chats(database_path: &Path, repository: &str) -> Res
 fn synchronize(folder: &Path, database_path: &Path, refresh: &RefreshFn) -> Result<ChatReferencesSynchronization, String> {
     let repository = data_layer_source_control::find_repository(folder)?;
     // Two commands that write the SQLite file at the same time would fail with "database is locked". The command line
-    // heidrun_code_data takes the same lock.
-    let _guard = heidrun_code_data::lock_database(database_path)?;
+    // heidrun_data takes the same lock.
+    let _guard = heidrun_data::lock_database(database_path)?;
     let code_hosting_error = refresh(database_path, &repository).err();
     Ok(ChatReferencesSynchronization { repository, code_hosting_error })
 }

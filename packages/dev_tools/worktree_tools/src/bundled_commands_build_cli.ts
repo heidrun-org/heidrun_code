@@ -34,7 +34,7 @@ export class BundledCommandsBuildCli {
 		program
 			.name('pnpm bundled_commands:build')
 			.description(
-				'Builds the bundled command line tools heidrun_code_ctrl and heidrun_code_data in release '
+				'Builds the bundled command line tools heidrun_code_ctrl and heidrun_data in release '
 					+ 'mode, unless they are already built from the current sources. A new worktree gets the '
 					+ 'tools and their stamp from the main checkout, so it builds nothing when the sources of the '
 					+ 'tools did not change.',

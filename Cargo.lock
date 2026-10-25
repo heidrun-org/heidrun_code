@@ -2089,7 +2089,7 @@ dependencies = [
  "dirs 6.0.0",
  "dotenvy",
  "heidrun_code_ctrl",
- "heidrun_code_data",
+ "heidrun_data",
  "mobile_server",
  "portable-pty",
  "reqwest 0.12.28",
@@ -2118,7 +2118,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "heidrun_code_data"
+name = "heidrun_data"
 version = "0.3.0"
 dependencies = [
  "data_layer_code_hosting",
