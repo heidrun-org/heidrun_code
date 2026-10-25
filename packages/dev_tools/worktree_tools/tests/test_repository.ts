@@ -129,6 +129,7 @@ export class TestRepository {
 		const repositoryPath = TestRepository.create();
 		TestRepository.writeTargetFile(repositoryPath, 'debug/heidrun', 'compiled application');
 		TestRepository.writeTargetFile(repositoryPath, 'debug/deps/libserde.rlib', 'compiled dependency');
+		TestRepository.writeTargetFile(repositoryPath, 'release/deps/libring.rlib', 'compiled release dependency');
 		TestRepository.writeTargetFile(repositoryPath, 'release/bundled_commands/heidrun_code_ctrl', 'heidrun_code_ctrl');
 		TestRepository.writeTargetFile(repositoryPath, 'release/bundled_commands/heidrun_code_data', 'heidrun_code_data');
 		return repositoryPath;

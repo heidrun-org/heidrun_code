@@ -18,6 +18,7 @@ The scripts that the maintainers run from the root of the repository: the releas
 - `install.sh` uses only the commands of macOS and `curl`, and runs with `sh`, because the users pipe it to `sh`.
 - `install.sh` downloads only the file `Heidrun_aarch64.dmg` of the latest release, and `release_dmg.ts` must upload that file with every release.
 - `install.sh` links the bundled command lines without replacing an existing program in `~/.local/bin`.
+- `build_command_line_tools.sh` builds with `MACOSX_DEPLOYMENT_TARGET` set to `minimumSystemVersion` of `tauri.conf.json`, the value of the release build of the application, because both builds share `target/release`. It copies a tool into `bundled_commands` only when its content changed, because the build script of the application watches the date of these files ([issue #877](https://github.com/heidrun-org/heidrun_code/issues/877)).
 
 ## Background
 - `install.sh` comes from [issue #515](https://github.com/heidrun-org/heidrun/issues/515). `curl` puts no quarantine mark on a file, so macOS does not check the signature of the application.

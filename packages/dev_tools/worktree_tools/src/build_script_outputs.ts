@@ -9,7 +9,7 @@ import { TargetPaths } from './target_paths.ts';
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Cargo keeps what each build script printed in the file `target/debug/build/<crate>-<hash>/output`. Some build
+ * Cargo keeps what each build script printed in the file `target/<debug or release>/build/<crate>-<hash>/output`. Some build
  * scripts, such as the one of Tauri, print the files to watch with their absolute path. After the clone, these paths
  * name the files of the main checkout, Cargo sees a different list of watched files, runs the build script again, and
  * compiles the application again. This class replaces the path of the main checkout with the path of the worktree in
@@ -20,18 +20,32 @@ export class BuildScriptOutputs {
 	static readonly outputFileName = 'output';
 
 	/**
-	 * Rewrites the build script records of the cloned debug folder of a worktree.
+	 * Rewrites the build script records of the cloned debug folder and release folder of a worktree.
 	 * @param mainCheckoutPath The absolute path of the main checkout.
 	 * @param worktreePath The absolute path of the worktree.
 	 * @returns The number of files that were changed.
 	 */
 	static rewrite(mainCheckoutPath: string, worktreePath: string): number {
-		const buildPath = Path.join(TargetPaths.debugPath(worktreePath), 'build');
+		const mainPrefix = `${Path.join(mainCheckoutPath, 'packages')}${Path.sep}`;
+		const worktreePrefix = `${Path.join(worktreePath, 'packages')}${Path.sep}`;
+		let changedCount = 0;
+		for (const profilePath of [TargetPaths.debugPath(worktreePath), TargetPaths.releasePath(worktreePath)]) {
+			changedCount += BuildScriptOutputs._rewriteFolder(Path.join(profilePath, 'build'), mainPrefix, worktreePrefix);
+		}
+		return changedCount;
+	}
+
+	/**
+	 * Rewrites the build script records of one `build` folder.
+	 * @param buildPath The absolute path of the folder `build` of one profile.
+	 * @param mainPrefix The path of the folder `packages` of the main checkout, with a final separator.
+	 * @param worktreePrefix The path of the folder `packages` of the worktree, with a final separator.
+	 * @returns The number of files that were changed.
+	 */
+	private static _rewriteFolder(buildPath: string, mainPrefix: string, worktreePrefix: string): number {
 		if (Fs.existsSync(buildPath) === false) {
 			return 0;
 		}
-		const mainPrefix = `${Path.join(mainCheckoutPath, 'packages')}${Path.sep}`;
-		const worktreePrefix = `${Path.join(worktreePath, 'packages')}${Path.sep}`;
 		let changedCount = 0;
 		for (const entryName of Fs.readdirSync(buildPath)) {
 			const outputPath = Path.join(buildPath, entryName, BuildScriptOutputs.outputFileName);

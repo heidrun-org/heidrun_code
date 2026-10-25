@@ -71,7 +71,7 @@ Examples:
 			process.stdout.write('Initialized the submodules at their recorded commits.\n');
 			if (result.isTargetCloned === true) {
 				process.stdout.write(
-					'Cloned target/debug and target/release/bundled_commands from the main checkout into the worktree.\n',
+					'Cloned target/debug and target/release from the main checkout into the worktree.\n',
 				);
 				process.stdout.write(
 					`Gave ${result.sourceDates.fileCount} unchanged files and ${result.sourceDates.folderCount} unchanged `

@@ -23,6 +23,7 @@ A full npm package with four command line tools that make the Issue Fix Setup fa
 - The pruning tool keeps a file only by the hash of a unit that the Cargo log names, and deletes nothing when a Cargo command fails or when the log names no unit. It never touches a folder of the debug folder other than `deps`, `.fingerprint`, `build`, and `incremental`.
 - The stamp of the bundled command line tools holds a fingerprint of the relative paths and the contents of the files of the two tools and of every package that they depend on through a `path`. It never reads a folder `target`, `node_modules`, or `.git`. When the fingerprint cannot be computed, the tools are built.
 - `pnpm dev` builds the tools through `pnpm bundled_commands:build`, but a release build (`beforeBuildCommand` in `tauri.conf.json`) always runs `scripts/build_command_line_tools.sh`.
+- `pnpm worktree:create` clones the whole folder `target/release`, not only `bundled_commands`, so the tools find their compiled dependencies ([issue #877](https://github.com/heidrun-org/heidrun_code/issues/877)).
 - No package in `packages/apps` imports this package: the scripts of `desktop_tauri` only run its command line files.
 
 ## Background

@@ -54,15 +54,20 @@ export class TargetPaths {
 	}
 
 	/**
+	 * Gives the path of the release build folder of a checkout.
+	 * @param checkoutPath The absolute path of the root of the main checkout or of a worktree.
+	 * @returns The absolute path of the `release` folder inside the Cargo target folder.
+	 */
+	static releasePath(checkoutPath: string): string {
+		return Path.join(TargetPaths.targetPath(checkoutPath), TargetPaths.releaseFolderName);
+	}
+
+	/**
 	 * Gives the path of the bundled command line tools required by Tauri.
 	 * @param checkoutPath The absolute path of the root of the main checkout or of a worktree.
 	 * @returns The absolute path of the bundled command line tools folder.
 	 */
 	static bundledCommandsPath(checkoutPath: string): string {
-		return Path.join(
-			TargetPaths.targetPath(checkoutPath),
-			TargetPaths.releaseFolderName,
-			TargetPaths.bundledCommandsFolderName,
-		);
+		return Path.join(TargetPaths.releasePath(checkoutPath), TargetPaths.bundledCommandsFolderName);
 	}
 }
