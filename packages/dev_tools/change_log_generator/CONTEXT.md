@@ -20,7 +20,7 @@ A full npm package that writes a section of `CHANGELOG.md`, in the Keep a Change
 - A release is a Git tag. A pull request is a commit whose first line starts with `Merge pull request #`. The package does not read the GitHub web service.
 - Without `--from`, the range starts at the release before the end of the range: the tag with the highest version number among the tags that the end contains, without the end tag itself.
 - The heading is `## [Unreleased]` when the range ends at the current commit. Otherwise it is `## [<version>] - <date of the commit of the tag>`.
-- The renderer keeps the sections in this order: `Unreleased`, then the releases from the highest version to the lowest. It replaces a section with the same version and never changes another section.
+- The renderer keeps the sections in this order: `Unreleased`, then the releases from the highest version to the lowest. It replaces a section with the same version, and it removes `Unreleased` when the new section is the last release. It never changes another section.
 - The default mode never chooses a category. Only a coding agent chooses the categories.
 - Only `src/generation` runs the executable of the package `coding_agent_cli`, with `cargo run`, and only when the option `--ai` is used. The mode without the option `--ai` needs no Rust tool.
 

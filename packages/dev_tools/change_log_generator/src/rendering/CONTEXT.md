@@ -8,7 +8,7 @@ Turns data into the texts of the change log: the heading, the section, the promp
 
 ## Rules
 - This folder reads nothing and writes nothing: no file, no `git`, no coding agent.
-- The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The renderer replaces a section with the same version and never changes another section.
+- The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The renderer replaces a section with the same version, removes `Unreleased` when the caller asks for it, and never changes another section.
 - Nothing here imports from `git/` or `generation/`.
 
 ## Background

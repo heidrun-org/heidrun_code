@@ -32,7 +32,8 @@ export class Cli {
 					+ 'between two releases (Git tags). Without option, the section is "Unreleased": from the last '
 					+ 'release (the tag with the highest version) to the current commit. The section goes at its place '
 					+ 'in the file: "Unreleased" first, then the releases from the highest version to the lowest. A '
-					+ 'section of the same version is replaced. The other sections do not change. The command prints '
+					+ 'section of the same version is replaced. When the section is the last release, the section '
+					+ '"Unreleased" is removed. The other sections do not change. The command prints '
 					+ 'the new section on the standard output.',
 			)
 			.option(
