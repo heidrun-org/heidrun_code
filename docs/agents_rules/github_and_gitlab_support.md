@@ -5,7 +5,7 @@
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](glossary/index.md)
-- Related issue: [issue 302](https://github.com/heidrun-org/heidrun/issues/302), [issue 870](https://github.com/heidrun-org/heidrun_code/issues/870), [issue 879](https://github.com/heidrun-org/heidrun_code/issues/879)
+- Related issue: [issue 302](https://github.com/heidrun-org/heidrun/issues/302), [issue 870](https://github.com/heidrun-org/heidrun_code/issues/870), [issue 879](https://github.com/heidrun-org/heidrun_code/issues/879), [issue 890](https://github.com/heidrun-org/heidrun_code/issues/890)
 
 This file gives the rule for every agent that adds support for GitHub. Heidrun Code works with two Git hosting services: GitHub and GitLab. Everywhere that this repository supports GitHub, it must also support GitLab.
 
@@ -20,7 +20,7 @@ This file gives the rule for every agent that adds support for GitHub. Heidrun C
 ## Reading GitHub and GitLab in the application
 
 - Every read of an issue, of a pull request, of a merge request, or of a list of them in the web page of the application goes through the function `runForgeCli` of `packages/apps/web_frontend/src/lib/forge_cli.ts`, which calls the Tauri command `forge_cli_cached`. No other code calls `gh` or `glab` for these reads, because each call to GitHub takes points of the GitHub rate limit, which every project and every coding agent of the account share ([issue 870](https://github.com/heidrun-org/heidrun_code/issues/870)).
-- The cache keeps an answer for ten minutes by default. With the option `isKeptUntilRefresh`, the kept answer is used whatever its age, and only a click on "Refresh" asks the hosting service again. With the option `isRefresh`, the hosting service is asked again.
+- The cache keeps an answer for ten minutes by default. With the option `isKeptUntilRefresh`, the kept answer is used whatever its age, and only a click on "Refresh" asks the hosting service again. With the option `isRefresh`, the hosting service is asked again. The function `runForgeCliWithSource` of the same file calls the Tauri command `forge_cli_cached_with_source`, which also gives the failure and the time of the kept answer when the kept answer replaces a failure ([issue 890](https://github.com/heidrun-org/heidrun_code/issues/890)).
 - The packages of the folder `submodules/heidrun_data/packages` are outside this rule: they copy GitHub into their SQLite file, which is their own cache.
 - Each call to `gh` or `glab` of the application writes a start line and an end line in the application log, as [application_log.md](application_log.md) says.
 

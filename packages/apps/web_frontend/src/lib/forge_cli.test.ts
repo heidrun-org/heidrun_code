@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(async () => "[]") }));
 
 import { invoke } from "@tauri-apps/api/core";
-import { runForgeCli } from "./forge_cli";
+import { runForgeCli, runForgeCliWithSource } from "./forge_cli";
 
 describe("runForgeCli", () => {
   beforeEach(() => {
@@ -31,6 +31,21 @@ describe("runForgeCli", () => {
     expect(vi.mocked(invoke).mock.lastCall?.[1]).toMatchObject({
       refresh: true,
       keepUntilRefresh: true,
+    });
+  });
+
+  it("asks the cache for the answer with the failure that it replaced (issue #890)", async () => {
+    await runForgeCliWithSource("code_hosting_list", "/work/app", "gh", ["issue", "list"], {
+      isRefresh: true,
+      isKeptUntilRefresh: true,
+    });
+    expect(invoke).toHaveBeenLastCalledWith("forge_cli_cached_with_source", {
+      cwd: "/work/app",
+      tool: "gh",
+      args: ["issue", "list"],
+      refresh: true,
+      keepUntilRefresh: true,
+      caller: "code_hosting_list",
     });
   });
 });

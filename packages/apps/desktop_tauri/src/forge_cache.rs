@@ -5,7 +5,9 @@
 //! minutes. A call with `keep_until_refresh` uses its kept answer, whatever its age, until a refresh asks the forge again:
 //! the lists of the Code hosting sidebar section use it, because each call takes points of the GitHub rate limit (issue
 //! #870). Every read of an issue or of a pull request in the application goes through this cache. When the forge does not answer (no network, no login), an answer that is at most seven days old is used
-//! instead of the failure.
+//! instead of the failure. The Tauri command `forge_cli_cached_with_source` also says when the kept answer replaced a
+//! failure, with the failure and the time of the kept answer, so that a refresh of the Code hosting sidebar section never
+//! shows an old list as a new one (issue #890).
 
 use crate::application_log::{self, ForgeAnswerSource, ForgeCall};
 use serde::{Deserialize, Serialize};
@@ -41,6 +43,25 @@ struct CacheContent {
     version: u32,
     /// The answers, by key.
     answers: BTreeMap<String, CacheEntry>,
+}
+
+/// The answer of a call through the cache, with the failure that the kept answer replaced.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ForgeAnswer {
+    /// What the command printed, or the kept answer.
+    output: String,
+    /// The failure of the call when the kept answer replaces it, or `None` when the answer is not a replacement.
+    failure: Option<String>,
+    /// When the forge gave the kept answer that replaces the failure, in milliseconds since 1970, or `None`.
+    kept_at: Option<i64>,
+}
+
+impl ForgeAnswer {
+    /// An answer that is not the replacement of a failure.
+    fn new(output: String) -> Self {
+        ForgeAnswer { output, failure: None, kept_at: None }
+    }
 }
 
 /// The cache of the answers.
@@ -105,7 +126,12 @@ impl ForgeCache {
 
     /// The answer for `key` when it is at most seven days old at `now`.
     fn kept(&self, key: &str, now: i64) -> Option<String> {
-        self.content.answers.get(key).filter(|entry| now - entry.at < KEPT_FOR).map(|entry| entry.output.clone())
+        self.kept_entry(key, now).map(|entry| entry.output)
+    }
+
+    /// The answer for `key`, with the time when the forge gave it, when it is at most seven days old at `now`.
+    fn kept_entry(&self, key: &str, now: i64) -> Option<CacheEntry> {
+        self.content.answers.get(key).filter(|entry| now - entry.at < KEPT_FOR).cloned()
     }
 
     /// Keeps the answer for `key`, and forgets the answers that are older than seven days.
@@ -139,6 +165,15 @@ fn with_cache<T>(body: impl FnOnce(&mut ForgeCache) -> T) -> T {
     body(cache)
 }
 
+/// The answer of a call that failed: the kept answer with the failure and its time, or the failure when no answer is
+/// kept.
+fn answer_after_failure(kept: Option<CacheEntry>, failure: String) -> Result<ForgeAnswer, String> {
+    match kept {
+        Some(entry) => Ok(ForgeAnswer { output: entry.output, failure: Some(failure), kept_at: Some(entry.at) }),
+        None => Err(failure),
+    }
+}
+
 /// Runs a read-only `glab` / `gh` call (see `crate::git::allowed`), with the answer kept on the disk for ten minutes. A
 /// call that fails gives the last answer of the same call when it is at most seven days old. With `refresh` true, the
 /// forge is asked again even when a fresh answer exists, and the new answer replaces the kept one. With
@@ -153,6 +188,33 @@ pub async fn forge_cli_cached(
     keep_until_refresh: Option<bool>,
     caller: Option<String>,
 ) -> Result<String, String> {
+    run_cached(cwd, tool, args, refresh, keep_until_refresh, caller).await.map(|answer| answer.output)
+}
+
+/// Runs a call as `forge_cli_cached` does, and also gives the failure and the time of the kept answer when the kept
+/// answer replaces a failure. The refresh of the Code hosting sidebar section uses it to show that its list is old
+/// (issue #890).
+#[tauri::command]
+pub async fn forge_cli_cached_with_source(
+    cwd: String,
+    tool: String,
+    args: Vec<String>,
+    refresh: Option<bool>,
+    keep_until_refresh: Option<bool>,
+    caller: Option<String>,
+) -> Result<ForgeAnswer, String> {
+    run_cached(cwd, tool, args, refresh, keep_until_refresh, caller).await
+}
+
+/// The body of the Tauri commands `forge_cli_cached` and `forge_cli_cached_with_source`.
+async fn run_cached(
+    cwd: String,
+    tool: String,
+    args: Vec<String>,
+    refresh: Option<bool>,
+    keep_until_refresh: Option<bool>,
+    caller: Option<String>,
+) -> Result<ForgeAnswer, String> {
     if !crate::git::allowed(&tool, &args) {
         return Err(format!("forge_cli_cached : appel non autorisé ({tool} {})", args.join(" ")));
     }
@@ -161,7 +223,7 @@ pub async fn forge_cli_cached(
     let is_kept_until_refresh = keep_until_refresh == Some(true);
     if let Some(output) = with_cache(|cache| cache.usable(&key, now_ms(), is_refresh, is_kept_until_refresh)) {
         application_log::record_forge_cache_hit(caller.as_deref(), &tool, &args);
-        return Ok(output);
+        return Ok(ForgeAnswer::new(output));
     }
     let call = ForgeCall::start(caller.as_deref(), &tool, &args, is_refresh);
     match crate::git::run_forge(&cwd, &tool, &args, 20).await {
@@ -171,18 +233,14 @@ pub async fn forge_cli_cached(
                 cache.save();
             });
             call.end(ForgeAnswerSource::Forge, None);
-            Ok(output)
+            Ok(ForgeAnswer::new(output))
         }
-        Err(failure) => match with_cache(|cache| cache.kept(&key, now_ms())) {
-            Some(output) => {
-                call.end(ForgeAnswerSource::KeptAfterFailure, Some(&failure));
-                Ok(output)
-            }
-            None => {
-                call.end(ForgeAnswerSource::Failed, Some(&failure));
-                Err(failure)
-            }
-        },
+        Err(failure) => {
+            let answer = answer_after_failure(with_cache(|cache| cache.kept_entry(&key, now_ms())), failure.clone());
+            let source = if answer.is_ok() { ForgeAnswerSource::KeptAfterFailure } else { ForgeAnswerSource::Failed };
+            call.end(source, Some(&failure));
+            answer
+        }
     }
 }
 
@@ -191,6 +249,28 @@ mod tests {
     use super::*;
 
     const NOW: i64 = 1_800_000_000_000;
+
+    #[test]
+    fn gives_the_kept_answer_with_the_failure_and_its_time_after_a_failure() {
+        let mut cache = ForgeCache::in_memory();
+        cache.put("a".into(), "old".into(), NOW);
+        let answer = answer_after_failure(cache.kept_entry("a", NOW + FRESH_FOR), "rate limit".into());
+        assert_eq!(
+            answer,
+            Ok(ForgeAnswer { output: "old".into(), failure: Some("rate limit".into()), kept_at: Some(NOW) })
+        );
+        assert_eq!(answer_after_failure(cache.kept_entry("b", NOW), "no login".into()), Err("no login".to_string()));
+    }
+
+    #[test]
+    fn writes_the_answer_for_the_web_page_with_names_in_camel_case() {
+        let answer = ForgeAnswer { output: "[]".into(), failure: Some("x".into()), kept_at: Some(7) };
+        assert_eq!(serde_json::to_string(&answer).unwrap(), "{\"output\":\"[]\",\"failure\":\"x\",\"keptAt\":7}");
+        assert_eq!(
+            serde_json::to_string(&ForgeAnswer::new("[]".into())).unwrap(),
+            "{\"output\":\"[]\",\"failure\":null,\"keptAt\":null}"
+        );
+    }
 
     #[test]
     fn gives_an_answer_that_is_less_than_ten_minutes_old() {

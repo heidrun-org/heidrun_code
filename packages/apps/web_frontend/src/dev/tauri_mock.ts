@@ -130,6 +130,15 @@ export class TauriMock {
 				const args = (payload as { args: string[] }).args;
 				return args[1] === 'list' ? TauriMockFixture.buildForgeListAnswer(args) : TauriMockFixture.buildForgeAnswer(args);
 			}
+			case 'forge_cli_cached_with_source': {
+				const args = (payload as { args: string[] }).args;
+				const output = args[1] === 'list' ? TauriMockFixture.buildForgeListAnswer(args) : TauriMockFixture.buildForgeAnswer(args);
+				return {
+					output,
+					failure: null,
+					keptAt: null,
+				};
+			}
 			case 'topic_clusters_read':
 				return TauriMockFixture.getTopicClusterRows();
 			case 'topic_clusters_write':

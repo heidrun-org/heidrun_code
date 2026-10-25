@@ -418,6 +418,34 @@ describe("CodeHostingPanel on GitHub", () => {
     expect(vi.mocked(invoke).mock.calls.slice(2).map(([, payload]) => (payload as { refresh: boolean }).refresh)).toEqual([true, true]);
   });
 
+  it("shows the old rows under a message after a refresh that failed, and removes the message after a good refresh (issue #890)", async () => {
+    answerGithub();
+    const wrapper = await mountPanel();
+    const answerAll = vi.mocked(invoke).getMockImplementation();
+    vi.mocked(invoke).mockImplementation(async (command, payload) => {
+      const output = (await answerAll?.(command, payload)) as string;
+      return {
+        output,
+        failure: "gh: no network",
+        keptAt: Date.now() - 60_000,
+      };
+    });
+    await wrapper.get("button[aria-label=Refresh]").trigger("click");
+    await flushPromises();
+    const notice = groupOf(wrapper, "issues").get("[data-code-hosting-notice]");
+    expect(notice.text()).toMatch(/^The refresh failed\. This list is from .+\. gh: no network$/);
+    expect(notice.classes()).toContain("failure");
+    expect(groupOf(wrapper, "issues").findAll(".item")).toHaveLength(2);
+    vi.mocked(invoke).mockImplementation(async (command, payload) => ({
+      output: (await answerAll?.(command, payload)) as string,
+      failure: null,
+      keptAt: null,
+    }));
+    await wrapper.get("button[aria-label=Refresh]").trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[data-code-hosting-notice]").exists()).toBe(false);
+  });
+
   it("says that a list is empty, and shows no row for it", async () => {
     vi.mocked(refContext).mockResolvedValue(contextOf("github"));
     vi.mocked(invoke).mockResolvedValue("[]");
@@ -803,7 +831,11 @@ describe("CodeHostingPanel searches", () => {
     await search(wrapper, "issues", "");
     expect(wrapper.findAll(".empty").map((line) => line.text())).toEqual(["No pull request matches the search."]);
     await search(wrapper, "requests", "");
-    vi.mocked(invoke).mockResolvedValue("[]");
+    vi.mocked(invoke).mockResolvedValue({
+      output: "[]",
+      failure: null,
+      keptAt: null,
+    });
     await wrapper.get("button[aria-label='Refresh']").trigger("click");
     await flushPromises();
     expect(wrapper.findAll(".empty").map((line) => line.text())).toEqual(["No open issue.", "No open pull request."]);

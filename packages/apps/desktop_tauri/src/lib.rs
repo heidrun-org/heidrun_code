@@ -372,6 +372,7 @@ pub fn run() {
             git::git_worktrees,
             git::forge_rate_limit_reset,
             forge_cache::forge_cli_cached,
+            forge_cache::forge_cli_cached_with_source,
             topic_clusters::topic_clusters_read,
             topic_clusters::topic_clusters_write,
             topic_clusters::coding_agent_ask,
