@@ -399,6 +399,9 @@ async function readDetails(row: Row) {
                 </InformationCardTooltip>
               </div>
               <div class="list-separator" role="separator"></div>
+              <div v-if="codeHosting.listNotice[section.group] !== ''" class="failure empty" data-code-hosting-notice>
+                {{ codeHosting.listNotice[section.group] }}
+              </div>
               <div v-if="codeHosting.listStatus[section.group] === 'loading'" class="muted empty">
                 {{ t("codeHostingPanel.loading") }}
               </div>
