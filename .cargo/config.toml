@@ -1,0 +1,4 @@
+# The compiled files of every package of the workspace go in the Cargo target folder of the package desktop_tauri,
+# the only target folder that `pnpm worktree:create` clones.
+[build]
+target-dir = "packages/apps/desktop_tauri/target"

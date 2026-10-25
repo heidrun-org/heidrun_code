@@ -2129,6 +2129,7 @@ dependencies = [
  "dirs 6.0.0",
  "rusqlite",
  "serde_json",
+ "zstd",
 ]
 
 [[package]]
@@ -2987,6 +2988,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tower",
 ]
 
 [[package]]

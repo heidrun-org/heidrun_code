@@ -5,7 +5,7 @@
   "version": "0.3.0",
   "type": "module",
   "scripts": {
-    "dev": "sh scripts/build_command_line_tools.sh && pnpm --filter mobile_website build && pnpm --filter desktop_tauri tauri dev --config tauri.development.conf.json",
+    "dev": "pnpm bundled_commands:build && pnpm --filter mobile_website build && pnpm --filter desktop_tauri tauri dev --config tauri.development.conf.json",
     "build": "pnpm --filter desktop_tauri tauri build",
     "dev:web": "pnpm --filter web_frontend dev",
     "build:web": "pnpm --filter web_frontend build",
@@ -29,6 +29,7 @@
     "experiment:parallax_dino_runner": "pnpm --filter parallax_dino_runner dev",
     "experiment:parallax_dino_runner:commits": "pnpm --filter parallax_dino_runner commits:build",
     "worktree:create": "tsx packages/dev_tools/worktree_tools/src/worktree_create_cli.ts",
+    "bundled_commands:build": "tsx packages/dev_tools/worktree_tools/src/bundled_commands_build_cli.ts",
     "docs:generate-and-build": "node --import tsx packages/dev_tools/documentation_by_ai/src/cli.ts generate-and-build",
     "build:development": "pnpm --filter desktop_tauri tauri build --config tauri.development.conf.json --bundles app",
     "install:local": "pnpm tauri build --bundles app && sudo ditto \"packages/apps/desktop_tauri/target/release/bundle/macos/Heidrun Code.app\" \"/Applications/Heidrun Code.app\""

@@ -1,30 +1,31 @@
 # Directory Context: `/packages/dev_tools/worktree_tools`
 
 ## Purpose
-A full npm package with two command line tools for Git worktrees. The first tool creates a worktree, initializes its submodules, clones the compiled Rust files and bundled command line resources of the main checkout into it, and installs its packages. The second tool finds and deletes the Cargo target folders of the worktrees that no build has used for some days.
+A full npm package with four command line tools that make the Issue Fix Setup fast: create a worktree with the compiled Rust files of the main checkout, delete the target folders of old worktrees, delete the obsolete files of a debug folder, and build the bundled command line tools only when their sources changed. The [README.md](README.md) gives the commands, the options, and the measures.
 
 ## Key Exports & Entry Points
-- `src/index.ts`: the public interface for another package. It exports the classes `WorktreeCreate` and `TargetClean` and their types.
-- `src/worktree_create_cli.ts`: the command line `pnpm worktree:create <name>`, and the executable `worktree_create` of the `bin` entry in `package.json`.
-- `src/target_clean_cli.ts`: the command line `pnpm --filter desktop_tauri target:clean`, and the executable `target_clean` of the `bin` entry in `package.json`.
-- `src/worktree_git.ts`: the class `WorktreeGit`, the only code that runs `git`.
-- `src/target_paths.ts`: the class `TargetPaths`, the only place that knows where the Cargo target folder is inside a checkout.
-- `tests/`: the Vitest tests. `tests/test_repository.ts` creates temporary Git repositories, and only the tests import it.
-- Command to run this folder: `pnpm worktree:create --help`
+- `src/index.ts`: the public interface for another package. It exports the classes `WorktreeCreate`, `TargetClean`, `TargetPrune`, `BundledCommandsStamp`, `DirectoryClone`, `SourceDates`, and `BuildScriptOutputs` and their types.
+- `src/worktree_create_cli.ts`: `pnpm worktree:create <name>`.
+- `src/target_clean_cli.ts`: `pnpm --filter desktop_tauri target:clean`.
+- `src/target_prune_cli.ts`: `pnpm --filter desktop_tauri target:prune`.
+- `src/bundled_commands_build_cli.ts`: `pnpm bundled_commands:build`, the first step of `pnpm dev`.
+- Each command line is also an executable of the `bin` entry in `package.json`.
+- `tests/`: the Vitest tests. `tests/test_repository.ts`, `tests/sample_cargo_project.ts`, and `tests/sample_tool_packages.ts` write temporary repositories and Rust packages, and only the tests import them.
 - Command to test this folder: `pnpm --filter worktree_tools test`
 
 ## Rules
-- Each new worktree initializes all submodules recursively at the recorded commits before cloning compiled files and installing packages; an initialization failure keeps the worktree and stops the command with the recovery commands.
-- A worktree is always created inside the folder `.claude/worktrees` of the main checkout, never beside it. That folder is on the same disk as the main checkout, which the clone needs.
-- On macOS, the clone copies `packages/apps/desktop_tauri/target/debug` and `packages/apps/desktop_tauri/target/release/bundled_commands` with `cp -c -R -p`. When the clone is not possible, the worktree is still created, and the command says why the clone did not happen.
-- The command `pnpm worktree:create` ends with `pnpm install --frozen-lockfile` in the new worktree, so the worktree has a folder `node_modules`. When the installation fails, the command prints the error and exits with the code 1, and the worktree stays. The tests use a repository with an empty `package.json` and its `pnpm-lock.yaml`, so the installation needs no network. Only the tests that check the installation run the real `pnpm`; the other tests put a fake `pnpm` first in `PATH` with `TestRepository.pathWithFakePnpm`, and the real `pnpm` takes about 300 milliseconds ([issue 826](https://github.com/heidrun-org/heidrun/issues/826)).
-- `TestRepository.create` copies one template repository that is built once for each process, so a test does not start seven `git` commands to get a repository.
-- The first checkout in the list of `git worktree list` is the main checkout. The cleaning tool never deletes its target folder.
-- The cleaning tool deletes nothing without the option `--yes`.
-- The age of a target folder is the most recent modification time of any file or folder inside it. The cleaning tool does not show a size, because the clones share their disk blocks and `du` shows a size that is too high.
-- The script `target:clean` in the package `desktop_tauri` only runs the command line file of this package. No package in `packages/apps` imports this package.
+- `src/worktree_git.ts` is the only code that runs `git`, and `src/target_paths.ts` is the only place that knows where the Cargo target folder is inside a checkout.
+- A worktree is always created inside the folder `.claude/worktrees` of the main checkout, on the same disk, which the copy-on-write clone needs. `DirectoryClone` clones a folder with `clonefile` through `python3`, and falls back to `cp -c -R -p`. When the clone is not possible, the worktree is still created and the command says why.
+- After the clone, `pnpm worktree:create` gives the unchanged sources the dates of the main checkout (`SourceDates`), and writes the path of the worktree in the build script records (`BuildScriptOutputs`). It never changes the date of a file whose content differs, so Cargo still compiles every real change. The option `--without-optimization` skips all of these steps.
+- `pnpm worktree:create` initializes the submodules before the clone, and ends with `pnpm install --frozen-lockfile`. A failure keeps the worktree, prints the error and the recovery commands, and exits with the code 1.
+- The tests use a fake `pnpm` first in `PATH` (`TestRepository.pathWithFakePnpm`), except the tests that check the installation ([issue 826](https://github.com/heidrun-org/heidrun/issues/826)). `TestRepository.create` copies one template repository built once for each process.
+- The cleaning tool and the pruning tool delete nothing without the option `--yes`. The cleaning tool never deletes the target folder of the main checkout, the first checkout of `git worktree list`.
+- The pruning tool keeps a file only by the hash of a unit that the Cargo log names, and deletes nothing when a Cargo command fails or when the log names no unit. It never touches a folder of the debug folder other than `deps`, `.fingerprint`, `build`, and `incremental`.
+- The stamp of the bundled command line tools holds a fingerprint of the relative paths and the contents of the files of the two tools and of every package that they depend on through a `path`. It never reads a folder `target`, `node_modules`, or `.git`. When the fingerprint cannot be computed, the tools are built.
+- `pnpm dev` builds the tools through `pnpm bundled_commands:build`, but a release build (`beforeBuildCommand` in `tauri.conf.json`) always runs `scripts/build_command_line_tools.sh`.
+- No package in `packages/apps` imports this package: the scripts of `desktop_tauri` only run its command line files.
 
 ## Background
-- Submodule initialization comes from [issue #708](https://github.com/heidrun-org/heidrun/issues/708).
-- The installation of the packages comes from [issue #331](https://github.com/heidrun-org/heidrun/issues/331).
+- The pruning tool and the stamp come from [issue #864](https://github.com/heidrun-org/heidrun_code/issues/864): Cargo never deletes old files, and a new worktree compiled the two tools again for 62 seconds although their sources did not change.
+- Submodule initialization comes from [issue #708](https://github.com/heidrun-org/heidrun/issues/708), and the installation of the packages from [issue #331](https://github.com/heidrun-org/heidrun/issues/331).
 - The package was created by [issue #209](https://github.com/heidrun-org/heidrun/issues/209). The compiler cache tools `kache` and `sccache` failed in [issue #203](https://github.com/heidrun-org/heidrun/issues/203).

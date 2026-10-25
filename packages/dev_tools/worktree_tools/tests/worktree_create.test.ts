@@ -145,6 +145,19 @@ describe('WorktreeCreate', () => {
 			expect(Fs.existsSync(Path.join(worktreePath, 'node_modules'))).toBe(false);
 		});
 
+		it('clones nothing with the option isWithoutOptimization, even when the main checkout is built', () => {
+			const mainCheckoutPath = TestRepository.createWithBuiltTarget();
+			const result = WorktreeCreate.run({
+				workingDirectory: mainCheckoutPath,
+				name: 'without-optimization',
+				isWithoutOptimization: true,
+			});
+			expect(result.isTargetCloned).toBe(false);
+			expect(result.skipReason).toBe(WorktreeCreate.withoutOptimizationReason);
+			expect(result.sourceDates.fileCount).toBe(0);
+			expect(Fs.existsSync(TargetPaths.targetPath(result.worktreePath))).toBe(false);
+		});
+
 		it('creates the worktree without a clone when the main checkout has no debug folder', () => {
 			const mainCheckoutPath = TestRepository.create();
 			const result = WorktreeCreate.run({
