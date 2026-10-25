@@ -1,4 +1,5 @@
 mod app_data;
+mod application_log;
 mod application_profile;
 mod antigravity;
 mod claude;

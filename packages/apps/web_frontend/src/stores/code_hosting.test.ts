@@ -127,6 +127,12 @@ describe("loadCodeHosting on GitHub", () => {
     expect(kept).toEqual([true, true, true, true, true]);
   });
 
+  it("names the Code hosting sidebar section as the caller, for the application log (issue #879)", async () => {
+    await loadCodeHosting("/work/heidrun");
+    const callers = vi.mocked(invoke).mock.calls.map(([, payload]) => (payload as { caller: string }).caller);
+    expect(callers).toEqual(["code_hosting_list", "code_hosting_list"]);
+  });
+
   it("keeps the number, the title, the address, the author, the date, the labels, the draft mark, and the branches of each item", async () => {
     await loadCodeHosting("/work/heidrun");
     expect(codeHosting.status).toBe("ready");

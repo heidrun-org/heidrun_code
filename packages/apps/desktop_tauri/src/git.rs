@@ -349,12 +349,25 @@ pub(crate) async fn run_forge(cwd: &str, tool: &str, args: &[String], timeout: u
     }
 }
 
+/// The same call as `run_forge`, with a start line and an end line in the application log, with `caller`, the part of the application that
+/// asked (issue #879).
+async fn run_forge_logged(caller: &str, cwd: &str, tool: &str, args: &[String], timeout: u64) -> Result<String, String> {
+    use crate::application_log::{ForgeAnswerSource, ForgeCall};
+    let call = ForgeCall::start(Some(caller), tool, args, true);
+    let result = run_forge(cwd, tool, args, timeout).await;
+    match &result {
+        Ok(_) => call.end(ForgeAnswerSource::Forge, None),
+        Err(failure) => call.end(ForgeAnswerSource::Failed, Some(failure)),
+    }
+    result
+}
+
 /// The time when the exceeded GitHub rate limit resets, in seconds since 1970, or `None` when no limit is exceeded. It
 /// reads `gh api rate_limit`, which GitHub does not count in the rate limit (issue #869).
 #[tauri::command]
 pub async fn forge_rate_limit_reset(cwd: String) -> Result<Option<u64>, String> {
     let args = ["api", "rate_limit"].map(String::from);
-    let output = run_forge(&cwd, "gh", &args, 20).await?;
+    let output = run_forge_logged("code_hosting_rate_limit", &cwd, "gh", &args, 20).await?;
     rate_limit_reset_of(&output)
 }
 
@@ -421,12 +434,12 @@ pub async fn forge_merge(
         }
         _ => return Err("hébergeur inconnu".into()),
     };
-    let out = run_forge(&root, tool, &args, 60).await?;
+    let out = run_forge_logged("merge", &root, tool, &args, 60).await?;
     if forge == "github" && delete_branch {
         if let Some(b) = branch {
             let path = format!("repos/{{owner}}/{{repo}}/git/refs/heads/{b}");
             let del = ["api", "-X", "DELETE", &path].map(String::from);
-            if let Err(e) = run_forge(&root, "gh", &del, 20).await {
+            if let Err(e) = run_forge_logged("merge", &root, "gh", &del, 20).await {
                 return Ok(format!("fusionnée, mais la branche distante n’a pas été supprimée : {e}"));
             }
         }

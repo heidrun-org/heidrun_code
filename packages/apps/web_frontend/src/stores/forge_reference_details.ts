@@ -36,7 +36,7 @@ async function readGithub(folder: string, reference: ChatReference): Promise<Cha
     ? "title,state,body,labels,author,createdAt"
     : "title,state,body,labels,author,createdAt,headRefName,baseRefName";
   const args = [isIssue ? "issue" : "pr", "view", String(reference.number), "--json", fields];
-  const answer = JSON.parse(await runForgeCli(folder, "gh", args)) as {
+  const answer = JSON.parse(await runForgeCli("reference_card", folder, "gh", args)) as {
     title: string;
     state: string;
     body?: string;
@@ -63,7 +63,7 @@ async function readGithub(folder: string, reference: ChatReference): Promise<Cha
 async function readGitlab(folder: string, reference: ChatReference): Promise<ChatReferenceDetails> {
   const kind = reference.kind === "issue" ? "issues" : "merge_requests";
   const args = ["api", `projects/:fullpath/${kind}/${reference.number}`];
-  const answer = JSON.parse(await runForgeCli(folder, "glab", args)) as {
+  const answer = JSON.parse(await runForgeCli("reference_card", folder, "glab", args)) as {
     title: string;
     state: string;
     description?: string | null;

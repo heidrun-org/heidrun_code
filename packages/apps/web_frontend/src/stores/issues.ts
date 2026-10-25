@@ -36,7 +36,7 @@ export const issueView = reactive({
 });
 
 // Through the cache of the answers, which keeps each answer for ten minutes (issue #870).
-const cli = (cwd: string, tool: "glab" | "gh", args: string[]) => runForgeCli(cwd, tool, args);
+const cli = (cwd: string, tool: "glab" | "gh", args: string[]) => runForgeCli("issue_preview", cwd, tool, args);
 const time = (s?: string | null) => (s ? Date.parse(s) || null : null);
 
 // Forge state → translation key of the label, level.

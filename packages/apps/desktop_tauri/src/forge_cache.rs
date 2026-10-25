@@ -7,6 +7,7 @@
 //! #870). Every read of an issue or of a pull request in the application goes through this cache. When the forge does not answer (no network, no login), an answer that is at most seven days old is used
 //! instead of the failure.
 
+use crate::application_log::{self, ForgeAnswerSource, ForgeCall};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -141,7 +142,8 @@ fn with_cache<T>(body: impl FnOnce(&mut ForgeCache) -> T) -> T {
 /// Runs a read-only `glab` / `gh` call (see `crate::git::allowed`), with the answer kept on the disk for ten minutes. A
 /// call that fails gives the last answer of the same call when it is at most seven days old. With `refresh` true, the
 /// forge is asked again even when a fresh answer exists, and the new answer replaces the kept one. With
-/// `keep_until_refresh` true, the kept answer is used whatever its age, and only a refresh asks the forge again.
+/// `keep_until_refresh` true, the kept answer is used whatever its age, and only a refresh asks the forge again. Each call
+/// writes one line in the application log, with `caller`, the part of the application that asked (issue #879).
 #[tauri::command]
 pub async fn forge_cli_cached(
     cwd: String,
@@ -149,6 +151,7 @@ pub async fn forge_cli_cached(
     args: Vec<String>,
     refresh: Option<bool>,
     keep_until_refresh: Option<bool>,
+    caller: Option<String>,
 ) -> Result<String, String> {
     if !crate::git::allowed(&tool, &args) {
         return Err(format!("forge_cli_cached : appel non autorisé ({tool} {})", args.join(" ")));
@@ -157,17 +160,29 @@ pub async fn forge_cli_cached(
     let is_refresh = refresh == Some(true);
     let is_kept_until_refresh = keep_until_refresh == Some(true);
     if let Some(output) = with_cache(|cache| cache.usable(&key, now_ms(), is_refresh, is_kept_until_refresh)) {
+        application_log::record_forge_cache_hit(caller.as_deref(), &tool, &args);
         return Ok(output);
     }
+    let call = ForgeCall::start(caller.as_deref(), &tool, &args, is_refresh);
     match crate::git::run_forge(&cwd, &tool, &args, 20).await {
         Ok(output) => {
             with_cache(|cache| {
                 cache.put(key, output.clone(), now_ms());
                 cache.save();
             });
+            call.end(ForgeAnswerSource::Forge, None);
             Ok(output)
         }
-        Err(failure) => with_cache(|cache| cache.kept(&key, now_ms())).ok_or(failure),
+        Err(failure) => match with_cache(|cache| cache.kept(&key, now_ms())) {
+            Some(output) => {
+                call.end(ForgeAnswerSource::KeptAfterFailure, Some(&failure));
+                Ok(output)
+            }
+            None => {
+                call.end(ForgeAnswerSource::Failed, Some(&failure));
+                Err(failure)
+            }
+        },
     }
 }
 

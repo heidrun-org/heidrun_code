@@ -231,7 +231,7 @@ function itemOfGitlab(item: GitlabItem): CodeHostingItem {
  * @returns what the tool printed
  */
 function runForge(folder: string, tool: "gh" | "glab", args: string[], isRefresh: boolean): Promise<string> {
-  return runForgeCli(folder, tool, args, { isRefresh, isKeptUntilRefresh: true });
+  return runForgeCli("code_hosting_list", folder, tool, args, { isRefresh, isKeptUntilRefresh: true });
 }
 
 /**
