@@ -1,11 +1,11 @@
 # Directory Context: `/packages/data_layers/data_layer_code_hosting`
 
 ## Purpose
-The Code hosting source of Heidrun Code: reads GitHub issues and pull requests into SQLite. The library and executable are named `data_layer_code_hosting`; desktop callers use `refresh_code_hosting` and `find_*`.
+The Code hosting source of Heidrun Code: reads GitHub issues and pull requests into SQLite. The library and executable are named `data_layer_code_hosting`; desktop callers use `refresh_code_hosting_with_progress` and `find_*`.
 
 ## Key Exports & Entry Points
 - `src/lib.rs`: the only public interface; its `pub use` lines list the readers, databases, synchronization and query functions, schemas, and data types.
-- `src/refresh.rs`: changed issues and pull requests. `src/query.rs`: stored rows by date or number, with empty answers for absent tables.
+- `src/refresh.rs`: changed issues and pull requests; the functions `*_with_progress` also send a `CodeHostingProgress` for each stage and each page. `src/query.rs`: stored rows by date or number, with empty answers for absent tables.
 - `src/main.rs`: the command line, and the executable `data_layer_code_hosting`. The module `src/command_line.rs` reads its arguments.
 - `src/github/`: the reading of the issues and of the pull requests of GitHub, through a `GraphqlRunner` — see its own CONTEXT.md.
 - `src/storage/`: the SQLite file, and the text form of the rows of a query — see its own CONTEXT.md.

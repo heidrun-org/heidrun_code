@@ -166,6 +166,34 @@ impl SynchronizationMode {
     }
 }
 
+/// The stages of a refresh, in the order where they run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CodeHostingStage {
+    /// The reading of the issues from GitHub.
+    ReadIssues,
+    /// The writing of the issues in the SQLite file.
+    WriteIssues,
+    /// The reading of the pull requests from GitHub.
+    ReadPullRequests,
+    /// The writing of the pull requests in the SQLite file.
+    WritePullRequests,
+}
+
+/// One report of the progress of a refresh: the stage, the number of items that the stage handled, and the number of items
+/// that the stage handles in all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CodeHostingProgress {
+    /// The stage that the report describes.
+    pub stage: CodeHostingStage,
+    /// The number of items that the stage handled.
+    pub done_count: usize,
+    /// The number of items that the stage handles in all, or `None` when it is not known. A read that starts at a date does not
+    /// know how many items changed after this date.
+    pub total_count: Option<usize>,
+    /// True when the stage is done.
+    pub is_finished: bool,
+}
+
 /// What one synchronization did.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SynchronizationReport {

@@ -4,9 +4,9 @@
 //! A program that shows the issues and the pull requests calls this file to collect, and `query.rs` to read. The two never
 //! mix: a read never sends a request to GitHub.
 
-use crate::github::github_reader::{ignore_log, GithubReader};
+use crate::github::github_reader::{ignore_log, ignore_progress, GithubReader};
 use crate::github::graphql_runner::{GhGraphqlRunner, GraphqlRunner};
-use crate::model::types::{CodeHostingTable, SynchronizationMode, SynchronizationReport};
+use crate::model::types::{CodeHostingProgress, CodeHostingTable, SynchronizationMode, SynchronizationReport};
 use crate::storage::database::CodeHostingDatabase;
 use crate::synchronization::run;
 use crate::OPERATION_PACKAGE;
@@ -27,6 +27,19 @@ pub fn refresh_code_hosting(database_path: &Path, repository: &str) -> Result<Sy
     refresh_code_hosting_with_runner(&GhGraphqlRunner, database_path, repository)
 }
 
+/// Like `refresh_code_hosting`, and `progress` receives one report at the start of each stage, after each page, and at the
+/// end of each stage. The Statistics window shows these reports while it waits.
+///
+/// # Errors
+/// The same as `refresh_code_hosting`.
+pub fn refresh_code_hosting_with_progress(
+    database_path: &Path,
+    repository: &str,
+    progress: &dyn Fn(&CodeHostingProgress),
+) -> Result<SynchronizationReport, String> {
+    refresh_code_hosting_with_runner_and_progress(&GhGraphqlRunner, database_path, repository, progress)
+}
+
 /// Like `refresh_code_hosting`, with the runner that sends the queries. The tests give a fake runner.
 ///
 /// # Errors
@@ -36,10 +49,23 @@ pub fn refresh_code_hosting_with_runner(
     database_path: &Path,
     repository: &str,
 ) -> Result<SynchronizationReport, String> {
+    refresh_code_hosting_with_runner_and_progress(runner, database_path, repository, &ignore_progress)
+}
+
+/// Like `refresh_code_hosting_with_progress`, with the runner that sends the queries. The tests give a fake runner.
+///
+/// # Errors
+/// The same as `refresh_code_hosting`.
+pub fn refresh_code_hosting_with_runner_and_progress(
+    runner: &dyn GraphqlRunner,
+    database_path: &Path,
+    repository: &str,
+    progress: &dyn Fn(&CodeHostingProgress),
+) -> Result<SynchronizationReport, String> {
     let spec = OperationSpec::new(OPERATION_PACKAGE, "refresh_code_hosting", OperationKind::Synchronization)
         .parameter("repository", repository)
         .database(database_path);
-    record(spec, || refresh_code_hosting_inside(runner, database_path, repository), |report| {
+    record(spec, || refresh_code_hosting_inside(runner, database_path, repository, progress), |report| {
         Summary::count(report.issue_count + report.pull_request_count)
             .detail("mode", report.mode.name())
             .detail("issueCount", report.issue_count)
@@ -53,6 +79,7 @@ fn refresh_code_hosting_inside(
     runner: &dyn GraphqlRunner,
     database_path: &Path,
     repository: &str,
+    progress: &dyn Fn(&CodeHostingProgress),
 ) -> Result<SynchronizationReport, String> {
     let mut database = CodeHostingDatabase::open(database_path)?;
     let mut missing_color_count = 0;
@@ -60,7 +87,7 @@ fn refresh_code_hosting_inside(
         missing_color_count += database.count_rows_without_label_colors(table, repository)?;
     }
     let mode = if missing_color_count > 0 { SynchronizationMode::Initialize } else { SynchronizationMode::Update };
-    let reader = GithubReader::new(runner, &ignore_log);
+    let reader = GithubReader::new(runner, &ignore_log).with_progress(progress);
     run(mode, repository, &mut database, &reader, &ignore_log)
 }
 
@@ -68,7 +95,9 @@ fn refresh_code_hosting_inside(
 mod tests {
     use super::*;
     use crate::test_samples::{date, issue_node, pull_request_node, temp_folder, FakeGithub};
+    use crate::model::types::CodeHostingStage;
     use rusqlite::Connection;
+    use std::cell::RefCell;
 
     const REPOSITORY: &str = "heidrun-org/heidrun";
 
@@ -98,6 +127,37 @@ mod tests {
         let complete = data_layer_operation_log::testing::completion_of(&events, &starts[0].operation_id).unwrap();
         assert_eq!(complete.details["mode"], "update");
         assert_eq!(complete.result_count, Some(3));
+    }
+
+    #[test]
+    fn sends_the_start_the_pages_and_the_end_of_each_stage_with_a_total_only_for_a_read_from_the_beginning() {
+        let database_path = temp_folder("refresh_progress").join("data_layer.sqlite");
+        let fake_github = FakeGithub::new((1..=3).map(|day| issue_node(day, &date(day as u32))).collect(), vec![], 2);
+        let reports = RefCell::new(Vec::new());
+        let progress = |report: &CodeHostingProgress| {
+            reports.borrow_mut().push((report.stage, report.done_count, report.total_count, report.is_finished))
+        };
+        refresh_code_hosting_with_runner_and_progress(&fake_github, &database_path, REPOSITORY, &progress).unwrap();
+        assert_eq!(
+            reports.take(),
+            vec![
+                (CodeHostingStage::ReadIssues, 0, None, false),
+                (CodeHostingStage::ReadIssues, 2, Some(3), false),
+                (CodeHostingStage::ReadIssues, 3, Some(3), false),
+                (CodeHostingStage::ReadIssues, 3, Some(3), true),
+                (CodeHostingStage::WriteIssues, 0, Some(3), false),
+                (CodeHostingStage::WriteIssues, 3, Some(3), true),
+                (CodeHostingStage::ReadPullRequests, 0, None, false),
+                (CodeHostingStage::ReadPullRequests, 0, Some(0), false),
+                (CodeHostingStage::ReadPullRequests, 0, Some(0), true),
+                (CodeHostingStage::WritePullRequests, 0, Some(0), false),
+                (CodeHostingStage::WritePullRequests, 0, Some(0), true),
+            ]
+        );
+        fake_github.issue_nodes.borrow_mut().push(issue_node(4, &date(9)));
+        refresh_code_hosting_with_runner_and_progress(&fake_github, &database_path, REPOSITORY, &progress).unwrap();
+        let second = reports.take();
+        assert_eq!(second[1], (CodeHostingStage::ReadIssues, 2, None, false), "A read from a date has no total: {second:?}");
     }
 
     #[test]

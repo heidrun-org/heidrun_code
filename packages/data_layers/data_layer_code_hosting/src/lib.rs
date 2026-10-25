@@ -33,17 +33,20 @@ fn default_data_folder(home: &std::path::Path) -> PathBuf {
 #[cfg(test)]
 mod test_samples;
 
-pub use github::github_reader::{ignore_log, GithubReader, ISSUES_QUERY, PULL_REQUESTS_QUERY};
+pub use github::github_reader::{ignore_log, ignore_progress, GithubReader, ISSUES_QUERY, PULL_REQUESTS_QUERY};
 pub use github::graphql_runner::{find_repository, GhGraphqlRunner, GraphqlRunner};
 pub use model::schemas::{validate_issue_value, validate_pull_request_value, ISSUE_SCHEMA, PULL_REQUEST_SCHEMA};
 pub use model::types::{
-    CodeHostingTable, Issue, IssueState, IssueStateReason, PullRequest, PullRequestState, QueryRow, SynchronizationMode,
+    CodeHostingProgress, CodeHostingStage, CodeHostingTable, Issue, IssueState, IssueStateReason, PullRequest, PullRequestState, QueryRow, SynchronizationMode,
     SynchronizationReport,
 };
 pub use query::{
     find_issues_by_numbers, find_issues_opened_between, find_pull_requests_by_numbers, find_pull_requests_opened_between,
 };
-pub use refresh::{refresh_code_hosting, refresh_code_hosting_with_runner};
+pub use refresh::{
+    refresh_code_hosting, refresh_code_hosting_with_progress, refresh_code_hosting_with_runner,
+    refresh_code_hosting_with_runner_and_progress,
+};
 pub use storage::database::CodeHostingDatabase;
 pub use storage::query_formatter::{to_json, to_table, NO_ROW_TEXT};
 pub use synchronization::{describe_since, run as synchronize};

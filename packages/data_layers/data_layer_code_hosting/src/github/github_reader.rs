@@ -4,7 +4,9 @@
 //! through a `GraphqlRunner`, and never runs the command `gh` itself.
 
 use crate::github::graphql_runner::GraphqlRunner;
-use crate::model::types::{Issue, IssueState, IssueStateReason, PullRequest, PullRequestState};
+use crate::model::types::{
+    CodeHostingProgress, CodeHostingStage, Issue, IssueState, IssueStateReason, PullRequest, PullRequestState,
+};
 use serde::Deserialize;
 use serde_json::Value;
 use crate::OPERATION_PACKAGE;
@@ -16,6 +18,7 @@ pub const ISSUES_QUERY: &str = r#"
 query($owner: String!, $name: String!, $cursor: String) {
     repository(owner: $owner, name: $name) {
         issues(first: 100, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
+            totalCount
             pageInfo { hasNextPage endCursor }
             nodes {
                 number title body state stateReason createdAt updatedAt closedAt
@@ -34,6 +37,7 @@ pub const PULL_REQUESTS_QUERY: &str = r#"
 query($owner: String!, $name: String!, $cursor: String) {
     repository(owner: $owner, name: $name) {
         pullRequests(first: 100, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
+            totalCount
             pageInfo { hasNextPage endCursor }
             nodes {
                 number title body state isDraft baseRefName headRefName
@@ -52,19 +56,42 @@ query($owner: String!, $name: String!, $cursor: String) {
 /// Ignores a line of progress. It is the log function when the developer does not ask for the progress.
 pub fn ignore_log(_message: &str) {}
 
+/// Ignores a report of progress. It is the progress function when the caller does not show the progress.
+pub fn ignore_progress(_progress: &CodeHostingProgress) {}
+
 /// Reads the pages of issues and of pull requests.
 pub struct GithubReader<'a> {
     /// The runner that sends a GraphQL query.
     runner: &'a dyn GraphqlRunner,
     /// The function that receives one line of progress for each page and for each stop.
     log: &'a dyn Fn(&str),
+    /// The function that receives the reports of progress of the stages.
+    progress: &'a dyn Fn(&CodeHostingProgress),
 }
 
 impl<'a> GithubReader<'a> {
     /// Creates a reader. `log` receives one line of progress for each page and for each stop. Give `&ignore_log` for no
     /// progress.
     pub fn new(runner: &'a dyn GraphqlRunner, log: &'a dyn Fn(&str)) -> Self {
-        GithubReader { runner, log }
+        GithubReader { runner, log, progress: &ignore_progress }
+    }
+
+    /// Gives the reader the function that receives one report of progress at the start of each stage, after each page, and at
+    /// the end of each stage.
+    pub fn with_progress(mut self, progress: &'a dyn Fn(&CodeHostingProgress)) -> Self {
+        self.progress = progress;
+        self
+    }
+
+    /// Sends one report of progress to the progress function of the reader.
+    pub(crate) fn send_progress(
+        &self,
+        stage: CodeHostingStage,
+        done_count: usize,
+        total_count: Option<usize>,
+        is_finished: bool,
+    ) {
+        (self.progress)(&CodeHostingProgress { stage, done_count, total_count, is_finished });
     }
 
     /// Reads the issues of a repository, the newest change first.
@@ -83,7 +110,7 @@ impl<'a> GithubReader<'a> {
 
     /// The work of `read_issues`, between the start event and the completion event of its operation.
     fn read_issues_inside(&self, repository: &str, since: Option<&str>) -> Result<Vec<Issue>, String> {
-        let nodes = self.read_nodes(repository, ISSUES_QUERY, "issues", since)?;
+        let nodes = self.read_nodes(repository, ISSUES_QUERY, "issues", CodeHostingStage::ReadIssues, since)?;
         nodes
             .into_iter()
             .map(|node| {
@@ -110,7 +137,8 @@ impl<'a> GithubReader<'a> {
 
     /// The work of `read_pull_requests`, between the start event and the completion event of its operation.
     fn read_pull_requests_inside(&self, repository: &str, since: Option<&str>) -> Result<Vec<PullRequest>, String> {
-        let nodes = self.read_nodes(repository, PULL_REQUESTS_QUERY, "pullRequests", since)?;
+        let nodes =
+            self.read_nodes(repository, PULL_REQUESTS_QUERY, "pullRequests", CodeHostingStage::ReadPullRequests, since)?;
         nodes
             .into_iter()
             .map(|node| {
@@ -122,12 +150,15 @@ impl<'a> GithubReader<'a> {
             .collect()
     }
 
-    /// Reads the pages of one list, the newest change first, until the list ends or an item is older than `since`.
+    /// Reads the pages of one list, the newest change first, until the list ends or an item is older than `since`. After each
+    /// page, it sends a report of progress for `stage`. The total is the number of items of the list when the read starts at
+    /// the beginning, and is not known when the read starts at a date.
     fn read_nodes(
         &self,
         repository: &str,
         query: &str,
         connection_name: &str,
+        stage: CodeHostingStage,
         since: Option<&str>,
     ) -> Result<Vec<Value>, String> {
         let (owner, name) = repository
@@ -165,6 +196,9 @@ impl<'a> GithubReader<'a> {
                 }
                 nodes.push(node.clone());
             }
+            let total_count =
+                if since.is_none() { connection["totalCount"].as_u64().map(|count| count as usize) } else { None };
+            self.send_progress(stage, nodes.len(), total_count, false);
             if connection["pageInfo"]["hasNextPage"] != Value::Bool(true) {
                 (self.log)(&format!("{connection_name}: stop, page {page_number} is the last page"));
                 return Ok(nodes);
