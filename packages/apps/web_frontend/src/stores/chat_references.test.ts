@@ -160,6 +160,8 @@ describe("loadChatReferenceDetails", () => {
       cwd: "/work/app",
       tool: "glab",
       args: ["api", "projects/:fullpath/issues/250"],
+      refresh: false,
+      keepUntilRefresh: false,
     });
     expect(issue).toMatchObject({ rawState: "open", body: "Text", labels: [{ name: "bug", color: null }], author: "jerome" });
     await loadChatReferenceDetails("/work/app", "gitlab", PULL_REQUEST);

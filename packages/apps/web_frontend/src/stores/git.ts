@@ -4,6 +4,7 @@ import { computed, reactive, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { allPanes, state as session, workspaces } from "./session";
 import { refContext, type Forge } from "../lib/refs";
+import { runForgeCli, type ForgeTool } from "../lib/forge_cli";
 import { t } from "../i18n/index";
 
 export interface GitStatus {
@@ -171,8 +172,14 @@ function loadShellBranches() {
   }
 }
 
-function cli(cwd: string, tool: "glab" | "gh", args: string[]): Promise<string> {
-  return invoke<string>("forge_cli", { cwd, tool, args });
+/**
+ * The reader of `gh` or `glab` of one loading, through the cache of the answers, which keeps each answer for ten
+ * minutes (issue #870).
+ * @param isRefresh - true to ask the hosting service again, whatever the age of the kept answer
+ * @returns the reader
+ */
+function forgeReader(isRefresh: boolean): (cwd: string, tool: ForgeTool, args: string[]) => Promise<string> {
+  return (cwd, tool, args) => runForgeCli(cwd, tool, args, { isRefresh });
 }
 
 // GitLab "detailed_merge_status" → what it means for you (translation key of the label, level).
@@ -265,7 +272,12 @@ function glRequest(m: GlMr, status: Request["status"]): Request {
   };
 }
 
-async function loadGitlab(cwd: string, branch: string | null): Promise<Pick<ForgeInfo, "requests" | "recent" | "ci">> {
+async function loadGitlab(
+  cwd: string,
+  branch: string | null,
+  isRefresh: boolean,
+): Promise<Pick<ForgeInfo, "requests" | "recent" | "ci">> {
+  const cli = forgeReader(isRefresh);
   const list = JSON.parse(
     await cli(cwd, "glab", ["api", "projects/:fullpath/merge_requests?state=opened&per_page=20&order_by=updated_at"]),
   ) as GlMr[];
@@ -296,7 +308,9 @@ async function loadGitlab(cwd: string, branch: string | null): Promise<Pick<Forg
   await Promise.all([worker(), worker(), worker(), worker()]);
   let recent: Request[] = [];
   try {
-    const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    // The start of the day, and not the current time, so that the arguments, and the key of the cache, stay the same
+    // for a day.
+    const since = new Date(Math.floor((Date.now() - 7 * 86_400_000) / 86_400_000) * 86_400_000).toISOString();
     const done = JSON.parse(
       await cli(cwd, "glab", ["api", `projects/:fullpath/merge_requests?state=all&updated_after=${encodeURIComponent(since)}&per_page=30&order_by=updated_at`]),
     ) as GlMr[];
@@ -388,7 +402,12 @@ function ghRequest(p: GhPr, status: Request["status"]): Request {
 const GH_FIELDS =
   "number,title,url,author,headRefName,baseRefName,headRefOid,isDraft,reviewDecision,mergeable,statusCheckRollup,state,mergedAt,closedAt,updatedAt";
 
-async function loadGithub(cwd: string, branch: string | null): Promise<Pick<ForgeInfo, "requests" | "recent" | "ci">> {
+async function loadGithub(
+  cwd: string,
+  branch: string | null,
+  isRefresh: boolean,
+): Promise<Pick<ForgeInfo, "requests" | "recent" | "ci">> {
+  const cli = forgeReader(isRefresh);
   const list = JSON.parse(await cli(cwd, "gh", ["pr", "list", "--limit", "20", "--json", GH_FIELDS])) as GhPr[];
   const requests = list.map((p) => ghRequest(p, "open"));
   let recent: Request[] = [];
@@ -433,7 +452,7 @@ function explain(e: unknown, tool: string): string {
 // Requests can come back out of order: only the latest one per workspace is kept.
 const forgeSeq: Record<string, number> = {};
 
-async function loadForge(wsId: string) {
+async function loadForge(wsId: string, isRefresh: boolean) {
   const seq = (forgeSeq[wsId] = (forgeSeq[wsId] ?? 0) + 1);
   const st = git.status[wsId];
   const cwd = st?.root;
@@ -445,20 +464,26 @@ async function loadForge(wsId: string) {
   const forge: Forge = ctx.forge ?? "gitlab";
   const tool = forge === "github" ? "gh" : "glab";
   try {
-    const r = forge === "github" ? await loadGithub(cwd, st.branch) : await loadGitlab(cwd, st.branch);
+    const r = forge === "github" ? await loadGithub(cwd, st.branch, isRefresh) : await loadGitlab(cwd, st.branch, isRefresh);
     if (seq === forgeSeq[wsId]) git.forge[wsId] = { forge, base: ctx.base, ...r, error: null, at: Date.now() };
   } catch (e) {
     if (seq === forgeSeq[wsId]) git.forge[wsId] = { forge, base: ctx.base, requests: [], recent: [], ci: null, error: explain(e, tool), at: Date.now() };
   }
 }
 
-/** Refresh now (button), status and forge of the selected workspace. */
-export async function refreshGit(wsId = session.selectedWorkspaceId) {
+/**
+ * Refresh now (button, or after a Git action), status and forge of the selected workspace.
+ * @param wsId - the workspace
+ * @param isRefresh - true to ask the hosting service again; false to use an answer of the cache that is at most ten
+ * minutes old, when the selected workspace changes
+ * @returns nothing
+ */
+export async function refreshGit(wsId = session.selectedWorkspaceId, isRefresh = true) {
   if (!wsId) return;
   git.loading = true;
   try {
     await loadStatus(wsId);
-    await loadForge(wsId);
+    await loadForge(wsId, isRefresh);
   } finally {
     git.loading = false;
   }
@@ -470,7 +495,8 @@ export const currentForge = computed(() => (session.selectedWorkspaceId ? git.fo
 let started = false;
 /**
  * Local status: selected workspace every 10 s, all of them every 60 s (cheap).
- * Forge: selected workspace every 90 s, and when it changes.
+ * Forge: selected workspace every 90 s, and when it changes, through the cache: GitHub or GitLab is asked at most every
+ * ten minutes, and at once after a click on "Refresh" or a Git action.
  */
 export function startGit() {
   if (started) return;
@@ -482,12 +508,12 @@ export function startGit() {
     if (sel) loadStatus(sel);
     loadShellBranches();
     if (tick % 6 === 0) for (const w of workspaces.value) if (w.workspace_id !== sel) loadStatus(w.workspace_id);
-    if (sel && tick % 9 === 0) loadForge(sel);
+    if (sel && tick % 9 === 0) loadForge(sel, false);
   }, 10_000);
   watch(
     () => [session.selectedWorkspaceId, session.selectedWorkspaceId === null
       ? null : workspaceCwd(session.selectedWorkspaceId)] as const,
-    ([id]) => id && refreshGit(id),
+    ([id]) => id && refreshGit(id, false),
     { immediate: true },
   );
   watch(
