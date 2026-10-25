@@ -137,6 +137,28 @@ export class PaneFocusHistory {
 	}
 
 	/**
+	 * Finds the pane that had the focus most recently among the entries that pass a test. The search starts at the
+	 * current entry and goes back to the first entry. When no entry passes the test, the search goes on from the entry
+	 * after the current entry to the last entry. The history does not change.
+	 *
+	 * @param isAcceptedFn - Tells if the pane of an entry can be chosen, for example because the pane still exists.
+	 * @returns The name of the chosen pane, or `null` when no entry passes the test.
+	 */
+	findMostRecentPaneId(isAcceptedFn: (paneId: string) => boolean): string | null {
+		for (let index = this._currentIndex; index >= 0; index--) {
+			if (isAcceptedFn(this._paneIds[index]) === true) {
+				return this._paneIds[index];
+			}
+		}
+		for (let index = this._currentIndex + 1; index < this._paneIds.length; index++) {
+			if (isAcceptedFn(this._paneIds[index]) === true) {
+				return this._paneIds[index];
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Removes every entry of some panes, for example the panes that the developer closed. Two entries of the same pane
 	 * that become neighbours make one entry. When the current entry goes away, the current place moves to the nearest
 	 * entry before it, or to the first entry when no entry exists before it.
