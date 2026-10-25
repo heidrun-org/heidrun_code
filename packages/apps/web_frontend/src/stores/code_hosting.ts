@@ -7,9 +7,11 @@
 // - issue #374
 // - issue #378
 // - issue #607
+// - issue #869
 import { reactive } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "../i18n/index";
+import { clockTime } from "../lib/format";
 import {
   githubSearchArguments,
   githubState,
@@ -322,6 +324,24 @@ async function readGitlabGroup(
 }
 
 /**
+ * The message of a failure of `gh` that says the GitHub rate limit is exceeded, with the local time of the reset.
+ * @param folder - the folder of the repository
+ * @param message - the first line of the failure
+ * @returns the message with the reset time, or null when the failure is not a rate limit or the reset time is unknown
+ */
+async function githubRateLimitMessage(folder: string, message: string): Promise<string | null> {
+  if (/rate limit/i.test(message) === false) {
+    return null;
+  }
+  try {
+    const reset = await invoke<number | null>("forge_rate_limit_reset", { cwd: folder });
+    return reset === null ? null : t("codeHostingPanel.rateLimit", { time: clockTime(reset) });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Loads one list of the repository of a folder, filtered by the search of this list `codeHosting.search`. The other
  * list does not change. The hosting service of the repository must be known: `loadCodeHosting` reads it.
  * @param folder - the root folder of the Git repository of the selected workspace
@@ -354,8 +374,13 @@ async function loadCodeHostingList(folder: string, group: CodeHostingGroup, isRe
     if (thisLoad !== lastListLoad[group]) {
       return;
     }
-    codeHosting.listError[group] =
+    const message =
       failure instanceof CodeHostingSearchError ? failure.message : String(failure).split("\n")[0].slice(0, 300);
+    const rateLimitMessage = forge === "github" ? await githubRateLimitMessage(folder, message) : null;
+    if (thisLoad !== lastListLoad[group]) {
+      return;
+    }
+    codeHosting.listError[group] = rateLimitMessage ?? message;
     codeHosting.listStatus[group] = "failed";
   }
 }

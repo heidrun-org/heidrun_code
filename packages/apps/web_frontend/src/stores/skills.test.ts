@@ -48,6 +48,15 @@ describe("errorText", () => {
     expect(errorText("skills_invalid_path: pdf")).toBe("This is not the full path of a folder: pdf");
     expect(errorText("skills_local_folder_not_found: /a/b")).toBe("This folder was not found on this computer: /a/b");
     expect(errorText("skills_local_folder_no_skill_file: /a/b")).toBe("This folder has no SKILL.md file: /a/b");
+    expect(errorText("skills_local_folder_no_skill: /a/b")).toBe("This folder has no SKILL.md file, and none of its subfolders has one: /a/b");
+  });
+
+  it("tells that a folder on GitHub or GitLab has no skill, or has too many files to be read", async () => {
+    const { errorText } = await import("./skills");
+    expect(errorText("skills_folder_no_skill: a/b/main/skills")).toBe(
+      "This folder has no SKILL.md file, and none of its subfolders has one: a/b/main/skills",
+    );
+    expect(errorText("skills_folder_too_large: a/b/main/skills")).toBe("This folder has too many files to look for skills in it: a/b/main/skills");
   });
 
   it("tells that a link already exists", async () => {

@@ -12,6 +12,7 @@ import { findChoices, findQuestion, type ChoiceMenu } from "../lib/refs";
 import { allowCommand } from "./guards";
 import { ZenMode } from "./zen_mode";
 import { paneFocusHistory } from "./pane_focus_history_state";
+import { CompositionBarAtStart } from "./composition_bar_at_start";
 import { t } from "../i18n/index";
 import type {
   AgentInfo,
@@ -885,6 +886,7 @@ function applySnapshot(snap: SessionSnapshot) {
     }
   }
 	if (state.snapshot === null) {
+		CompositionBarAtStart.openForRunningCodingAgents(snap.panes);
 		for (const workspace of snap.workspaces) {
 			const request = workspace.tokens?.heidrun_focus_request;
 			if (request !== undefined) {

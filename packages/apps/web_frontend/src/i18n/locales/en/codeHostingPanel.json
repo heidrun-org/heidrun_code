@@ -35,6 +35,7 @@
   "savedCard.levelUser": "User: the saved search shows in every workspace.",
   "savedCard.levelWorkspace": "Workspace {name}: the saved search shows only in this workspace.",
   "gitlabCannot": "GitLab cannot do this search: {word}",
+  "rateLimit": "GitHub rate limit exceeded. Resets at {time}.",
   "emptySearch.issues": "No issue matches the search.",
   "emptySearch.pullRequests": "No pull request matches the search.",
   "emptySearch.mergeRequests": "No merge request matches the search.",

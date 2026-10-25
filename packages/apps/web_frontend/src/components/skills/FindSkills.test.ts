@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { FOLDER_URL, GITLAB_URL, LOCAL_PATH, RESULT, pending, prepare } from "./skills_test_support";
 
+/** The web address of a folder on GitHub whose subfolders `docx` and `pdf` each hold one skill. */
+const PARENT_URL = "https://github.com/jeromeetienne/coding_agent_plugin/tree/main/skills";
+
 const invoke = vi.hoisted(() => vi.fn());
 const chooseFolder = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/api/core", () => ({ invoke }));
@@ -165,7 +168,7 @@ describe("FindSkills: source skills.sh", () => {
 
 describe("FindSkills: source Local folder", () => {
   async function mountLocal(answers: Record<string, unknown> = {}) {
-    const mounted = await mountFind({ skills_preview_local_folder: "---\nname: pdf\n---", ...answers });
+    const mounted = await mountFind({ skills_find_local_folders: [LOCAL_PATH], ...answers });
     await mounted.wrapper.findAll(".sourceChoice input[type=radio]")[1].setValue(true);
     return mounted;
   }
@@ -177,7 +180,9 @@ describe("FindSkills: source Local folder", () => {
     const input = wrapper.get("input[type=text]");
     expect(input.attributes("id")).toBe(label.attributes("for"));
     expect(input.attributes("placeholder")).toBe("/Users/you/skills/pdf");
-    expect(wrapper.get(".form-text").text()).toBe("The folder that holds the file SKILL.md.");
+    expect(wrapper.get(".form-text").text()).toBe(
+      "The folder of one skill (it holds the file SKILL.md), or a folder whose subfolders each hold one skill.",
+    );
     expect(input.attributes("aria-describedby")).toBe(wrapper.get(".form-text").attributes("id"));
     expect(wrapper.findAll("button").map((button) => button.text())).toEqual(["Choose folder…"]);
   });
@@ -190,14 +195,14 @@ describe("FindSkills: source Local folder", () => {
       await input.setValue("/Users/me");
       await input.setValue(LOCAL_PATH);
       vi.advanceTimersByTime(299);
-      expect(invoke).not.toHaveBeenCalledWith("skills_preview_local_folder", expect.anything());
+      expect(invoke).not.toHaveBeenCalledWith("skills_find_local_folders", expect.anything());
       vi.advanceTimersByTime(1);
     } finally {
       vi.useRealTimers();
     }
     await flushPromises();
-    expect(invoke).toHaveBeenCalledWith("skills_preview_local_folder", { path: LOCAL_PATH });
-    expect(invoke).not.toHaveBeenCalledWith("skills_preview_local_folder", { path: "/Users/me" });
+    expect(invoke).toHaveBeenCalledWith("skills_find_local_folders", { path: LOCAL_PATH });
+    expect(invoke).not.toHaveBeenCalledWith("skills_find_local_folders", { path: "/Users/me" });
     const rows = wrapper.findAll(".list .row");
     expect(rows).toHaveLength(1);
     expect(rows[0].get(".name").text()).toBe("pdf");
@@ -205,15 +210,27 @@ describe("FindSkills: source Local folder", () => {
     expect(rows[0].findAll("button").map((button) => button.text())).toEqual(["Inspect", "Install"]);
   });
 
-  it("shows the error of the backend when the folder has no SKILL.md file", async () => {
+  it("shows one row for each skill of a folder whose subfolders hold a skill", async () => {
+    const { wrapper, skills } = await mountLocal({ skills_find_local_folders: ["/Users/me/skills/docx", "/Users/me/skills/pdf"] });
+    await skills.findLocalFolder("/Users/me/skills");
+    await flushPromises();
+    const rows = wrapper.findAll(".list .row");
+    expect(rows.map((row) => row.get(".name").text())).toEqual(["docx", "pdf"]);
+    expect(rows.map((row) => row.get(".sub").text())).toEqual(["/Users/me/skills/docx · Local folder", "/Users/me/skills/pdf · Local folder"]);
+    for (const row of rows) {
+      expect(row.findAll("button").map((button) => button.text())).toEqual(["Inspect", "Install"]);
+    }
+  });
+
+  it("shows the error of the backend when the folder and its subfolders have no SKILL.md file", async () => {
     const { wrapper, skills } = await mountLocal();
     invoke.mockImplementation(async () => {
-      throw `skills_local_folder_no_skill_file: ${LOCAL_PATH}`;
+      throw `skills_local_folder_no_skill: ${LOCAL_PATH}`;
     });
     await skills.findLocalFolder(LOCAL_PATH);
     await flushPromises();
     expect(wrapper.findAll(".list .row")).toHaveLength(0);
-    expect(wrapper.get(".err").text()).toBe(`This folder has no SKILL.md file: ${LOCAL_PATH}`);
+    expect(wrapper.get(".err").text()).toBe(`This folder has no SKILL.md file, and none of its subfolders has one: ${LOCAL_PATH}`);
   });
 
   it("shows the error of the backend when the folder does not exist", async () => {
@@ -233,7 +250,7 @@ describe("FindSkills: source Local folder", () => {
     await flushPromises();
     expect(chooseFolder).toHaveBeenCalledWith(expect.objectContaining({ directory: true, multiple: false }));
     expect((wrapper.get("input[type=text]").element as HTMLInputElement).value).toBe(LOCAL_PATH);
-    expect(invoke).toHaveBeenCalledWith("skills_preview_local_folder", { path: LOCAL_PATH });
+    expect(invoke).toHaveBeenCalledWith("skills_find_local_folders", { path: LOCAL_PATH });
     expect(wrapper.findAll(".list .row")).toHaveLength(1);
   });
 
@@ -242,7 +259,7 @@ describe("FindSkills: source Local folder", () => {
     chooseFolder.mockResolvedValue(null);
     await wrapper.get("button").trigger("click");
     await flushPromises();
-    expect(invoke).not.toHaveBeenCalledWith("skills_preview_local_folder", expect.anything());
+    expect(invoke).not.toHaveBeenCalledWith("skills_find_local_folders", expect.anything());
     expect(wrapper.findAll(".list .row")).toHaveLength(0);
   });
 
@@ -259,10 +276,22 @@ describe("FindSkills: source Local folder", () => {
 });
 
 describe("FindSkills: source Code hosting", () => {
-  async function mountCodeHosting() {
-    const mounted = await mountFind();
+  async function mountCodeHosting(answers: Record<string, unknown> = {}) {
+    const mounted = await mountFind({ skills_find_folders: [FOLDER_URL], ...answers });
     await mounted.wrapper.findAll(".sourceChoice input[type=radio]")[2].setValue(true);
     return mounted;
+  }
+
+  /** Types `text` in the field, waits for the check to start, and waits for its answer. */
+  async function typeAddress(wrapper: Awaited<ReturnType<typeof mountCodeHosting>>["wrapper"], text: string) {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await wrapper.get("input[type=text]").setValue(text);
+      vi.advanceTimersByTime(500);
+    } finally {
+      vi.useRealTimers();
+    }
+    await flushPromises();
   }
 
   it("shows a visible label, the help below the label, and a text field", async () => {
@@ -272,15 +301,30 @@ describe("FindSkills: source Code hosting", () => {
     const input = wrapper.get("input[type=text]");
     expect(input.attributes("id")).toBe(label.attributes("for"));
     expect(input.attributes("placeholder")).toBe("https://github.com/owner/repository/tree/main/skills/pdf");
+    expect(wrapper.get(".form-text").text()).toBe(
+      "A folder on GitHub or GitLab: the folder of one skill (it holds the file SKILL.md), or a folder whose subfolders each hold one skill.",
+    );
     expect(input.attributes("aria-describedby")).toBe(wrapper.get(".form-text").attributes("id"));
     expect(wrapper.find("button").exists()).toBe(false);
   });
 
-  it("shows one row for a web address of a folder on GitHub, without any call to the backend", async () => {
+  it("asks the backend 500 milliseconds after the last key typed, and shows one row for a skill folder on GitHub", async () => {
     const { wrapper } = await mountCodeHosting();
     invoke.mockClear();
-    await wrapper.get("input[type=text]").setValue(FOLDER_URL);
-    expect(invoke).not.toHaveBeenCalled();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const input = wrapper.get("input[type=text]");
+      await input.setValue("https://github.com/anthropics");
+      await input.setValue(FOLDER_URL);
+      vi.advanceTimersByTime(499);
+      expect(invoke).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+    } finally {
+      vi.useRealTimers();
+    }
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalledWith("skills_find_folders", { url: FOLDER_URL });
     const rows = wrapper.findAll(".list .row");
     expect(rows).toHaveLength(1);
     expect(rows[0].get(".name").text()).toBe("pdf");
@@ -288,33 +332,87 @@ describe("FindSkills: source Code hosting", () => {
     expect(rows[0].findAll("button").map((button) => button.text())).toEqual(["Inspect", "Install"]);
   });
 
-  it("shows one row for a web address of a folder on GitLab", async () => {
-    const { wrapper } = await mountCodeHosting();
-    await wrapper.get("input[type=text]").setValue(GITLAB_URL);
+  it("shows one row for a skill folder on GitLab", async () => {
+    const { wrapper } = await mountCodeHosting({ skills_find_folders: [GITLAB_URL] });
+    await typeAddress(wrapper, GITLAB_URL);
     const rows = wrapper.findAll(".list .row");
     expect(rows).toHaveLength(1);
     expect(rows[0].get(".name").text()).toBe("pdf");
     expect(rows[0].get(".sub").text()).toBe("acme/agent-skills · GitLab folder");
   });
 
-  it("shows an error for a text that is not the web address of a skill folder, and no row", async () => {
+  it("shows one row for each skill of a folder whose subfolders hold a skill", async () => {
+    const { wrapper } = await mountCodeHosting({ skills_find_folders: [`${PARENT_URL}/docx`, `${PARENT_URL}/pdf`] });
+    await typeAddress(wrapper, PARENT_URL);
+    expect(invoke).toHaveBeenCalledWith("skills_find_folders", { url: PARENT_URL });
+    const rows = wrapper.findAll(".list .row");
+    expect(rows.map((row) => row.get(".name").text())).toEqual(["docx", "pdf"]);
+    expect(rows.map((row) => row.get(".sub").text())).toEqual([
+      "jeromeetienne/coding_agent_plugin · GitHub folder",
+      "jeromeetienne/coding_agent_plugin · GitHub folder",
+    ]);
+    for (const row of rows) {
+      expect(row.findAll("button").map((button) => button.text())).toEqual(["Inspect", "Install"]);
+    }
+  });
+
+  it("inspects the folder of one row of a list with the address of that row", async () => {
+    const { wrapper } = await mountCodeHosting({
+      skills_find_folders: [`${PARENT_URL}/docx`, `${PARENT_URL}/pdf`],
+      skills_preview_folder: "---\nname: pdf\n---",
+    });
+    await typeAddress(wrapper, PARENT_URL);
+    await wrapper.findAll(".list .row")[1].findAll("button")[0].trigger("click");
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledWith("skills_preview_folder", { url: `${PARENT_URL}/pdf` });
+  });
+
+  it("shows an error for a text that is not the web address of a folder, with no call to the backend", async () => {
     const { wrapper } = await mountCodeHosting();
-    await wrapper.get("input[type=text]").setValue("https://github.com/anthropics/skills");
+    invoke.mockClear();
+    await typeAddress(wrapper, "https://github.com/anthropics/skills");
+    expect(invoke).not.toHaveBeenCalled();
     expect(wrapper.findAll(".list .row")).toHaveLength(0);
     expect(wrapper.get(".err").text()).toBe(
       "This is not the web address of a skill folder on GitHub or GitLab: https://github.com/anthropics/skills",
     );
   });
 
-  it("replaces the row at each key, and removes the error when the address becomes right", async () => {
-    const { wrapper } = await mountCodeHosting();
-    const input = wrapper.get("input[type=text]");
-    await input.setValue("https://gitlab.com/acme");
+  it("shows the error of the backend when the folder and its subfolders have no SKILL.md file", async () => {
+    const { wrapper, skills } = await mountCodeHosting();
+    invoke.mockImplementation(async () => {
+      throw "skills_folder_no_skill: jeromeetienne/coding_agent_plugin/main/skills";
+    });
+    await skills.findAddress(PARENT_URL);
+    await flushPromises();
+    expect(wrapper.findAll(".list .row")).toHaveLength(0);
+    expect(wrapper.get(".err").text()).toBe(
+      "This folder has no SKILL.md file, and none of its subfolders has one: jeromeetienne/coding_agent_plugin/main/skills",
+    );
+  });
+
+  it("says Searching while GitHub or GitLab answers, and ignores an answer that comes after the address changed", async () => {
+    const { wrapper, skills } = await mountCodeHosting();
+    const slow = pending();
+    invoke.mockImplementation(async (command: string) => (command === "skills_find_folders" ? slow.promise : []));
+    const search = skills.findAddress(PARENT_URL);
+    await flushPromises();
+    expect(wrapper.get("p.keys").text()).toBe("Searching…");
+    skills.skills.address = FOLDER_URL;
+    slow.finish([`${PARENT_URL}/docx`]);
+    await search;
+    await flushPromises();
+    expect(wrapper.findAll(".list .row")).toHaveLength(0);
+  });
+
+  it("removes the error when the address becomes right, and clears the result when the field is emptied", async () => {
+    const { wrapper } = await mountCodeHosting({ skills_find_folders: [GITLAB_URL] });
+    await typeAddress(wrapper, "https://gitlab.com/acme");
     expect(wrapper.find(".err").exists()).toBe(true);
-    await input.setValue(GITLAB_URL);
+    await typeAddress(wrapper, GITLAB_URL);
     expect(wrapper.find(".err").exists()).toBe(false);
     expect(wrapper.findAll(".list .row")).toHaveLength(1);
-    await input.setValue("");
+    await typeAddress(wrapper, "");
     expect(wrapper.findAll(".list .row")).toHaveLength(0);
     expect(wrapper.get("p.keys").text()).toBe("No result yet.");
   });
