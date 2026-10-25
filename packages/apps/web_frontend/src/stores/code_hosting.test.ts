@@ -119,6 +119,14 @@ describe("loadCodeHosting on GitHub", () => {
     expect(vi.mocked(invoke).mock.calls.map(([, payload]) => (payload as { refresh: boolean }).refresh)).toEqual([true, true]);
   });
 
+  it("keeps the answers of the lists until a refresh, whatever their age (issue #870)", async () => {
+    await loadCodeHosting("/work/heidrun");
+    await searchCodeHosting("/work/heidrun", "issues", "label:bug");
+    await loadCodeHosting("/work/heidrun", true);
+    const kept = vi.mocked(invoke).mock.calls.map(([, payload]) => (payload as { keepUntilRefresh: boolean }).keepUntilRefresh);
+    expect(kept).toEqual([true, true, true, true, true]);
+  });
+
   it("keeps the number, the title, the address, the author, the date, the labels, the draft mark, and the branches of each item", async () => {
     await loadCodeHosting("/work/heidrun");
     expect(codeHosting.status).toBe("ready");

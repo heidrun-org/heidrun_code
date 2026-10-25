@@ -1,6 +1,6 @@
 // In-app preview of an issue / MR / PR (description and comments, rendered).
 import { reactive } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { runForgeCli } from "../lib/forge_cli";
 import { refContext, type Forge, type RefTarget } from "../lib/refs";
 import { t } from "../i18n/index";
 
@@ -35,7 +35,8 @@ export const issueView = reactive({
   data: null as IssueData | null,
 });
 
-const cli = (cwd: string, tool: "glab" | "gh", args: string[]) => invoke<string>("forge_cli", { cwd, tool, args });
+// Through the cache of the answers, which keeps each answer for ten minutes (issue #870).
+const cli = (cwd: string, tool: "glab" | "gh", args: string[]) => runForgeCli(cwd, tool, args);
 const time = (s?: string | null) => (s ? Date.parse(s) || null : null);
 
 // Forge state → translation key of the label, level.
