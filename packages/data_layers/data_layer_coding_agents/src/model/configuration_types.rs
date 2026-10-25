@@ -99,7 +99,8 @@ pub struct ConfigurationRead {
 pub struct ConfigurationWriteCount {
     /// The kind of the items.
     pub kind: ConfigurationKind,
-    /// The number of items that the read found and that the write wrote.
+    /// The number of items that the write wrote: every item that the read found in the mode initialize, and only the new
+    /// items and the items whose row changed in the mode update.
     pub written_count: usize,
     /// The number of rows that the write marked as removed, because the read did not find their file any more.
     pub removed_count: usize,

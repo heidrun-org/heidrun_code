@@ -28,7 +28,10 @@ Commands:
   update                     Read only the chat sessions whose file changed since
                              the last read. When the table is empty, read
                              everything. Both commands read the whole
-                             configuration of the coding agent.
+                             configuration of the coding agent. initialize
+                             writes every row of it, and update writes only the
+                             rows that are new, that changed, or that are newly
+                             marked as removed.
   query <sql>                Run one SQL statement on the database, and print the
                              rows. The database is open read only, so a statement
                              that writes fails. The column "data" holds JSON: use

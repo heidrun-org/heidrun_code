@@ -198,6 +198,12 @@ fn initialize_and_update_write_the_memory_files_the_subagents_and_the_skills_and
         result.stdout.lines().nth(2),
         Some("configuration: memory_files 1 written, 0 removed, subagents 1 written, 0 removed, skills 2 written, 0 removed")
     );
+    let result = fixture.run_with_options("update", &[]);
+    assert_eq!(result.exit_code, Some(0), "{}", result.stderr);
+    assert_eq!(
+        result.stdout.lines().nth(2),
+        Some("configuration: memory_files 0 written, 0 removed, subagents 0 written, 0 removed, skills 0 written, 0 removed")
+    );
     std::fs::remove_file(&memory_file).unwrap();
     let result = fixture.run_with_options("update", &[]);
     assert_eq!(result.exit_code, Some(0), "{}", result.stderr);

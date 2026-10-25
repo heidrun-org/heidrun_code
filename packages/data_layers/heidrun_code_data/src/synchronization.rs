@@ -271,7 +271,7 @@ fn synchronize_coding_agents(
         agents_home: options.agents_home.clone(),
     };
     let mut configuration_database = layer::ConfigurationDatabase::open(&options.database_path)?;
-    let counts = layer::synchronize_configuration(&repository, &folders, &mut configuration_database, log)?;
+    let counts = layer::synchronize_configuration(layer_mode, &repository, &folders, &mut configuration_database, log)?;
     let mut written_rows = vec![("chat_sessions".to_string(), report.chat_session_count)];
     written_rows.extend(counts.iter().map(|count| (count.kind.table_name().to_string(), count.written_count)));
     let now = std::time::SystemTime::now()

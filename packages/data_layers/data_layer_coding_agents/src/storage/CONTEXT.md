@@ -16,7 +16,7 @@ Holds the SQLite file with its tables and views, and turns the rows of a query i
 
 ## Rules
 - Nothing here imports from `src/coding_agents/`. This folder imports from `src/model/` and from `src/pricing/`.
-- `database.rs` writes a chat session only after the JSON schema check of `src/model/schemas.rs` accepts it, and it writes the row and its link rows in one transaction. `configuration_database.rs` checks every item of one kind before it writes the first one, and writes them in one transaction.
+- `database.rs` writes a chat session only after the JSON schema check of `src/model/schemas.rs` accepts it, and it writes the row and its link rows in one transaction. `configuration_database.rs` checks every item of one kind before it writes the first one, and writes them in one transaction. In the mode update it skips an item whose column `data` equals the stored text, so a second update of the same files writes no row.
 - `token_usage_database.rs` writes the rows of the chats and the row of `token_usage_synchronizations` in one transaction, and a write changes only the rows whose tokens changed: a second write of the same tokens changes nothing.
 - A chat that the files do not carry any more keeps its rows. Only a chat that a write carries again can lose rows.
 - A row with `minuteAt` equal to an empty text holds the tokens of records without a date, and no time range includes it.
