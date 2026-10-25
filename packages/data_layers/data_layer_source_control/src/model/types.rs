@@ -64,6 +64,29 @@ impl SynchronizationMode {
     }
 }
 
+/// The stages of a refresh, in the order where they run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceControlStage {
+    /// The reading of the new commits with the command `git`.
+    ReadCommits,
+    /// The writing of the new commits in the SQLite file.
+    WriteCommits,
+}
+
+/// One report of the progress of a refresh: the stage, the number of commits that the stage handled, and the number of commits
+/// that the stage handles in all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceControlProgress {
+    /// The stage that the report describes.
+    pub stage: SourceControlStage,
+    /// The number of commits that the stage handled.
+    pub done_count: usize,
+    /// The number of commits that the stage handles in all, or `None` when it is not known yet.
+    pub total_count: Option<usize>,
+    /// True when the stage is done.
+    pub is_finished: bool,
+}
+
 /// What one synchronization did.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SynchronizationReport {

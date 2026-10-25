@@ -169,6 +169,7 @@ impl GraphqlRunner for FakeGithub {
             "data": {
                 "repository": {
                     connection_name: {
+                        "totalCount": sorted_nodes.len(),
                         "pageInfo": { "hasNextPage": end < sorted_nodes.len(), "endCursor": end.to_string() },
                         "nodes": page,
                     }

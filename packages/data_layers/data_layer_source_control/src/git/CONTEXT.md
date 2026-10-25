@@ -5,7 +5,7 @@ Reads the commits of a Git repository: the hashes of every commit that the branc
 
 ## Key Exports & Entry Points
 - `git_runner.rs`: the trait `GitRunner`, the runner `GitCommandRunner` that runs `git -C <folder>`, `find_repository`, and `parse_repository`.
-- `git_reader.rs`: `GitReader`, `ignore_log`, and the conversion of the answer of `git log` into `Commit` values.
+- `git_reader.rs`: `GitReader`, `ignore_log`, `ignore_progress`, the progress reports of each batch (`GitReader::with_progress`), and the conversion of the answer of `git log` into `Commit` values.
 - Command to test this folder: `pnpm --filter data_layer_source_control test`
 
 ## Rules

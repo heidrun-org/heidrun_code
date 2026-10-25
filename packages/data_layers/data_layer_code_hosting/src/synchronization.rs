@@ -4,13 +4,14 @@
 //! the repository. When a table has no row for the repository, the mode update reads everything, as the mode initialize does.
 
 use crate::github::github_reader::GithubReader;
-use crate::model::types::{CodeHostingTable, SynchronizationMode, SynchronizationReport};
+use crate::model::types::{CodeHostingStage, CodeHostingTable, SynchronizationMode, SynchronizationReport};
 use crate::storage::database::CodeHostingDatabase;
 use crate::OPERATION_PACKAGE;
 use data_layer_operation_log::{record, OperationKind, OperationSpec, Summary};
 
 /// Reads the issues and the pull requests of a repository, and writes them in the database. `log` receives one line of
-/// progress for the date where each read starts and for each write.
+/// progress for the date where each read starts and for each write. The progress function of `reader` receives the start, the
+/// pages, and the end of the four stages.
 ///
 /// # Errors
 /// An error when the database cannot be read or written, when GitHub cannot be read, or when an item does not follow its
@@ -49,12 +50,21 @@ fn run_inside(
         ),
     };
     log(&format!("mode {}: issues are read {}", mode.name(), describe_since(issues_since.as_deref())));
+    reader.send_progress(CodeHostingStage::ReadIssues, 0, None, false);
     let issues = reader.read_issues(repository, issues_since.as_deref())?;
+    reader.send_progress(CodeHostingStage::ReadIssues, issues.len(), Some(issues.len()), true);
+    reader.send_progress(CodeHostingStage::WriteIssues, 0, Some(issues.len()), false);
     database.upsert_issues(repository, &issues)?;
+    reader.send_progress(CodeHostingStage::WriteIssues, issues.len(), Some(issues.len()), true);
     log(&format!("issues: written row count {}, file {}", issues.len(), database.database_path().display()));
     log(&format!("mode {}: pull requests are read {}", mode.name(), describe_since(pull_requests_since.as_deref())));
+    reader.send_progress(CodeHostingStage::ReadPullRequests, 0, None, false);
     let pull_requests = reader.read_pull_requests(repository, pull_requests_since.as_deref())?;
+    let pull_request_count = Some(pull_requests.len());
+    reader.send_progress(CodeHostingStage::ReadPullRequests, pull_requests.len(), pull_request_count, true);
+    reader.send_progress(CodeHostingStage::WritePullRequests, 0, pull_request_count, false);
     database.upsert_pull_requests(repository, &pull_requests)?;
+    reader.send_progress(CodeHostingStage::WritePullRequests, pull_requests.len(), pull_request_count, true);
     log(&format!(
         "pull requests: written row count {}, file {}",
         pull_requests.len(),
