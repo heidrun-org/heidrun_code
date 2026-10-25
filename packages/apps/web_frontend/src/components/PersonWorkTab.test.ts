@@ -337,7 +337,31 @@ function chosenWorkspaceNames(wrapper: Awaited<ReturnType<typeof mountPersonWork
     .map((input) => input.element.closest("label")?.textContent?.trim() ?? "");
 }
 
+/**
+ * The time zone of every test. It changes the clock for summer time, so a test can check the days of 23 and 25 hours, and the
+ * fixed date of the tests gives the same slots on every computer (issue 873).
+ */
+const TEST_TIME_ZONE = "Europe/Paris";
+
+/** The time zone of the computer before the test, given back after the test. */
+let computerTimeZone: string | undefined;
+
+/**
+ * Fixes the date of the tests at 15:00 of the day `day` of the month `monthIndex` 2026, in the time zone of the tests. Only
+ * the date is fake: the timers stay real, so that `vi.waitFor` still checks again.
+ *
+ * @param monthIndex - The month, from 0 for January.
+ * @param day - The day of the month.
+ */
+function setToday(monthIndex: number, day: number): void {
+  vi.setSystemTime(new Date(2026, monthIndex, day, 15));
+}
+
 beforeEach(async () => {
+  computerTimeZone = process.env.TZ;
+  process.env.TZ = TEST_TIME_ZONE;
+  vi.useFakeTimers({ toFake: ["Date"] });
+  setToday(9, 14);
   localStorage.clear();
   vi.resetModules();
   await openWorkspacesAre(WORKSPACES);
@@ -366,6 +390,12 @@ beforeEach(async () => {
 afterEach(() => {
   for (const wrapper of mountedTabs.splice(0)) {
     wrapper.unmount();
+  }
+  vi.useRealTimers();
+  if (computerTimeZone === undefined) {
+    delete process.env.TZ;
+  } else {
+    process.env.TZ = computerTimeZone;
   }
 });
 
@@ -1656,6 +1686,51 @@ describe("PersonWorkTab", () => {
       await wrapper.get("#statistics-person-slot-6").setValue(true);
       await vi.waitFor(() => expect(lastDrawing().traces[0].x).toHaveLength(120));
       expect(lastDrawing().layout.xaxis.tickvals).toHaveLength(10);
+    });
+
+    it("cuts the day of 25 hours, when summer time ends, into 4 slots of 6 hours and a fifth slot of 1 hour", async () => {
+      setToday(9, 25);
+      await use24HourClock();
+      const hours = [1, 6, 12, 18, 23];
+      const wrapper = await mountPersonWorkTab(sampleItems(), aiCostAnswer(hours.map((hour) => hourRow(0, "claude", 1, 1_000, hour))));
+      await chooseAiCost(wrapper);
+      await wrapper.get("#statistics-person-slot-6").setValue(true);
+      await vi.waitFor(() => expect(lastDrawing().traces[0].x).toHaveLength(29));
+      expect(lastDrawing().traces[0].y.slice(24)).toEqual([1, 1, 1, 1, 1]);
+      const titles: (string | undefined)[] = [];
+      for (const index of [24, 25, 26, 27, 28]) {
+        await hoverDay(index);
+        titles.push(cardOf(wrapper)?.title);
+      }
+      expect(titles).toEqual([
+        "Sunday, October 25, 00:00 to 05:00",
+        "Sunday, October 25, 05:00 to 11:00",
+        "Sunday, October 25, 11:00 to 17:00",
+        "Sunday, October 25, 17:00 to 23:00",
+        "Sunday, October 25, 23:00 to 00:00",
+      ]);
+    });
+
+    it("cuts the day of 23 hours, when summer time starts, into 3 slots of 6 hours and a last slot of 5 hours", async () => {
+      setToday(2, 29);
+      await use24HourClock();
+      const hours = [1, 8, 14, 20];
+      const wrapper = await mountPersonWorkTab(sampleItems(), aiCostAnswer(hours.map((hour) => hourRow(0, "claude", 1, 1_000, hour))));
+      await chooseAiCost(wrapper);
+      await wrapper.get("#statistics-person-slot-6").setValue(true);
+      await vi.waitFor(() => expect(lastDrawing().traces[0].x).toHaveLength(28));
+      expect(lastDrawing().traces[0].y.slice(24)).toEqual([1, 1, 1, 1]);
+      const titles: (string | undefined)[] = [];
+      for (const index of [24, 25, 26, 27]) {
+        await hoverDay(index);
+        titles.push(cardOf(wrapper)?.title);
+      }
+      expect(titles).toEqual([
+        "Sunday, March 29, 00:00 to 07:00",
+        "Sunday, March 29, 07:00 to 13:00",
+        "Sunday, March 29, 13:00 to 19:00",
+        "Sunday, March 29, 19:00 to 00:00",
+      ]);
     });
   });
 });
