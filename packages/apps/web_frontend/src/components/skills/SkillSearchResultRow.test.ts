@@ -38,11 +38,11 @@ describe("SkillSearchResultRow: display", () => {
     const pdf = { source: "anthropics/skills", skillId: "pdf", name: "pdf", installs: 1 };
     const { wrapper, settings } = await mountRow(pdf);
     // "pdf" is installed at the user level only.
-    expect(wrapper.findAll("button")).toHaveLength(2);
+    expect(wrapper.findAll(".btn-group button").map((button) => button.text())).toEqual(["Inspect", "Install"]);
     settings.skillsLevel = "user";
     await flushPromises();
-    expect(wrapper.findAll("button")).toHaveLength(1);
-    expect(wrapper.get(".place").text()).toBe("Installed");
+    expect(wrapper.findAll(".btn-group button").map((button) => button.text())).toEqual(["Inspect", "Installed"]);
+    expect(wrapper.findAll(".btn-group button")[1].attributes("disabled")).toBeDefined();
   });
 });
 
@@ -248,11 +248,10 @@ describe("SkillSearchResultRow: local folder", () => {
 
   it("shows a skill as installed when a skill with the name of the folder is at the chosen level", async () => {
     const { wrapper, settings } = await mountRow(LOCAL_RESULT);
-    expect(wrapper.findAll("button")).toHaveLength(2);
+    expect(wrapper.findAll(".btn-group button").map((button) => button.text())).toEqual(["Inspect", "Install"]);
     settings.skillsLevel = "user";
     await flushPromises();
-    expect(wrapper.findAll("button")).toHaveLength(1);
-    expect(wrapper.get(".place").text()).toBe("Installed");
+    expect(wrapper.findAll(".btn-group button").map((button) => button.text())).toEqual(["Inspect", "Installed"]);
   });
 
   it("shows the error when the folder has no SKILL.md file, and removes the spinner", async () => {
@@ -268,5 +267,218 @@ describe("SkillSearchResultRow: local folder", () => {
     expect(session.state.toastKind).toBe("error");
     expect(session.state.toast).toBe(`This folder has no SKILL.md file: ${LOCAL_PATH}`);
     expect(wrapper.find(".spinner").exists()).toBe(false);
+  });
+});
+
+describe("SkillSearchResultRow: comparison with the installed skill", () => {
+  /** A result of skills.sh named like the skill `pdf`, which is installed at the user level. */
+  const PDF = { source: "anthropics/skills", skillId: "pdf", name: "pdf", installs: 1 };
+
+  async function mountInstalledRow(answers: Record<string, unknown>) {
+    const mounted = await mountRow(PDF, answers);
+    mounted.settings.skillsLevel = "user";
+    await flushPromises();
+    return mounted;
+  }
+
+  it("shows a small badge Different at the left of the buttons, and the button Install, when the SKILL.md file is not the same", async () => {
+    const { wrapper } = await mountInstalledRow({ skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    expect(invoke).toHaveBeenCalledWith("skills_read", { level: "user", cwd: "/work/heidrun", name: "pdf" });
+    const badge = wrapper.get(".differentBadge");
+    expect(badge.text()).toBe("Different");
+    expect(badge.attributes("title")).toContain("Click Inspect");
+    expect(wrapper.find(".nameLine .differentBadge").exists()).toBe(false);
+    expect(badge.element.nextElementSibling).toBe(wrapper.get(".rowActions").element);
+    expect(wrapper.findAll(".btn-group button").map((button) => button.text())).toEqual(["Inspect", "Install"]);
+    expect(wrapper.findAll(".btn-group button")[1].attributes("disabled")).toBeUndefined();
+  });
+
+  it("shows no badge and the disabled button Installed when the SKILL.md file is the same, even with other line ends", async () => {
+    const { wrapper } = await mountInstalledRow({ skills_preview: "# pdf\r\nsame way\r\n", skills_read: "# pdf\nsame way\n" });
+    expect(wrapper.find(".differentBadge").exists()).toBe(false);
+    expect(wrapper.findAll(".btn-group button").map((button) => button.text())).toEqual(["Inspect", "Installed"]);
+  });
+
+  it("shows no badge when one of the two files cannot be read", async () => {
+    const { wrapper } = await mountRow(PDF, { skills_preview: "# pdf" });
+    invoke.mockImplementation(async (command: string) => {
+      if (command === "skills_read") {
+        throw "skills_not_installed: pdf";
+      }
+      return "# pdf";
+    });
+    (await import("../../stores/settings")).settings.skillsLevel = "user";
+    await flushPromises();
+    expect(wrapper.find(".differentBadge").exists()).toBe(false);
+    expect(wrapper.findAll(".btn-group button").map((button) => button.text())).toEqual(["Inspect", "Installed"]);
+  });
+
+  it("reads nothing for a skill that is not installed at the chosen level", async () => {
+    await mountRow(RESULT, { skills_preview: "# docx" });
+    await flushPromises();
+    expect(invoke).not.toHaveBeenCalledWith("skills_read", expect.anything());
+  });
+
+  it("gives the text of the installed skill to the window of the SKILL.md file when the user inspects it", async () => {
+    const { wrapper, skills } = await mountInstalledRow({ skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    await wrapper.findAll(".btn-group button")[0].trigger("click");
+    await flushPromises();
+    expect(skills.skills.view?.text).toBe("# pdf\nnew way");
+    expect(skills.skills.view?.installedText).toBe("# pdf\nold way");
+  });
+
+  it("gives no text of an installed skill for a result that is not installed", async () => {
+    const { wrapper, skills } = await mountRow(RESULT, { skills_preview: "# docx" });
+    await wrapper.findAll(".btn-group button")[0].trigger("click");
+    await flushPromises();
+    expect(skills.skills.view?.installedText).toBeUndefined();
+  });
+
+  it("replaces the installed skill with the different one: confirmation, then the Trash, then the installation", async () => {
+    const { wrapper, session } = await mountInstalledRow({ skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    const confirm = await import("../../stores/confirm");
+    invoke.mockClear();
+    await wrapper.findAll(".btn-group button")[1].trigger("click");
+    expect(confirm.confirmDialog.title).toBe("Replace the installed skill pdf with this one? The installed skill moves to the Trash.");
+    expect(confirm.confirmDialog.confirmLabel).toBe("Replace");
+    expect(invoke).not.toHaveBeenCalledWith("skills_delete", expect.anything());
+    confirm.answerConfirm(true);
+    await flushPromises();
+    const commands = invoke.mock.calls.map((call) => call[0]);
+    expect(commands.indexOf("skills_delete")).toBeGreaterThanOrEqual(0);
+    expect(commands.indexOf("skills_delete")).toBeLessThan(commands.indexOf("skills_install"));
+    expect(invoke).toHaveBeenCalledWith("skills_delete", { level: "user", cwd: "/work/heidrun", name: "pdf" });
+    expect(invoke).toHaveBeenCalledWith("skills_install", expect.objectContaining({ level: "user", skillId: "pdf" }));
+    expect(session.state.toast).toBe("Skill pdf replaced");
+  });
+
+  it("replaces nothing when the developer cancels the confirmation", async () => {
+    const { wrapper } = await mountInstalledRow({ skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    const confirm = await import("../../stores/confirm");
+    invoke.mockClear();
+    await wrapper.findAll(".btn-group button")[1].trigger("click");
+    confirm.answerConfirm(false);
+    await flushPromises();
+    expect(invoke).not.toHaveBeenCalledWith("skills_delete", expect.anything());
+    expect(invoke).not.toHaveBeenCalledWith("skills_install", expect.anything());
+  });
+
+  it("says that the previous version is in the Trash when the installation fails after the removal", async () => {
+    const { wrapper, session } = await mountInstalledRow({ skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    const confirm = await import("../../stores/confirm");
+    invoke.mockImplementation(async (command: string) => {
+      if (command === "skills_install") {
+        throw "skills_download_failed: timeout";
+      }
+      return command === "skills_list" ? [] : "# pdf";
+    });
+    await wrapper.findAll(".btn-group button")[1].trigger("click");
+    confirm.answerConfirm(true);
+    await flushPromises();
+    expect(session.state.toast).toBe("The download failed: timeout The previous version of the skill is in the Trash.");
+  });
+});
+
+describe("SkillSearchResultRow: the card of the circled question mark", () => {
+  const PDF = { source: "anthropics/skills", skillId: "pdf", name: "pdf", installs: 1 };
+  const TEXT = "---\nname: pdf-reader\ndescription: Read and fill PDF files.\n---\n# pdf";
+
+  async function clickQuestionMark(wrapper: Awaited<ReturnType<typeof mountRow>>["wrapper"]) {
+    await wrapper.get(".information-card-part").trigger("click");
+    await flushPromises();
+  }
+
+  it("has the circled question mark on the line of the name, after the name", async () => {
+    const { wrapper } = await mountRow(PDF);
+    const line = wrapper.get(".nameLine");
+    expect(line.element.children[0].textContent).toBe("pdf");
+    expect(line.find(".infoPart .bi-question-circle").exists()).toBe(true);
+  });
+
+  it("reads nothing and opens nothing before the click, even when the pointer is over the circled question mark", async () => {
+    const { wrapper } = await mountRow(PDF, { skills_preview: TEXT });
+    await wrapper.get(".information-card-part").trigger("pointerenter");
+    await wrapper.get(".information-card-part").trigger("mouseenter");
+    await flushPromises();
+    expect(invoke).not.toHaveBeenCalledWith("skills_preview", expect.anything());
+    expect(wrapper.find(".popover").exists()).toBe(false);
+  });
+
+  it("shows the name, the description, and the place of the skill after a click", async () => {
+    const { wrapper } = await mountRow(PDF, { skills_preview: TEXT });
+    await clickQuestionMark(wrapper);
+    const card = wrapper.get(".popover");
+    expect(card.text()).toContain("pdf-reader");
+    expect(card.text()).toContain("Read and fill PDF files.");
+    expect(card.text()).toContain("anthropics/skills");
+  });
+
+  it("closes the card with a second click", async () => {
+    const { wrapper } = await mountRow(PDF, { skills_preview: TEXT });
+    await clickQuestionMark(wrapper);
+    await clickQuestionMark(wrapper);
+    expect(wrapper.find(".popover").exists()).toBe(false);
+  });
+
+  it("says that the skill is installed with another SKILL.md file when it is", async () => {
+    const { wrapper, settings } = await mountRow(PDF, { skills_preview: TEXT, skills_read: "# old" });
+    settings.skillsLevel = "user";
+    await flushPromises();
+    await clickQuestionMark(wrapper);
+    expect(wrapper.get(".popover").text()).toContain("another SKILL.md file");
+  });
+
+  it("says that the skill has no description when its SKILL.md file has none", async () => {
+    const { wrapper } = await mountRow(PDF, { skills_preview: "# pdf only" });
+    await clickQuestionMark(wrapper);
+    expect(wrapper.get(".popover").text()).toContain("This skill has no description in its SKILL.md file.");
+  });
+
+  it("says that the file could not be read when the backend fails", async () => {
+    const { wrapper } = await mountRow(PDF);
+    invoke.mockImplementation(async () => {
+      throw "skills_download_failed: timeout";
+    });
+    await clickQuestionMark(wrapper);
+    expect(wrapper.get(".popover").text()).toContain("The SKILL.md file of this skill could not be read.");
+  });
+});
+
+describe("SkillSearchResultRow: the path of a row that is too long", () => {
+  const PDF = { source: "anthropics/skills", skillId: "pdf", name: "pdf", installs: 1 };
+
+  /** Gives the line of the place a width of 100 pixels for `textWidth` pixels of text. */
+  function makeLineTooLong(line: HTMLElement, textWidth = 340) {
+    Object.defineProperty(line, "scrollWidth", { configurable: true, value: textWidth });
+    Object.defineProperty(line, "clientWidth", { configurable: true, value: 100 });
+  }
+
+  it("scrolls from the right to the left, to the end of the path, with a CSS transition while the pointer is over the row", async () => {
+    const { wrapper } = await mountRow(PDF);
+    const line = wrapper.get(".sub");
+    makeLineTooLong(line.element as HTMLElement);
+    expect(line.find(".subText").text()).toBe("anthropics/skills · 1 installs");
+    await wrapper.get(".row").trigger("pointerenter");
+    expect(line.classes()).toContain("scrolling");
+    expect((line.element as HTMLElement).style.getPropertyValue("--scroll-distance")).toBe("-240px");
+    expect((line.element as HTMLElement).style.getPropertyValue("--scroll-duration")).toBe("2880ms");
+  });
+
+  it("puts the path back at its start when the pointer leaves the row", async () => {
+    const { wrapper } = await mountRow(PDF);
+    const line = wrapper.get(".sub");
+    makeLineTooLong(line.element as HTMLElement);
+    await wrapper.get(".row").trigger("pointerenter");
+    expect(line.classes()).toContain("scrolling");
+    await wrapper.get(".row").trigger("pointerleave");
+    expect(line.classes()).not.toContain("scrolling");
+  });
+
+  it("scrolls nothing when the whole path fits in the row", async () => {
+    const { wrapper } = await mountRow(PDF);
+    const line = wrapper.get(".sub");
+    makeLineTooLong(line.element as HTMLElement, 100);
+    await wrapper.get(".row").trigger("pointerenter");
+    expect(line.classes()).not.toContain("scrolling");
   });
 });

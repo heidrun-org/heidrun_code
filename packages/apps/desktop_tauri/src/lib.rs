@@ -445,6 +445,8 @@ pub fn run() {
             skills::installed::skills_read,
             skills::installed::skills_delete,
             skills::search::skills_search,
+            skills::search::skills_find_local_folders,
+            skills::search::skills_find_folders,
             skills::install::skills_preview,
             skills::install::skills_install,
             skills::install::skills_preview_folder,
