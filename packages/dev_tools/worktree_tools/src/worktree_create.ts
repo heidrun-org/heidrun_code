@@ -16,8 +16,8 @@ import type { SourceDatesResult, WorktreeCreateResult } from './worktree_tools_t
 
 /**
  * Creates a Git worktree in the folder `.claude/worktrees` of the main checkout. Then, on macOS, it clones the `debug`
- * folder and the bundled command line tools of the Cargo target folder of the main checkout into the worktree, with
- * copy-on-write clones. The first build in the worktree then compiles only the crates of Heidrun Code, and not every Rust
+ * folder and the `release` folder of the Cargo target folder of the main checkout into the worktree, with
+ * copy-on-write clones. The `release` folder holds the bundled command line tools and their compiled dependencies. The first build in the worktree then compiles only the crates of Heidrun Code, and not every Rust
  * dependency again. After the clone, each file of the worktree that has the same content as in the main checkout gets
  * the dates of the main checkout, and the cloned build script records name the worktree, so Cargo does not compile
  * its crate again. Every submodule is initialized at its
@@ -107,8 +107,9 @@ export class WorktreeCreate {
 	}
 
 	/**
-	 * Clones the `debug` folder and the bundled command line tools of the Cargo target folder of the main checkout into
-	 * the worktree. Each clone shares the disk blocks with the original, so it uses almost no disk space at the start. A
+	 * Clones the `debug` folder and the `release` folder of the Cargo target folder of the main checkout into the
+	 * worktree. With the compiled dependencies of `release`, a change in a package that the bundled command line tools
+	 * use compiles only the changed packages again. Each clone shares the disk blocks with the original, so it uses almost no disk space at the start. A
 	 * file that Cargo rewrites later becomes a real copy. The worktree is inside the main checkout, so both folders are
 	 * on the same disk.
 	 * @param mainCheckoutPath The absolute path of the main checkout.
@@ -125,8 +126,8 @@ export class WorktreeCreate {
 				destinationPath: TargetPaths.debugPath(worktreePath),
 			},
 			{
-				sourcePath: TargetPaths.bundledCommandsPath(mainCheckoutPath),
-				destinationPath: TargetPaths.bundledCommandsPath(worktreePath),
+				sourcePath: TargetPaths.releasePath(mainCheckoutPath),
+				destinationPath: TargetPaths.releasePath(worktreePath),
 			},
 		];
 		for (const targetFolder of targetFolders) {

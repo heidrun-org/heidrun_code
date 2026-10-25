@@ -109,6 +109,16 @@ describe('WorktreeCreate', () => {
 			expect(Fs.readFileSync(Path.join(bundledCommandsPath, 'heidrun_code_data'), 'utf8')).toBe('heidrun_code_data');
 		});
 
+		it.skipIf(process.platform !== 'darwin')('clones the compiled dependencies of the release folder', () => {
+			const mainCheckoutPath = TestRepository.createWithBuiltTarget();
+			const result = WorktreeCreate.run({
+				workingDirectory: mainCheckoutPath,
+				name: 'with-release',
+			});
+			const clonePath = Path.join(TargetPaths.releasePath(result.worktreePath), 'deps', 'libring.rlib');
+			expect(Fs.readFileSync(clonePath, 'utf8')).toBe('compiled release dependency');
+		});
+
 		it('installs the packages: the new worktree has a folder node_modules', () => {
 			vi.stubEnv('PATH', TestRepository.pathWithRealPnpm());
 			const mainCheckoutPath = TestRepository.create();

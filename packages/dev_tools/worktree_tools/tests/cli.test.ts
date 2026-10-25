@@ -76,7 +76,7 @@ describe('worktree_create_cli', () => {
 		const mainCheckoutPath = TestRepository.createWithBuiltTarget();
 		const result = CliRunner.run('worktree_create_cli.ts', mainCheckoutPath, ['with-clone']);
 		expect(result.exitCode).toBe(0);
-		expect(result.stdout).toContain('Cloned target/debug and target/release/bundled_commands');
+		expect(result.stdout).toContain('Cloned target/debug and target/release from the main checkout');
 		const worktreePath = Path.join(mainCheckoutPath, '.claude', 'worktrees', 'with-clone');
 		expect(Fs.existsSync(Path.join(TargetPaths.debugPath(worktreePath), 'heidrun'))).toBe(true);
 		expect(Fs.existsSync(Path.join(TargetPaths.bundledCommandsPath(worktreePath), 'heidrun_code_ctrl'))).toBe(true);

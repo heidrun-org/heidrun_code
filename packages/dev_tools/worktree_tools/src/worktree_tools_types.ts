@@ -12,7 +12,7 @@ export type WorktreeCreateResult = {
 	worktreePath: string;
 	/** The name of the new branch that the worktree has checked out. */
 	branchName: string;
-	/** True when the debug build and bundled command line tools were cloned into the new worktree. */
+	/** True when the debug folder and the release folder were cloned into the new worktree. */
 	isTargetCloned: boolean;
 	/** The reason why the clone did not happen, or null when the clone happened. */
 	skipReason: string | null;

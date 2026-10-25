@@ -34,6 +34,20 @@ describe('BuildScriptOutputs', () => {
 		expect(Fs.statSync(outputPath).mtimeMs).toBe(oldDate.getTime());
 	});
 
+	it('replaces the path of the main checkout in a record of the release folder', () => {
+		const mainCheckoutPath = TestRepository.create();
+		const worktreePath = TestRepository.addWorktree(mainCheckoutPath, 'feature');
+		const outputFolderPath = Path.join(TargetPaths.releasePath(worktreePath), 'build', 'ring-0123456789abcdef');
+		Fs.mkdirSync(outputFolderPath, { recursive: true });
+		const outputPath = Path.join(outputFolderPath, BuildScriptOutputs.outputFileName);
+		Fs.writeFileSync(outputPath, `cargo:rustc-link-search=native=${mainCheckoutPath}/packages/apps/desktop_tauri/out\n`);
+
+		expect(BuildScriptOutputs.rewrite(mainCheckoutPath, worktreePath)).toBe(1);
+
+		expect(Fs.readFileSync(outputPath, 'utf8'))
+			.toBe(`cargo:rustc-link-search=native=${worktreePath}/packages/apps/desktop_tauri/out\n`);
+	});
+
 	it('changes nothing in a record without the path of the main checkout, or without a debug folder', () => {
 		const mainCheckoutPath = TestRepository.create();
 		const worktreePath = TestRepository.addWorktree(mainCheckoutPath, 'feature');

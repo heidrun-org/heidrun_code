@@ -25,11 +25,11 @@ pnpm worktree:create fix-thing-12 --base dev_jerome  # worktree on a new branch,
 
 The command creates the worktree `.claude/worktrees/<name>` of the main checkout, on a new branch with the same name. The command first runs `git submodule update --init --recursive` in the new worktree, so every submodule has the commit recorded by that worktree. When initialization fails, the worktree stays, the command exits with an error, and package installation does not start. Fix the cause, then run `git submodule update --init --recursive` and `pnpm install --frozen-lockfile` in the worktree.
 
-On macOS, it then clones the folders `packages/apps/desktop_tauri/target/debug` and `packages/apps/desktop_tauri/target/release/bundled_commands` of the main checkout into the worktree, with copy-on-write clones:
+On macOS, it then clones the folders `packages/apps/desktop_tauri/target/debug` and `packages/apps/desktop_tauri/target/release` of the main checkout into the worktree, with copy-on-write clones. The folder `release` holds the bundled command line tools in `release/bundled_commands`, and their compiled dependencies, so a change in a package that the tools use compiles only the changed packages again ([issue 877](https://github.com/heidrun-org/heidrun_code/issues/877)):
 
 ```sh
 cp -c -R -p <main checkout>/packages/apps/desktop_tauri/target/debug <worktree>/packages/apps/desktop_tauri/target/debug
-cp -c -R -p <main checkout>/packages/apps/desktop_tauri/target/release/bundled_commands <worktree>/packages/apps/desktop_tauri/target/release/bundled_commands
+cp -c -R -p <main checkout>/packages/apps/desktop_tauri/target/release <worktree>/packages/apps/desktop_tauri/target/release
 ```
 
 The command clones each folder in one call to the function `clonefile` of macOS, through `python3` (class `DirectoryClone`), then gives the cloned folders the dates of the main checkout. On 2026-10-25 this took 2.1 seconds for `target/debug`, against 11.7 seconds for `cp -c -R -p`, which clones the files one at a time. When `python3` is missing or `clonefile` fails, the command runs `cp -c -R -p` as shown above.
@@ -58,7 +58,7 @@ Measured on 2026-10-11:
 
 Limits:
 
-- The main checkout must be built first. Without the folders `target/debug` and `target/release/bundled_commands`, the command creates the worktree without the clone and says so.
+- The main checkout must be built first. Without the folders `target/debug` and `target/release`, and the two tools in `target/release/bundled_commands`, the command creates the worktree without the clone and says so.
 - The clone needs macOS and the Apple File System, with both folders on the same disk. A worktree inside the main checkout is always on the same disk.
 - A clone shares its files only at the start. Each file that Cargo rewrites becomes a real copy.
 - The installation needs the command `pnpm` in the `PATH`.
@@ -134,6 +134,8 @@ Limits:
 
 - The main checkout gets its first file `sources.sha256` at its first `pnpm dev` or `pnpm bundled_commands:build` after this change. Until then, a new worktree builds the tools once.
 - A release build (`pnpm build`) always runs the script, through `beforeBuildCommand` in `tauri.conf.json`.
+- The script sets `MACOSX_DEPLOYMENT_TARGET` to `minimumSystemVersion` of `tauri.conf.json`, the value of the release build of the application. Both builds share `target/release`. Before issue 877, the tools used no value, so each build compiled again `ring`, `libsqlite3-sys`, and the other dependencies that the other build had compiled.
+- The script copies a tool into `bundled_commands` only when its content changed. The build script of the application watches these files, so a copy with a new date made `pnpm dev` compile `heidrun_code` again for about 20 seconds.
 
 ## Test
 
