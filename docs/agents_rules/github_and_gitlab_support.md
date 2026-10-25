@@ -1,11 +1,11 @@
 # Rule: every support for GitHub is also a support for GitLab
 
 - Created: 13 October 2026
-- Last updated: 23 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](glossary/index.md)
-- Related issue: [issue 302](https://github.com/heidrun-org/heidrun/issues/302)
+- Related issue: [issue 302](https://github.com/heidrun-org/heidrun/issues/302), [issue 870](https://github.com/heidrun-org/heidrun_code/issues/870)
 
 This file gives the rule for every agent that adds support for GitHub. Heidrun Code works with two Git hosting services: GitHub and GitLab. Everywhere that this repository supports GitHub, it must also support GitLab.
 
@@ -16,6 +16,12 @@ This file gives the rule for every agent that adds support for GitHub. Heidrun C
 - When a document shows a `gh` command, it also shows the matching `glab` command, next to the `gh` command. `gh` is the command line tool of GitHub. `glab` is the command line tool of GitLab.
 - When a `gh` command or option has no matching `glab` command or option, say it in the document, and create a separate issue for the missing support.
 - Create each separate issue on GitHub, with the `gh` command, as the section "GitHub and GitLab" of `AGENTS.md` describes.
+
+## Reading GitHub and GitLab in the application
+
+- Every read of an issue, of a pull request, of a merge request, or of a list of them in the web page of the application goes through the function `runForgeCli` of `packages/apps/web_frontend/src/lib/forge_cli.ts`, which calls the Tauri command `forge_cli_cached`. No other code calls `gh` or `glab` for these reads, because each call to GitHub takes points of the GitHub rate limit, which every project and every coding agent of the account share ([issue 870](https://github.com/heidrun-org/heidrun_code/issues/870)).
+- The cache keeps an answer for ten minutes by default. With the option `isKeptUntilRefresh`, the kept answer is used whatever its age, and only a click on "Refresh" asks the hosting service again. With the option `isRefresh`, the hosting service is asked again.
+- The packages of the folder `packages/data_layers` are outside this rule: they copy GitHub into their SQLite file, which is their own cache.
 
 ## The words
 

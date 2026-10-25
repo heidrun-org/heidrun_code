@@ -1,6 +1,7 @@
 // The Code hosting sidebar section: the open issues, and the open pull requests (GitHub) or merge requests (GitLab), of
 // the repository of the selected workspace. They are read with `gh` or `glab` through the Tauri command
-// `forge_cli_cached`, which keeps each answer on the disk for ten minutes. A refresh asks the hosting service again.
+// `forge_cli_cached`, which keeps each answer on the disk until a refresh: only a refresh asks the hosting service again,
+// because each call takes points of the GitHub rate limit.
 // Each list has its own search, its own status, and its own failure: `gh` takes a search as it is, and for GitLab it is
 // translated into filters.
 // - issue #370
@@ -8,8 +9,10 @@
 // - issue #378
 // - issue #607
 // - issue #869
+// - issue #870
 import { reactive } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { runForgeCli } from "../lib/forge_cli";
 import { t } from "../i18n/index";
 import { clockTime } from "../lib/format";
 import {
@@ -219,15 +222,16 @@ function itemOfGitlab(item: GitlabItem): CodeHostingItem {
 }
 
 /**
- * Runs `gh` or `glab` in a folder of the repository, through the cache of the answers.
+ * Runs `gh` or `glab` in a folder of the repository, through the cache of the answers. The kept answer is used whatever
+ * its age, until a refresh.
  * @param folder - the folder of the repository
  * @param tool - the command line tool of the hosting service
  * @param args - the arguments of the tool
- * @param isRefresh - true to ask the hosting service again even when a fresh answer is kept
+ * @param isRefresh - true to ask the hosting service again even when an answer is kept
  * @returns what the tool printed
  */
 function runForge(folder: string, tool: "gh" | "glab", args: string[], isRefresh: boolean): Promise<string> {
-  return invoke<string>("forge_cli_cached", { cwd: folder, tool, args, refresh: isRefresh });
+  return runForgeCli(folder, tool, args, { isRefresh, isKeptUntilRefresh: true });
 }
 
 /**

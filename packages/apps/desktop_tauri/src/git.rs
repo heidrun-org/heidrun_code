@@ -349,15 +349,6 @@ pub(crate) async fn run_forge(cwd: &str, tool: &str, args: &[String], timeout: u
     }
 }
 
-/// Runs a read-only `glab` / `gh` call (see `allowed`).
-#[tauri::command]
-pub async fn forge_cli(cwd: String, tool: String, args: Vec<String>) -> Result<String, String> {
-    if !allowed(&tool, &args) {
-        return Err(format!("forge_cli : appel non autorisé ({tool} {})", args.join(" ")));
-    }
-    run_forge(&cwd, &tool, &args, 20).await
-}
-
 /// The time when the exceeded GitHub rate limit resets, in seconds since 1970, or `None` when no limit is exceeded. It
 /// reads `gh api rate_limit`, which GitHub does not count in the rate limit (issue #869).
 #[tauri::command]

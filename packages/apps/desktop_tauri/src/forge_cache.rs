@@ -2,7 +2,9 @@
 //!
 //! The card of an issue or of a pull request reads the title, the state, and the description from the forge, which takes
 //! about a second for each call. An answer is kept in `forge_cache.json`, in the folder of the data of Heidrun Code, for ten
-//! minutes. When the forge does not answer (no network, no login), an answer that is at most seven days old is used
+//! minutes. A call with `keep_until_refresh` uses its kept answer, whatever its age, until a refresh asks the forge again:
+//! the lists of the Code hosting sidebar section use it, because each call takes points of the GitHub rate limit (issue
+//! #870). Every read of an issue or of a pull request in the application goes through this cache. When the forge does not answer (no network, no login), an answer that is at most seven days old is used
 //! instead of the failure.
 
 use serde::{Deserialize, Serialize};
@@ -88,11 +90,14 @@ impl ForgeCache {
         self.content.answers.get(key).filter(|entry| now - entry.at < FRESH_FOR).map(|entry| entry.output.clone())
     }
 
-    /// The answer for `key` that a call uses before it asks the forge: the fresh answer, except when `is_refresh` is true,
-    /// because a refresh must ask the forge again.
-    fn fresh_unless_refresh(&self, key: &str, now: i64, is_refresh: bool) -> Option<String> {
+    /// The answer for `key` that a call uses before it asks the forge: none when `is_refresh` is true, because a refresh
+    /// must ask the forge again, the kept answer of any age when `is_kept_until_refresh` is true, and else the fresh answer.
+    fn usable(&self, key: &str, now: i64, is_refresh: bool, is_kept_until_refresh: bool) -> Option<String> {
         if is_refresh {
             return None;
+        }
+        if is_kept_until_refresh {
+            return self.kept(key, now);
         }
         self.fresh(key, now)
     }
@@ -133,22 +138,25 @@ fn with_cache<T>(body: impl FnOnce(&mut ForgeCache) -> T) -> T {
     body(cache)
 }
 
-/// The same read-only call as `forge_cli`, with the answer kept on the disk for ten minutes. A call that fails gives the
-/// last answer of the same call when it is at most seven days old. With `refresh` true, the forge is asked again even
-/// when a fresh answer exists, and the new answer replaces the kept one.
+/// Runs a read-only `glab` / `gh` call (see `crate::git::allowed`), with the answer kept on the disk for ten minutes. A
+/// call that fails gives the last answer of the same call when it is at most seven days old. With `refresh` true, the
+/// forge is asked again even when a fresh answer exists, and the new answer replaces the kept one. With
+/// `keep_until_refresh` true, the kept answer is used whatever its age, and only a refresh asks the forge again.
 #[tauri::command]
 pub async fn forge_cli_cached(
     cwd: String,
     tool: String,
     args: Vec<String>,
     refresh: Option<bool>,
+    keep_until_refresh: Option<bool>,
 ) -> Result<String, String> {
     if !crate::git::allowed(&tool, &args) {
         return Err(format!("forge_cli_cached : appel non autorisé ({tool} {})", args.join(" ")));
     }
     let key = key_of(&crate::project::find_root(Path::new(&cwd)), &tool, &args);
     let is_refresh = refresh == Some(true);
-    if let Some(output) = with_cache(|cache| cache.fresh_unless_refresh(&key, now_ms(), is_refresh)) {
+    let is_kept_until_refresh = keep_until_refresh == Some(true);
+    if let Some(output) = with_cache(|cache| cache.usable(&key, now_ms(), is_refresh, is_kept_until_refresh)) {
         return Ok(output);
     }
     match crate::git::run_forge(&cwd, &tool, &args, 20).await {
@@ -180,9 +188,21 @@ mod tests {
     fn gives_the_fresh_answer_unless_the_call_is_a_refresh() {
         let mut cache = ForgeCache::in_memory();
         cache.put("a".into(), "{}".into(), NOW);
-        assert_eq!(cache.fresh_unless_refresh("a", NOW, false), Some("{}".to_string()));
-        assert_eq!(cache.fresh_unless_refresh("a", NOW, true), None);
+        assert_eq!(cache.usable("a", NOW, false, false), Some("{}".to_string()));
+        assert_eq!(cache.usable("a", NOW, true, false), None);
         assert_eq!(cache.kept("a", NOW), Some("{}".to_string()));
+    }
+
+    #[test]
+    fn keeps_an_old_answer_until_a_refresh_when_the_call_asks_for_it() {
+        let mut cache = ForgeCache::in_memory();
+        cache.put("a".into(), "old".into(), NOW);
+        let later = NOW + FRESH_FOR * 50;
+        assert_eq!(cache.usable("a", later, false, false), None);
+        assert_eq!(cache.usable("a", later, false, true), Some("old".to_string()));
+        assert_eq!(cache.usable("a", later, true, true), None);
+        assert_eq!(cache.usable("a", NOW + KEPT_FOR, false, true), None);
+        assert_eq!(cache.usable("b", NOW, false, true), None);
     }
 
     #[test]
