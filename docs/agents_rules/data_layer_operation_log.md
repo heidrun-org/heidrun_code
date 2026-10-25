@@ -1,17 +1,17 @@
 # Rule: every operation of the data layer is recorded in the operation log
 
 - Created: 17 October 2026
-- Last updated: 23 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](glossary/index.md)
 - Related issue: [issue 618](https://github.com/heidrun-org/heidrun/issues/618), [issue 616](https://github.com/heidrun-org/heidrun/issues/616), [issue 617](https://github.com/heidrun-org/heidrun/issues/617), [issue 664](https://github.com/heidrun-org/heidrun/issues/664)
 
-This file gives the rules for every agent that adds or changes a public function of a data layer package or of `heidrun_code_data`. The description of the log, its format, and the measures are in [data_layer_operation_log.md](../statistics/data_layer_operation_log.md).
+This file gives the rules for every agent that adds or changes a public function of a data layer package or of `heidrun_data`. The description of the log, its format, and the measures are in [data_layer_operation_log.md](../statistics/data_layer_operation_log.md).
 
 ## The rule
 
-- Every public function of the four data layer packages and of `heidrun_code_data` writes a start event before it works and a completion event after it, with the library `packages/data_layers/data_layer_operation_log`. One call of the function is one operation, and the pair of events is the record of that operation in the operation log.
+- Every public function of the four data layer packages and of `heidrun_data` writes a start event before it works and a completion event after it, with the library `submodules/heidrun_data/packages/data_layer_operation_log`. One call of the function is one operation, and the pair of events is the record of that operation in the operation log.
 - A new public function does the same in the same change. It calls `data_layer_operation_log::record` (or `Operation::start` and `succeed` or `fail_with`, when the result is not a `Result`), with an `OperationSpec` that names the package, the stable operation name (the name of the public function), and the kind: `query`, `collection`, `synchronization`, `write`, or `lock`.
 - The operation name is the name of the public function. A rename of a public function changes the operation name in the log, so a rename is a change of the format: say it in the pull request.
 - The parameters of the `OperationSpec` are the values that decide the workload: the repository, the dates, the grouping, the mode, the SQL statement. Use `choice` for a value with a few possible values: it is part of the pattern, and a summary counts the operations that share it together. Never put the text of a chat, of a commit, of an issue, or of a file in a parameter.
@@ -29,16 +29,16 @@ This file gives the rules for every agent that adds or changes a public function
 
 - A data layer package imports only `data_layer_operation_log` from the other packages of the repository. The rule "no data layer package imports another data layer package" is unchanged.
 - `data_layer_operation_log` imports no package of the repository. The test programs of Cargo write no log unless `HEIDRUN_CODE_OPERATION_LOG_FILE` gives a file, so the tests of a package never fill the log of the developer. The tests of a command line set the variable to a file in their temporary folder.
-- The desktop application gives its name with `data_layer_operation_log::set_default_caller("heidrun")`. The command line `heidrun_code_data` is `heidrun_code_data`. The variable `HEIDRUN_CODE_OPERATION_LOG_CALLER` replaces both.
+- The desktop application gives its name with `data_layer_operation_log::set_default_caller("heidrun")`. The command line `heidrun_data` is `heidrun_data`. The variable `HEIDRUN_CODE_OPERATION_LOG_CALLER` replaces both.
 
 ## The measure
 
 - The duration starts right after the start event is written and ends right before the completion event is written, with the monotonic clock of the program. It holds the wait for a lock that the operation takes (the lock is a nested operation of the kind `lock`), the work of the operation, and the reads of the source. It does not hold the writing of the two events, and it does not hold what the caller does before or after: the opening of a SQLite file that the caller opens first, and the printing of the rows.
-- `heidrun_code_data operations overhead` measures what the log costs. The budget is 1 millisecond and 2 KiB for an operation. A test fails when the log costs more.
+- `heidrun_data operations overhead` measures what the log costs. The budget is 1 millisecond and 2 KiB for an operation. A test fails when the log costs more.
 - The log file is `data_layer_operations.jsonl` in the folder of `HEIDRUN_CODE_DIR`. At 8 MiB it becomes `data_layer_operations.jsonl.1`, a new file starts, and the previous `.1` is removed. The log never holds more than about 16 MiB.
 
 ## Reading and replaying
 
-- `heidrun_code_data operations` has six actions: `info`, `summary`, `list`, `replay`, `snapshot`, and `overhead`. Its help and the `SKILL.md` of `heidrun_code_data` say the same, and a test compares them.
+- `heidrun_data operations` has six actions: `info`, `summary`, `list`, `replay`, `snapshot`, and `overhead`. Its help and the `SKILL.md` of `heidrun_data` say the same, and a test compares them.
 - A replay writes its operations with the origin `replay` and the identifier of the original operation, and a summary of the real usage leaves them out. A replay of a query opens the SQLite file read only. A replay of a synchronization needs `--isolated-database`, a new file, and never writes the SQLite file of Heidrun Code.
 - A new public function that cannot run alone from its parameters is not replayable: the replay says so, and a test shows it. A new `find_*` function is replayable when its parameters in the log are enough to call it again, and a new `refresh_*` function is replayable when it also writes only the isolated file: add it to the lists `FIND_OPERATIONS` or `REFRESH_OPERATIONS` of `replay.rs` with a test.

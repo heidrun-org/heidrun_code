@@ -11,7 +11,7 @@ The commands that the Statistics window calls: the records of the activity of th
 ## Rules
 - A file here never opens a chat session file or the file of the records, never runs `git`, `gh`, or `glab`, never makes a network request, and never runs SQL. The test of the package `data_layer_boundary_checker` fails when a file here does.
 - A command that reads is separate from a command that synchronizes. A read command opens the SQLite file only, and gives an empty answer when nothing was synchronized yet.
-- Every command that writes the SQLite file takes `heidrun_code_data::lock_database` first.
+- Every command that writes the SQLite file takes `heidrun_data::lock_database` first.
 - The file of the records of the activity of the user belongs to `../user_activity.rs`. It writes the file, and this folder never reads it.
 
 ## Background

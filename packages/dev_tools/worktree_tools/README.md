@@ -114,11 +114,11 @@ Limits:
 ## Build the bundled command line tools only when their sources changed
 
 ```sh
-pnpm bundled_commands:build            # build heidrun_code_ctrl and heidrun_code_data, unless they are up to date
+pnpm bundled_commands:build            # build heidrun_code_ctrl and heidrun_data, unless they are up to date
 pnpm bundled_commands:build --force    # build them in any case
 ```
 
-Tauri packages the two command line tools `heidrun_code_ctrl` and `heidrun_code_data` from the folder `packages/apps/desktop_tauri/target/release/bundled_commands`. The script `scripts/build_command_line_tools.sh` builds them in release mode. Before issue 864, `pnpm dev` ran the script each time. In the main checkout, Cargo found its earlier work and the script took less than one second. In a new worktree, Cargo found no earlier work, because `pnpm worktree:create` clones only the two finished tools, so the script compiled about 196 crates again for 62 seconds, from sources that did not change.
+Tauri packages the two command line tools `heidrun_code_ctrl` and `heidrun_data` from the folder `packages/apps/desktop_tauri/target/release/bundled_commands`. The script `scripts/build_command_line_tools.sh` builds them in release mode. Before issue 864, `pnpm dev` ran the script each time. In the main checkout, Cargo found its earlier work and the script took less than one second. In a new worktree, Cargo found no earlier work, because `pnpm worktree:create` clones only the two finished tools, so the script compiled about 196 crates again for 62 seconds, from sources that did not change.
 
 Now `pnpm dev` starts with `pnpm bundled_commands:build`:
 
@@ -128,7 +128,7 @@ Now `pnpm dev` starts with `pnpm bundled_commands:build`:
 
 `pnpm worktree:create` clones the folder `bundled_commands` with its file `sources.sha256`, and the fingerprint uses relative paths, so a new worktree builds nothing when the sources of the tools are the same as in the main checkout.
 
-Measured on 2026-10-25: the step took 62 seconds in a new worktree before the change, and 0.6 seconds after it. A change in the application `desktop_tauri` does not change the fingerprint. A change in `data_layer_operation_log`, a dependency of `heidrun_code_data`, does.
+Measured on 2026-10-25: the step took 62 seconds in a new worktree before the change, and 0.6 seconds after it. A change in the application `desktop_tauri` does not change the fingerprint. A change in `data_layer_operation_log`, a dependency of `heidrun_data`, does.
 
 Limits:
 

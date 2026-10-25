@@ -1,7 +1,7 @@
 # Repeated patterns in the chat sessions
 
 - Created: 16 October 2026
-- Last updated: 16 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained method and first result
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Rules for a good metric](metrics_rules.md), [The four data layers](../statistics/the_four_data_layers.md)
@@ -36,7 +36,7 @@ The counts are facts, as [metrics_rules.md](metrics_rules.md) asks. The column "
 
 ## The method, in three steps
 
-1. **Extract.** Add the command `heidrun_code_data read chat_session <id>` of [issue 564](https://github.com/heidrun-org/heidrun/issues/564). The command prints the records of one chat session as JSON lines, with the role (developer, coding agent, tool), the text, and for a tool call its name and its command. The data layer keeps its rule "facts only": the text is read from the file when the command runs, and it is never stored in the SQLite file.
+1. **Extract.** Add the command `heidrun_data read chat_session <id>` of [issue 564](https://github.com/heidrun-org/heidrun/issues/564). The command prints the records of one chat session as JSON lines, with the role (developer, coding agent, tool), the text, and for a tool call its name and its command. The data layer keeps its rule "facts only": the text is read from the file when the command runs, and it is never stored in the SQLite file.
 2. **Normalize and group.** Lowercase the text, collapse the spaces, cut at 120 characters. Then group the near duplicates: "complete the issue fix" and "finish the issue fix" are one pattern. Exact matching gives the table above. Grouping needs an edit distance first, and a language model only for the last step.
 3. **Propose.** A repeated developer message becomes a macro. A repeated command becomes a launcher. A repeated error becomes a rule in `AGENTS.md`. The proposal shows the count and the chat sessions as proof, and the developer accepts or refuses the proposal.
 

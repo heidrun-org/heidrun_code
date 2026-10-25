@@ -140,8 +140,8 @@ fn synchronize(
 ) -> Result<PersonWorkSynchronization, String> {
     let repository = find_repository(folder)?;
     // Two commands that write the SQLite file at the same time would fail with "database is locked". The command line
-    // heidrun_code_data takes the same lock.
-    let _guard = heidrun_code_data::lock_database(database_path)?;
+    // heidrun_data takes the same lock.
+    let _guard = heidrun_data::lock_database(database_path)?;
     let send = |stage: &'static str, done_count: usize, total_count: Option<usize>, is_finished: bool| {
         progress(PersonWorkProgress { repository: repository.clone(), stage, done_count, total_count, is_finished })
     };

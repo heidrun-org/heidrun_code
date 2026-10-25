@@ -15,14 +15,14 @@ export class RustPaths {
 	 * Tests whether a name is the name of a package of the data layer.
 	 *
 	 * @param name - The first segment of a path.
-	 * @returns True for `heidrun_code_data` and for every name that starts with `data_layer_`, except
+	 * @returns True for `heidrun_data` and for every name that starts with `data_layer_`, except
 	 * `data_layer_operation_log`, which records the operations of the data layer and gives no data.
 	 */
 	static isPackageName(name: string): boolean {
 		if (name === 'data_layer_operation_log') {
 			return false;
 		}
-		return name === 'heidrun_code_data' || name.startsWith('data_layer_');
+		return name === 'heidrun_data' || name.startsWith('data_layer_');
 	}
 
 	/**
@@ -33,7 +33,7 @@ export class RustPaths {
 	 */
 	static find(code: string): RustPath[] {
 		const paths: RustPath[] = [];
-		const start = /\b(crate|heidrun_code_data|data_layer_[a-z_]+)\b(?=\s*(?:::|;|\s+as\b))/g;
+		const start = /\b(crate|heidrun_data|data_layer_[a-z_]+)\b(?=\s*(?:::|;|\s+as\b))/g;
 		let match = start.exec(code);
 		while (match !== null) {
 			const cursor = { index: match.index };

@@ -1,4 +1,0 @@
-# The compiled files go in the Cargo target folder of the package desktop_tauri, so that the folder that
-# `pnpm worktree:create` clones, and that `pnpm target:clean` deletes, is the only one in the repository.
-[build]
-target-dir = "../../apps/desktop_tauri/target"

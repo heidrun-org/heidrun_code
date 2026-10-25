@@ -20,8 +20,8 @@ describe('BundledCommandsStamp', () => {
 			});
 			expect(relativePaths).toEqual([
 				Path.join('packages', 'auxiliary', 'heidrun_code_ctrl'),
-				Path.join('packages', 'data_layers', 'data_layer_operation_log'),
-				Path.join('packages', 'data_layers', 'heidrun_code_data'),
+				Path.join('submodules', 'heidrun_data', 'packages', 'data_layer_operation_log'),
+				Path.join('submodules', 'heidrun_data', 'packages', 'heidrun_data'),
 			]);
 		});
 	});
@@ -103,7 +103,7 @@ describe('BundledCommandsStamp', () => {
 			expect(BundledCommandsStamp.isUpToDate(checkoutPath, 'fingerprint')).toBe(true);
 			expect(BundledCommandsStamp.isUpToDate(checkoutPath, 'other fingerprint')).toBe(false);
 
-			Fs.rmSync(Path.join(commandsPath, 'heidrun_code_data'));
+			Fs.rmSync(Path.join(commandsPath, 'heidrun_data'));
 			expect(BundledCommandsStamp.isUpToDate(checkoutPath, 'fingerprint')).toBe(false);
 		});
 	});

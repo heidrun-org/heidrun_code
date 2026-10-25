@@ -23,7 +23,7 @@ describe('scripts/install.sh', () => {
 			const appPath = Path.join(runner.applicationsFolder, 'Heidrun Code.app');
 			expect(result.stdout).toContain(`Heidrun Code 1.2.3 is installed in ${appPath}.`);
 			expect(Fs.existsSync(Path.join(appPath, 'Contents', 'Info.plist'))).toBe(true);
-			for (const commandName of ['heidrun_code_ctrl', 'heidrun_code_data']) {
+			for (const commandName of ['heidrun_code_ctrl', 'heidrun_data']) {
 				const commandLink = Path.join(runner.homeFolder, '.local', 'bin', commandName);
 				const commandPath = Path.join(appPath, 'Contents', 'Resources', 'binaries', commandName);
 				expect(Fs.readlinkSync(commandLink)).toBe(commandPath);

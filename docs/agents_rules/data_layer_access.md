@@ -1,13 +1,13 @@
 # Rule: the Past chats sidebar section and the Statistics window get all their data through the data layer
 
 - Created: 17 October 2026
-- Last updated: 23 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Chats list](user_interface/sidebars/chats/chats_list.md), [Statistics window](user_interface/window/statistics_window.md), [Glossary of Heidrun Code](glossary/index.md)
 - Related issue: [issue 617](https://github.com/heidrun-org/heidrun/issues/617)
 
-This file gives the rule for every agent that changes the Past chats sidebar section, the Statistics window, or a package of the folder `packages/data_layers`. The description of the four packages is in [the_four_data_layers.md](../statistics/the_four_data_layers.md).
+This file gives the rule for every agent that changes the Past chats sidebar section, the Statistics window, or a package of the folder `submodules/heidrun_data/packages`. The description of the four packages is in [the_four_data_layers.md](../statistics/the_four_data_layers.md).
 
 ## The rule
 
@@ -18,7 +18,7 @@ This file gives the rule for every agent that changes the Past chats sidebar sec
 
 ## Two kinds of command
 
-- A synchronize command copies new data into the SQLite file. It takes `heidrun_code_data::lock_database` first. It calls only functions `refresh_*` of a package.
+- A synchronize command copies new data into the SQLite file. It takes `heidrun_data::lock_database` first. It calls only functions `refresh_*` of a package.
 - A read command reads the SQLite file only. It calls only functions `find_*` of a package. It starts no program, reads no source, and makes no request, so it works when the source is gone. Before the first synchronization it answers with empty data, and it creates no file.
 - The web page calls the synchronize command, then the read command. It reads the stored data first when it has none to show. A change of the sort order, a click on "Show more", and a change of the slot length call the read command only.
 

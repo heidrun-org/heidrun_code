@@ -1,7 +1,7 @@
 # Directory Context: `/packages/auxiliary`
 
 ## Purpose
-The packages that are useful for the application Heidrun Code, but are not the application itself: a library and the public website. The data layer packages are in `packages/data_layers`. A package that is only a tool for the developers of Heidrun Code goes in `packages/dev_tools`.
+The packages that are useful for the application Heidrun Code, but are not the application itself: a library and the public website. The data layer packages are in the submodule `submodules/heidrun_data`. A package that is only a tool for the developers of Heidrun Code goes in `packages/dev_tools`.
 
 ## Key Exports & Entry Points
 - `coding_agent_cli/`: a Rust library and a command line tool that send one prompt to `codex`, `claude`, or `agy`. See its own CONTEXT.md.
@@ -14,7 +14,7 @@ The packages that are useful for the application Heidrun Code, but are not the a
 ## Rules
 - A package that produces the application goes in `packages/apps`, never here.
 - A package that is only a tool for the developers of Heidrun Code goes in `packages/dev_tools`, never here.
-- A data layer package goes in `packages/data_layers`, never here.
+- A data layer package goes in the repository `heidrun_data`, never here.
 - A package in `packages/apps` may import a Rust library of this folder, through a `path` dependency in its `Cargo.toml`. No package in this folder imports a package from `packages/apps`.
 - No package in this folder imports a package from `packages/dev_tools`.
 
@@ -25,4 +25,5 @@ The packages that are useful for the application Heidrun Code, but are not the a
 - `heidrun_code_ctrl` came with [issue #602](https://github.com/heidrun-org/heidrun/issues/602). `desktop_tauri` imports it, so the format of the macro files has one place.
 - `mobile_server` and `mobile_website` came with [issue #524](https://github.com/heidrun-org/heidrun/issues/524), and the rule about the imports of `packages/apps` changed with it. The rule was already false: `desktop_tauri` imports `coding_agent_cli`.
 - `data_layer_operation_log` left this folder for `packages/data_layers` in [issue #664](https://github.com/heidrun-org/heidrun/issues/664), because it serves only the data layer packages.
+- The folder `packages/data_layers` became the submodule `submodules/heidrun_data` in [issue 848](https://github.com/heidrun-org/heidrun_code/issues/848).
 - `voice_input` came with [issue #662](https://github.com/heidrun-org/heidrun/issues/662). The audio stays in memory, and only the download of a model file uses the network.

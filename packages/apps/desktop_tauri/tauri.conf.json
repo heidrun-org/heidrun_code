@@ -33,9 +33,9 @@
     "targets": ["app", "dmg"],
     "resources": {
       "target/release/bundled_commands/heidrun_code_ctrl": "binaries/heidrun_code_ctrl",
-      "target/release/bundled_commands/heidrun_code_data": "binaries/heidrun_code_data",
+      "target/release/bundled_commands/heidrun_data": "binaries/heidrun_data",
       "../../auxiliary/heidrun_code_ctrl/skills/heidrun-code-ctrl/": "bundled_skills/heidrun-code-ctrl/",
-      "../../data_layers/heidrun_code_data/skills/heidrun-code-data/": "bundled_skills/heidrun-code-data/"
+      "../../../submodules/heidrun_data/packages/heidrun_data/skills/heidrun-data/": "bundled_skills/heidrun-data/"
     },
     "category": "DeveloperTool",
     "icon": [

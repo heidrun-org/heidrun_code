@@ -69,7 +69,7 @@ ditto "${MOUNT_FOLDER}/Heidrun Code.app" "${APP_PATH}"
 
 BIN_FOLDER="${HOME}/.local/bin"
 mkdir -p "${BIN_FOLDER}"
-for COMMAND in heidrun_code_ctrl heidrun_code_data; do
+for COMMAND in heidrun_code_ctrl heidrun_data; do
 	SOURCE="${APP_PATH}/Contents/Resources/binaries/${COMMAND}"
 	TARGET="${BIN_FOLDER}/${COMMAND}"
 	if [ ! -x "${SOURCE}" ]; then
@@ -89,4 +89,4 @@ MOUNT_FOLDER=""
 
 VERSION="$(sed -n '/CFBundleShortVersionString/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "${APP_PATH}/Contents/Info.plist")"
 echo "Heidrun Code ${VERSION} is installed in ${APP_PATH}."
-echo "The commands heidrun_code_ctrl and heidrun_code_data are available in ${BIN_FOLDER}."
+echo "The commands heidrun_code_ctrl and heidrun_data are available in ${BIN_FOLDER}."

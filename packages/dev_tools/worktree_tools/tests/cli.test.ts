@@ -80,7 +80,7 @@ describe('worktree_create_cli', () => {
 		const worktreePath = Path.join(mainCheckoutPath, '.claude', 'worktrees', 'with-clone');
 		expect(Fs.existsSync(Path.join(TargetPaths.debugPath(worktreePath), 'heidrun'))).toBe(true);
 		expect(Fs.existsSync(Path.join(TargetPaths.bundledCommandsPath(worktreePath), 'heidrun_code_ctrl'))).toBe(true);
-		expect(Fs.existsSync(Path.join(TargetPaths.bundledCommandsPath(worktreePath), 'heidrun_code_data'))).toBe(true);
+		expect(Fs.existsSync(Path.join(TargetPaths.bundledCommandsPath(worktreePath), 'heidrun_data'))).toBe(true);
 	});
 
 	it('installs the packages and says so', () => {

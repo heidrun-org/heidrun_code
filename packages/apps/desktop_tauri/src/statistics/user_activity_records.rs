@@ -44,9 +44,9 @@ pub async fn user_activity_records_in_range(since: String, until: String) -> Res
 fn synchronize(file_path: &Path, database_path: &Path) -> Result<UserActivitySynchronization, String> {
     // An append of a line must not run while the package reads the file, or the package could see half a line.
     let _file_guard = crate::app_data::USER_ACTIVITY_FILE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    // The other commands of the Statistics window and the command line heidrun_code_data write the same SQLite file, and the file has
+    // The other commands of the Statistics window and the command line heidrun_data write the same SQLite file, and the file has
     // no waiting time.
-    let _database_guard = heidrun_code_data::lock_database(database_path)?;
+    let _database_guard = heidrun_data::lock_database(database_path)?;
     let report = refresh_user_activity(database_path, file_path)?;
     Ok(UserActivitySynchronization { record_count: report.record_count })
 }

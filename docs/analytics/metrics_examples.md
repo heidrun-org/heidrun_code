@@ -1,7 +1,7 @@
 # Ten metrics from the join of the three inputs
 
 - Created: 16 October 2026
-- Last updated: 16 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained list of the metrics, with their queries and their results on this repository
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [The four data layers](../statistics/the_four_data_layers.md)
@@ -247,4 +247,4 @@ ORDER BY output_tokens DESC;
 
 - Fix the links first, as [inputs_links.md](inputs_links.md) says: relative paths in `chat_session_files`, the chat sessions of the worktrees, and a link from a chat session to a commit. Every metric above inherits their gaps.
 - Add the price per model and per kind of token, so that metrics 1, 3, 6, and 10 can be written in dollars.
-- Give the ten queries to a coding agent through the command `heidrun_code_data` of [issue 564](https://github.com/heidrun-org/heidrun/issues/564), so that the coding agent answers "why" on top of the numbers.
+- Give the ten queries to a coding agent through the command `heidrun_data` of [issue 564](https://github.com/heidrun-org/heidrun/issues/564), so that the coding agent answers "why" on top of the numbers.

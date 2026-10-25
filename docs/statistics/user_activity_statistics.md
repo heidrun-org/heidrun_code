@@ -1,7 +1,7 @@
 # User activity statistics
 
 - Created: 15 October 2026
-- Last updated: 17 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained description of the statistic of the tab "User activity"
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: user activity](../agents_rules/glossary/user_activity.md), [Statistics window](../agents_rules/user_interface/window/statistics_window.md), [User activity sidebar section](../agents_rules/user_interface/sidebars/user_activity.md)
@@ -78,20 +78,20 @@ GROUP BY workspaceFolder
 ORDER BY hours DESC"
 ```
 
-The [file `README.md` of the package](../../packages/data_layers/data_layer_user_activity/README.md) has two more queries and the options of the command line tool.
+The [file `README.md` of the package](../../submodules/heidrun_data/packages/data_layer_user_activity/README.md) has two more queries and the options of the command line tool.
 
 ## Where the code is
 
 | Part | Place |
 | --- | --- |
-| The data layer | `packages/data_layers/data_layer_user_activity` |
+| The data layer | `submodules/heidrun_data/packages/data_layer_user_activity` |
 | The commands `user_activity_append` and `user_activity_read` | `packages/apps/desktop_tauri/src/user_activity.rs` |
 | The commands `user_activity_synchronize` and `user_activity_records_in_range` | `packages/apps/desktop_tauri/src/statistics/user_activity_records.rs` |
-| The lock of the SQLite file | `packages/data_layers/heidrun_code_data/src/database_lock.rs` |
+| The lock of the SQLite file | `submodules/heidrun_data/packages/heidrun_data/src/database_lock.rs` |
 | The window and the chart | `packages/apps/web_frontend/src/components/StatisticsModal.vue` and `UserActivityHistogram.vue` |
 | The calculation of the slots | `packages/apps/web_frontend/src/lib/user_activity_slots.ts` |
 
-The tests are listed in [statistics_window.md](../agents_rules/user_interface/window/statistics_window.md), in the section "Tests". The tests of the data layer are in its own package: `pnpm --filter data_layer_user_activity test`.
+The tests are listed in [statistics_window.md](../agents_rules/user_interface/window/statistics_window.md), in the section "Tests". The tests of the data layer are in its own package: `cargo test --package data_layer_user_activity`.
 
 ## Open points
 

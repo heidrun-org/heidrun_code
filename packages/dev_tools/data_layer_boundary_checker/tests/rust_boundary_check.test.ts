@@ -21,7 +21,7 @@ describe('RustBoundaryCheck.checkScopeFile', () => {
 			'',
 			'pub fn chats_list(folder: String) -> Result<ChatList, String> {',
 			'    let root = crate::project::find_root(Path::new(&folder));',
-			'    let _guard = heidrun_code_data::lock_database(&default_database_path())?;',
+			'    let _guard = heidrun_data::lock_database(&default_database_path())?;',
 			'    refresh_chat_sessions(&default_database_path(), &root)?;',
 			'    find_chat_list(&default_database_path(), &root)',
 			'}',
@@ -136,7 +136,7 @@ describe('RustBoundaryCheck.checkOutsideFile', () => {
 	});
 
 	it('reports any other use of a package of the data layer', () => {
-		const code = 'use data_layer_coding_agents::find_chat_list;\nfn f() { heidrun_code_data::lock_database(p); }';
+		const code = 'use data_layer_coding_agents::find_chat_list;\nfn f() { heidrun_data::lock_database(p); }';
 		expect(ruleIds(RustBoundaryCheck.checkOutsideFile(outsideFile, code))).toEqual([
 			'package-outside-scope',
 			'package-outside-scope',

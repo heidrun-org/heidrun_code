@@ -1,7 +1,7 @@
 # Installed Heidrun Code and Heidrun Code Development
 
 - Created: 17 October 2026
-- Last updated: 22 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained installation and development guide
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Window startup](../agents_rules/user_interface/window/window_state_and_start.md), [Data layer access](../agents_rules/data_layer_access.md)
@@ -69,11 +69,11 @@ The command line tools use `HEIDRUN_CODE_DIR` to select the intended application
 ```sh
 # Installed data with the default locations
 pnpm --silent heidrun_code_ctrl macros list
-pnpm --silent data_layer:heidrun_code_data operations info
+pnpm --silent data_layer:heidrun_data operations info
 
 # Development data with the default locations
 HEIDRUN_CODE_DIR="$HOME/.config/heidrun_code_development" pnpm --silent heidrun_code_ctrl macros list
-HEIDRUN_CODE_DIR="$HOME/.config/heidrun_code_development" pnpm --silent data_layer:heidrun_code_data operations info
+HEIDRUN_CODE_DIR="$HOME/.config/heidrun_code_development" pnpm --silent data_layer:heidrun_data operations info
 ```
 
 For a custom development folder, give the same absolute folder to `HEIDRUN_CODE_DIR` when running a command line tool. The four data layer database defaults also follow this folder. An explicit `--database` still selects another database.

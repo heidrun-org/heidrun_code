@@ -24,7 +24,7 @@ export class TargetPaths {
 	static readonly bundledCommandsFolderName = 'bundled_commands';
 
 	/** The command line tools that Tauri requires in the bundled command line tools folder. */
-	static readonly bundledCommandFileNames = ['heidrun_code_ctrl', 'heidrun_code_data'] as const;
+	static readonly bundledCommandFileNames = ['heidrun_code_ctrl', 'heidrun_data'] as const;
 
 	/**
 	 * Gives the path of the folder of the package that owns the Cargo target folder: the folder where `cargo build` runs.
