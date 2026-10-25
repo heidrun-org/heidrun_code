@@ -66,7 +66,7 @@ fn run_synchronization(request: &SynchronizationRequest) -> Result<(), String> {
         agents_home: agents_home(),
     };
     let mut database = ConfigurationDatabase::open(&database_path)?;
-    let counts = synchronize_configuration(&repository, &folders, &mut database, log)?;
+    let counts = synchronize_configuration(request.mode, &repository, &folders, &mut database, log)?;
     let parts: Vec<String> = counts
         .iter()
         .map(|count| format!("{} {} written, {} removed", count.kind.table_name(), count.written_count, count.removed_count))

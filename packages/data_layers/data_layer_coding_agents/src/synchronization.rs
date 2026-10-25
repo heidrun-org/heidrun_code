@@ -5,6 +5,8 @@
 //! this date or later. When the table has no row for the folder, the mode update reads everything, as the mode initialize does.
 //!
 //! The tables of the configuration of the coding agent are small, so both modes read every memory file, subagent, and skill.
+//! The mode initialize writes every row. The mode update writes only the rows that are new, that changed, or that are newly
+//! marked as removed, so a second update without a change writes no row.
 //!
 //! The token usage of each minute has its own date of the last read, for each workspace, in the table
 //! `token_usage_synchronizations`: the newest modification date of the files that the last read found. The mode update reads
@@ -83,19 +85,24 @@ fn run_inside(
 /// file the read does not find any more is marked as removed at the date of now. `log` receives one line of progress for
 /// each table.
 ///
+/// - The mode initialize writes every row that the read found.
+/// - The mode update writes only the new rows, the rows whose data changed, and the rows newly marked as removed.
+///
 /// # Errors
 /// An error when the database cannot be written, or when an item does not follow its JSON schema.
 pub fn run_configuration(
+    mode: SynchronizationMode,
     repository: &str,
     folders: &ConfigurationFolders,
     database: &mut ConfigurationDatabase,
     log: &dyn Fn(&str),
 ) -> Result<Vec<ConfigurationWriteCount>, String> {
     let spec = OperationSpec::new(OPERATION_PACKAGE, "synchronize_configuration", OperationKind::Synchronization)
+        .choice("mode", mode.name())
         .parameter("repository", repository)
         .parameter("root", folders.root.display().to_string())
         .database(database.database_path());
-    record(spec, || run_configuration_inside(repository, folders, database, log), |counts| {
+    record(spec, || run_configuration_inside(mode, repository, folders, database, log), |counts| {
         Summary::count(counts.iter().map(|count| count.written_count).sum())
             .detail("removedCount", counts.iter().map(|count| count.removed_count).sum::<usize>())
     })
@@ -103,6 +110,7 @@ pub fn run_configuration(
 
 /// The work of `run_configuration`, between the start event and the completion event of its operation.
 fn run_configuration_inside(
+    mode: SynchronizationMode,
     repository: &str,
     folders: &ConfigurationFolders,
     database: &mut ConfigurationDatabase,
@@ -115,10 +123,11 @@ fn run_configuration_inside(
     let now = format_date(milliseconds).ok_or("The date of now cannot be written.")?;
     let mut counts = Vec::new();
     for read in read_configuration(folders) {
-        let count = database.write_configuration(repository, &read, &now)?;
+        let count = database.write_configuration(mode, repository, &read, &now)?;
         log(&format!(
-            "{}: written row count {}, marked as removed {}",
+            "{}: mode {}, written row count {}, marked as removed {}",
             read.kind.table_name(),
+            mode.name(),
             count.written_count,
             count.removed_count
         ));
@@ -326,15 +335,39 @@ mod tests {
         write_file(&skill_file, "---\nname: a\n---\n", 10);
         write_file(&folders.claude_dir.join("agents/b.md"), "---\nname: b\n---\n", 10);
         let mut database = ConfigurationDatabase::open(&directory.join("data_layer.sqlite")).unwrap();
-        let counts = run_configuration(REPOSITORY, &folders, &mut database, &ignore_log).unwrap();
+        let counts = run_configuration(SynchronizationMode::Initialize, REPOSITORY, &folders, &mut database, &ignore_log).unwrap();
         let written: Vec<(usize, usize)> = counts.iter().map(|count| (count.written_count, count.removed_count)).collect();
         assert_eq!(written, [(0, 0), (1, 0), (1, 0)]);
         std::fs::remove_file(&skill_file).unwrap();
-        let counts = run_configuration(REPOSITORY, &folders, &mut database, &ignore_log).unwrap();
+        let counts = run_configuration(SynchronizationMode::Update, REPOSITORY, &folders, &mut database, &ignore_log).unwrap();
         assert_eq!((counts[2].written_count, counts[2].removed_count), (0, 1));
         let skill_id = folders.root.join(".claude/skills/a").display().to_string();
         let skill = database.find_item(ConfigurationKind::Skill, REPOSITORY, &skill_id).unwrap().unwrap();
         assert!(skill.removed_at.is_some());
+    }
+
+    #[test]
+    fn a_second_update_of_the_configuration_without_a_change_writes_no_row_and_initialize_writes_every_row() {
+        let directory = temp_folder("configuration_unchanged_run");
+        let folders = ConfigurationFolders {
+            root: directory.join("app"),
+            main_root: directory.join("app"),
+            claude_dir: directory.join("claude"),
+            codex_home: directory.join("codex"),
+            agents_home: directory.join("agents"),
+        };
+        write_file(&folders.root.join(".claude/skills/a/SKILL.md"), "---\nname: a\n---\n", 10);
+        write_file(&folders.claude_dir.join("agents/b.md"), "---\nname: b\n---\n", 10);
+        let mut database = ConfigurationDatabase::open(&directory.join("data_layer.sqlite")).unwrap();
+        let written_counts = |mode: SynchronizationMode, database: &mut ConfigurationDatabase| -> Vec<(usize, usize)> {
+            let counts = run_configuration(mode, REPOSITORY, &folders, database, &ignore_log).unwrap();
+            counts.iter().map(|count| (count.written_count, count.removed_count)).collect()
+        };
+        assert_eq!(written_counts(SynchronizationMode::Update, &mut database), [(0, 0), (1, 0), (1, 0)]);
+        assert_eq!(written_counts(SynchronizationMode::Update, &mut database), [(0, 0), (0, 0), (0, 0)]);
+        assert_eq!(written_counts(SynchronizationMode::Initialize, &mut database), [(0, 0), (1, 0), (1, 0)]);
+        write_file(&folders.claude_dir.join("agents/b.md"), "---\nname: b\ndescription: Changed\n---\n", 5);
+        assert_eq!(written_counts(SynchronizationMode::Update, &mut database), [(0, 0), (1, 0), (0, 0)]);
     }
 
     const ANSWER: &str = r#"{"type":"assistant","cwd":"/work/app","timestamp":"2026-10-11T10:00:05.000Z","message":{"id":"msg_1","model":"claude-opus-5","role":"assistant","content":[{"type":"text","text":"Done"}],"usage":{"input_tokens":10,"cache_creation_input_tokens":20,"cache_read_input_tokens":300,"output_tokens":5}}}"#;
@@ -455,7 +488,7 @@ mod tests {
         };
         write_file(&folders.root.join(".claude/skills/a/SKILL.md"), "---\nname: a\n---\n", 10);
         let mut database = ConfigurationDatabase::open(&directory.join("data_layer.sqlite")).unwrap();
-        let (_, events) = data_layer_operation_log::testing::capture(|| run_configuration(REPOSITORY, &folders, &mut database, &ignore_log).unwrap());
+        let (_, events) = data_layer_operation_log::testing::capture(|| run_configuration(SynchronizationMode::Initialize, REPOSITORY, &folders, &mut database, &ignore_log).unwrap());
         let tree = data_layer_operation_log::testing::tree(&events);
         assert_eq!(tree[0], "coding_agents.synchronize_configuration");
         assert_eq!(tree[1], "  coding_agents.read_configuration");

@@ -7,11 +7,16 @@
 //!
 //! A row is never deleted: when a read does not find the file of a row any more, the row keeps its facts, and its field
 //! `removedAt` and its column `updatedAt` take the date of this read.
+//!
+//! The mode initialize writes every row that a read found. The mode update writes only the rows that are new, the rows
+//! whose column `data` is different, and the rows that are newly marked as removed, so a second update without a change
+//! writes no row.
 
 use crate::model::configuration_types::{ConfigurationItem, ConfigurationKind, ConfigurationRead, ConfigurationWriteCount};
 use crate::model::schemas::configuration_item_to_checked_value;
+use crate::model::types::SynchronizationMode;
 use rusqlite::{params, Connection, OptionalExtension, Transaction};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use crate::OPERATION_PACKAGE;
 use data_layer_operation_log::{record, OperationKind, OperationSpec, Summary};
@@ -54,10 +59,15 @@ impl ConfigurationDatabase {
     /// the read did not find. Every item is checked against the JSON schema of its kind before the first row is written, and
     /// the rows of one kind are written in one transaction, so a wrong item writes nothing.
     ///
+    /// - The mode initialize writes every item that the read found.
+    /// - The mode update writes only the items that have no row, and the items whose column `data` is different from the
+    ///   column `data` of their row.
+    ///
     /// # Errors
     /// An error when one item does not follow the JSON schema, or when the file cannot be written.
     pub fn write_configuration(
         &mut self,
+        mode: SynchronizationMode,
         repository: &str,
         read: &ConfigurationRead,
         now: &str,
@@ -65,9 +75,10 @@ impl ConfigurationDatabase {
         let spec = OperationSpec::new(OPERATION_PACKAGE, "write_configuration", OperationKind::Write)
             .parameter("repository", repository)
             .choice("kind", read.kind.table_name())
+            .choice("mode", mode.name())
             .parameter("itemCount", read.items.len())
             .database(&self.database_path);
-        record(spec, || self.write_configuration_inside(repository, read, now), |count| {
+        record(spec, || self.write_configuration_inside(mode, repository, read, now), |count| {
             Summary::count(count.written_count).detail("removedCount", count.removed_count)
         })
     }
@@ -75,14 +86,22 @@ impl ConfigurationDatabase {
     /// The work of `write_configuration`, between the start event and the completion event of its operation.
     fn write_configuration_inside(
         &mut self,
+        mode: SynchronizationMode,
         repository: &str,
         read: &ConfigurationRead,
         now: &str,
     ) -> Result<ConfigurationWriteCount, String> {
         let kind = read.kind;
+        let stored = match mode {
+            SynchronizationMode::Initialize => HashMap::new(),
+            SynchronizationMode::Update => self.find_stored_data(kind, repository)?,
+        };
         let mut checked = Vec::with_capacity(read.items.len());
         for item in &read.items {
-            checked.push((item, configuration_item_to_checked_value(kind, item)?.to_string()));
+            let data = configuration_item_to_checked_value(kind, item)?.to_string();
+            if stored.get(item.id.as_str()) != Some(&data) {
+                checked.push((item, data));
+            }
         }
         let found: HashSet<&str> = read.items.iter().map(|item| item.id.as_str()).collect();
         let mut removed = Vec::new();
@@ -152,6 +171,21 @@ impl ConfigurationDatabase {
                 .map(Some)
                 .map_err(|error| format!("The row of the {} {id} is not a {}: {error}", kind.description(), kind.description())),
         }
+    }
+
+    /// Reads the column `data` of every row of a kind for a repository, with the rows marked as removed, by `id`.
+    fn find_stored_data(&self, kind: ConfigurationKind, repository: &str) -> Result<HashMap<String, String>, String> {
+        let error_of = |error: rusqlite::Error| format!("The rows of the table {} cannot be read: {error}", kind.table_name());
+        let mut statement = self
+            .connection
+            .prepare(&format!("SELECT id, data FROM {} WHERE repository = ?1", kind.table_name()))
+            .map_err(error_of)?;
+        let rows = statement
+            .query_map(params![repository], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)))
+            .map_err(error_of)?
+            .collect::<rusqlite::Result<HashMap<String, String>>>()
+            .map_err(error_of)?;
+        Ok(rows)
     }
 
     /// Reads the items of a kind for a repository that are not marked as removed.
@@ -245,7 +279,7 @@ mod tests {
             kind: ConfigurationKind::MemoryFile,
             items: vec![configuration_item(ConfigurationKind::MemoryFile, "/memory/a.md")],
         };
-        let count = database.write_configuration(REPOSITORY, &read, &date(5)).unwrap();
+        let count = database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &read, &date(5)).unwrap();
         assert_eq!((count.written_count, count.removed_count), (1, 0));
         assert_eq!(database.find_item(ConfigurationKind::MemoryFile, REPOSITORY, "/memory/a.md"), Ok(Some(read.items[0].clone())));
         assert_eq!(database.find_item(ConfigurationKind::Skill, REPOSITORY, "/memory/a.md"), Ok(None));
@@ -254,16 +288,16 @@ mod tests {
     #[test]
     fn marks_a_row_as_removed_once_and_clears_the_mark_when_the_file_comes_back() {
         let mut database = new_database("configuration_removed");
-        database.write_configuration(REPOSITORY, &skills(&["/a", "/b"]), &date(5)).unwrap();
-        let count = database.write_configuration(REPOSITORY, &skills(&["/a"]), &date(6)).unwrap();
+        database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &skills(&["/a", "/b"]), &date(5)).unwrap();
+        let count = database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &skills(&["/a"]), &date(6)).unwrap();
         assert_eq!((count.written_count, count.removed_count), (1, 1));
         let removed = database.find_item(ConfigurationKind::Skill, REPOSITORY, "/b").unwrap().unwrap();
         assert_eq!((removed.removed_at, removed.updated_at, removed.created_at), (Some(date(6)), date(6), date(1)));
-        let count = database.write_configuration(REPOSITORY, &skills(&["/a"]), &date(7)).unwrap();
+        let count = database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &skills(&["/a"]), &date(7)).unwrap();
         assert_eq!(count.removed_count, 0);
         let removed = database.find_item(ConfigurationKind::Skill, REPOSITORY, "/b").unwrap().unwrap();
         assert_eq!(removed.removed_at, Some(date(6)));
-        database.write_configuration(REPOSITORY, &skills(&["/a", "/b"]), &date(8)).unwrap();
+        database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &skills(&["/a", "/b"]), &date(8)).unwrap();
         let back = database.find_item(ConfigurationKind::Skill, REPOSITORY, "/b").unwrap().unwrap();
         assert_eq!(back.removed_at, None);
         assert_eq!(database.count_rows(ConfigurationKind::Skill, REPOSITORY), Ok(2));
@@ -272,10 +306,10 @@ mod tests {
     #[test]
     fn keeps_the_rows_of_another_repository_and_of_another_kind() {
         let mut database = new_database("configuration_other");
-        database.write_configuration("other/repository", &skills(&["/a"]), &date(5)).unwrap();
+        database.write_configuration(SynchronizationMode::Initialize, "other/repository", &skills(&["/a"]), &date(5)).unwrap();
         let subagents = ConfigurationRead { kind: ConfigurationKind::Subagent, items: Vec::new() };
-        database.write_configuration(REPOSITORY, &subagents, &date(6)).unwrap();
-        database.write_configuration(REPOSITORY, &skills(&[]), &date(6)).unwrap();
+        database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &subagents, &date(6)).unwrap();
+        database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &skills(&[]), &date(6)).unwrap();
         let other = database.find_item(ConfigurationKind::Skill, "other/repository", "/a").unwrap().unwrap();
         assert_eq!(other.removed_at, None);
     }
@@ -285,7 +319,61 @@ mod tests {
         let mut database = new_database("configuration_wrong");
         let mut read = skills(&["/a", "/b"]);
         read.items[1].memory_type = Some("feedback".into());
-        assert!(database.write_configuration(REPOSITORY, &read, &date(5)).unwrap_err().contains("memoryType"));
+        assert!(database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &read, &date(5)).unwrap_err().contains("memoryType"));
         assert_eq!(database.count_rows(ConfigurationKind::Skill, REPOSITORY), Ok(0));
+    }
+
+    /// A read of skills with the items of these ids, the name of the first item being `name`.
+    fn skills_with_first_name(ids: &[&str], name: &str) -> ConfigurationRead {
+        let mut read = skills(ids);
+        read.items[0].name = name.into();
+        read
+    }
+
+    #[test]
+    fn initialize_writes_every_row_again_and_update_writes_none_when_nothing_changed() {
+        let mut database = new_database("configuration_unchanged");
+        let first = database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &skills(&["/a", "/b"]), &date(5)).unwrap();
+        assert_eq!((first.written_count, first.removed_count), (2, 0));
+        let update = database.write_configuration(SynchronizationMode::Update, REPOSITORY, &skills(&["/a", "/b"]), &date(6)).unwrap();
+        assert_eq!((update.written_count, update.removed_count), (0, 0));
+        let initialize = database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &skills(&["/a", "/b"]), &date(7)).unwrap();
+        assert_eq!((initialize.written_count, initialize.removed_count), (2, 0));
+    }
+
+    #[test]
+    fn update_writes_only_the_new_rows_and_the_rows_whose_data_changed() {
+        let mut database = new_database("configuration_changed");
+        database.write_configuration(SynchronizationMode::Initialize, REPOSITORY, &skills(&["/a", "/b"]), &date(5)).unwrap();
+        let read = skills_with_first_name(&["/a", "/b", "/c"], "another-name");
+        let count = database.write_configuration(SynchronizationMode::Update, REPOSITORY, &read, &date(6)).unwrap();
+        assert_eq!((count.written_count, count.removed_count), (2, 0));
+        assert_eq!(database.find_item(ConfigurationKind::Skill, REPOSITORY, "/a").unwrap().unwrap().name, "another-name");
+        assert_eq!(database.count_rows(ConfigurationKind::Skill, REPOSITORY), Ok(3));
+        let count = database.write_configuration(SynchronizationMode::Update, REPOSITORY, &read, &date(7)).unwrap();
+        assert_eq!((count.written_count, count.removed_count), (0, 0));
+    }
+
+    #[test]
+    fn update_marks_a_row_as_removed_once_and_writes_the_row_again_when_the_file_comes_back() {
+        let mut database = new_database("configuration_update_removed");
+        database.write_configuration(SynchronizationMode::Update, REPOSITORY, &skills(&["/a", "/b"]), &date(5)).unwrap();
+        let count = database.write_configuration(SynchronizationMode::Update, REPOSITORY, &skills(&["/a"]), &date(6)).unwrap();
+        assert_eq!((count.written_count, count.removed_count), (0, 1));
+        let count = database.write_configuration(SynchronizationMode::Update, REPOSITORY, &skills(&["/a"]), &date(7)).unwrap();
+        assert_eq!((count.written_count, count.removed_count), (0, 0));
+        let removed = database.find_item(ConfigurationKind::Skill, REPOSITORY, "/b").unwrap().unwrap();
+        assert_eq!((removed.removed_at, removed.updated_at), (Some(date(6)), date(6)));
+        let count = database.write_configuration(SynchronizationMode::Update, REPOSITORY, &skills(&["/a", "/b"]), &date(8)).unwrap();
+        assert_eq!((count.written_count, count.removed_count), (1, 0));
+        assert_eq!(database.find_item(ConfigurationKind::Skill, REPOSITORY, "/b").unwrap().unwrap().removed_at, None);
+    }
+
+    #[test]
+    fn update_compares_only_with_the_rows_of_its_own_repository() {
+        let mut database = new_database("configuration_update_repository");
+        database.write_configuration(SynchronizationMode::Initialize, "other/repository", &skills(&["/a"]), &date(5)).unwrap();
+        let count = database.write_configuration(SynchronizationMode::Update, REPOSITORY, &skills(&["/a"]), &date(6)).unwrap();
+        assert_eq!(count.written_count, 1);
     }
 }
