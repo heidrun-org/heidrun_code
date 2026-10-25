@@ -1,18 +1,26 @@
 <script setup lang="ts">
-import { useId } from "vue";
+import { onBeforeUnmount, useId } from "vue";
 import SkillsHelpCard from "./SkillsHelpCard.vue";
-import { showAddress, skills } from "../../stores/skills";
+import { findAddress, skills } from "../../stores/skills";
 import { t } from "../../i18n/index";
 
-// The field of the source Code hosting: the web address of a skill folder on GitHub or GitLab. The address is read at each key
-// typed. GitHub or GitLab is asked only when the developer inspects or installs the folder.
+// The field of the source Code hosting: the web address of a folder on GitHub or GitLab, either one skill folder or a folder
+// that holds several skill folders. The address is checked 500 milliseconds after the last key typed, because the check asks
+// GitHub or GitLab for the list of the files below the folder.
 
+const CHECK_DELAY_MS = 500;
+let checkTimer = 0;
 const inputId = useId();
 const helpId = useId();
 
 function onAddressInput(event: Event) {
-  showAddress((event.target as HTMLInputElement).value);
+  const address = (event.target as HTMLInputElement).value;
+  skills.address = address;
+  window.clearTimeout(checkTimer);
+  checkTimer = window.setTimeout(() => findAddress(address), CHECK_DELAY_MS);
 }
+
+onBeforeUnmount(() => window.clearTimeout(checkTimer));
 </script>
 
 <template>

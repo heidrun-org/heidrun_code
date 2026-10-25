@@ -36,6 +36,37 @@ pub(super) fn read_local_skill(path: &str) -> Result<LocalSkill, String> {
     Ok(LocalSkill { folder, name, text })
 }
 
+/// Finds the skill folders at `path`, the full path of a folder: the folder itself when it holds a file `SKILL.md`,
+/// otherwise each direct subfolder that holds one, sorted by path. A link and a hidden folder are not read. The errors
+/// are those of `read_local_skill`, and a folder with no skill at all is `skills_local_folder_no_skill: <path>`.
+pub(super) fn find_local_skills(path: &str) -> Result<Vec<PathBuf>, String> {
+    let trimmed = path.trim();
+    let folder = PathBuf::from(trimmed);
+    if folder.is_absolute() == false || folder.file_name().is_none() {
+        return Err(format!("skills_invalid_path: {trimmed}"));
+    }
+    if folder.is_dir() == false {
+        return Err(format!("skills_local_folder_not_found: {trimmed}"));
+    }
+    if folder.join("SKILL.md").is_file() {
+        return read_local_skill(trimmed).map(|skill| vec![skill.folder]);
+    }
+    let entries = std::fs::read_dir(&folder).map_err(|_| format!("skills_local_folder_not_found: {trimmed}"))?;
+    let mut skills: Vec<PathBuf> = Vec::new();
+    for entry in entries.flatten() {
+        let is_folder = entry.file_type().is_ok_and(|file_type| file_type.is_dir());
+        let has_valid_name = entry.file_name().to_str().is_some_and(is_valid_name);
+        if is_folder && has_valid_name && entry.path().join("SKILL.md").is_file() {
+            skills.push(entry.path());
+        }
+    }
+    skills.sort();
+    if skills.is_empty() {
+        return Err(format!("skills_local_folder_no_skill: {trimmed}"));
+    }
+    Ok(skills)
+}
+
 /// Copies the files below `source` into the folder `staging`, with the folders between them. The folder `.git`, the file
 /// `.heidrun_origin.json` at the top, the symbolic links, and the files larger than `max_file_bytes` are not copied. More
 /// than `max_files` files is the error `skills_too_many_files`. The other errors are `skills_install_failed: <details>`.
@@ -117,6 +148,57 @@ mod tests {
         let empty = parent.join("empty");
         std::fs::create_dir_all(&empty).unwrap();
         assert_eq!(read_local_skill(&empty.display().to_string()), Err(format!("skills_local_folder_no_skill_file: {}", empty.display())));
+        let _ = std::fs::remove_dir_all(&parent);
+    }
+
+    #[test]
+    fn finds_the_folder_itself_when_it_holds_a_skill_file() {
+        let parent = temp_folder("local-find-itself");
+        let folder = write_skill_folder(&parent, "pdf", "# pdf");
+        write_skill_folder(&folder, "nested", "# nested");
+        assert_eq!(find_local_skills(&format!("  {}  ", folder.display())), Ok(vec![folder]));
+        let _ = std::fs::remove_dir_all(&parent);
+    }
+
+    #[test]
+    fn finds_every_subfolder_with_a_skill_file_sorted() {
+        let parent = temp_folder("local-find-many");
+        let pdf = write_skill_folder(&parent, "pdf", "# pdf");
+        let docx = write_skill_folder(&parent, "docx", "# docx");
+        write_skill_folder(&parent, ".hidden", "# hidden");
+        write_skill_folder(&parent, "my skill", "# spaces");
+        std::fs::create_dir_all(parent.join("notes")).unwrap();
+        std::fs::write(parent.join("notes/readme.md"), "x").unwrap();
+        std::fs::write(parent.join("a-file"), "x").unwrap();
+        let deeper = parent.join("group");
+        write_skill_folder(&deeper, "inner", "# inner");
+        assert_eq!(find_local_skills(&parent.display().to_string()), Ok(vec![docx, pdf]));
+        let _ = std::fs::remove_dir_all(&parent);
+    }
+
+    #[test]
+    fn does_not_follow_a_link_to_a_skill_folder() {
+        let parent = temp_folder("local-find-link");
+        let elsewhere = temp_folder("local-find-link-target");
+        let target = write_skill_folder(&elsewhere, "pdf", "# pdf");
+        std::os::unix::fs::symlink(&target, parent.join("linked")).unwrap();
+        let kept = write_skill_folder(&parent, "kept", "# kept");
+        assert_eq!(find_local_skills(&parent.display().to_string()), Ok(vec![kept]));
+        let _ = std::fs::remove_dir_all(&parent);
+        let _ = std::fs::remove_dir_all(&elsewhere);
+    }
+
+    #[test]
+    fn says_that_a_folder_has_no_skill_in_it_or_in_its_subfolders() {
+        let parent = temp_folder("local-find-none");
+        std::fs::create_dir_all(parent.join("notes")).unwrap();
+        let path = parent.display().to_string();
+        assert_eq!(find_local_skills(&path), Err(format!("skills_local_folder_no_skill: {path}")));
+        let missing = parent.join("nothing").display().to_string();
+        assert_eq!(find_local_skills(&missing), Err(format!("skills_local_folder_not_found: {missing}")));
+        for bad in ["", "pdf", "./skills", "/"] {
+            assert_eq!(find_local_skills(bad), Err(format!("skills_invalid_path: {bad}")), "{bad}");
+        }
         let _ = std::fs::remove_dir_all(&parent);
     }
 
