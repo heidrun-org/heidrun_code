@@ -6,14 +6,15 @@
 //! branch reaches any more, for example after a rebase, stays in the table.
 
 use crate::git::git_reader::GitReader;
-use crate::model::types::{SynchronizationMode, SynchronizationReport};
+use crate::model::types::{SourceControlStage, SynchronizationMode, SynchronizationReport};
 use crate::storage::database::SourceControlDatabase;
 use crate::OPERATION_PACKAGE;
 use data_layer_operation_log::{record, OperationKind, OperationSpec, Summary};
 use std::collections::HashSet;
 
 /// Reads the commits of a repository, and writes them in the database. `log` receives one line of progress for the number of
-/// commits to read and for the write.
+/// commits to read and for the write. The progress function of `reader` receives the start, the batches, and the end of the
+/// stages `ReadCommits` and `WriteCommits`.
 ///
 /// # Errors
 /// An error when the database cannot be read or written, when `git` cannot be run, or when a commit does not follow its JSON
@@ -42,6 +43,7 @@ fn synchronize(
     reader: &GitReader,
     log: &dyn Fn(&str),
 ) -> Result<SynchronizationReport, String> {
+    reader.send_progress(SourceControlStage::ReadCommits, 0, None, false);
     let reachable_hashes = reader.list_hashes()?;
     let known_hashes = match mode {
         SynchronizationMode::Initialize => HashSet::new(),
@@ -56,8 +58,13 @@ fn synchronize(
         new_hashes.len(),
         known_commit_count
     ));
+    let total_count = Some(new_hashes.len());
+    reader.send_progress(SourceControlStage::ReadCommits, 0, total_count, false);
     let commits = reader.read_commits(&new_hashes)?;
+    reader.send_progress(SourceControlStage::ReadCommits, commits.len(), total_count, true);
+    reader.send_progress(SourceControlStage::WriteCommits, 0, total_count, false);
     database.upsert_commits(repository, &commits)?;
+    reader.send_progress(SourceControlStage::WriteCommits, commits.len(), total_count, true);
     log(&format!("commits: written row count {}, file {}", commits.len(), database.database_path().display()));
     Ok(SynchronizationReport {
         mode,

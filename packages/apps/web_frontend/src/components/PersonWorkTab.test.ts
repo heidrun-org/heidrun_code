@@ -6,7 +6,14 @@ import type { PersonWorkItems } from "../lib/person_work";
 
 const invoke = vi.fn();
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(...args) }));
+/** The channel of Tauri: a test sends a progress report by calling `onmessage` of the channel that the tab gave. */
+const { FakeChannel } = vi.hoisted(() => ({
+  FakeChannel: class<T> {
+    onmessage: (message: T) => void = () => {};
+  },
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(...args), Channel: FakeChannel }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/api/path", () => ({ homeDir: vi.fn(async () => "/home") }));
 vi.mock("@tauri-apps/api/webview", () => ({ getCurrentWebview: () => ({ setZoom: vi.fn(async () => {}) }) }));
@@ -166,6 +173,21 @@ function sampleAiCostAnswer(): AiCostAnswer {
  * by plain references that every test shares, so a tab that stays mounted reads again when the next test changes them.
  */
 const mountedTabs: VueWrapper[] = [];
+
+/** The text and the state of each stage of the update, in order. */
+function stagesOf(wrapper: VueWrapper): [string, string | undefined][] {
+  return wrapper.findAll("[data-stage]").map((stage) => [stage.get('[data-note="stage-text"]').text(), stage.attributes("data-state")]);
+}
+
+/** Gives a function that sends a progress report through the channel of the last call of the command `person_work_synchronize`. */
+function progressChannel(): (stage: string, doneCount: number, totalCount: number | null, isFinished?: boolean) => void {
+  const calls = personWorkCalls();
+  const call = calls[calls.length - 1];
+  const channel = (call?.[1] as { onProgress: InstanceType<typeof FakeChannel<unknown>> }).onProgress;
+  return (stage, doneCount, totalCount, isFinished = false) => {
+    channel.onmessage({ repository: "heidrun-org/heidrun_code", stage, doneCount, totalCount, isFinished });
+  };
+}
 
 /** Mounts the tab with the items that the commands give, or with an error. A promise that never ends keeps a read pending. */
 async function mountPersonWorkTab(
@@ -403,7 +425,7 @@ describe("PersonWorkTab", () => {
   it("synchronizes the repository of the selected workspace, then reads the last 30 days from the stored rows", async () => {
     await mountPersonWorkTab();
     expect(personWorkCalls()).toHaveLength(1);
-    expect(personWorkCalls()[0][1]).toEqual({ folder: "/work/heidrun" });
+    expect(personWorkCalls()[0][1]).toEqual({ folder: "/work/heidrun", onProgress: expect.any(FakeChannel) });
     expect(personWorkQueryCalls()).toHaveLength(1);
     const parameters = personWorkQueryCalls()[0][1] as { repository: string; since: string; until: string };
     expect(parameters.repository).toBe("heidrun-org/heidrun");
@@ -1069,12 +1091,59 @@ describe("PersonWorkTab", () => {
     expect(message.get(".spinner-border").attributes("aria-hidden")).toBe("true");
   });
 
-  it("puts a busy wheel before the message while the commits, the pull requests, and the issues are read", async () => {
+  it("shows a big busy wheel and the six stages, all waiting, while the commits, the pull requests, and the issues are read", async () => {
     const wrapper = await mountPersonWorkTab(new Promise<never>(() => {}));
-    const message = wrapper.get('[role="status"]');
-    expect(message.text()).toBe("Reading the commits, the pull requests, and the issues…");
+    const message = wrapper.get('[data-note="update-stages"]');
+    expect(message.attributes("role")).toBe("status");
     expect(message.element.firstElementChild?.classList.contains("spinner-border")).toBe(true);
+    expect(message.element.firstElementChild?.classList.contains("update-stages-spinner")).toBe(true);
     expect(message.get(".spinner-border").attributes("aria-hidden")).toBe("true");
+    expect(message.text()).toContain("Reading the commits, the pull requests, and the issues…");
+    expect(stagesOf(wrapper)).toEqual([
+      ["Reading the commits of heidrun", "waiting"],
+      ["Writing the commits of heidrun in the SQLite file", "waiting"],
+      ["Reading the issues of heidrun", "waiting"],
+      ["Writing the issues of heidrun in the SQLite file", "waiting"],
+      ["Reading the pull requests of heidrun", "waiting"],
+      ["Writing the pull requests of heidrun in the SQLite file", "waiting"],
+    ]);
+  });
+
+  it("shows the done stages with a check mark, the stage in progress with its progress, and its text under the busy wheel", async () => {
+    const wrapper = await mountPersonWorkTab(new Promise<never>(() => {}));
+    const send = progressChannel();
+    send("readCommits", 0, 1200);
+    send("readCommits", 1200, 1200, true);
+    send("writeCommits", 1200, 1200, true);
+    send("readIssues", 100, 400);
+    await flushPromises();
+    expect(stagesOf(wrapper)).toEqual([
+      ["Reading the commits of heidrun_code", "done"],
+      ["Writing the commits of heidrun_code in the SQLite file", "done"],
+      ["Reading the issues of heidrun_code", "working"],
+      ["Writing the issues of heidrun_code in the SQLite file", "waiting"],
+      ["Reading the pull requests of heidrun_code", "waiting"],
+      ["Writing the pull requests of heidrun_code in the SQLite file", "waiting"],
+    ]);
+    expect(wrapper.findAll('[data-state="done"] .bi-check-circle-fill')).toHaveLength(2);
+    const working = wrapper.get('[data-stage="readIssues"]');
+    expect(working.get('[data-note="count"]').text()).toBe("100 of 400");
+    expect(working.get('[data-note="percent"]').text()).toBe("25 %");
+    expect(working.get(".progress").attributes("aria-valuenow")).toBe("25");
+    expect(working.get(".progress-bar").attributes("style")).toContain("width: 25%");
+    expect(wrapper.get('[data-note="current-stage"]').text()).toBe("Reading the issues of heidrun_code");
+  });
+
+  it("shows a stage in progress with no percent and no progress bar when its total is not known", async () => {
+    const wrapper = await mountPersonWorkTab(new Promise<never>(() => {}));
+    const send = progressChannel();
+    send("readIssues", 100, null);
+    await flushPromises();
+    const working = wrapper.get('[data-stage="readIssues"]');
+    expect(working.attributes("data-state")).toBe("working");
+    expect(working.get('[data-note="count"]').text()).toBe("100 read");
+    expect(working.find('[data-note="percent"]').exists()).toBe(false);
+    expect(working.find(".progress").exists()).toBe(false);
   });
 
   it("shows an error message when the chats cannot be read, and the Git history stays available", async () => {

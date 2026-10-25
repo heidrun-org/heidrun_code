@@ -2,7 +2,7 @@
 //! tags reach, and the facts of each commit. It only talks to a `GitRunner`.
 
 use crate::git::git_runner::GitRunner;
-use crate::model::types::Commit;
+use crate::model::types::{Commit, SourceControlProgress, SourceControlStage};
 use crate::OPERATION_PACKAGE;
 use data_layer_operation_log::{record, OperationKind, OperationSpec, Summary};
 
@@ -29,12 +29,17 @@ const FIELD_COUNT: usize = 10;
 /// Ignores a line of progress. It is the log function when the developer does not ask for the progress.
 pub fn ignore_log(_message: &str) {}
 
+/// Ignores a report of progress. It is the progress function when the caller does not show the progress.
+pub fn ignore_progress(_progress: &SourceControlProgress) {}
+
 /// Reads the hashes and the facts of the commits of a repository.
 pub struct GitReader<'a> {
     /// The runner that runs the command `git`.
     runner: &'a dyn GitRunner,
     /// The function that receives the lines of progress.
     log: &'a dyn Fn(&str),
+    /// The function that receives the reports of progress of the stages.
+    progress: &'a dyn Fn(&SourceControlProgress),
     /// The number of commits that one command `git log` reads.
     batch_size: usize,
 }
@@ -43,7 +48,25 @@ impl<'a> GitReader<'a> {
     /// Creates a reader. `log` receives one line of progress for the list of hashes and for each batch of commits. Give
     /// `&ignore_log` for no progress.
     pub fn new(runner: &'a dyn GitRunner, log: &'a dyn Fn(&str)) -> Self {
-        GitReader { runner, log, batch_size: BATCH_SIZE }
+        GitReader { runner, log, progress: &ignore_progress, batch_size: BATCH_SIZE }
+    }
+
+    /// Gives the reader the function that receives one report of progress at the start of each stage, after each batch of
+    /// commits, and at the end of each stage.
+    pub fn with_progress(mut self, progress: &'a dyn Fn(&SourceControlProgress)) -> Self {
+        self.progress = progress;
+        self
+    }
+
+    /// Sends one report of progress to the progress function of the reader.
+    pub(crate) fn send_progress(
+        &self,
+        stage: SourceControlStage,
+        done_count: usize,
+        total_count: Option<usize>,
+        is_finished: bool,
+    ) {
+        (self.progress)(&SourceControlProgress { stage, done_count, total_count, is_finished });
     }
 
     /// Lists the hashes of every commit that the local branches, the remote branches, and the tags reach.
@@ -105,6 +128,7 @@ impl<'a> GitReader<'a> {
             }
             (self.log)(&format!("git: batch {} of {} read, commit count {}", index + 1, batch_count, batch_commits.len()));
             commits.extend(batch_commits);
+            self.send_progress(SourceControlStage::ReadCommits, commits.len(), Some(hashes.len()), false);
         }
         Ok(commits)
     }

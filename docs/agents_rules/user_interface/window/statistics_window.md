@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: Statistics window
 
 - Created: 15 October 2026
-- Last updated: 23 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: user activity](../../glossary/user_activity.md), [User activity sidebar section](../sidebars/user_activity.md), [layout.md](layout.md), [Tab "User activity"](statistics_user_activity.md), [Tab "Work of one person"](statistics_person_work.md), [Glossary of Heidrun Code: status bar and information card tooltip](../../glossary/status_bar.md), [Data layer access](../../data_layer_access.md)
@@ -23,7 +23,7 @@ This file is a part of the rules of the window of Heidrun Code. The words are de
 - The tab fills the height of the window: the choices are at the top, and the histogram takes the rest of the height, with at least 240 pixels.
 - The window follows the rules of [bootstrap_utility_classes.md](../../web_styling/bootstrap_utility_classes.md). The only local rule is the dark layer behind the window, as in the window "Three.js demo"; selected buttons use the shared definition.
 - The window reads the user activity data again each time that it opens. It does not read it again while it stays open. The tab "Work of one person" reads the Git history when it is shown for the first time. It updates and reads the stored token usage of the AI cost each time that the developer chooses it, and each time that the chosen workspaces change. It imports the history of a workspace that was never imported only when the developer clicks the button "Import the history". The Git history reads again when the developer chooses another workspace ([statistics_person_work_workspace.md](statistics_person_work_workspace.md)). Each tab first calls its synchronize Tauri command, then its read Tauri command, and the Statistics window gets all its data through the packages of the data layer: the rule, the table of the commands, and the check are in [data_layer_access.md](../../data_layer_access.md).
-- While the data is read, the window shows the text "Reading the user activity…" with a busy wheel (the Bootstrap `spinner-border spinner-sm`) before it. The two loading messages of the tab "Work of one person" have the busy wheel too. When the data cannot be read, it shows the error in a Bootstrap alert, and no chart.
+- While the data is read, the window shows the text "Reading the user activity…" with a busy wheel (the Bootstrap `spinner-border spinner-sm`) before it. The loading message of the source "AI cost" has the busy wheel too, and the source "Git history" shows the stages of the update ([statistics_update_stages.md](statistics_update_stages.md)). When the data cannot be read, it shows the error in a Bootstrap alert, and no chart.
 - Every text of the window is in every language, and `pnpm --filter web_frontend check:translations` shows no key of the window as missing.
 
 ## The tab "User activity"

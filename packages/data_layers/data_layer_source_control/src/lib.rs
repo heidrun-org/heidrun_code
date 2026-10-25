@@ -33,15 +33,17 @@ fn default_data_folder(home: &std::path::Path) -> PathBuf {
 #[cfg(test)]
 mod test_samples;
 
-pub use git::git_reader::{ignore_log, GitReader};
+pub use git::git_reader::{ignore_log, ignore_progress, GitReader};
 pub use git::git_runner::{find_repository, parse_repository, GitCommandRunner, GitRunner};
 pub use git::working_copy::{
     find_existing_folders, find_file_existence, find_worktree_branches, FileExistence, WorktreeBranch,
 };
 pub use model::schemas::{validate_commit_value, COMMIT_SCHEMA};
-pub use model::types::{Commit, QueryRow, SynchronizationMode, SynchronizationReport};
+pub use model::types::{
+    Commit, QueryRow, SourceControlProgress, SourceControlStage, SynchronizationMode, SynchronizationReport,
+};
 pub use query::find_commits;
-pub use refresh::refresh_source_control;
+pub use refresh::{refresh_source_control, refresh_source_control_with_progress};
 pub use storage::database::SourceControlDatabase;
 pub use storage::query_formatter::{to_json, to_table, NO_ROW_TEXT};
 pub use synchronization::run as synchronize;

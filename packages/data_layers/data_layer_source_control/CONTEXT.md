@@ -4,9 +4,9 @@
 A Rust library and a command line tool that read every commit of a Git repository, merges included, and write the facts of each one in the table `commits` of a SQLite file. It is the Source control source of the data layer of Heidrun Code. The desktop application uses the library through `refresh_source_control`, `find_commits`, and the status functions of `src/git/working_copy.rs`. The name `data_layer_source_control` is the name of the package and the name of the executable.
 
 ## Key Exports & Entry Points
-- `src/lib.rs`: the only public interface of the library. Its `pub use` lines are the list: `SourceControlDatabase`, `GitReader`, `GitRunner`, `GitCommandRunner`, `synchronize`, `refresh_source_control`, `find_commits`, `find_file_existence`, `find_existing_folders`, `find_worktree_branches`, `find_repository`, `default_database_path`, `COMMIT_SCHEMA`, and the data types.
+- `src/lib.rs`: the only public interface of the library. Its `pub use` lines are the list of the exports.
 - `src/main.rs` and `src/command_line.rs`: the command line, and the executable `data_layer_source_control`.
-- `src/refresh.rs` and `src/query.rs`: `refresh_source_control` copies the commits of a folder. `find_commits` reads the stored commits of a time range, from the SQLite file only.
+- `src/refresh.rs` and `src/query.rs`: `refresh_source_control` copies the commits of a folder, and `refresh_source_control_with_progress` also sends a `SourceControlProgress` for each stage and each batch. `find_commits` reads the stored commits of a time range, from the SQLite file only.
 - `src/git/`: the reading of the commits through a `GitRunner`, and `working_copy.rs`, the live status of files and worktrees — see its own CONTEXT.md.
 - `src/storage/` and `src/model/`: the SQLite file with the text form of the rows of a query, and the data types with the JSON schema check — see their own CONTEXT.md.
 - `src/synchronization.rs`: the two modes, `initialize` and `update`.

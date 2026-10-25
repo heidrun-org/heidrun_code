@@ -5,7 +5,7 @@ Reads the issues and the pull requests of a GitHub repository, one page of 100 i
 
 ## Key Exports & Entry Points
 - `graphql_runner.rs`: the trait `GraphqlRunner`, the runner `GhGraphqlRunner` that runs `gh api graphql`, and `find_repository`.
-- `github_reader.rs`: `GithubReader`, the two GraphQL queries `ISSUES_QUERY` and `PULL_REQUESTS_QUERY`, `ignore_log`, and the conversion of each GraphQL node into an `Issue` or a `PullRequest`.
+- `github_reader.rs`: `GithubReader`, the two GraphQL queries `ISSUES_QUERY` and `PULL_REQUESTS_QUERY`, `ignore_log`, `ignore_progress`, the progress reports of each page (`GithubReader::with_progress`), and the conversion of each GraphQL node into an `Issue` or a `PullRequest`.
 - Command to test this folder: `pnpm --filter data_layer_code_hosting test`
 
 ## Rules
