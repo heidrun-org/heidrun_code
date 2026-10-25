@@ -358,6 +358,28 @@ pub async fn forge_cli(cwd: String, tool: String, args: Vec<String>) -> Result<S
     run_forge(&cwd, &tool, &args, 20).await
 }
 
+/// The time when the exceeded GitHub rate limit resets, in seconds since 1970, or `None` when no limit is exceeded. It
+/// reads `gh api rate_limit`, which GitHub does not count in the rate limit (issue #869).
+#[tauri::command]
+pub async fn forge_rate_limit_reset(cwd: String) -> Result<Option<u64>, String> {
+    let args = ["api", "rate_limit"].map(String::from);
+    let output = run_forge(&cwd, "gh", &args, 20).await?;
+    rate_limit_reset_of(&output)
+}
+
+/// The latest reset time of the GitHub resources that have no request left, in the answer of `gh api rate_limit`.
+pub(crate) fn rate_limit_reset_of(output: &str) -> Result<Option<u64>, String> {
+    let answer: serde_json::Value = serde_json::from_str(output).map_err(|e| e.to_string())?;
+    let Some(resources) = answer.get("resources").and_then(|r| r.as_object()) else {
+        return Err("gh api rate_limit : pas de ressources".into());
+    };
+    Ok(resources
+        .values()
+        .filter(|resource| resource.get("remaining").and_then(|r| r.as_u64()) == Some(0))
+        .filter_map(|resource| resource.get("reset").and_then(|r| r.as_u64()))
+        .max())
+}
+
 /// Merges a MR / PR, after the user confirmed it in the app. `sha` is the head
 /// commit the user saw: if someone pushed since, the forge refuses the merge.
 #[tauri::command]
@@ -424,6 +446,17 @@ pub async fn forge_merge(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gives_the_reset_of_the_exceeded_rate_limit() {
+        let exceeded = r#"{"resources":{"core":{"limit":5000,"remaining":0,"reset":1792933288},
+"graphql":{"limit":5000,"remaining":0,"reset":1792933644},"search":{"limit":30,"remaining":30,"reset":1792933999}}}"#;
+        assert_eq!(rate_limit_reset_of(exceeded), Ok(Some(1792933644)));
+        let fine = r#"{"resources":{"graphql":{"limit":5000,"remaining":3859,"reset":1792933644}}}"#;
+        assert_eq!(rate_limit_reset_of(fine), Ok(None));
+        assert!(rate_limit_reset_of("{}").is_err());
+        assert!(rate_limit_reset_of("not json").is_err());
+    }
 
     #[test]
     fn parses_porcelain_v2() {

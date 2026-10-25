@@ -347,6 +347,38 @@ describe("searchCodeHosting on GitHub", () => {
     expect(codeHosting.status).toBe("ready");
   });
 
+  it("shows the local time of the reset when the GitHub rate limit is exceeded", async () => {
+    const reset = new Date(2026, 9, 25, 14, 7).getTime() / 1000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 25, 13, 58));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_rate_limit_reset") {
+        return reset;
+      }
+      throw "GraphQL: API rate limit already exceeded for user ID 252962.";
+    });
+    await searchCodeHosting("/work/heidrun", "issues", "data");
+    vi.useRealTimers();
+    expect(codeHosting.listError.issues).toBe("GitHub rate limit exceeded. Resets at 02:07 PM.");
+    expect(vi.mocked(invoke).mock.calls).toContainEqual(["forge_rate_limit_reset", { cwd: "/work/heidrun" }]);
+  });
+
+  it("keeps the failure of gh when the rate limit is not exceeded or its reset cannot be read", async () => {
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_rate_limit_reset") {
+        return null;
+      }
+      throw "GraphQL: API rate limit already exceeded for user ID 252962.";
+    });
+    await searchCodeHosting("/work/heidrun", "issues", "data");
+    expect(codeHosting.listError.issues).toBe("GraphQL: API rate limit already exceeded for user ID 252962.");
+    vi.mocked(invoke).mockClear();
+    vi.mocked(invoke).mockRejectedValue("gh: not logged in");
+    await searchCodeHosting("/work/heidrun", "issues", "data");
+    expect(codeHosting.listError.issues).toBe("gh: not logged in");
+    expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).not.toContain("forge_rate_limit_reset");
+  });
+
   it("ignores the answer of an older search of a list that ends after a newer search of the same list", async () => {
     let answerOlder: (text: string) => void = () => {};
     vi.mocked(invoke).mockImplementationOnce(() => new Promise((resolve) => (answerOlder = resolve)));
