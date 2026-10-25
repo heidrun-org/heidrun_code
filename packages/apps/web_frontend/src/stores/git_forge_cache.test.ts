@@ -42,6 +42,14 @@ describe("the pull requests of the Source control sidebar section (issue #870)",
     });
   });
 
+  it("names the Source control sidebar section as the caller, for the application log (issue #879)", async () => {
+    await refreshGit("w1");
+    const callers = vi.mocked(invoke).mock.calls
+      .filter(([command]) => command === "forge_cli_cached")
+      .map(([, payload]) => (payload as { caller: string }).caller);
+    expect(new Set(callers)).toEqual(new Set(["source_control"]));
+  });
+
   it("reads GitHub only through the cache of the answers", async () => {
     await refreshGit("w1");
     const commands = vi.mocked(invoke).mock.calls.map(([command]) => command);

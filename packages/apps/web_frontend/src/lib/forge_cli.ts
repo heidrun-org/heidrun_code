@@ -2,11 +2,20 @@
 // GitLab: `gh` or `glab` through the Tauri command `forge_cli_cached`, which keeps each answer on the disk. Each call to
 // GitHub takes points of the GitHub rate limit, which every project and every coding agent of the account share, so no
 // read goes around the cache.
+// Each call writes one line in the application log, `application_log.jsonl`, with the part of the application that asked.
 // - issue #870
+// - issue #879
 import { invoke } from "@tauri-apps/api/core";
 
 /** The command line tool of a hosting service: `gh` for GitHub, `glab` for GitLab. */
 export type ForgeTool = "gh" | "glab";
+
+/**
+ * The part of the application that asks, written in the application log: the lists of the Code hosting sidebar section,
+ * the card of an issue or of a pull request, the issue preview window, or the pull requests of the Source control sidebar
+ * section.
+ */
+export type ForgeCaller = "code_hosting_list" | "reference_card" | "issue_preview" | "source_control";
 
 /** How a call uses the answer that the cache keeps. */
 export type ForgeCliOptions = {
@@ -18,6 +27,7 @@ export type ForgeCliOptions = {
 
 /**
  * Runs a read-only `gh` or `glab` call in a folder of the repository, through the cache of the answers.
+ * @param caller - the part of the application that asks, for the application log
  * @param folder - the folder of the repository, where the tool runs
  * @param tool - the command line tool of the hosting service
  * @param args - the arguments of the tool
@@ -25,6 +35,7 @@ export type ForgeCliOptions = {
  * @returns what the tool printed, or the kept answer
  */
 export function runForgeCli(
+  caller: ForgeCaller,
   folder: string,
   tool: ForgeTool,
   args: string[],
@@ -36,5 +47,6 @@ export function runForgeCli(
     args,
     refresh: options.isRefresh === true,
     keepUntilRefresh: options.isKeptUntilRefresh === true,
+    caller,
   });
 }

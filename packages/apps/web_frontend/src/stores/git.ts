@@ -179,7 +179,7 @@ function loadShellBranches() {
  * @returns the reader
  */
 function forgeReader(isRefresh: boolean): (cwd: string, tool: ForgeTool, args: string[]) => Promise<string> {
-  return (cwd, tool, args) => runForgeCli(cwd, tool, args, { isRefresh });
+  return (cwd, tool, args) => runForgeCli("source_control", cwd, tool, args, { isRefresh });
 }
 
 // GitLab "detailed_merge_status" → what it means for you (translation key of the label, level).

@@ -162,6 +162,7 @@ describe("loadChatReferenceDetails", () => {
       args: ["api", "projects/:fullpath/issues/250"],
       refresh: false,
       keepUntilRefresh: false,
+      caller: "reference_card",
     });
     expect(issue).toMatchObject({ rawState: "open", body: "Text", labels: [{ name: "bug", color: null }], author: "jerome" });
     await loadChatReferenceDetails("/work/app", "gitlab", PULL_REQUEST);
