@@ -89,7 +89,10 @@ export class GenerateChangeLog {
 			section = ChangeLogRenderer.renderMechanicalSection(sectionInput);
 		}
 		const changeLogPath = Path.join(options.repositoryPath, GenerateChangeLog.changeLogFileName);
-		const existingText = Fs.existsSync(changeLogPath) ? Fs.readFileSync(changeLogPath, 'utf8') : null;
+		let existingText = Fs.existsSync(changeLogPath) ? Fs.readFileSync(changeLogPath, 'utf8') : null;
+		if (GenerateChangeLog._isLastRelease(options.repositoryPath, range) === true) {
+			existingText = ChangeLogRenderer.removeUnreleasedSection(existingText);
+		}
 		Fs.writeFileSync(changeLogPath, ChangeLogRenderer.insertSection(existingText, section));
 		return section;
 	}
@@ -136,6 +139,21 @@ export class GenerateChangeLog {
 			fromTag: options.fromTag,
 			toTag,
 		};
+	}
+
+	/**
+	 * Tells whether a range ends at the last release: the tag with the highest version number among the tags that the
+	 * current commit contains. The pull requests of the old section `Unreleased` then belong to this release.
+	 * @param repositoryPath The root folder of the Git repository.
+	 * @param range The range of the new section.
+	 * @returns True when the range ends at a release and this release is the last release. False when the range ends
+	 * at the current commit, or at an older release.
+	 */
+	private static _isLastRelease(repositoryPath: string, range: ChangeLogRange): boolean {
+		if (range.toTag === null) {
+			return false;
+		}
+		return ChangeLogGit.findLastTag(repositoryPath, 'HEAD') === range.toTag;
 	}
 
 	/**

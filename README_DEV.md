@@ -186,7 +186,7 @@ To choose another range, use the options `--from` and `--to`:
 | `pnpm release:change_log --from start --to v0.2.0` | the start of the history → `v0.2.0` | `## [0.2.0] - <date>` |
 | `pnpm release:change_log --from v0.2.0 --to v0.3.0` | `v0.2.0` → `v0.3.0` | `## [0.3.0] - <date>` |
 
-The date of a release is the date of the commit of its tag. The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The command puts the new section at its place. If the file already has a section with the same version, the command replaces it, so you can run the command again. The other sections never change.
+The date of a release is the date of the commit of its tag. The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The command puts the new section at its place. If the file already has a section with the same version, the command replaces it, so you can run the command again. When the new section is a release and this release is the last release, the command also removes the section `Unreleased`, because its pull requests now belong to this release. The other sections never change.
 
 Without `--ai`, the section is a plain list of the merged pull requests, with the title and the link of each one. The command does not choose a category.
 

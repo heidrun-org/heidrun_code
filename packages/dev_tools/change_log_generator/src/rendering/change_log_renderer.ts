@@ -183,6 +183,35 @@ export class ChangeLogRenderer {
 		].join('\n');
 	}
 
+	/**
+	 * Removes the section `Unreleased` from the text of the file `CHANGELOG.md`: its heading line and all its lines,
+	 * up to the next section. The other sections stay exactly as they are. The caller uses it when a release becomes
+	 * the last release, because the pull requests of the section `Unreleased` now belong to this release.
+	 * @param existingText The text of the file `CHANGELOG.md`, or null when the file does not exist.
+	 * @returns The text without the section `Unreleased`, the same text when the file has no such section, or null
+	 * when `existingText` is null.
+	 */
+	static removeUnreleasedSection(existingText: string | null): string | null {
+		if (existingText === null) {
+			return null;
+		}
+		const lines = existingText.split('\n');
+		const startIndex = lines.findIndex((line) => {
+			return line.startsWith('## ') && ChangeLogRenderer._readSectionName(line) === UNRELEASED_NAME;
+		});
+		if (startIndex === -1) {
+			return existingText;
+		}
+		let endIndex = startIndex + 1;
+		while (endIndex < lines.length && lines[endIndex].startsWith('## ') === false) {
+			endIndex += 1;
+		}
+		return [
+			...lines.slice(0, startIndex),
+			...lines.slice(endIndex),
+		].join('\n');
+	}
+
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 	//	Helpers

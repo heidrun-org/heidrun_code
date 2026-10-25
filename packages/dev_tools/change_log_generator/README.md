@@ -38,7 +38,7 @@ How the command works:
 - A release is a Git tag. The last release is the tag with the highest version number among the tags that the current commit contains.
 - A pull request is a commit whose first line starts with `Merge pull request #`.
 - The heading of the section is `## [Unreleased]` when the range ends at the current commit. Otherwise it is `## [<version>] - <date>`, where the version is the name of the tag without the first letter `v`, and the date is the date of the commit of the tag.
-- The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The command puts the new section at its place. It replaces a section with the same version, so you can run it again. It never changes another section.
+- The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The command puts the new section at its place. It replaces a section with the same version, so you can run it again. When the section is a release and this release is the last release, the command also removes the section `Unreleased`, because its pull requests now belong to this release. Run the command again without `--to` to write a new section `Unreleased`. The command never changes another section.
 - The command prints the new section on the standard output. It exits with code 1 and prints an error message when a tag does not exist, or when a coding agent fails.
 
 Read the new section before you commit it: a coding agent can make a mistake.

@@ -8,6 +8,7 @@ Runs the whole generation: resolves the range, reads the pull requests, writes t
 
 ## Rules
 - This folder uses `git/` to read, and `rendering/` to write the texts.
+- The section `Unreleased` is removed only when the range ends at the last release: the tag with the highest version among the tags that the current commit contains ([issue #367](https://github.com/heidrun-org/heidrun_code/issues/367)).
 - Only this folder runs the executable of the package `coding_agent_cli`, with `cargo run`, and only when the option `--ai` is used.
 - Nothing here imports from `src/cli.ts`.
 

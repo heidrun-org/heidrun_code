@@ -226,6 +226,52 @@ describe('GenerateChangeLog', () => {
 			]);
 		});
 
+		it('removes the section Unreleased when the section of the last release is written', async () => {
+			const repositoryPath = TestRepository.createWithThreeReleases();
+			const run = async (toTag: string | undefined): Promise<void> => {
+				await GenerateChangeLog.run({
+					repositoryPath,
+					isAi: false,
+					agentName: undefined,
+					toTag,
+				});
+			};
+			await run('v1.1.0');
+			await run(undefined);
+			await run('v2.0.0');
+			const text = Fs.readFileSync(Path.join(repositoryPath, 'CHANGELOG.md'), 'utf8');
+			const headings = text.split('\n').filter((line) => {
+				return line.startsWith('## ');
+			});
+			expect(headings).toEqual([
+				'## [2.0.0] - 2026-03-30',
+				'## [1.1.0] - 2026-02-20',
+			]);
+			expect(text).not.toContain('Do five');
+		});
+
+		it('keeps the section Unreleased when the section of an older release is written', async () => {
+			const repositoryPath = TestRepository.createWithThreeReleases();
+			const run = async (toTag: string | undefined): Promise<void> => {
+				await GenerateChangeLog.run({
+					repositoryPath,
+					isAi: false,
+					agentName: undefined,
+					toTag,
+				});
+			};
+			await run(undefined);
+			await run('v1.1.0');
+			const text = Fs.readFileSync(Path.join(repositoryPath, 'CHANGELOG.md'), 'utf8');
+			const headings = text.split('\n').filter((line) => {
+				return line.startsWith('## ');
+			});
+			expect(headings).toEqual([
+				'## [Unreleased]',
+				'## [1.1.0] - 2026-02-20',
+			]);
+		});
+
 		it('asks the coding agent for the heading of the release, and writes this heading', async () => {
 			const repositoryPath = TestRepository.createWithThreeReleases();
 			let receivedPrompt = '';

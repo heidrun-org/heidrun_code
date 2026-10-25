@@ -160,6 +160,33 @@ describe('ChangeLogRenderer', () => {
 		});
 	});
 
+	describe('removeUnreleasedSection', () => {
+		it('removes the section Unreleased between the header and the releases', () => {
+			const existing = `${HEADER}${SECTION_UNRELEASED}${SECTION_1_0_0}${SECTION_0_9_0}`;
+			expect(ChangeLogRenderer.removeUnreleasedSection(existing)).toBe(`${HEADER}${SECTION_1_0_0}${SECTION_0_9_0}`);
+		});
+
+		it('removes the lines below the heading, including the subsections', () => {
+			const unreleased = '## [Unreleased]\n\n### Added\n\n- A new thing.\n\n### Fixed\n\n- A fix.\n\n';
+			const existing = `${HEADER}${unreleased}${SECTION_1_0_0}`;
+			expect(ChangeLogRenderer.removeUnreleasedSection(existing)).toBe(`${HEADER}${SECTION_1_0_0}`);
+		});
+
+		it('removes a section Unreleased that is the last section of the file', () => {
+			const existing = `${HEADER}${SECTION_1_0_0}${SECTION_UNRELEASED}`;
+			expect(ChangeLogRenderer.removeUnreleasedSection(existing)).toBe(`${HEADER}${SECTION_1_0_0.trimEnd()}\n`);
+		});
+
+		it('gives the same text when the file has no section Unreleased', () => {
+			const existing = `${HEADER}${SECTION_1_0_0}${SECTION_0_9_0}`;
+			expect(ChangeLogRenderer.removeUnreleasedSection(existing)).toBe(existing);
+		});
+
+		it('gives null when the file does not exist', () => {
+			expect(ChangeLogRenderer.removeUnreleasedSection(null)).toBeNull();
+		});
+	});
+
 	describe('insertSection', () => {
 		const unreleased = '## [Unreleased]\n\n- A new thing.';
 		const release = '## [1.1.0] - 2026-02-20\n\n- A release thing.';
