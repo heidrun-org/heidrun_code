@@ -1,11 +1,11 @@
 # User interface of Heidrun Code: pane focus history
 
 - Created: 13 October 2026
-- Last updated: 23 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Glossary of Heidrun Code: pane focus history](../../glossary/pane_focus_history.md), [Panes](panes.md), [Layout of the window](../window/layout.md)
-- Related issue: [issue 380](https://github.com/heidrun-org/heidrun/issues/380), [issue 690](https://github.com/heidrun-org/heidrun/issues/690)
+- Related issue: [issue 380](https://github.com/heidrun-org/heidrun/issues/380), [issue 690](https://github.com/heidrun-org/heidrun/issues/690), [issue 862](https://github.com/heidrun-org/heidrun_code/issues/862)
 
 This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md) and in [glossary/pane_focus_history.md](../../glossary/pane_focus_history.md).
 
@@ -18,6 +18,7 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 - A new focus after a move back removes the entries after the current entry, as a web browser does.
 - The history keeps at most 50 entries. The oldest entry goes first.
 - A pane that the developer closes leaves the history: all its entries are removed. Two entries of the same pane that become neighbours become one entry. When the current entry goes, the current entry becomes the nearest entry before it.
+- The history also tells where the focus goes when the developer closes the selected tab: the pane that had the focus most recently in another tab of the same workspace. The search starts at the current entry and goes back to the first entry, then goes on from the entry after the current entry. It skips every entry of a pane that is not in the workspace any more, so it skips every pane of the closed tab. The rule of the tab is in [tabs.md](tabs.md) ([issue 862](https://github.com/heidrun-org/heidrun_code/issues/862)).
 
 ## The Back button and the Forward button
 
@@ -34,5 +35,6 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 ## Files
 
 - The pure rules of the history are in `packages/apps/web_frontend/src/lib/pane_focus_history.ts`.
+- The one history object of the window is in `packages/apps/web_frontend/src/stores/pane_focus_history_state.ts`. It imports nothing from the session store, so that the session store can read it when a tab closes.
 - The record of the focus and the moves are in `packages/apps/web_frontend/src/stores/pane_focus_history.ts`.
 - The two buttons and the list are in `packages/apps/web_frontend/src/components/PaneFocusHistoryButton.vue`. The top bar, `TopBar.vue`, shows them.

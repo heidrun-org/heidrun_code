@@ -11,6 +11,7 @@ import { DetectionFamilies } from "../lib/detection_families";
 import { findChoices, findQuestion, type ChoiceMenu } from "../lib/refs";
 import { allowCommand } from "./guards";
 import { ZenMode } from "./zen_mode";
+import { paneFocusHistory } from "./pane_focus_history_state";
 import { t } from "../i18n/index";
 import type {
   AgentInfo,
@@ -916,6 +917,30 @@ function applySnapshot(snap: SessionSnapshot) {
   }
 }
 
+/**
+ * Finds the pane to select when the selected tab does not exist any more, because the developer closed it. It is the
+ * pane that had the focus most recently in the pane focus history, among the panes of the selected workspace. The panes
+ * of the closed tab are not in the snapshot, so the search skips all their entries.
+ * @param snap - the snapshot that Herdr just sent
+ * @returns the pane to select, or `null` when the selected tab still exists or the history has no such pane
+ */
+function findPaneAfterTabClose(snap: SessionSnapshot): PaneInfo | null {
+  const closedTabId = state.selectedTabId;
+  if (closedTabId === null || snap.tabs.some((tab) => tab.tab_id === closedTabId)) {
+    return null;
+  }
+  const workspacePanes = new Map(
+    snap.panes
+      .filter((pane) => pane.workspace_id === state.selectedWorkspaceId)
+      .map((pane) => [pane.pane_id, pane] as const),
+  );
+  const paneId = paneFocusHistory.findMostRecentPaneId((candidateId) => workspacePanes.has(candidateId));
+  if (paneId === null) {
+    return null;
+  }
+  return workspacePanes.get(paneId) ?? null;
+}
+
 function fixSelection(snap: SessionSnapshot) {
   ZenMode.exitIfPaneIsMissing(snap.panes.map((pane) => pane.pane_id));
   const ws = snap.workspaces;
@@ -933,7 +958,13 @@ function fixSelection(snap: SessionSnapshot) {
   const wsInfo = ws.find((w) => w.workspace_id === state.selectedWorkspaceId);
   const wsTabs = snap.tabs.filter((t) => t.workspace_id === state.selectedWorkspaceId);
   if (!wsTabs.some((t) => t.tab_id === state.selectedTabId)) {
-    state.selectedTabId = wsInfo?.active_tab_id ?? wsTabs[0]?.tab_id ?? null;
+    const paneAfterTabClose = findPaneAfterTabClose(snap);
+    if (paneAfterTabClose !== null) {
+      state.selectedTabId = paneAfterTabClose.tab_id;
+      state.selectedPaneId = paneAfterTabClose.pane_id;
+    } else {
+      state.selectedTabId = wsInfo?.active_tab_id ?? wsTabs[0]?.tab_id ?? null;
+    }
   }
   const panes = snap.panes.filter((p) => p.tab_id === state.selectedTabId);
   if (!panes.some((p) => p.pane_id === state.selectedPaneId)) {
