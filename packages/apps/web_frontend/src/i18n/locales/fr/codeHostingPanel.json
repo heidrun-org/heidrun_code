@@ -35,6 +35,7 @@
   "savedCard.levelUser": "Utilisateur : la recherche enregistrée apparaît dans chaque espace de travail.",
   "savedCard.levelWorkspace": "Espace de travail {name} : la recherche enregistrée apparaît seulement dans cet espace de travail.",
   "gitlabCannot": "GitLab ne sait pas faire cette recherche : {word}",
+  "rateLimit": "Limite de requêtes GitHub dépassée. Remise à zéro à {time}.",
   "emptySearch.issues": "Aucune issue ne correspond à la recherche.",
   "emptySearch.pullRequests": "Aucune pull request ne correspond à la recherche.",
   "emptySearch.mergeRequests": "Aucune merge request ne correspond à la recherche.",
