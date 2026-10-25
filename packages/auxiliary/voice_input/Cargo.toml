@@ -25,13 +25,3 @@ serde = { version = "1", features = ["derive"] }
 [dev-dependencies]
 # The fake server of the download tests
 tokio = { version = "1", features = ["fs", "io-util", "net", "rt", "macros", "time", "sync"] }
-
-# The C++ engine of Whisper runs at full speed in a development build too: a debug build of it is about 30 times slower
-[profile.dev.package.whisper-rs-sys]
-opt-level = 3
-
-[profile.dev.package.whisper-rs]
-opt-level = 3
-
-[profile.dev.package.voice_input]
-opt-level = 3

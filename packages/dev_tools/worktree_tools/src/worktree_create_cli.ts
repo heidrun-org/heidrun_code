@@ -40,22 +40,30 @@ export class WorktreeCreateCli {
 				'The commit, the branch, or the tag where the new branch starts. (default: the current commit of the '
 					+ 'main checkout)',
 			)
+			.option(
+				'--without-optimization',
+				'Do not clone the compiled files and the built mobile website of the main checkout, and do not copy '
+					+ 'their dates. The first pnpm dev then compiles everything, which is slow. Use it to check whether '
+					+ 'a problem comes from these optimizations.',
+			)
 			.addHelpText(
 				'after',
 				`
 Examples:
   $ pnpm worktree:create remove-docs-issues-35
   $ pnpm worktree:create remove-docs-issues-35 --base dev_jerome
+  $ pnpm worktree:create remove-docs-issues-35 --without-optimization
 `,
 			)
 			.parse(argv);
-		const options = program.opts<{ base?: string }>();
+		const options = program.opts<{ base?: string; withoutOptimization?: boolean }>();
 		const name = program.args[0] as string;
 		try {
 			const result = WorktreeCreate.run({
 				workingDirectory: process.cwd(),
 				name,
 				baseRef: options.base,
+				isWithoutOptimization: options.withoutOptimization === true,
 			});
 			process.stdout.write(
 				`Created the worktree ${result.worktreePath} on the new branch ${result.branchName}.\n`,
@@ -64,6 +72,10 @@ Examples:
 			if (result.isTargetCloned === true) {
 				process.stdout.write(
 					'Cloned target/debug and target/release/bundled_commands from the main checkout into the worktree.\n',
+				);
+				process.stdout.write(
+					`Gave ${result.sourceDates.fileCount} unchanged files and ${result.sourceDates.folderCount} unchanged `
+						+ 'folders the dates of the main checkout.\n',
 				);
 			} else {
 				process.stdout.write(`The compiled files were not cloned. ${result.skipReason}\n`);

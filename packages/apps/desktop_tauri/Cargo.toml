@@ -57,24 +57,3 @@ dotenvy = "0.15"
 [dev-dependencies]
 # The tests write a compressed file of Codex, as Codex does for its old chat sessions
 zstd = "0.14"
-
-# The first read of the chat files, for the AI cost, decompresses and scans gigabytes of text. The code that does it runs at
-# full speed in a development build too: it takes about 15 seconds instead of about 3 minutes.
-[profile.dev.package.zstd-sys]
-opt-level = 3
-
-[profile.dev.package.data_layer_coding_agents]
-opt-level = 3
-
-[profile.dev.package.serde_json]
-opt-level = 3
-
-# The C++ engine of Whisper runs at full speed in a development build too: a debug build of it is about 30 times slower
-[profile.dev.package.whisper-rs-sys]
-opt-level = 3
-
-[profile.dev.package.whisper-rs]
-opt-level = 3
-
-[profile.dev.package.voice_input]
-opt-level = 3

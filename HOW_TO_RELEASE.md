@@ -46,7 +46,7 @@ git grep -l '^version = "<previous version>"' -- '*Cargo.toml'
 
 Set the new version in every file that the two commands print. Do not change a package that the commands do not print: a package can keep its own version, as `packages/dev_tools/agents_rules_checker` and `packages/dev_tools/data_layer_boundary_checker` keep `0.2.0`.
 
-The files `Cargo.lock` hold the version of their own package. Update them without a build, then commit them:
+The file `Cargo.lock` at the root holds the versions of the packages of the Cargo workspace, and each experiment keeps its own `Cargo.lock`. Update them without a build, then commit them:
 
 ```bash
 for lockFile in $(git ls-files '*Cargo.lock' ':!tmp'); do (cd "$(dirname "$lockFile")" && cargo update --workspace --offline); done

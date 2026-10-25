@@ -27,6 +27,15 @@ export class TargetPaths {
 	static readonly bundledCommandFileNames = ['heidrun_code_ctrl', 'heidrun_code_data'] as const;
 
 	/**
+	 * Gives the path of the folder of the package that owns the Cargo target folder: the folder where `cargo build` runs.
+	 * @param checkoutPath The absolute path of the root of the main checkout or of a worktree.
+	 * @returns The absolute path of the package folder, the parent of the Cargo target folder.
+	 */
+	static packagePath(checkoutPath: string): string {
+		return Path.dirname(TargetPaths.targetPath(checkoutPath));
+	}
+
+	/**
 	 * Gives the path of the Cargo target folder of a checkout.
 	 * @param checkoutPath The absolute path of the root of the main checkout or of a worktree.
 	 * @returns The absolute path of the Cargo target folder.

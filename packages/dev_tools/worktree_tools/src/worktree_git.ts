@@ -1,4 +1,6 @@
 import ChildProcess from 'node:child_process';
+import Fs from 'node:fs';
+import Path from 'node:path';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -41,6 +43,40 @@ export class WorktreeGit {
 			throw new Error(`No Git checkout found from the folder: ${workingDirectory}`);
 		}
 		return mainCheckoutPath;
+	}
+
+	/**
+	 * Finds the checkout that holds a folder: the main checkout or one of the worktrees. A worktree is inside the main
+	 * checkout, so the longest checkout path that holds the folder wins.
+	 * @param workingDirectory A folder inside the main checkout or inside a worktree.
+	 * @returns The absolute path of the checkout that holds the folder.
+	 * @throws An error when the folder is not inside a Git checkout of the repository.
+	 */
+	static findCheckoutPath(workingDirectory: string): string {
+		const realWorkingDirectory = Fs.realpathSync(workingDirectory);
+		const matchingCheckoutPaths = WorktreeGit.listCheckoutPaths(workingDirectory).filter((checkoutPath) => {
+			const checkoutPrefix = `${checkoutPath}${Path.sep}`;
+			return realWorkingDirectory === checkoutPath || realWorkingDirectory.startsWith(checkoutPrefix);
+		});
+		const checkoutPath = matchingCheckoutPaths.sort((first, second) => {
+			return second.length - first.length;
+		})[0];
+		if (checkoutPath === undefined) {
+			throw new Error(`The folder ${workingDirectory} is in no checkout of the repository.`);
+		}
+		return checkoutPath;
+	}
+
+	/**
+	 * Lists the files that Git tracks in a checkout.
+	 * @param checkoutPath The absolute path of the root of the checkout.
+	 * @returns The paths of the files, relative to the root of the checkout.
+	 * @throws An error when `git ls-files` fails.
+	 */
+	static listTrackedFiles(checkoutPath: string): string[] {
+		return WorktreeGit._git(checkoutPath, ['ls-files', '-z']).split('\0').filter((relativePath) => {
+			return relativePath !== '';
+		});
 	}
 
 	/**

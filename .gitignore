@@ -3,6 +3,7 @@ node_modules
 
 # Built output
 dist
+dist_staging
 
 # Compiled Rust files of the desktop application
 packages/apps/desktop_tauri/target

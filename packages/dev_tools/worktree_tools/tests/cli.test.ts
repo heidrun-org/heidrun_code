@@ -3,6 +3,9 @@ import Fs from 'node:fs';
 import Path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { TargetPaths } from '../src/target_paths.ts';
+import { BundledCommandsStamp } from '../src/bundled_commands_stamp.ts';
+import { SampleCargoProject } from './sample_cargo_project.ts';
+import { SampleToolPackages } from './sample_tool_packages.ts';
 import { TestRepository } from './test_repository.ts';
 
 const __dirname = import.meta.dirname;
@@ -98,6 +101,15 @@ describe('worktree_create_cli', () => {
 		expect(result.stdout).not.toContain('Installed the packages');
 	});
 
+	it('clones nothing with the option --without-optimization, and says why', () => {
+		const mainCheckoutPath = TestRepository.createWithBuiltTarget();
+		const result = CliRunner.run('worktree_create_cli.ts', mainCheckoutPath, ['plain', '--without-optimization']);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('--without-optimization');
+		const worktreePath = Path.join(mainCheckoutPath, '.claude', 'worktrees', 'plain');
+		expect(Fs.existsSync(TargetPaths.debugPath(worktreePath))).toBe(false);
+	});
+
 	it('says that it did not clone when the main checkout is not built', () => {
 		const mainCheckoutPath = TestRepository.create();
 		const result = CliRunner.run('worktree_create_cli.ts', mainCheckoutPath, ['no-build']);
@@ -156,5 +168,148 @@ describe('target_clean_cli', () => {
 		const result = CliRunner.run('target_clean_cli.ts', mainCheckoutPath, ['--days', 'many']);
 		expect(result.exitCode).not.toBe(0);
 		expect(result.stderr).toContain('Give a whole number of days');
+	});
+});
+
+describe('target_prune_cli', () => {
+	afterEach(() => {
+		TestRepository.removeAll();
+	});
+
+	it('only lists the obsolete files without the option --yes', () => {
+		const mainCheckoutPath = TestRepository.create();
+		const oldFolderNames = SampleCargoProject.buildThenChangeVersion(mainCheckoutPath);
+		const result = CliRunner.run('target_prune_cli.ts', mainCheckoutPath, []);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('Running "cargo build" and "cargo test --no-run"');
+		expect(result.stdout).toContain('debug/deps:');
+		expect(result.stdout).toContain('Nothing was deleted');
+		const fingerprintPath = Path.join(TargetPaths.debugPath(mainCheckoutPath), '.fingerprint');
+		for (const oldFolderName of oldFolderNames) {
+			expect(Fs.existsSync(Path.join(fingerprintPath, oldFolderName))).toBe(true);
+		}
+	});
+
+	it('deletes the obsolete files with the option --yes, and the next builds compile nothing', () => {
+		const mainCheckoutPath = TestRepository.create();
+		const oldFolderNames = SampleCargoProject.buildThenChangeVersion(mainCheckoutPath);
+		const result = CliRunner.run('target_prune_cli.ts', mainCheckoutPath, ['--yes']);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('Deleted');
+		const fingerprintPath = Path.join(TargetPaths.debugPath(mainCheckoutPath), '.fingerprint');
+		for (const oldFolderName of oldFolderNames) {
+			expect(Fs.existsSync(Path.join(fingerprintPath, oldFolderName))).toBe(false);
+		}
+		for (const cargoArguments of [['build'], ['test', '--no-run']]) {
+			const cargoResult = SampleCargoProject.run(mainCheckoutPath, cargoArguments);
+			expect(cargoResult.exitCode).toBe(0);
+			expect(cargoResult.stderr).not.toContain('Compiling');
+		}
+	});
+
+	it('finds nothing to delete in a folder that is already clean', () => {
+		const mainCheckoutPath = TestRepository.create();
+		SampleCargoProject.buildThenChangeVersion(mainCheckoutPath);
+		CliRunner.run('target_prune_cli.ts', mainCheckoutPath, ['--yes']);
+		const result = CliRunner.run('target_prune_cli.ts', mainCheckoutPath, ['--yes']);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('0 obsolete files in 0 entries');
+		expect(result.stdout).not.toContain('Deleted');
+	});
+
+	it('works on the worktree that holds the current folder, and not on the main checkout', () => {
+		const mainCheckoutPath = TestRepository.create();
+		const worktreePath = TestRepository.addWorktree(mainCheckoutPath, 'feature');
+		const oldFolderNames = SampleCargoProject.buildThenChangeVersion(worktreePath);
+		const result = CliRunner.run('target_prune_cli.ts', TargetPaths.packagePath(worktreePath), ['--yes']);
+		expect(result.exitCode).toBe(0);
+		const fingerprintPath = Path.join(TargetPaths.debugPath(worktreePath), '.fingerprint');
+		for (const oldFolderName of oldFolderNames) {
+			expect(Fs.existsSync(Path.join(fingerprintPath, oldFolderName))).toBe(false);
+		}
+		expect(Fs.existsSync(TargetPaths.targetPath(mainCheckoutPath))).toBe(false);
+	});
+
+	it('prints the error of Cargo, deletes nothing, and exits with code 1 when the build fails', () => {
+		const mainCheckoutPath = TestRepository.create();
+		const oldFolderNames = SampleCargoProject.buildThenChangeVersion(mainCheckoutPath);
+		Fs.writeFileSync(Path.join(TargetPaths.packagePath(mainCheckoutPath), 'src', 'lib.rs'), 'this is not Rust');
+		const result = CliRunner.run('target_prune_cli.ts', mainCheckoutPath, ['--yes']);
+		expect(result.exitCode).toBe(1);
+		expect(result.stderr).toContain('"cargo build" failed');
+		expect(result.stdout).not.toContain('Deleted');
+		const fingerprintPath = Path.join(TargetPaths.debugPath(mainCheckoutPath), '.fingerprint');
+		for (const oldFolderName of oldFolderNames) {
+			expect(Fs.existsSync(Path.join(fingerprintPath, oldFolderName))).toBe(true);
+		}
+	});
+});
+
+describe('bundled_commands_build_cli', () => {
+	afterEach(() => {
+		TestRepository.removeAll();
+	});
+
+	it('builds the tools and writes the stamp when there is no stamp', () => {
+		const checkoutPath = TestRepository.create();
+		SampleToolPackages.write(checkoutPath);
+		SampleToolPackages.writeBuildScript(checkoutPath, false);
+		const result = CliRunner.run('bundled_commands_build_cli.ts', checkoutPath, []);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('Built the bundled command line tools');
+		expect(SampleToolPackages.countBuildRuns(checkoutPath)).toBe(1);
+		const stampPath = Path.join(TargetPaths.bundledCommandsPath(checkoutPath), BundledCommandsStamp.stampFileName);
+		expect(Fs.readFileSync(stampPath, 'utf8').trim()).toBe(BundledCommandsStamp.computeFingerprint(checkoutPath));
+	});
+
+	it('builds nothing the second time when the sources did not change', () => {
+		const checkoutPath = TestRepository.create();
+		SampleToolPackages.write(checkoutPath);
+		SampleToolPackages.writeBuildScript(checkoutPath, false);
+		CliRunner.run('bundled_commands_build_cli.ts', checkoutPath, []);
+		const result = CliRunner.run('bundled_commands_build_cli.ts', checkoutPath, []);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('up to date. Nothing to build');
+		expect(SampleToolPackages.countBuildRuns(checkoutPath)).toBe(1);
+	});
+
+	it('builds again when a source of a tool changed, or with the option --force', () => {
+		const checkoutPath = TestRepository.create();
+		SampleToolPackages.write(checkoutPath);
+		SampleToolPackages.writeBuildScript(checkoutPath, false);
+		CliRunner.run('bundled_commands_build_cli.ts', checkoutPath, []);
+		Fs.appendFileSync(Path.join(checkoutPath, SampleToolPackages.dependencyRelativePath, 'src', 'lib.rs'), '// x\n');
+		CliRunner.run('bundled_commands_build_cli.ts', checkoutPath, []);
+		expect(SampleToolPackages.countBuildRuns(checkoutPath)).toBe(2);
+		CliRunner.run('bundled_commands_build_cli.ts', checkoutPath, ['--force']);
+		expect(SampleToolPackages.countBuildRuns(checkoutPath)).toBe(3);
+	});
+
+	it('exits with code 1 and writes no stamp when the build script fails', () => {
+		const checkoutPath = TestRepository.create();
+		SampleToolPackages.write(checkoutPath);
+		SampleToolPackages.writeBuildScript(checkoutPath, true);
+		const result = CliRunner.run('bundled_commands_build_cli.ts', checkoutPath, []);
+		expect(result.exitCode).toBe(1);
+		expect(result.stderr).toContain('The build script failed with the exit code 3');
+		const stampPath = Path.join(TargetPaths.bundledCommandsPath(checkoutPath), BundledCommandsStamp.stampFileName);
+		expect(Fs.existsSync(stampPath)).toBe(false);
+	});
+
+	it('builds nothing in a worktree that has the tools and the stamp of the main checkout', () => {
+		const mainCheckoutPath = TestRepository.create();
+		SampleToolPackages.write(mainCheckoutPath);
+		SampleToolPackages.writeBuildScript(mainCheckoutPath, false);
+		TestRepository.git(mainCheckoutPath, ['add', '.']);
+		TestRepository.git(mainCheckoutPath, ['commit', '--quiet', '-m', 'tools']);
+		CliRunner.run('bundled_commands_build_cli.ts', mainCheckoutPath, []);
+		const worktreePath = TestRepository.addWorktree(mainCheckoutPath, 'feature');
+		Fs.cpSync(TargetPaths.bundledCommandsPath(mainCheckoutPath), TargetPaths.bundledCommandsPath(worktreePath), {
+			recursive: true,
+		});
+		const result = CliRunner.run('bundled_commands_build_cli.ts', worktreePath, []);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('up to date. Nothing to build');
+		expect(SampleToolPackages.countBuildRuns(worktreePath)).toBe(0);
 	});
 });

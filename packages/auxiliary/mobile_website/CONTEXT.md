@@ -12,13 +12,14 @@ The mobile website of Heidrun Code Mobile: the page that the phone opens to keep
 - `src/screen_address.ts`: writes and reads the screen that is open in the part of the address after "#".
 - `src/color_painter.ts`: sets the colors of the output after its HTML is in the page.
 - `src/voice_input.ts`: the microphone, with the Web Speech API of the browser. No Web Speech API: no microphone button.
+- `build_tools/`: the Vite plugin that copies into `dist` only the files of a build that changed. See its own CONTEXT.md.
 - `dev/`: the development server with a fake computer, and the proxy to the real desktop application. See its own CONTEXT.md.
 - `public/`: the files that Vite copies as they are: the manifest, the service worker `sw.js` (for notifications; no cache), and `favicon.svg`, the same image as `data/images/heidrun_favicon.svg`.
 - `src/screens/`: one class for each screen. See its own CONTEXT.md.
 - `src/assets/`: the pictures that the screens import. See its own CONTEXT.md.
 - `src/components/`: the parts that several screens share. See its own CONTEXT.md.
 - `tests/`: the Vitest tests, which run the whole page against a fake computer.
-- `dist/`: the built website. Git ignores it. The package `mobile_server` holds this folder inside its program at build time.
+- `dist/`: the built website. Git ignores it, and `dist_staging/`, where Vite writes before the copy. The package `mobile_server` holds this folder inside its program at build time.
 - Command to work on this folder with a page that reloads by itself: `pnpm --filter mobile_website dev`
 - Command to build this folder: `pnpm --filter mobile_website build`
 - Command to test this folder: `pnpm --filter mobile_website test`

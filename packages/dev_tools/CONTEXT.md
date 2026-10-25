@@ -10,7 +10,7 @@ The packages that are only tools for the developers of Heidrun Code. None of the
 - `documentation_by_ai/`: one documentation writing call followed by one website build, with the learned prompt and opt-in learning references. Command: `pnpm docs:generate-and-build`. See its own CONTEXT.md.
 - `install_script_tests/`: a package with the tests of the script `scripts/install.sh`. Command: `pnpm --filter install_script_tests test`. See its own CONTEXT.md.
 - `video_recorder/`: two command line tools that record a video of the Heidrun Code window and cut it around its mouse clicks. Commands: `pnpm --filter video_recorder video:record` and `pnpm --filter video_recorder video:cut`. See its own CONTEXT.md.
-- `worktree_tools/`: two command line tools: one creates a Git worktree and clones the compiled Rust files into it, the other deletes the old Cargo target folders of the worktrees. Commands: `pnpm worktree:create` and `pnpm --filter desktop_tauri target:clean`. See its own CONTEXT.md.
+- `worktree_tools/`: four command line tools: one creates a Git worktree and clones the compiled Rust files into it, one deletes the old Cargo target folders of the worktrees, one deletes the files of a debug folder that the current builds do not use, and one builds the bundled command line tools only when their sources changed. Commands: `pnpm worktree:create`, `pnpm --filter desktop_tauri target:clean`, `pnpm --filter desktop_tauri target:prune`, and `pnpm bundled_commands:build`. See its own CONTEXT.md.
 
 ## Rules
 - A package that is only a tool for the developers of Heidrun Code goes in this folder.

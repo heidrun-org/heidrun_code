@@ -7,7 +7,8 @@
   "scripts": {
     "tauri": "tauri",
     "test": "pnpm --filter mobile_website build && cargo test",
-    "target:clean": "tsx ../../dev_tools/worktree_tools/src/target_clean_cli.ts"
+    "target:clean": "tsx ../../dev_tools/worktree_tools/src/target_clean_cli.ts",
+    "target:prune": "tsx ../../dev_tools/worktree_tools/src/target_prune_cli.ts"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"
