@@ -7,6 +7,7 @@ import Icon from "./Icon.vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
 import { currentGit, git, openGitModal, refreshGit } from "../stores/git";
 import { openFiles } from "../stores/files";
+import { DiffPanes } from "../stores/diff_panes";
 import {
   commit,
   discardFiles,
@@ -99,6 +100,14 @@ function paths(group: SourceControlGroup): string[] {
 
 function openFile(file: SourceControlFile) {
   void openFiles(currentGit.value?.root, { path: file.path });
+}
+
+// A click on a file line shows its changes in a diff pane. When no pane can show them, the large Git window shows them (issue #885).
+async function openDiff(file: SourceControlFile) {
+  const root = currentGit.value?.root;
+  if (root === undefined || (await DiffPanes.open(`${root}/${file.path}`)) === false) {
+    openGitModal(file.path);
+  }
 }
 
 function onCommitKeyDown(event: KeyboardEvent) {
@@ -266,7 +275,7 @@ function chooseMore(id: string) {
                 class="file d-flex align-items-center"
                 :title="fileTitle(file)"
               >
-                <button type="button" class="list-action file-main d-flex align-items-center gap-2 me-auto" @click="openGitModal(file.path)">
+                <button type="button" class="list-action file-main d-flex align-items-center gap-2 me-auto" @click="openDiff(file)">
                   <Icon :name="fileIconName(file.name)" />
                   <span class="name">{{ file.name }}</span>
                   <span v-if="file.folder !== ''" class="folder">{{ file.folder }}</span>

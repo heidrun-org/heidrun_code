@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: sidebars
 
 - Created: 14 October 2026
-- Last updated: 24 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: sidebars](../user_interface/sidebars/index.md)
@@ -57,7 +57,7 @@ The window that shows a file in a tab, the file viewer. The developer can edit t
 
 ### Large Git window
 
-The window that shows the local Git changes of the selected workspace as a diff, with the open pull requests (on GitLab, merge requests) in a side list. It opens from the Source control sidebar section. It only reads files.
+The window that shows the local Git changes of the selected workspace as a diff, with the open pull requests (on GitLab, merge requests) in a side list. It opens from the Source control sidebar section: from the menu "More actions", from the buttons "View the changes", and from a click on a file line when no pane can show the diff in a diff pane. It only reads files.
 
 ### Left sidebar enable disable button
 

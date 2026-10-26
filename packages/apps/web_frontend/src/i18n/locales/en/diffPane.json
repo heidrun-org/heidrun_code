@@ -1,0 +1,20 @@
+{
+  "refresh": "Refresh",
+  "refreshTitle": "Read the changes of the file again",
+  "openFile": "Open the file",
+  "openFileTitle": "Open the file in a file view pane",
+  "noChange": "No text change compared to the last commit (HEAD). The file can be committed, binary, or renamed.",
+  "noRepository": "The workspace of this pane is not a Git repository.",
+  "outsideRepository": "{path} is not in the Git repository of the workspace of this pane.",
+  "card.title": "About these changes",
+  "card.buttonTitle": "About these changes: the status, the lines, and the last commit",
+  "card.file": "File",
+  "card.staged": "Staged",
+  "card.notStaged": "Not staged",
+  "card.no": "No",
+  "card.added": "Added lines",
+  "card.removed": "Removed lines",
+  "card.lastCommit": "Compared to the last commit",
+  "card.lastCommitDate": "Date of the last commit",
+  "card.noCommit": "No commit yet"
+}
