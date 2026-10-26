@@ -68,6 +68,7 @@ The command runs the fast tests, and ends with a non-zero exit code when a test 
 
 | Command | Tests |
 | --- | --- |
+| `pnpm --filter documentation_by_ai test` | Fast documentation update tests: real temporary Git histories, generated ownership, source references, change hints and publication failure handling; no model calls or remote writes. |
 | `pnpm --filter web_frontend test` | The Vitest tests of `packages/apps/web_frontend`. The test files sit next to the code, and are named `*.test.ts`. |
 | `pnpm --filter desktop_tauri test` | Builds `mobile_website`, then runs the `cargo test` tests of `packages/apps/desktop_tauri`. The tests sit in a `#[cfg(test)]` module at the end of each source file. |
 | `pnpm --filter website_public test` | The Vitest tests of `packages/auxiliary/website_public`: the configuration, the pages, and a complete build of the website. The test files sit in the folder `tests`. |
