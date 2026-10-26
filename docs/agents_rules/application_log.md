@@ -11,7 +11,7 @@ This file gives the rules of the application log, the file where Heidrun Code wr
 
 ## The file
 
-- The file is `application_log.jsonl` in the folder of the data of Heidrun Code: `~/.config/heidrun_code` for Heidrun Code, `~/.config/heidrun_code_development` for Heidrun Code Development (or the former folders `~/.config/heidrun` and `~/.config/heidrun-development` when the new folder does not exist), or the folder that `HEIDRUN_CODE_DIR` gives.
+- The file is `application_log.jsonl` in the folder of the data of Heidrun Code: `~/.config/heidrun_code` for Heidrun Code, `~/.config/heidrun_code_development` for Heidrun Code Development, or the folder that `HEIDRUN_CODE_DIR` gives.
 - The code is `packages/apps/desktop_tauri/src/application_log.rs`. Every line is one JSON object with `at` (milliseconds since 1970), `event`, and the fields of the event.
 - Above 8 MiB, the file becomes `application_log.1.jsonl`, which replaces the previous one, and a new file starts.
 - A failure to write the log never stops the application.

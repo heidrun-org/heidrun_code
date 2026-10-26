@@ -10,7 +10,6 @@ const PERSONAL_MACROS_FILE: &str = "macros.json";
 pub fn data_folder() -> PathBuf {
     std::env::var("HEIDRUN_CODE_DIR")
         .ok().filter(|value| value.is_empty() == false)
-        .or_else(|| std::env::var("HEIDRUN_DIR").ok().filter(|value| value.is_empty() == false))
         .map(PathBuf::from)
         .unwrap_or_else(|| default_data_folder(&dirs::home_dir().unwrap_or_default()))
 }
@@ -69,14 +68,9 @@ pub(crate) fn write_file_aside(path: &Path, text: &str) -> Result<(), String> {
     std::fs::rename(&aside, path).map_err(|error| format!("The file {} cannot be written: {error}", path.display()))
 }
 
-/// `~/.config/heidrun_code`, or the former folder `~/.config/heidrun` when it exists and the new folder does not.
+/// `~/.config/heidrun_code`.
 fn default_data_folder(home: &std::path::Path) -> PathBuf {
-    let current = home.join(".config").join("heidrun_code");
-    let former = home.join(".config").join("heidrun");
-    if current.is_dir() == false && former.is_dir() {
-        return former;
-    }
-    current
+    home.join(".config").join("heidrun_code")
 }
 
 #[cfg(test)]

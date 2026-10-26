@@ -159,16 +159,12 @@ export class Cli {
 	}
 
 	/**
-	 * Gives `~/.config/heidrun_code`, or the former folder `~/.config/heidrun` when it exists and the new folder does not.
+	 * Gives `~/.config/heidrun_code`.
 	 * @returns The folder that holds the SQLite file of the data layer packages.
 	 */
 	private static _defaultDataFolder(): string {
-		const current = Path.join(Os.homedir(), '.config', 'heidrun_code');
-		const former = Path.join(Os.homedir(), '.config', 'heidrun');
-		if (Fs.existsSync(current) === false && Fs.existsSync(former)) {
-			return former;
-		}
-		return current;
+		const folder = Path.join(Os.homedir(), '.config', 'heidrun_code');
+		return folder;
 	}
 }
 

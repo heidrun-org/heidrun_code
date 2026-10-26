@@ -38,8 +38,8 @@ A name that the project used before the rebrand ([issue 837](https://github.com/
 - "Heidrun Development" became "Heidrun Code Development".
 - `heidrun_ctrl` became `heidrun_code_ctrl`.
 - `heidrun_data` became `heidrun_code_data`. The package and the command line became `heidrun_data` again when they moved to the repository `heidrun_data` ([issue 848](https://github.com/heidrun-org/heidrun_code/issues/848)).
-- The environment variables `HEIDRUN_*` became `HEIDRUN_CODE_*`. The former variable `HEIDRUN_DIR` still works when `HEIDRUN_CODE_DIR` is not set.
-- The data folder `~/.config/heidrun` became `~/.config/heidrun_code`. The former folder is used while the new folder does not exist, so no data moves. The development folder `~/.config/heidrun-development` became `~/.config/heidrun_code_development` in the same way.
+- The environment variables `HEIDRUN_*` became `HEIDRUN_CODE_*`. The former variable `HEIDRUN_DIR` is not read any more ([issue 881](https://github.com/heidrun-org/heidrun_code/issues/881)).
+- The data folder `~/.config/heidrun` became `~/.config/heidrun_code`, and the development folder `~/.config/heidrun-development` became `~/.config/heidrun_code_development`. At its first start, each application moves its former folder to its new folder, once, when the new folder does not exist. No code reads a former folder ([issue 881](https://github.com/heidrun-org/heidrun_code/issues/881)).
 - The installed application `Heidrun.app` became `Heidrun Code.app`, with the identifier `dev.heidrun-org.heidrun-code`. The former identifier was `dev.heidrun-org.heidrun`.
 
 ### Persisted name

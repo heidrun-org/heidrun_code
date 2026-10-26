@@ -139,20 +139,16 @@ export class DevServerPlugin {
 	}
 
 	/**
-	 * Gives `~/.config/heidrun_code`, or the former folder `~/.config/heidrun` when it exists and the new folder does not.
+	 * Gives `~/.config/heidrun_code`.
 	 * @returns The folder that holds the file `mobile.json` when no environment variable names a folder.
 	 */
 	private static defaultDataFolder(): string {
-		const current = Path.join(Os.homedir(), '.config', 'heidrun_code');
-		const former = Path.join(Os.homedir(), '.config', 'heidrun');
-		if (Fs.existsSync(current) === false && Fs.existsSync(former)) {
-			return former;
-		}
-		return current;
+		const folder = Path.join(Os.homedir(), '.config', 'heidrun_code');
+		return folder;
 	}
 
 	private static readRealPairingKey(): string | null {
-		const folder = process.env.HEIDRUN_CODE_DIR ?? process.env.HEIDRUN_DIR ?? DevServerPlugin.defaultDataFolder();
+		const folder = process.env.HEIDRUN_CODE_DIR ?? DevServerPlugin.defaultDataFolder();
 		try {
 			const text = Fs.readFileSync(Path.join(folder, 'mobile.json'), 'utf8');
 			const token = (JSON.parse(text) as { token?: unknown }).token;

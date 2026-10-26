@@ -24,6 +24,7 @@ pub fn initialize(identifier: &str) {
     IS_DEVELOPMENT
         .set(is_development)
         .expect("the application profile is selected once");
+    crate::legacy::migrate_config_dir(is_development);
     crate::environment_file::load(is_development);
     if is_development {
         let home = dirs::home_dir().unwrap_or_default();
@@ -63,27 +64,14 @@ fn development_data_dir(home: &Path, custom: Option<&str>) -> Result<PathBuf, St
     let folder = custom
         .filter(|value| value.is_empty() == false)
         .map(PathBuf::from)
-        .unwrap_or_else(|| default_development_data_dir(home));
+        .unwrap_or_else(|| home.join(".config/heidrun_code_development"));
     if folder.is_absolute() == false {
         return Err("HEIDRUN_CODE_DEVELOPMENT_DIR must be an absolute path".into());
     }
-    for installed_default in [home.join(".config/heidrun_code"), home.join(".config/heidrun")] {
-        if same_folder(&folder, &installed_default) {
-            return Err("the development data folder must differ from the installed data folder".into());
-        }
+    if same_folder(&folder, &home.join(".config/heidrun_code")) {
+        return Err("the development data folder must differ from the installed data folder".into());
     }
     Ok(folder)
-}
-
-/// `~/.config/heidrun_code_development`, or the former folder `~/.config/heidrun-development` when it exists and the new
-/// folder does not.
-fn default_development_data_dir(home: &Path) -> PathBuf {
-    let current = home.join(".config/heidrun_code_development");
-    let former = home.join(".config/heidrun-development");
-    if current.is_dir() == false && former.is_dir() {
-        return former;
-    }
-    current
 }
 
 fn same_folder(left: &Path, right: &Path) -> bool {
@@ -152,16 +140,14 @@ mod tests {
         );
         assert!(development_data_dir(home, Some("/Users/test/.config/heidrun_code")).is_err());
         assert!(development_data_dir(home, Some("relative")).is_err());
-        assert!(development_data_dir(home, Some("/Users/test/.config/new/../heidrun")).is_err());
+        assert!(development_data_dir(home, Some("/Users/test/.config/new/../heidrun_code")).is_err());
     }
 
     #[test]
-    fn development_keeps_using_its_former_data_folder_until_the_new_folder_exists() {
+    fn development_never_uses_the_former_data_folder() {
         let home = std::env::temp_dir().join(format!("hd-profile-former-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&home);
         std::fs::create_dir_all(home.join(".config/heidrun-development")).unwrap();
-        assert_eq!(development_data_dir(&home, None).unwrap(), home.join(".config/heidrun-development"));
-        std::fs::create_dir_all(home.join(".config/heidrun_code_development")).unwrap();
         assert_eq!(development_data_dir(&home, None).unwrap(), home.join(".config/heidrun_code_development"));
         std::fs::remove_dir_all(home).unwrap();
     }
