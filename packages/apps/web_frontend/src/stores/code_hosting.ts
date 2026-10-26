@@ -10,6 +10,7 @@
 // - issue #607
 // - issue #869
 // - issue #870
+// - issue #872
 // - issue #890
 // - issue #910
 import { reactive } from "vue";
@@ -372,26 +373,31 @@ async function readGitlabGroup(
 }
 
 /**
- * The message of a failure of `gh` that says the GitHub rate limit is exceeded, with the local time of the reset. The
- * secondary rate limit of GitHub leaves points in `gh api rate_limit`, so its reset time is unknown, and the message
- * then says to try again in a few minutes (issue #910).
+ * The message of a failure of `gh` or `glab` that says the rate limit of the hosting service is exceeded, with the local
+ * time of the reset. The secondary rate limit of GitHub leaves points in `gh api rate_limit`, so its reset time is
+ * unknown, and the message then says to try again in a few minutes (issue #910). `glab` says "HTTP 429" when the GitLab
+ * rate limit is exceeded, and the reset time comes from the headers of the answer of GitLab (issue #872).
  * @param folder - the folder of the repository
+ * @param forge - the hosting service of the repository
  * @param message - the first line of the failure
  * @returns the message, or null when the failure is not a rate limit
  */
-async function githubRateLimitMessage(folder: string, message: string): Promise<string | null> {
-  if (/rate limit/i.test(message) === false) {
+async function rateLimitMessage(folder: string, forge: Forge, message: string): Promise<string | null> {
+  const isGithub = forge === "github";
+  const isRateLimit = isGithub ? /rate limit/i.test(message) : /HTTP 429|rate limit|too many requests/i.test(message);
+  if (isRateLimit === false) {
     return null;
   }
   try {
-    const reset = await invoke<number | null>("forge_rate_limit_reset", { cwd: folder });
+    const command = isGithub ? "forge_rate_limit_reset" : "forge_gitlab_rate_limit_reset";
+    const reset = await invoke<number | null>(command, { cwd: folder });
     if (reset !== null) {
-      return t("codeHostingPanel.rateLimit", { time: clockTime(reset) });
+      return t(isGithub ? "codeHostingPanel.rateLimit" : "codeHostingPanel.rateLimitGitlab", { time: clockTime(reset) });
     }
   } catch {
     // The reset time cannot be read: the message without a time follows.
   }
-  return t("codeHostingPanel.rateLimitUnknown");
+  return t(isGithub ? "codeHostingPanel.rateLimitUnknown" : "codeHostingPanel.rateLimitGitlabUnknown");
 }
 
 /**
@@ -426,12 +432,12 @@ export function keptAgeText(keptAt: number, now: number): string {
  */
 async function keptAfterFailureNotice(folder: string, forge: Forge, keptFailures: KeptAfterFailure[]): Promise<string> {
   const message = keptFailures[0].failure.split("\n")[0].slice(0, 300);
-  const rateLimitMessage = forge === "github" ? await githubRateLimitMessage(folder, message) : null;
+  const limitMessage = await rateLimitMessage(folder, forge, message);
   const keptAt = Math.min(...keptFailures.map((kept) => kept.keptAt));
   return t("codeHostingPanel.keptAfterFailure", {
     age: keptAgeText(keptAt, Date.now()),
     time: clockTime(keptAt / 1000),
-    error: rateLimitMessage ?? message,
+    error: limitMessage ?? message,
   });
 }
 
@@ -474,11 +480,11 @@ async function loadCodeHostingList(folder: string, group: CodeHostingGroup, isRe
     }
     const message =
       failure instanceof CodeHostingSearchError ? failure.message : String(failure).split("\n")[0].slice(0, 300);
-    const rateLimitMessage = forge === "github" ? await githubRateLimitMessage(folder, message) : null;
+    const limitMessage = await rateLimitMessage(folder, forge, message);
     if (thisLoad !== lastListLoad[group]) {
       return;
     }
-    codeHosting.listError[group] = rateLimitMessage ?? message;
+    codeHosting.listError[group] = limitMessage ?? message;
     codeHosting.listStatus[group] = "failed";
   }
 }
