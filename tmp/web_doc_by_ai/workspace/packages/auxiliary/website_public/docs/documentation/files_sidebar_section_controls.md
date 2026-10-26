@@ -49,13 +49,16 @@ A check mark identifies the active choice in each group. The appearance choices 
 ## File context menu
 <!-- source: docs/agents_rules/user_interface/sidebars/files.md -->
 <!-- source: docs/agents_rules/glossary.md -->
+<!-- source: packages/apps/desktop_tauri/src/files.rs -->
+<!-- source: packages/apps/web_frontend/src/stores/files.ts -->
+<!-- source: packages/apps/web_frontend/src/components/FilesPanel.vue -->
 
 A context menu is a small menu of actions for a row. These items are available for file rows only.
 
 | Item | Copied text |
 | --- | --- |
 | **Copy absolute path** | The full path of the file. |
-| **Copy relative path** | The path of the file relative to the workspace folder. |
+| **Copy relative path** | The path from the Git repository's top folder; for `README.md` inside the repository's `docs` folder, a workspace ending in `/docs` still copies `docs/README.md`. |
 
 See [Copy a file path](/documentation/copy_a_file_path) for examples and copying steps.
 

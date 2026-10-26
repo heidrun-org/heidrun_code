@@ -7,13 +7,18 @@ Copy a file path to paste into another application or a message.
 ## Choose the path format
 <!-- source: docs/agents_rules/user_interface/sidebars/files.md -->
 <!-- source: docs/agents_rules/glossary.md -->
+<!-- source: packages/apps/desktop_tauri/src/files.rs -->
+<!-- source: packages/apps/web_frontend/src/stores/files.ts -->
+<!-- source: packages/apps/web_frontend/src/components/FilesPanel.vue -->
 
-For a workspace folder at `/Users/alex/projects/example`, these are the two forms of the path to `docs/README.md`.
+The Git repository root is the repository's top folder. **Copy relative path** starts from the Git repository root, even when the workspace is a folder inside the repository.
+
+For a Git repository at `/Users/alex/projects/example` and a workspace at `/Users/alex/projects/example/docs`, copying the path of `README.md` inside `docs` gives these two forms.
 
 | Choice | Example | Use when |
 | --- | --- | --- |
 | **Copy absolute path** | `/Users/alex/projects/example/docs/README.md` | The receiving application needs the full location on your computer. |
-| **Copy relative path** | `docs/README.md` | The receiving application or reader already knows the workspace folder. |
+| **Copy relative path** | `docs/README.md` | The receiving application or reader already knows the Git repository root. |
 
 ## Copy the path
 <!-- source: docs/agents_rules/user_interface/sidebars/files.md -->

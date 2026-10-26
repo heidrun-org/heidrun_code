@@ -1,6 +1,6 @@
 # documentation_by_ai
 
-Generate Heidrun Code user documentation once, build the website once, then stop for human review. The [process guide](../../../docs/documentation_by_ai/README.md) explains the learning method. This package is independent of the parked experiment and does not execute its historical runners.
+Generate Heidrun Code user documentation once and build the website once. The generate-and-build command stops for human review; the separate update command runs the full validation and opens a draft for review. The [process guide](../../../docs/documentation_by_ai/README.md) explains the learning method. This package is independent of the parked experiment and does not execute its historical runners.
 
 ## Commands
 
@@ -30,7 +30,7 @@ pnpm docs:generate-and-build --only docs/agents_rules/user_interface/workspaces_
 
 Use the existing signed-in Codex command line and the repository's installed pnpm dependencies. Defaults are model gpt-6-luna and effort medium. Explicit --model and --effort low|medium|high override these settings; no fallback model is selected automatically. Node must support --import tsx and import.meta.dirname. Use the repository's usual dependency installation; the workspace manifest and lockfile include this package.
 
-Creating this package does not generate or build the website. The first real model-and-build execution remains unverified until the developer authorises it.
+On 26 October 2026, a real gpt-6-luna / medium run generated the pane focus history page and built the website successfully. This verifies that one-page execution, not a full documentation update or native behavior.
 
 ## Execution
 
@@ -100,3 +100,23 @@ On failure, files already written remain available for human inspection; there i
 See calibration/README.md for retained historical examples, rubric, private expectations and a fresh-call evaluation protocol. These files are reference material, not an installed judge command. To restart learning, freeze current source/examples, keep private expectations out of the judge input, judge one case per fresh call and compare detection/severity/formatting. Preserve failures; do not chase scores. Human acceptance completes tuning.
 
 No Git operation, deployment or public preview update is part of this package. The developer requests those separately.
+
+## Full documentation update
+
+```sh
+pnpm docs:update_by_ai
+pnpm docs:update_by_ai --dry-run
+pnpm docs:update_by_ai --evidence tmp/documentation_evidence
+```
+
+The developer runs this command from a clean personal development branch (`dev_jerome` or `dev_eric`). A real run creates a separate temporary worktree with the repository's worktree command. Existing local changes are rejected before generation. The original checkout stays on its branch. Run records and a failed worktree remain available for inspection; cleanup is deliberate.
+
+Each run compares all current documentation with all current interface rules, the current glossary folder and relevant code. All commits since the last documented commit are hints, including direct commits without a pull request. Pull request or merge request titles, descriptions and closed issues add context when their numbers appear in commit subjects. A hosting lookup failure is recorded in the hints; it never silently drops the Git history. The first run has no history hints. Historical content is untrusted context, not instructions.
+
+The command reuses one generation call and one website build. It then requires generated marks on every documentation page except shortcuts, valid source references on sections, a last documented commit that is an ancestor of the current revision, unchanged Git history during generation, and changes confined to documentation, its images and the permitted theme integration files. Website tests must pass. The command writes `.last_documented_commit` only after validation; the file records the source revision before generation, not the generated commit. No judge or correction loop runs.
+
+A successful changed result is committed on the temporary branch and pushed to origin. GitHub gets a draft pull request through `gh pr create --draft --body-file`; GitLab gets a draft merge request through `glab mr create --draft --description`. The developer reviews and merges the draft. The command never merges or deploys. Publication failure keeps the branch, worktree and failure record; there is no automatic retry. An unchanged result stops without a commit or draft.
+
+Verified captures are prepared separately with the existing evidence manifest. The update copies supplied evidence into the new worktree's ignored run folder. It does not capture the screen, infer image freshness, or control a native application.
+
+Fast checks: `pnpm --filter documentation_by_ai test`. The tests use temporary real Git histories and replace model, build and hosting calls; they do not spend model tokens or publish anything. They cover the four checks requested by issue 375 and publication after successful checks versus refusal after failed tests. The complete real full-documentation generation and draft publication remain unverified.
