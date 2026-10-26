@@ -37,6 +37,8 @@
   "gitlabCannot": "GitLab ne sait pas faire cette recherche : {word}",
   "rateLimit": "Limite de requêtes GitHub dépassée. Remise à zéro à {time}.",
   "rateLimitUnknown": "Limite de requêtes GitHub dépassée. Réessayez dans quelques minutes.",
+  "rateLimitGitlab": "Limite de requêtes GitLab dépassée. Remise à zéro à {time}.",
+  "rateLimitGitlabUnknown": "Limite de requêtes GitLab dépassée. Réessayez dans quelques minutes.",
   "keptAfterFailure": "L'actualisation a échoué. Cette liste a {age}, elle date de {time}. {error}",
   "keptAge.lessThanMinute": "moins d’une minute",
   "keptAge.minutes_one": "{count} minute",

@@ -37,6 +37,8 @@
   "gitlabCannot": "GitLab cannot do this search: {word}",
   "rateLimit": "GitHub rate limit exceeded. Resets at {time}.",
   "rateLimitUnknown": "GitHub rate limit exceeded. Try again in a few minutes.",
+  "rateLimitGitlab": "GitLab rate limit exceeded. Resets at {time}.",
+  "rateLimitGitlabUnknown": "GitLab rate limit exceeded. Try again in a few minutes.",
   "keptAfterFailure": "The refresh failed. This list is {age} old, from {time}. {error}",
   "keptAge.lessThanMinute": "less than a minute",
   "keptAge.minutes_one": "{count} minute",

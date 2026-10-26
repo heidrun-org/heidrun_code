@@ -278,6 +278,66 @@ describe("loadCodeHosting refresh on GitLab", () => {
     expect(codeHosting.listNotice.issues).toMatch(/^The refresh failed\. This list is 1 minute old, from .+\. glab: no network$/);
     expect(codeHosting.listNotice.requests).toBe("");
   });
+
+  it("shows the local time of the reset when the GitLab rate limit is exceeded (issue #872)", async () => {
+    const reset = new Date(2026, 9, 25, 14, 7).getTime() / 1000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 25, 13, 58));
+    vi.mocked(refContext).mockResolvedValue(contextOf("gitlab"));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_gitlab_rate_limit_reset") {
+        return reset;
+      }
+      throw "glab: HTTP 429";
+    });
+    await loadCodeHosting("/work/app");
+    vi.useRealTimers();
+    expect(codeHosting.listError).toEqual({
+      issues: "GitLab rate limit exceeded. Resets at 02:07 PM.",
+      requests: "GitLab rate limit exceeded. Resets at 02:07 PM.",
+    });
+    expect(vi.mocked(invoke).mock.calls).toContainEqual(["forge_gitlab_rate_limit_reset", { cwd: "/work/app" }]);
+    expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).not.toContain("forge_rate_limit_reset");
+  });
+
+  it("gives the GitLab reset time in the message of a failed refresh (issue #872)", async () => {
+    const reset = new Date(2026, 9, 25, 14, 7).getTime() / 1000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 25, 13, 58));
+    vi.mocked(refContext).mockResolvedValue(contextOf("gitlab"));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_gitlab_rate_limit_reset") {
+        return reset;
+      }
+      return {
+        output: "[]",
+        failure: "glab: HTTP 429",
+        keptAt: Date.now() - 60_000,
+      };
+    });
+    await loadCodeHosting("/work/app", true);
+    vi.useRealTimers();
+    expect(codeHosting.listNotice.issues).toMatch(
+      /^The refresh failed\. This list is 1 minute old, from .+\. GitLab rate limit exceeded\. Resets at 02:07 PM\.$/,
+    );
+  });
+
+  it("says to try again in a few minutes when GitLab gives no reset time, and reads no reset time for another failure (issue #872)", async () => {
+    vi.mocked(refContext).mockResolvedValue(contextOf("gitlab"));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_gitlab_rate_limit_reset") {
+        throw "glab: no network";
+      }
+      throw "glab: HTTP 429";
+    });
+    await loadCodeHosting("/work/app");
+    expect(codeHosting.listError.issues).toBe("GitLab rate limit exceeded. Try again in a few minutes.");
+    vi.mocked(invoke).mockClear();
+    vi.mocked(invoke).mockRejectedValue("glab: HTTP 401");
+    await loadCodeHosting("/work/app");
+    expect(codeHosting.listError.issues).toBe("glab: HTTP 401");
+    expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).not.toContain("forge_gitlab_rate_limit_reset");
+  });
 });
 
 describe("searchCodeHosting on GitHub", () => {

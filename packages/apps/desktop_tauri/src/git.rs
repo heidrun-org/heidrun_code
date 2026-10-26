@@ -379,19 +379,31 @@ pub(crate) fn allowed(tool: &str, args: &[String]) -> bool {
 /// Runs `glab` / `gh` in the repository through the login shell (Homebrew PATH,
 /// accounts already connected). `exec "$0" "$@"` passes arguments as is.
 pub(crate) async fn run_forge(cwd: &str, tool: &str, args: &[String], timeout: u64) -> Result<String, String> {
-    let mut cmd = Command::new(login_shell());
-    cmd.arg("-lc").arg("exec \"$0\" \"$@\"").arg(tool).args(args).current_dir(cwd).kill_on_drop(true);
-    cmd.env("NO_COLOR", "1").env("NO_PROMPT", "1").env("GLAB_NO_PROMPT", "1").env("GH_PROMPT_DISABLED", "1");
-    let out = tokio::time::timeout(Duration::from_secs(timeout), cmd.output())
-        .await
-        .map_err(|_| format!("{tool} : pas de réponse en {timeout} s"))?
-        .map_err(|e| format!("{tool} : {e}"))?;
+    let out = run_forge_process(cwd, tool, args, timeout).await?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     } else {
-        let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
-        Err(if err.is_empty() { format!("{tool} a échoué ({})", out.status) } else { err })
+        Err(forge_failure_text(tool, &out))
     }
+}
+
+/// The same call as `run_forge`, which gives the whole output of the process, the standard output included when the
+/// process fails.
+async fn run_forge_process(cwd: &str, tool: &str, args: &[String], timeout: u64) -> Result<std::process::Output, String> {
+    let mut cmd = Command::new(login_shell());
+    cmd.arg("-lc").arg("exec \"$0\" \"$@\"").arg(tool).args(args).current_dir(cwd).kill_on_drop(true);
+    cmd.env("NO_COLOR", "1").env("NO_PROMPT", "1").env("GLAB_NO_PROMPT", "1").env("GH_PROMPT_DISABLED", "1");
+    tokio::time::timeout(Duration::from_secs(timeout), cmd.output())
+        .await
+        .map_err(|_| format!("{tool} : pas de réponse en {timeout} s"))?
+        .map_err(|e| format!("{tool} : {e}"))
+}
+
+/// The failure of a process of `glab` / `gh` that failed: its error output, or its exit status when the error output is
+/// empty.
+fn forge_failure_text(tool: &str, out: &std::process::Output) -> String {
+    let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+    if err.is_empty() { format!("{tool} a échoué ({})", out.status) } else { err }
 }
 
 /// The same call as `run_forge`, with a start line and an end line in the application log, with `caller`, the part of the application that
@@ -451,6 +463,49 @@ pub(crate) fn rate_limit_reset_of(output: &str) -> Result<Option<u64>, String> {
         .filter(|resource| resource.get("remaining").and_then(|r| r.as_u64()) == Some(0))
         .filter_map(|resource| resource.get("reset").and_then(|r| r.as_u64()))
         .max())
+}
+
+/// The time when the exceeded GitLab rate limit resets, in seconds since 1970, or `None` when no limit is exceeded or
+/// GitLab gives no reset time. GitLab has no endpoint like `gh api rate_limit`, so it reads the headers of
+/// `glab api --include user`, which `glab` writes on the standard output also when GitLab answers 429 (issue #872).
+#[tauri::command]
+pub async fn forge_gitlab_rate_limit_reset(cwd: String) -> Result<Option<u64>, String> {
+    use crate::application_log::{ForgeAnswerSource, ForgeCall};
+    let args = ["api", "--include", "user"].map(String::from);
+    let call = ForgeCall::start(Some("code_hosting_rate_limit"), "glab", &args, true);
+    let result = run_forge_process(&cwd, "glab", &args, 20).await;
+    match &result {
+        Ok(out) if out.status.success() => call.end(ForgeAnswerSource::Forge, None),
+        Ok(out) => call.end(ForgeAnswerSource::Failed, Some(&forge_failure_text("glab", out))),
+        Err(failure) => call.end(ForgeAnswerSource::Failed, Some(failure)),
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs())
+        .unwrap_or(0);
+    gitlab_rate_limit_reset_of(&String::from_utf8_lossy(&result?.stdout), now)
+}
+
+/// The reset time of the exceeded GitLab rate limit, from the status line and the headers that `glab api --include`
+/// writes before the body. The limit is exceeded when the status is 429 or when `Ratelimit-Remaining` is 0. The reset
+/// time is `Ratelimit-Reset` (seconds since 1970), or else `now` plus `Retry-After` (a number of seconds).
+pub(crate) fn gitlab_rate_limit_reset_of(output: &str, now: u64) -> Result<Option<u64>, String> {
+    let mut lines = output.lines();
+    let status = lines
+        .next()
+        .and_then(|line| line.strip_prefix("HTTP/"))
+        .and_then(|line| line.split_whitespace().nth(1))
+        .ok_or("glab api --include : pas d’en-têtes")?;
+    let headers: Vec<(String, &str)> = lines
+        .take_while(|line| !line.trim().is_empty())
+        .filter_map(|line| line.split_once(':'))
+        .map(|(name, value)| (name.trim().to_ascii_lowercase(), value.trim()))
+        .collect();
+    let header = |name: &str| headers.iter().find(|(n, _)| n == name).and_then(|(_, value)| value.parse::<u64>().ok());
+    if status != "429" && header("ratelimit-remaining") != Some(0) {
+        return Ok(None);
+    }
+    Ok(header("ratelimit-reset").or_else(|| header("retry-after").map(|seconds| now + seconds)))
 }
 
 /// Merges a MR / PR, after the user confirmed it in the app. `sha` is the head
@@ -532,6 +587,27 @@ mod tests {
         assert!(is_rate_limit_read(&["api".into(), "rate_limit".into()]));
         assert!(is_rate_limit_read(&["issue".into(), "list".into()]) == false);
         assert!(is_rate_limit_read(&["api".into(), "graphql".into()]) == false);
+    }
+
+    #[test]
+    fn gives_the_reset_of_the_exceeded_gitlab_rate_limit() {
+        // The output of `glab api --include user` 1.122.0 for an answer 429 (issue #872).
+        let exceeded = "HTTP/1.0 429 Too Many Requests\nContent-Length: 12\nContent-Type: text/plain\n\
+Ratelimit-Limit: 2000\nRatelimit-Name: throttle_authenticated_api\nRatelimit-Observed: 2001\n\
+Ratelimit-Remaining: 0\nRatelimit-Reset: 1793012400\nRetry-After: 47\n\nRetry later\n";
+        assert_eq!(gitlab_rate_limit_reset_of(exceeded, 1793012353), Ok(Some(1793012400)));
+        let retry_after_only = "HTTP/2.0 429 Too Many Requests\r\nretry-after: 47\r\n\r\nRetry later\n";
+        assert_eq!(gitlab_rate_limit_reset_of(retry_after_only, 1793012353), Ok(Some(1793012400)));
+        let no_time = "HTTP/2.0 429 Too Many Requests\n\nRetry later\n";
+        assert_eq!(gitlab_rate_limit_reset_of(no_time, 1793012353), Ok(None));
+        let last_request = "HTTP/2.0 200 OK\nRatelimit-Remaining: 0\nRatelimit-Reset: 1793012160\n\n{\"id\": 1}\n";
+        assert_eq!(gitlab_rate_limit_reset_of(last_request, 1793012100), Ok(Some(1793012160)));
+        let fine = "HTTP/2.0 200 OK\nRatelimit-Remaining: 98\nRatelimit-Reset: 1793012160\n\n{\"id\": 1}\n";
+        assert_eq!(gitlab_rate_limit_reset_of(fine, 1793012100), Ok(None));
+        let header_in_body = "HTTP/2.0 200 OK\n\nRatelimit-Remaining: 0\nRatelimit-Reset: 1793012160\n";
+        assert_eq!(gitlab_rate_limit_reset_of(header_in_body, 1793012100), Ok(None));
+        assert!(gitlab_rate_limit_reset_of("", 1793012100).is_err());
+        assert!(gitlab_rate_limit_reset_of("{\"id\": 1}", 1793012100).is_err());
     }
 
     #[test]
