@@ -410,3 +410,27 @@ describe("NeedsYouWorkspaces height (issue #807)", () => {
     expect(wrapper.get(".needs-you-workspaces").attributes("style")).toContain("min-height: 84px");
   });
 });
+
+describe("NeedsYouWorkspaces recording icon (issue 762)", () => {
+  it("shows the recording icon on the row of the workspace whose pane records", async () => {
+    const { settings } = await import("../stores/settings");
+    const { voiceInput } = await import("../stores/voice_input");
+    const { wrapper } = await mountList();
+    settings.voiceInput = true;
+    voiceInput.ownerPaneId = "p2";
+    voiceInput.state = "recording";
+    try {
+      await wrapper.vm.$nextTick();
+      const rows = wrapper.findAll(".workspace-row");
+      expect(rows.map((row) => row.find(".name").text())).toEqual(["scratch", "heidrun", "teamwright"]);
+      expect(rows.map((row) => row.find(".voice-recording-icon").exists())).toEqual([false, false, true]);
+      voiceInput.state = "idle";
+      await wrapper.vm.$nextTick();
+      expect(wrapper.find(".voice-recording-icon").exists()).toBe(false);
+    } finally {
+      voiceInput.ownerPaneId = null;
+      voiceInput.state = "idle";
+      settings.voiceInput = false;
+    }
+  });
+});

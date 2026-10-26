@@ -9,6 +9,7 @@ import GitWorktreesModal from "./GitWorktreesModal.vue";
 import InformationCardTooltip from "./InformationCardTooltip.vue";
 import InlineRename from "./InlineRename.vue";
 import ScrollingLine from "./ScrollingLine.vue";
+import VoiceRecordingIcon from "./VoiceRecordingIcon.vue";
 import { askConfirm } from "../stores/confirm";
 import { settings } from "../stores/settings";
 import { currentGit, git, workspaceCwd } from "../stores/git";
@@ -29,6 +30,7 @@ import {
 } from "../stores/session";
 import { webOfRemote } from "../lib/refs";
 import { useReorder } from "../lib/reorder";
+import { VoiceInput } from "../lib/voice_input";
 import { startScrolling, stopScrolling } from "../lib/scroll_on_hover";
 import { useStatusCard } from "../lib/status_card";
 import type { WorkspaceInfo } from "../lib/types";
@@ -374,6 +376,7 @@ watch(isRenaming, (renaming) => {
                     'text-body-secondary': !workspaceHasAgent(workspace.workspace_id) && workspace.workspace_id !== state.selectedWorkspaceId,
                   }"
                 >{{ workspace.label }}</span>
+                <VoiceRecordingIcon v-if="VoiceInput.isRecordingInWorkspace(workspace.workspace_id)" />
                 <span
                   v-if="branchOf(workspace.workspace_id) !== null"
                   class="workspace-branch"
@@ -443,7 +446,8 @@ watch(isRenaming, (renaming) => {
 .workspace-status > .popover { cursor: default; }
 .workspace-status > .popover .btn:not(:disabled) { cursor: pointer; }
 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.workspace-main > .name { flex: 1; }
+/* The name takes only its width, so the recording icon of the voice input sits right after it (issue 762). */
+.workspace-main > .name { flex: 0 1 auto; }
 .workspace-row { min-height: 32px; border-radius: 6px; }
 .workspace-main { flex: 1; min-width: 0; align-self: stretch; }
 .workspace-branch {

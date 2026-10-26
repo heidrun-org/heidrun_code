@@ -11,6 +11,8 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { git } from "../stores/git";
 import { settings } from "../stores/settings";
 import { useReorder } from "../lib/reorder";
+import { VoiceInput } from "../lib/voice_input";
+import VoiceRecordingIcon from "./VoiceRecordingIcon.vue";
 import { NeedsYouWorkspacesHeight } from "../lib/needs_you_workspaces_height";
 import { t } from "../i18n/index";
 
@@ -179,6 +181,7 @@ function branchOf(workspaceId: string): string | null {
               'text-body-secondary': !workspaceHasAgent(workspace.workspace_id) && workspace.workspace_id !== state.selectedWorkspaceId,
             }"
           >{{ workspace.label }}</span>
+          <VoiceRecordingIcon v-if="VoiceInput.isRecordingInWorkspace(workspace.workspace_id)" />
           <span
             v-if="branchOf(workspace.workspace_id) !== null"
             class="branch text-body-secondary"
