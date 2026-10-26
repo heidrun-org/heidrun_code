@@ -10,6 +10,7 @@
 //!
 //! The grouping into hours, the join with the prices, and the cost are in the package.
 
+use crate::application_log::{data_layer_call, no_details};
 use chrono::{DateTime, Utc};
 use data_layer_coding_agents::{
     default_database_path, find_ai_cost, local_time_zone_name, refresh_ai_cost, AiCostAnswer, AiCostSynchronization,
@@ -75,7 +76,12 @@ fn synchronize(
     // Two programs that write the SQLite file at the same time would fail with "database is locked". The command line
     // heidrun_data takes the same lock.
     let _guard = heidrun_data::lock_database(database_path)?;
-    refresh_ai_cost(database_path, &roots_of(folders), is_import_allowed, now)
+    data_layer_call(
+        "coding_agents",
+        "refresh_ai_cost",
+        || refresh_ai_cost(database_path, &roots_of(folders), is_import_allowed, now),
+        no_details,
+    )
 }
 
 /// Reads the tokens and the cost of the workspaces of `folders` from the SQLite file at `database_path`.
@@ -83,7 +89,12 @@ fn read(folders: &[String], since: &str, until: &str, time_zone: &str, database_
     let since = parse_time(since)?;
     let until = parse_time(until)?;
     let time_zone = if time_zone.is_empty() { local_time_zone_name() } else { time_zone.to_string() };
-    find_ai_cost(database_path, &roots_of(folders), since, until, &time_zone)
+    data_layer_call(
+        "coding_agents",
+        "find_ai_cost",
+        || find_ai_cost(database_path, &roots_of(folders), since, until, &time_zone),
+        no_details,
+    )
 }
 
 #[cfg(test)]

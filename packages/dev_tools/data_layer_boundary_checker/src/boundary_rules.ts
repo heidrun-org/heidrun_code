@@ -95,10 +95,12 @@ export const RUST_STRING_RULES: PatternRule[] = [
 /**
  * The names that a Rust file of the scope may use from the desktop application itself, as paths after `crate::`. A path that ends
  * with `::` allows everything below it. A module of the desktop application that is not in this list is a helper that is not
- * checked, so the scope may not use it.
+ * checked, so the scope may not use it. `application_log::` is allowed because it only writes the start and the end of each call
+ * to a package of the data layer in the application log, and reads no source (issue #883).
  */
 export const ALLOWED_CRATE_PATHS = [
 	'app_data::',
+	'application_log::',
 	'past_chats::',
 	'statistics::',
 	'project::find_root',

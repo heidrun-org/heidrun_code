@@ -232,6 +232,7 @@ async fn run_cached(
                 cache.put(key, output.clone(), now_ms());
                 cache.save();
             });
+            crate::git::log_github_points_after(&call, &cwd, &tool, &args);
             call.end(ForgeAnswerSource::Forge, None);
             Ok(ForgeAnswer::new(output))
         }

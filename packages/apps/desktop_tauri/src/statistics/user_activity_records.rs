@@ -8,6 +8,7 @@
 //!
 //! The file of the records is written by `crate::user_activity`. This file never reads it.
 
+use crate::application_log::{data_layer_call, row_count};
 use data_layer_user_activity::{default_database_path, find_user_activity_records, refresh_user_activity, UserActivityRecord};
 use serde::Serialize;
 use std::path::Path;
@@ -35,8 +36,15 @@ pub async fn user_activity_synchronize() -> Result<UserActivitySynchronization, 
 /// two texts in ISO 8601, the oldest first. It reads the SQLite file only. The times of the records are in UTC.
 #[tauri::command]
 pub async fn user_activity_records_in_range(since: String, until: String) -> Result<Vec<UserActivityRecord>, String> {
-    tauri::async_runtime::spawn_blocking(move || find_user_activity_records(&default_database_path(), &since, &until))
-        .await
+    tauri::async_runtime::spawn_blocking(move || {
+        data_layer_call(
+            "user_activity",
+            "find_user_activity_records",
+            || find_user_activity_records(&default_database_path(), &since, &until),
+            row_count,
+        )
+    })
+    .await
         .map_err(|error| error.to_string())?
 }
 
@@ -47,7 +55,12 @@ fn synchronize(file_path: &Path, database_path: &Path) -> Result<UserActivitySyn
     // The other commands of the Statistics window and the command line heidrun_data write the same SQLite file, and the file has
     // no waiting time.
     let _database_guard = heidrun_data::lock_database(database_path)?;
-    let report = refresh_user_activity(database_path, file_path)?;
+    let report = data_layer_call(
+        "user_activity",
+        "refresh_user_activity",
+        || refresh_user_activity(database_path, file_path),
+        |report| serde_json::json!({ "record_count": report.record_count }),
+    )?;
     Ok(UserActivitySynchronization { record_count: report.record_count })
 }
 
