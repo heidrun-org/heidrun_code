@@ -1,0 +1,13 @@
+{
+  "title": "Images of the chat",
+  "noChat": "The selected pane shows no chat of Claude Code.",
+  "noImage": "The chat of the selected pane has no image.",
+  "failed": "The images cannot be read: {error}",
+  "imageName": "[Image #{number}]",
+  "openLarge": "Open in the big view",
+  "viewerLabel": "Big view of the images of the chat",
+  "previous": "Previous image",
+  "next": "Next image",
+  "close": "Close the big view",
+  "position": "{position} of {total}"
+}

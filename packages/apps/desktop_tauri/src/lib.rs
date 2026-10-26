@@ -3,6 +3,7 @@ mod application_log;
 mod application_profile;
 mod build_settings;
 mod antigravity;
+mod chat_images;
 mod claude;
 mod clipboard;
 mod coding_agent_models;
@@ -408,6 +409,7 @@ pub fn run() {
             claude::claude_set_rc_startup,
             claude::claude_commands,
             claude::claude_session_agents,
+            chat_images::chat_images::chat_images_find,
             past_chats::chats::chats_synchronize,
             past_chats::chats::chats_list,
             past_chats::chats_files::chats_files_exist,

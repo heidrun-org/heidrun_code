@@ -5,7 +5,7 @@
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
-- Related issue: [issue 315](https://github.com/heidrun-org/heidrun/issues/315), [issue 371](https://github.com/heidrun-org/heidrun/issues/371), [issue 428](https://github.com/heidrun-org/heidrun/issues/428), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 440](https://github.com/heidrun-org/heidrun/issues/440), [issue 690](https://github.com/heidrun-org/heidrun/issues/690)
+- Related issue: [issue 315](https://github.com/heidrun-org/heidrun/issues/315), [issue 371](https://github.com/heidrun-org/heidrun/issues/371), [issue 428](https://github.com/heidrun-org/heidrun/issues/428), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 440](https://github.com/heidrun-org/heidrun/issues/440), [issue 690](https://github.com/heidrun-org/heidrun/issues/690), [issue 790](https://github.com/heidrun-org/heidrun_code/issues/790)
 
 This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md).
 
@@ -33,4 +33,8 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 - The Clipboard sidebar section shows the title "Clipboard" at its top. The space around the title is in [sidebars_appearance.md](../../web_styling/sidebars_appearance.md). The Bootstrap switch "All workspaces" stays on the same line as the title, at the right. The text "Pinned notes" is not on the screen.
 - The Clipboard sidebar section lists the notes of the selected workspace, or every note when the switch "All workspaces" is on. The number on the button of the Clipboard sidebar section counts the notes that the list shows.
 - A note whose workspace does not exist any more stays, and shows only when the switch "All workspaces" is on.
+- The part "Images of the chat" sits at the bottom of the column of the Clipboard sidebar section, below the notes, also when the notes leave space above it. It shows the image behind each text `[Image #N]` of the chat of Claude Code in the selected pane, in the order of the numbers, with the text `[Image #N]` under each image. A click opens the image in a big view, where the arrow keys move to the next or the previous image and the key Escape closes the view ([issue 790](https://github.com/heidrun-org/heidrun_code/issues/790)).
+- The number `N` of an image is the number that Claude Code gives in the field `imagePasteIds` of the message, not a count of the images: an image that the developer removed before sending keeps its number, so a chat can have the images 1, 2, 6, and 7.
+- The chat of the selected pane is the chat session identifier that the status line of Claude Code reports for the pane (`hd_sid`). A pane without this identifier shows a plain text, and so does a chat without an image. The images are read again at most every 2 seconds after the status line reports a change, and at once when the selected pane shows another chat.
+- The images come from the package `data_layer_coding_agents`, as [data_layer_access.md](../../data_layer_access.md) says. Heidrun Code stores no copy of an image. Only the chats of Claude Code have images here: the chats of Codex and of Antigravity are not read.
 

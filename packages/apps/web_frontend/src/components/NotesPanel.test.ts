@@ -28,6 +28,13 @@ describe("NotesPanel", () => {
     expect(wrapper.find(".eyebrow").exists()).toBe(false);
   });
 
+  it("shows the images of the chat of the selected pane at the bottom of the Clipboard sidebar section (issue #790)", async () => {
+    const { wrapper } = await mountNotesPanel();
+    const last = wrapper.element.children[wrapper.element.children.length - 1];
+    expect(last.tagName).toBe("SECTION");
+    expect(last.querySelector("h3")?.textContent).toBe("Images of the chat");
+  });
+
   it("does not show the old text Pinned notes", async () => {
     const { wrapper } = await mountNotesPanel();
     expect(wrapper.text()).not.toMatch(/pinned notes/i);
