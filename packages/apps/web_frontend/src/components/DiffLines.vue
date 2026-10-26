@@ -4,7 +4,7 @@ import { splitDiff, type DiffLine } from "../lib/diff";
 import { settings } from "../stores/settings";
 import { t } from "../i18n/index";
 
-// The lines of a diff, as a unified diff or side by side. The large Git window and the diff pane both show a diff with it.
+// The lines of a diff, as a unified diff or side by side, in the diff pane.
 // Issue: https://github.com/heidrun-org/heidrun_code/issues/885
 const props = defineProps<{
   /** The lines of the diff, from `parseDiff`. */
@@ -83,7 +83,7 @@ function startSplit(e: PointerEvent) {
         </tbody>
       </table>
     </div>
-    <div class="split-bar" :title="t('gitModal.splitBarTitle')" @pointerdown="startSplit" @dblclick="settings.splitRatio = 0.5"></div>
+    <div class="split-bar" :title="t('diffPane.splitBarTitle')" @pointerdown="startSplit" @dblclick="settings.splitRatio = 0.5"></div>
     <div class="side">
       <table class="tbl">
         <tbody>

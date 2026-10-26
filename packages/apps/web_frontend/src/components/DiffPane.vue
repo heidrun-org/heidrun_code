@@ -29,7 +29,7 @@ const props = defineProps<{
   controlsHost: HTMLElement | null;
 }>();
 
-/** The number of lines that the pane shows at most, as the large Git window. */
+/** The number of lines that the pane shows at most. */
 const MAX_ROWS = 6000;
 
 const absolutePath = computed(() => DiffPaneLabel.parse(props.pane.label));
@@ -53,9 +53,9 @@ const html = ref<string[]>([]);
 const isTruncated = ref(false);
 const error = ref("");
 const isLoading = ref(false);
-/** "unified" or "split": the display of the diff, saved in the setting `diffMode` that the large Git window also uses. */
+/** "unified" or "split": the display of the diff, saved in the setting `diffMode`. */
 const diffMode = computed({
-  get: () => (settings.diffMode === "split" ? "split" : "unified"),
+  get: () => settings.diffMode,
   set: (mode: "unified" | "split") => {
     settings.diffMode = mode;
   },
@@ -119,7 +119,7 @@ async function copyPath(isAbsolute: boolean) {
     return;
   }
   await writeText(copied).catch(() => {});
-  toast(t("filesModal.copied", { path: copied }));
+  toast(t("diffPane.copied", { path: copied }));
 }
 function showInFinder() {
   if (absolutePath.value !== null) {
@@ -138,17 +138,17 @@ async function openInVisualStudioCode() {
   <div class="diff-pane">
     <Teleport v-if="controlsHost !== null" :to="controlsHost">
       <DiffPaneInformationCard :lines="lines" :path="path" :git-status="git.status[pane.workspace_id] ?? null" />
-      <div class="btn-group btn-group-sm" role="group" :aria-label="t('gitModal.display')">
-        <label class="btn small btn-check btn-outline theme-secondary" :title="t('gitModal.unifiedTitle')">
+      <div class="btn-group btn-group-sm" role="group" :aria-label="t('diffPane.display')">
+        <label class="btn small btn-check btn-outline theme-secondary" :title="t('diffPane.unifiedTitle')">
           <input v-model="diffMode" type="radio" :name="diffModeName" autocomplete="off" value="unified" />
-          {{ t("gitModal.unified") }}
+          {{ t("diffPane.unified") }}
         </label>
-        <label class="btn small btn-check btn-outline theme-secondary text-nowrap" :title="t('gitModal.splitTitle')">
+        <label class="btn small btn-check btn-outline theme-secondary text-nowrap" :title="t('diffPane.splitTitle')">
           <input v-model="diffMode" type="radio" :name="diffModeName" autocomplete="off" value="split" />
-          {{ t("gitModal.split") }}
+          {{ t("diffPane.split") }}
         </label>
       </div>
-      <SettingsSwitchRow v-model="settings.codeWrap" class="text-nowrap" :label="t('gitModal.wrap')" :title="t('gitModal.wrapTitle')" />
+      <SettingsSwitchRow v-model="settings.codeWrap" class="text-nowrap" :label="t('diffPane.wrap')" :title="t('diffPane.wrapTitle')" />
       <FileViewMenu
         :is-search-shown="false"
         @copy-path="copyPath"
@@ -184,10 +184,10 @@ async function openInVisualStudioCode() {
     </Teleport>
     <div class="code" :class="codeThemeClass">
       <div v-if="error !== ''" class="empty err">{{ error }}</div>
-      <div v-else-if="isStatusRead === false || (isLoading && lines.length === 0)" class="empty">{{ t("gitModal.loading") }}</div>
+      <div v-else-if="isStatusRead === false || (isLoading && lines.length === 0)" class="empty">{{ t("diffPane.loading") }}</div>
       <div v-else-if="lines.length === 0" class="empty">{{ t("diffPane.noChange") }}</div>
       <DiffLines v-else :lines="lines" :html="html" :mode="diffMode" :is-wrap="settings.codeWrap" />
-      <div v-if="isTruncated" class="empty">{{ t("gitModal.truncated", { count: MAX_ROWS }) }}</div>
+      <div v-if="isTruncated" class="empty">{{ t("diffPane.truncated", { count: MAX_ROWS }) }}</div>
     </div>
   </div>
 </template>

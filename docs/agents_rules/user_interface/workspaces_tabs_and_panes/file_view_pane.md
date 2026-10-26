@@ -5,33 +5,41 @@
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Panes](panes.md), [Pane headers](pane_headers.md), [Files](../sidebars/files.md)
-- Related issue: [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 784](https://github.com/heidrun-org/heidrun/issues/784)
+- Related issue: [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886)
 
 This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md). It gives the rules of the file view pane: a pane that shows one file, read only.
 
 ## File view pane
 
-A file view pane shows one file in the place where a pane normally shows a terminal ([issue 714](https://github.com/heidrun-org/heidrun/issues/714)). The developer reads the file there and cannot change it. The first step has no editing, no save button, and no button that writes a file. The Files window still edits files.
+A file view pane shows one file in the place where a pane normally shows a terminal ([issue 714](https://github.com/heidrun-org/heidrun/issues/714)). The developer reads the file there and cannot change it. The first step has no editing, no save button, and no button that writes a file. Heidrun Code has no other place that shows or edits a file: the Files window is gone ([issue 886](https://github.com/heidrun-org/heidrun_code/issues/886)).
 
 ## Opening a file
 
-A click on a file in the File explorer sidebar section opens the file in a file view pane, and no longer in the Files window.
+These actions open a file in a file view pane:
+
+- A click on a file in the File explorer sidebar section.
+- The new file that the button "New file" of the File explorer sidebar section creates.
+- The button "Open the file" of a file line of the Source control sidebar section.
+- The entry "Open the file" of the menu of a diff pane.
+- A click on a file name in a terminal. The pane shows the file from its start, and not at the line number that follows the file name.
+
+The file view pane opens in this way:
 
 - When the selected pane is a terminal, running or idle, a new pane opens to the right of it, in the same tab, and shows the file. The terminal stays as it was. Heidrun Code never replaces, hides, or stops a terminal.
 - When the selected pane is a file view pane, the file replaces the file of that pane. No new pane opens.
-- When no pane is selected, or when Herdr fails, the Files window opens the file, and a toast shows the error of Herdr when there is one.
-- The shortcut ⌘P and a file name in a terminal keep opening the Files window.
+- When no pane is selected, nothing opens, and a toast says "Select a pane first: the file opens next to it". When Herdr fails, nothing opens, and a toast shows the error of Herdr.
+- The shortcut ⌘P does nothing: it opened the Files window.
 - The new pane becomes the selected pane.
 
 ## What the file view pane shows
 
 - The pane has one line of controls, the header, and no second line under it ([issue 784](https://github.com/heidrun-org/heidrun/issues/784)). The header has the name of the file and the short path of the file, then the controls of the file, then the buttons "Pin the pane", "Split right", "Split down", Zen Mode, and "Close the pane". The title of the name is the absolute path of the file. A double click on the name does not start a rename, because the label of the pane holds the file. The header has no button for the composition bar and no macro menu, and the pane has no composition bar.
 - The controls of the file are always visible, and they are in this order:
-  - The button group "Preview" and "Raw" (only for a Markdown file). The title of "Preview" is "Preview: show the rendered text, with the front matter in a card", and the title of "Raw" is "Raw: show the file as it is". The Files window keeps the name "Code" for "Raw".
+  - The button group "Preview" and "Raw" (only for a Markdown file). The title of "Preview" is "Preview: show the rendered text, with the front matter in a card", and the title of "Raw" is "Raw: show the file as it is".
   - The switch "Wrap lines".
   - The menu button with three dots. It opens a dropdown menu with the entries "Search" (only while code or Raw is shown), "Copy path", "Show in Finder", and "Open in VS Code". The button opens the menu with a click, Enter, or Space. The arrow keys, Home, and End move between the entries, and the key Escape or the key Tab closes the menu. Escape gives the keyboard back to the button.
 - When the header is narrow, the short path is shortened first, then the name. The controls of the file never shrink.
-- The button group "Preview" and "Raw" saves its choice in the setting `filesMdRead`, and the switch "Wrap lines" saves its choice in the setting `codeWrap`. The Files window uses the same two settings. The texts of the controls are in the locale file `fileView.json`, except "Preview" and "Wrap lines", which are the texts of the Files window in `filesModal.json`.
+- The button group "Preview" and "Raw" saves its choice in the setting `filesMdRead`, and the switch "Wrap lines" saves its choice in the setting `codeWrap`. The texts of the controls are in the locale file `fileView.json`.
 - A code file is shown in the code editor, in read only mode. The key ⌘F opens the search panel of the editor in the same way as the button "Search". The editor never takes the keyboard from the pane when the file opens.
 - A Markdown file is shown as rendered text in Preview, and a link of the text opens in the browser. An image is shown as a picture. A file that cannot be read shows the error in the place of the file.
 - The entry "Copy path" copies the path inside the project, and the absolute path when the developer holds the key Option.

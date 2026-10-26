@@ -65,8 +65,6 @@ export const git = reactive({
   /** Git branch by folder, for the header of each shell pane. */
   branchByFolder: {} as Record<string, string | null>,
   loading: false,
-  /** Large Git window: open, and the file shown. */
-  modal: { open: false, path: null as string | null },
 });
 
 // ---- Merge, after confirmation ------------------------------------------------
@@ -122,11 +120,6 @@ export async function confirmMerge(): Promise<boolean> {
   } finally {
     merging.busy = false;
   }
-}
-
-export function openGitModal(path: string | null = null) {
-  git.modal.path = path;
-  git.modal.open = true;
 }
 
 /** The fixed workspace folder saved by the desktop application. */
@@ -490,7 +483,6 @@ export async function refreshGit(wsId = session.selectedWorkspaceId, isRefresh =
 }
 
 export const currentGit = computed(() => (session.selectedWorkspaceId ? git.status[session.selectedWorkspaceId] ?? null : null));
-export const currentForge = computed(() => (session.selectedWorkspaceId ? git.forge[session.selectedWorkspaceId] : undefined));
 
 let started = false;
 /**

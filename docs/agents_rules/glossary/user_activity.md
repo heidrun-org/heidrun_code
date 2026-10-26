@@ -39,7 +39,7 @@ The sidebar section of the right sidebar that shows the user activity records of
 
 ### Statistics window
 
-The large window that the item "Statistics" of the More menu opens. It is as large as the large Git window. Its title bar holds the buttons of its tabs, and the tab "User activity" is its first tab.
+The large window that the item "Statistics" of the More menu opens. It almost fills the main window. Its title bar holds the buttons of its tabs, and the tab "User activity" is its first tab.
 
 ### User activity tab
 

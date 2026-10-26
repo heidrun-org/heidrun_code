@@ -16,5 +16,17 @@
   "card.removed": "Removed lines",
   "card.lastCommit": "Compared to the last commit",
   "card.lastCommitDate": "Date of the last commit",
-  "card.noCommit": "No commit yet"
+  "card.noCommit": "No commit yet",
+  "display": "Display",
+  "loading": "Loading…",
+  "split": "Side by side",
+  "splitBarTitle": "Drag to resize · double-click: to the center",
+  "splitTitle": "Show the changes side by side",
+  "truncated_one": "Display limited to the first {count} line.",
+  "truncated_other": "Display limited to the first {count} lines.",
+  "unified": "Diff",
+  "unifiedTitle": "Show the changes as a unified diff",
+  "wrap": "Wrap lines",
+  "wrapTitle": "Wrap the long lines instead of scrolling sideways",
+  "copied": "Copied: {path}"
 }

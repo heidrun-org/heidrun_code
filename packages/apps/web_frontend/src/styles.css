@@ -463,7 +463,7 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---- Code themes (diff and file viewer) -------------------------------------- */
+/* ---- Code themes (diff pane and file view pane) ---------------------------- */
 .code { --c-bg: #0d1117; --c-fg: #c9d1d9; --c-gutter: #6e7681; --c-add: rgba(46, 160, 67, 0.16); --c-add-strong: rgba(46, 160, 67, 0.4);
   --c-del: rgba(248, 81, 73, 0.14); --c-del-strong: rgba(248, 81, 73, 0.4); --c-hunk: rgba(56, 139, 253, 0.12); --c-hunk-fg: #8b949e;
   --k: #ff7b72; --s: #a5d6ff; --c: #8b949e; --n: #79c0ff; --f: #d2a8ff; --t: #ffa657; --a: #7ee787; --v: #ffa657; --m: #79c0ff;

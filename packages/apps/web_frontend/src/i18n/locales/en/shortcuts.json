@@ -2,7 +2,6 @@
   "group.windows": "Windows",
   "action.commandPalette": "Command palette",
   "action.shortcutsList": "This list of shortcuts",
-  "action.openProjectFile": "Open a project file (search by name)",
   "action.searchTerminals": "Search the output of all terminals",
   "action.history": "History: agent jobs, time and cost per project, CSV export",
   "action.pinSelection": "Pin the selected text in a note",

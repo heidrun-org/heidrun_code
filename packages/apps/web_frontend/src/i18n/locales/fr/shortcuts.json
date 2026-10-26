@@ -2,7 +2,6 @@
   "group.windows": "Fenêtres",
   "action.commandPalette": "Palette de commandes",
   "action.shortcutsList": "Cette liste de raccourcis",
-  "action.openProjectFile": "Ouvrir un fichier du projet (recherche par nom)",
   "action.searchTerminals": "Chercher dans la sortie de tous les terminaux",
   "action.history": "Historique : tâches des agents, temps et coût par projet, export CSV",
   "action.pinSelection": "Épingler le texte choisi dans une note",

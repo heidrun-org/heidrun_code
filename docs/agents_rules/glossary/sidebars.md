@@ -5,7 +5,7 @@
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: sidebars](../user_interface/sidebars/index.md)
-- Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 425](https://github.com/heidrun-org/heidrun/issues/425), [issue 430](https://github.com/heidrun-org/heidrun/issues/430), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 446](https://github.com/heidrun-org/heidrun/issues/446), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 853](https://github.com/heidrun-org/heidrun_code/issues/853)
+- Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 425](https://github.com/heidrun-org/heidrun/issues/425), [issue 430](https://github.com/heidrun-org/heidrun/issues/430), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 446](https://github.com/heidrun-org/heidrun/issues/446), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 853](https://github.com/heidrun-org/heidrun_code/issues/853), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886)
 
 This document gives one short definition for each word of the sidebars and their sidebar sections. The other words of Heidrun Code are in [index.md](index.md).
 
@@ -50,18 +50,6 @@ The sidebar section of the left sidebar that shows the whole folder tree of the 
 ### Sidebar icon bar
 
 The narrow vertical bar of icons at the outer edge of each sidebar, like the bar of icons of Visual Studio Code. It shows one icon for each sidebar section of that sidebar. A click on an icon shows that sidebar section. When the sidebar is collapsed, the sidebar icon bar is the only part of the sidebar that stays visible.
-
-### Files window
-
-The window that shows a file in a tab, the file viewer. The developer can edit the file there. It opens with the shortcut ⌘P, from a file name in a terminal, and from a click on a file in the File explorer sidebar section when no pane can show the file in a file view pane. It is not the large Git window.
-
-### Large Git window
-
-The window that shows the local Git changes of the selected workspace as a diff, with the open pull requests (on GitLab, merge requests) in a side list. It opens from the Source control sidebar section: from the menu "More actions", from the buttons "View the changes", and from a click on a file line when no pane can show the diff in a diff pane. It only reads files.
-
-### Left sidebar enable disable button
-
-The small arrow button at the left end of the title bar of the large Git window. A click on it hides the file list at the left of the large Git window, and a second click shows the file list again. In this name, "left sidebar" means the file list of the large Git window, not the left sidebar of the application.
 
 ## Rules
 

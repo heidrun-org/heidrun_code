@@ -107,7 +107,7 @@ async function copyPath(isAbsolute: boolean) {
     return;
   }
   await writeText(path).catch(() => {});
-  toast(t("filesModal.copied", { path }));
+  toast(t("fileView.copied", { path }));
 }
 function showInFinder() {
   if (absolutePath.value !== null) {
@@ -137,17 +137,17 @@ function onMarkdownClick(event: MouseEvent) {
 <template>
   <div class="file-view">
     <Teleport v-if="controlsHost !== null" :to="controlsHost">
-      <div v-if="isMarkdownFile" class="btn-group btn-group-sm" role="group" :aria-label="t('filesModal.markdownLabel')">
+      <div v-if="isMarkdownFile" class="btn-group btn-group-sm" role="group" :aria-label="t('fileView.markdownLabel')">
         <label class="btn small btn-check btn-outline theme-secondary" :title="t('fileView.previewTitle')">
           <input v-model="markdownMode" type="radio" :name="markdownModeName" autocomplete="off" value="preview" />
-          {{ t("filesModal.rendered") }}
+          {{ t("fileView.preview") }}
         </label>
         <label class="btn small btn-check btn-outline theme-secondary" :title="t('fileView.rawTitle')">
           <input v-model="markdownMode" type="radio" :name="markdownModeName" autocomplete="off" value="raw" />
           {{ t("fileView.raw") }}
         </label>
       </div>
-      <SettingsSwitchRow v-model="settings.codeWrap" class="text-nowrap" :label="t('filesModal.wrap')" />
+      <SettingsSwitchRow v-model="settings.codeWrap" class="text-nowrap" :label="t('fileView.wrap')" />
       <FileViewMenu
         :is-search-shown="isCodeShown"
         @search="editor?.openSearch()"
@@ -158,7 +158,7 @@ function onMarkdownClick(event: MouseEvent) {
     </Teleport>
     <div class="code" :class="[codeThemeClass, { editing: isCodeShown }]">
       <div v-if="error !== ''" class="empty err">{{ error }}</div>
-      <div v-else-if="isLoading" class="empty">{{ t("filesModal.loading") }}</div>
+      <div v-else-if="isLoading" class="empty">{{ t("fileView.loading") }}</div>
       <div v-else-if="image !== ''" class="img"><img :src="image" :alt="absolutePath ?? ''" /></div>
       <article v-else-if="isPreview" class="md-doc" :class="{ full: settings.mdWidth === 'full' }" @click="onMarkdownClick">
         <section v-if="frontMatter !== null" class="front-matter-card" :aria-label="t('fileView.frontMatterLabel')">

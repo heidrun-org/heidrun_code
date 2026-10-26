@@ -16,5 +16,17 @@
   "card.removed": "Lignes supprimées",
   "card.lastCommit": "Comparé au dernier commit",
   "card.lastCommitDate": "Date du dernier commit",
-  "card.noCommit": "Aucun commit"
+  "card.noCommit": "Aucun commit",
+  "display": "Affichage",
+  "loading": "Chargement…",
+  "split": "Côte à côte",
+  "splitBarTitle": "Glisser pour redimensionner · double-clic : au centre",
+  "splitTitle": "Afficher les modifications côte à côte",
+  "truncated_one": "Affichage limité à la première ligne.",
+  "truncated_other": "Affichage limité aux {count} premières lignes.",
+  "unified": "Diff",
+  "unifiedTitle": "Afficher les modifications en diff unifié",
+  "wrap": "Retour à la ligne",
+  "wrapTitle": "Revenir à la ligne pour les longues lignes au lieu de défiler sur le côté",
+  "copied": "Copié : {path}"
 }

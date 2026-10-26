@@ -43,8 +43,8 @@ describe("AbbreviatedTime", () => {
   });
 
   it("puts the circled question mark after the time inside a phrase that ends with the time", () => {
-    const wrapper = mount(AbbreviatedTime, { props: { milliseconds: NOW - 3 * 60_000, phraseKey: "gitModal.lastCommit" } });
-    expect(wrapper.text()).toBe("last commit 3 min ago");
+    const wrapper = mount(AbbreviatedTime, { props: { milliseconds: NOW - 3 * 60_000, phraseKey: "mobileModal.lastSeen" } });
+    expect(wrapper.text()).toBe("Last connection of a device: 3 min ago");
     expect(wrapper.html().indexOf("3 min ago")).toBeLessThan(wrapper.html().indexOf("data-exact-time"));
   });
 });

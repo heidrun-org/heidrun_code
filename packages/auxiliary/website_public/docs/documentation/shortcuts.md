@@ -10,7 +10,6 @@ In the application, press **⌘/** (or the **?** button at the top) to show this
 | **Windows** | |
 | ⌘K | Command palette |
 | ⌘/ | This list of shortcuts |
-| ⌘P | Open a project file (search by name) |
 | ⇧⌘F | Search the output of all terminals |
 | ⇧⌘H | History: agent jobs, time and cost per project, CSV export |
 | ⇧⌘P | Pin the selected text in a note |

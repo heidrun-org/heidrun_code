@@ -153,7 +153,7 @@ onBeforeUnmount(close);
         class="menu-item d-flex align-items-center gap-2"
         role="menuitem"
         data-action="copy-path"
-        :title="t('filesModal.copyPathTitle')"
+        :title="t('fileView.copyPathTitle')"
         @click="choose(() => emit('copyPath', $event.altKey))"
       >
         <Icon name="copy" />
@@ -164,7 +164,7 @@ onBeforeUnmount(close);
         class="menu-item d-flex align-items-center gap-2"
         role="menuitem"
         data-action="show-in-finder"
-        :title="t('filesModal.finderTitle')"
+        :title="t('fileView.finderTitle')"
         @click="choose(() => emit('showInFinder'))"
       >
         <Icon name="folder2-open" />
@@ -175,7 +175,7 @@ onBeforeUnmount(close);
         class="menu-item d-flex align-items-center gap-2"
         role="menuitem"
         data-action="open-in-visual-studio-code"
-        :title="t('filesModal.vscodeTitle')"
+        :title="t('fileView.vscodeTitle')"
         @click="choose(() => emit('openInVisualStudioCode'))"
       >
         <Icon name="box-arrow-up-right" />
