@@ -3,7 +3,7 @@
 
 use crate::access::AccessGuard;
 use crate::embedded::{self, EmbeddedFile};
-use crate::handler::MobileCallHandler;
+use crate::handler::{MobileCallHandler, MobileEvent};
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{header, HeaderMap, StatusCode, Uri};
@@ -48,12 +48,26 @@ fn header_text<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
     headers.get(name).and_then(|v| v.to_str().ok())
 }
 
+/// Checks the headers of a request. A refused request, and the lock after ten bad keys, are sent to the application log.
 fn authorized(shared: &Shared, headers: &HeaderMap) -> Result<(), Response> {
     let host = header_text(headers, "host");
     let origin = header_text(headers, "origin");
     let given = header_text(headers, "x-herdr-token");
-    let result = shared.guard.lock().unwrap().authorize(host, origin, given, Instant::now());
-    result.map_err(|denial| denial.status_and_text().into_response())
+    let now = Instant::now();
+    let (result, is_newly_locked) = {
+        let mut guard = shared.guard.lock().unwrap();
+        let was_locked = guard.is_locked(now);
+        let result = guard.authorize(host, origin, given, now);
+        (result, was_locked == false && guard.is_locked(now))
+    };
+    let Err(denial) = result else {
+        return Ok(());
+    };
+    shared.handler.record_event(MobileEvent::Refused { reason: denial.name() });
+    if is_newly_locked {
+        shared.handler.record_event(MobileEvent::Locked);
+    }
+    Err(denial.status_and_text().into_response())
 }
 
 /// Serves one file of the mobile website. The address `/` is the file `index.html`. A path that is not in the table of
@@ -89,29 +103,55 @@ struct ApiCall {
     params: Value,
 }
 
+/// Answers one call of the phone, and sends the call to the application log with its method, its status, its duration, and
+/// its failure.
 async fn api(State(shared): State<Shared>, headers: HeaderMap, body: Bytes) -> Response {
     if let Err(r) = authorized(&shared, &headers) {
         return r;
     }
-    if body.len() > MAX_BODY_BYTES {
-        return (StatusCode::PAYLOAD_TOO_LARGE, "Request too large").into_response();
+    let started = Instant::now();
+    let (method, answer) = answer_call(&shared, &body).await;
+    let (status, error) = match &answer {
+        Ok(_) => (StatusCode::OK, None),
+        Err((status, error)) => (*status, Some(first_line(error))),
+    };
+    shared.handler.record_event(MobileEvent::Call {
+        method,
+        status: status.as_u16(),
+        duration_ms: started.elapsed().as_millis() as u64,
+        error,
+    });
+    match answer {
+        Ok(v) => axum::Json(v).into_response(),
+        Err((status, error)) => (status, error).into_response(),
     }
-    let Ok(call) = serde_json::from_slice::<ApiCall>(&body) else {
-        return (StatusCode::BAD_REQUEST, "Invalid request").into_response();
+}
+
+/// The method of a call (`unknown` when it is not in the closed list), and the answer, or the status and the text of the
+/// failure.
+async fn answer_call(shared: &Shared, body: &Bytes) -> (String, Result<Value, (StatusCode, String)>) {
+    let unknown = "unknown".to_string();
+    if body.len() > MAX_BODY_BYTES {
+        return (unknown, Err((StatusCode::PAYLOAD_TOO_LARGE, "Request too large".into())));
+    }
+    let Ok(call) = serde_json::from_slice::<ApiCall>(body) else {
+        return (unknown, Err((StatusCode::BAD_REQUEST, "Invalid request".into())));
     };
     if !METHODS.contains(&call.method.as_str()) {
-        return (StatusCode::NOT_FOUND, "Unknown method").into_response();
+        return (unknown, Err((StatusCode::NOT_FOUND, "Unknown method".into())));
     }
+    let method = call.method.clone();
     if PUSH_METHODS.contains(&call.method.as_str()) {
-        return match push_call(&call.method, &call.params) {
-            Ok(v) => axum::Json(v).into_response(),
-            Err(e) => (StatusCode::SERVICE_UNAVAILABLE, e).into_response(),
-        };
+        let answer = push_call(&call.method, &call.params).map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, e));
+        return (method, answer);
     }
-    match shared.handler.handle_call(call.method, call.params).await {
-        Ok(v) => axum::Json(v).into_response(),
-        Err(e) => (StatusCode::SERVICE_UNAVAILABLE, e).into_response(),
-    }
+    let answer = shared.handler.handle_call(call.method, call.params).await;
+    (method, answer.map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, e)))
+}
+
+/// The first line of a failure, at most 300 characters long.
+fn first_line(text: &str) -> String {
+    text.lines().next().unwrap_or("").chars().take(300).collect()
 }
 
 fn push_call(method: &str, params: &Value) -> Result<Value, String> {
@@ -136,9 +176,16 @@ mod tests {
     const HOST: &str = "words-of-the-tunnel.ngrok-free.dev";
     const TOKEN: &str = "0123456789abcdef";
 
-    /// Answers every call with the name of the method, and counts the calls.
+    /// Answers every call with the name of the method, counts the calls, and keeps the events of the application log.
     struct FakeHandler {
         calls: AtomicUsize,
+        events: Mutex<Vec<MobileEvent>>,
+    }
+
+    impl FakeHandler {
+        fn events(&self) -> Vec<MobileEvent> {
+            self.events.lock().unwrap().clone()
+        }
     }
 
     impl MobileCallHandler for FakeHandler {
@@ -151,10 +198,14 @@ mod tests {
                 Ok(json!({ "method": method, "params": params }))
             })
         }
+
+        fn record_event(&self, event: MobileEvent) {
+            self.events.lock().unwrap().push(event);
+        }
     }
 
     fn setup(token: Option<&str>) -> (Router, Arc<FakeHandler>) {
-        let handler = Arc::new(FakeHandler { calls: AtomicUsize::new(0) });
+        let handler = Arc::new(FakeHandler { calls: AtomicUsize::new(0), events: Mutex::new(Vec::new()) });
         let mut guard = AccessGuard::default();
         guard.set_token(token.map(str::to_string));
         guard.set_tunnel_host(Some(HOST.to_string()));
@@ -421,5 +472,69 @@ mod tests {
         let request = Request::builder().method("POST").uri("/index.html").header("host", HOST).body(Body::empty()).unwrap();
         assert_eq!(status_of(router, request).await, StatusCode::METHOD_NOT_ALLOWED);
         assert_eq!(handler.calls.load(Ordering::Relaxed), 0);
+    }
+
+    /// The event of a call, without its duration, which changes at each run.
+    fn without_duration(event: MobileEvent) -> MobileEvent {
+        match event {
+            MobileEvent::Call { method, status, error, .. } => MobileEvent::Call { method, status, duration_ms: 0, error },
+            other => other,
+        }
+    }
+
+    #[tokio::test]
+    async fn each_call_goes_to_the_application_log_with_its_method_its_status_and_its_failure_but_never_its_parameters() {
+        let (router, handler) = setup(Some(TOKEN));
+        status_of(router.clone(), api_request(HOST, None, Some(TOKEN), call_body("state"))).await;
+        status_of(router.clone(), api_request(HOST, None, Some(TOKEN), call_body("read"))).await;
+        status_of(router.clone(), api_request(HOST, None, Some(TOKEN), call_body("delete_pane"))).await;
+        status_of(router, api_request(HOST, None, Some(TOKEN), b"not json".to_vec())).await;
+        let events: Vec<MobileEvent> = handler.events().into_iter().map(without_duration).collect();
+        let call = |method: &str, status: u16, error: Option<&str>| MobileEvent::Call {
+            method: method.to_string(),
+            status,
+            duration_ms: 0,
+            error: error.map(str::to_string),
+        };
+        assert_eq!(
+            events,
+            vec![
+                call("state", 200, None),
+                call("read", 503, Some("Heidrun Code does not answer on the computer")),
+                call("unknown", 404, Some("Unknown method")),
+                call("unknown", 400, Some("Invalid request")),
+            ]
+        );
+        assert_eq!(format!("{events:?}").contains("p1"), false);
+    }
+
+    #[tokio::test]
+    async fn a_refused_request_goes_to_the_application_log_with_its_reason_but_never_the_key() {
+        let (router, handler) = setup(Some(TOKEN));
+        status_of(router.clone(), api_request("evil.example", None, Some(TOKEN), call_body("state"))).await;
+        status_of(router.clone(), api_request(HOST, Some("https://evil.example"), Some(TOKEN), call_body("state"))).await;
+        status_of(router, api_request(HOST, None, Some("wrong-key"), call_body("state"))).await;
+        assert_eq!(
+            handler.events(),
+            vec![
+                MobileEvent::Refused { reason: "unexpected_host" },
+                MobileEvent::Refused { reason: "unexpected_origin" },
+                MobileEvent::Refused { reason: "unpaired" },
+            ]
+        );
+        assert_eq!(format!("{:?}", handler.events()).contains("wrong-key"), false);
+    }
+
+    #[tokio::test]
+    async fn the_lock_after_ten_bad_keys_goes_once_to_the_application_log() {
+        let (router, handler) = setup(Some(TOKEN));
+        for _ in 0..12 {
+            status_of(router.clone(), api_request(HOST, None, Some("wrong"), call_body("state"))).await;
+        }
+        let events = handler.events();
+        assert_eq!(events.iter().filter(|event| **event == MobileEvent::Locked).count(), 1);
+        assert_eq!(events[10], MobileEvent::Locked);
+        assert_eq!(events.iter().filter(|event| **event == MobileEvent::Refused { reason: "unpaired" }).count(), 10);
+        assert_eq!(events.iter().filter(|event| **event == MobileEvent::Refused { reason: "too_many_attempts" }).count(), 2);
     }
 }

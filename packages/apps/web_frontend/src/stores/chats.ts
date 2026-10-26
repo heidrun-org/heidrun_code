@@ -1,6 +1,7 @@
 import { computed, reactive } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { settings } from "./settings";
+import { ApplicationLog } from "../lib/application_log";
 
 /** A coding agent that saves its conversations on this Mac. */
 export type ChatAgent = "claude" | "codex";
@@ -236,6 +237,7 @@ export async function loadChats(folder: string | null): Promise<void> {
     return;
   }
   chats.isLoading = chats.claude.length === 0 && chats.codex.length === 0;
+  const startedAt = performance.now();
   if (chats.root === null) {
     await readChats(folder);
   }
@@ -244,9 +246,13 @@ export async function loadChats(folder: string | null): Promise<void> {
   }
   const synchronizationError = await synchronizeChats(folder);
   await readChats(folder);
-  if (synchronizationError !== null && chats.folder === folder) {
+  if (chats.folder !== folder) {
+    return;
+  }
+  if (synchronizationError !== null) {
     chats.error = synchronizationError;
   }
+  void ApplicationLog.recordLoadTime("past_chats", startedAt, chats.error);
 }
 
 /** Copies the chat files of the folder into the SQLite file. Gives the reason of a failure, or null. */

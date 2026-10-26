@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import UserActivityHistogram from "./UserActivityHistogram.vue";
+import { ApplicationLog } from "../lib/application_log";
 import { UserActivity, type UserActivityRecord } from "../lib/user_activity";
 import { UserActivitySlotLengthText } from "../lib/user_activity_slot_length_text";
 import {
@@ -189,6 +190,7 @@ function chooseNoWorkspace(): void {
  */
 async function load(): Promise<void> {
   const now = Date.now();
+  const startedAt = performance.now();
   try {
     await invoke("user_activity_synchronize");
     const loaded = await invoke<UserActivityRecord[]>("user_activity_records_in_range", {
@@ -199,8 +201,10 @@ async function load(): Promise<void> {
     runningPeriodFolder.value = activePeriodStartedAt.value === null ? null : selectedWorkspaceFolder.value;
     readAt.value = now;
     records.value = loaded;
+    void ApplicationLog.recordLoadTime("statistics_user_activity", startedAt, null);
   } catch (error) {
     errorText.value = String(error);
+    void ApplicationLog.recordLoadTime("statistics_user_activity", startedAt, errorText.value);
   }
 }
 
