@@ -377,7 +377,33 @@ pub fn file_full_path(root: String, path: String) -> Result<String, String> {
     full_path(&root, &path).map(|p| p.display().to_string())
 }
 
-/// Never inside .git (hooks, config): creating a file there is not what the explorer is for.
+// ---- Editing -------------------------------------------------------------------------
+
+const MAX_EDIT: u64 = 5 * 1024 * 1024;
+
+/// Content fingerprint: a same-size write within the same second is still seen
+/// (timestamps alone miss it on some file systems).
+fn fingerprint(bytes: &[u8]) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    bytes.hash(&mut h);
+    format!("{:016x}-{}", h.finish(), bytes.len())
+}
+
+#[derive(Serialize, Debug)]
+pub struct FileText {
+    pub text: String,
+    /// Fingerprint when read: a save checks the file is still the same.
+    pub hash: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct FileStamp {
+    /// None: the file is gone (deleted on the disk).
+    pub hash: Option<String>,
+}
+
+/// Never inside .git (hooks, config): editing those is not what a file view pane is for.
 fn not_in_git_dir(path: &str) -> Result<(), String> {
     if Path::new(path).components().any(|c| c.as_os_str() == ".git") {
         return Err("fichier interne de git : non modifiable ici".into());
@@ -385,7 +411,198 @@ fn not_in_git_dir(path: &str) -> Result<(), String> {
     Ok(())
 }
 
-// ---- Create --------------------------------------------------------------------------
+/// A text file to edit, with its fingerprint.
+#[tauri::command(async)]
+pub fn file_read(root: String, path: String) -> Result<FileText, String> {
+    let real = full_path(&root, &path)?;
+    let meta = std::fs::metadata(&real).map_err(|e| e.to_string())?;
+    if meta.len() > MAX_EDIT {
+        return Err(format!("file too large to edit ({} KB)", meta.len() / 1024));
+    }
+    let bytes = std::fs::read(&real).map_err(|e| e.to_string())?;
+    if bytes.iter().take(8000).any(|b| *b == 0) {
+        return Err("binary file: it cannot be edited".into());
+    }
+    let hash = fingerprint(&bytes);
+    let text = String::from_utf8(bytes).map_err(|_| "file not in UTF-8: it cannot be edited here".to_string())?;
+    Ok(FileText { text, hash })
+}
+
+/// Fingerprint of a file now, to see whether someone (an agent) changed it.
+#[tauri::command(async)]
+pub fn file_stat(root: String, path: String) -> Result<FileStamp, String> {
+    known_root(&root)?;
+    let rel = safe_rel(&path)?;
+    let base = std::fs::canonicalize(&root).map_err(|e| e.to_string())?;
+    if std::fs::symlink_metadata(base.join(rel)).is_err() {
+        return Ok(FileStamp { hash: None });
+    }
+    let real = full_path(&root, &path)?;
+    let bytes = std::fs::read(&real).map_err(|e| e.to_string())?;
+    Ok(FileStamp { hash: Some(fingerprint(&bytes)) })
+}
+
+static TMP_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Saves a file of the project. Refused when the file on the disk is not the one
+/// the editor started from (`expected`: its fingerprint, or None when it was gone),
+/// never in .git, never through a symlink, never a read-only file. Written next to
+/// it then renamed (a crash never leaves half a file), permissions kept; a file
+/// with several hard links is written in place so they stay linked.
+#[tauri::command(async)]
+pub fn file_write(root: String, path: String, content: String, expected: Option<String>) -> Result<FileStamp, String> {
+    not_in_git_dir(&path)?;
+    known_root(&root)?;
+    let rel = safe_rel(&path)?;
+    if content.len() as u64 > MAX_EDIT {
+        return Err("content too large".into());
+    }
+    let base = std::fs::canonicalize(&root).map_err(|e| e.to_string())?;
+    let target = base.join(rel);
+    let exists = std::fs::symlink_metadata(&target).is_ok();
+    let real = if exists {
+        full_path(&root, &path)?
+    } else {
+        // Deleted meanwhile, and the user chose to write it back: its folder must
+        // still be inside the project.
+        let parent = target.parent().ok_or("folder not found")?;
+        let parent = std::fs::canonicalize(parent).map_err(|_| "the folder of the file no longer exists".to_string())?;
+        if !parent.starts_with(&base) {
+            return Err("path outside the project".into());
+        }
+        parent.join(target.file_name().ok_or("invalid name")?)
+    };
+    let current = if exists { Some(fingerprint(&std::fs::read(&real).map_err(|e| e.to_string())?)) } else { None };
+    if current != expected {
+        return Err("changed_on_disk".into());
+    }
+    let bytes = content.as_bytes();
+    if exists {
+        let meta = std::fs::metadata(&real).map_err(|e| e.to_string())?;
+        if !meta.is_file() {
+            return Err("not a file".into());
+        }
+        if meta.permissions().readonly() {
+            return Err("read-only file: not changed".into());
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            if meta.nlink() > 1 {
+                std::fs::write(&real, bytes).map_err(|e| format!("cannot write the file: {e}"))?;
+                return Ok(FileStamp { hash: Some(fingerprint(bytes)) });
+            }
+        }
+        let dir = real.parent().ok_or("folder not found")?;
+        let name = real.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let n = TMP_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let tmp = dir.join(format!(".{name}.heidrun-{}-{n}", std::process::id()));
+        {
+            use std::io::Write;
+            let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&tmp).map_err(|e| format!("cannot write the file: {e}"))?;
+            f.write_all(bytes).map_err(|e| format!("cannot write the file: {e}"))?;
+            f.sync_all().ok();
+        }
+        let _ = std::fs::set_permissions(&tmp, meta.permissions());
+        if let Err(e) = std::fs::rename(&tmp, &real) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(format!("cannot save the file: {e}"));
+        }
+    } else {
+        use std::io::Write;
+        let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&real).map_err(|e| format!("cannot write the file: {e}"))?;
+        f.write_all(bytes).map_err(|e| format!("cannot write the file: {e}"))?;
+    }
+    Ok(FileStamp { hash: Some(fingerprint(bytes)) })
+}
+
+// ---- Search and create ---------------------------------------------------------------
+
+#[derive(Serialize, Debug)]
+pub struct GrepHit {
+    pub path: String,
+    pub line: u32,
+    pub text: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct GrepResult {
+    pub hits: Vec<GrepHit>,
+    pub truncated: bool,
+}
+
+const MAX_HITS: usize = 2000;
+
+/// `path\0line\0text` (git grep -z) or `path\0line:text` (grep --null) lines → hits.
+/// The NUL after the path keeps names containing ':' intact.
+fn parse_grep(out: &str, strip: Option<&str>) -> GrepResult {
+    let mut hits = Vec::new();
+    let mut truncated = false;
+    for l in out.split('\n') {
+        let Some((p, rest)) = l.split_once('\0') else { continue };
+        let Some((n, t)) = rest.split_once('\0').or_else(|| rest.split_once(':')) else { continue };
+        let Ok(line) = n.parse::<u32>() else { continue };
+        if hits.len() >= MAX_HITS {
+            truncated = true;
+            break;
+        }
+        let path = strip.and_then(|s| p.strip_prefix(s)).unwrap_or(p).trim_start_matches("./").to_string();
+        let text: String = t.trim_end_matches('\r').chars().take(300).collect();
+        hits.push(GrepHit { path, line, text });
+    }
+    GrepResult { hits, truncated }
+}
+
+/// Text (or regular expression) in the project's files: git grep (fast, .gitignore
+/// respected, untracked files included), or grep -r outside git. Binary files skipped.
+#[tauri::command]
+pub async fn files_grep(root: String, query: String, regex: Option<bool>, case: Option<bool>) -> Result<GrepResult, String> {
+    known_root(&root)?;
+    if query.trim().is_empty() {
+        return Ok(GrepResult { hits: vec![], truncated: false });
+    }
+    if query.len() > 500 {
+        return Err("search text too long".into());
+    }
+    let regex = regex.unwrap_or(false);
+    let case = case.unwrap_or(false);
+    let is_git = run(Path::new(&root), &["rev-parse", "--is-inside-work-tree"]).await.is_some();
+    let mut cmd = if is_git {
+        let mut c = Command::new("git");
+        c.arg("-C").arg(&root).args(["-c", "core.quotepath=off", "grep", "-z", "-n", "-I", "--no-color", "--untracked", "--max-count", "200"]);
+        c
+    } else {
+        let mut c = Command::new("grep");
+        // --null (GNU and BSD grep): NUL after the name. -s: unreadable files skipped.
+        c.current_dir(&root).args(["-rnIs", "--null", "--color=never", "-m", "200"]);
+        for d in HEAVY {
+            c.arg(format!("--exclude-dir={d}"));
+        }
+        c
+    };
+    cmd.arg(if regex { "-E" } else { "-F" });
+    if !case {
+        cmd.arg("-i");
+    }
+    // "-e": a query starting with "-" is a pattern, not an option.
+    cmd.arg("-e").arg(&query);
+    if !is_git {
+        cmd.arg(".");
+    }
+    cmd.kill_on_drop(true);
+    let out = tokio::time::timeout(Duration::from_secs(15), cmd.output())
+        .await
+        .map_err(|_| "search too long (more than 15 seconds): make the search text more precise".to_string())?
+        .map_err(|e| e.to_string())?;
+    // Exit 1: nothing found. 2: bad pattern (or, for grep -r, an unreadable file:
+    // the hits found are still good).
+    let partial = !is_git && out.status.code() == Some(2) && !out.stdout.is_empty();
+    if !partial && !out.status.success() && out.status.code() != Some(1) {
+        let err = String::from_utf8_lossy(&out.stderr);
+        return Err(format!("search failed: {}", err.lines().next().unwrap_or("invalid expression")));
+    }
+    Ok(parse_grep(&String::from_utf8_lossy(&out.stdout), None))
+}
 
 /// The parent folder of `path`, inside the project (created paths do not exist yet).
 fn new_target(root: &str, path: &str) -> Result<PathBuf, String> {
@@ -460,13 +677,31 @@ mod tests {
     }
 
     #[test]
-    fn creates_a_file_and_a_folder_and_refuses_escapes_and_overwrites() {
+    fn writes_atomically_and_detects_changes() {
         let dir = std::env::temp_dir().join(format!("hd-files-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("src")).unwrap();
         std::fs::write(dir.join("src/a.txt"), "un\n").unwrap();
         let root = std::fs::canonicalize(&dir).unwrap().display().to_string();
         remember_root(&root);
+        let t = file_read(root.clone(), "src/a.txt".into()).unwrap();
+        assert_eq!(t.text, "un\n");
+        let st = file_write(root.clone(), "src/a.txt".into(), "deux\n".into(), Some(t.hash.clone())).unwrap();
+        assert_eq!(std::fs::read_to_string(dir.join("src/a.txt")).unwrap(), "deux\n");
+        // Same size, right away: still seen through the fingerprint.
+        std::fs::write(dir.join("src/a.txt"), "DEUX\n").unwrap();
+        assert_eq!(file_write(root.clone(), "src/a.txt".into(), "moi\n".into(), st.hash.clone()).unwrap_err(), "changed_on_disk");
+        // Deleted meanwhile: written back only when the editor knew it was gone.
+        std::fs::remove_file(dir.join("src/a.txt")).unwrap();
+        assert_eq!(file_stat(root.clone(), "src/a.txt".into()).unwrap().hash, None);
+        assert!(file_write(root.clone(), "src/a.txt".into(), "x\n".into(), st.hash.clone()).is_err());
+        file_write(root.clone(), "src/a.txt".into(), "x\n".into(), None).unwrap();
+        assert_eq!(std::fs::read_to_string(dir.join("src/a.txt")).unwrap(), "x\n");
+        assert!(file_write(root.clone(), "../x".into(), "".into(), None).is_err());
+        assert!(file_write(root.clone(), ".git/config".into(), "".into(), None).is_err());
+        assert_eq!(std::fs::read_dir(dir.join("src")).unwrap().count(), 1, "no temp file left");
+
+        // Create, refuse escapes and overwrites.
         file_create(root.clone(), "src/b.txt".into(), false).unwrap();
         file_create(root.clone(), "src/sub".into(), true).unwrap();
         assert!(file_create(root.clone(), "src/b.txt".into(), false).is_err());
@@ -479,11 +714,28 @@ mod tests {
         assert!(file_create(root.clone(), "hk/pre-commit".into(), false).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn parses_grep_output() {
+        let r = parse_grep("src/a.ts\012\0const x = 1;\n./b.md\03:a:b:c\nd:1:e.txt\05\0x\nbad line\n", None);
+        assert_eq!(r.hits.len(), 3);
+        assert_eq!((r.hits[0].path.as_str(), r.hits[0].line, r.hits[0].text.as_str()), ("src/a.ts", 12, "const x = 1;"));
+        assert_eq!((r.hits[1].path.as_str(), r.hits[1].text.as_str()), ("b.md", "a:b:c"));
+        assert_eq!((r.hits[2].path.as_str(), r.hits[2].line), ("d:1:e.txt", 5));
+    }
 }
 
 #[cfg(test)]
 mod helper_tests {
     use super::*;
+
+    #[test]
+    fn fingerprint_changes_with_the_content_and_the_length() {
+        assert_eq!(fingerprint(b"abc"), fingerprint(b"abc"));
+        assert_ne!(fingerprint(b"abc"), fingerprint(b"abd"));
+        assert!(fingerprint(b"abc").ends_with("-3"));
+        assert!(fingerprint(b"").ends_with("-0"));
+    }
 
     #[test]
     fn keeps_only_the_paths_that_are_folders_today() {
@@ -556,7 +808,7 @@ mod helper_tests {
         assert!(ignored.is_empty());
         let root = parent.display().to_string();
         remember_root(&root);
-        assert_eq!(std::fs::read_to_string(full_path(&root, "modules/example/src/a.ts").unwrap()).unwrap(), "x");
+        assert_eq!(file_read(root.clone(), "modules/example/src/a.ts".into()).unwrap().text, "x");
         let (shown, ignored, _) = git_project_files(&parent, true).await;
         assert!(shown.contains(&"modules/example/.env".to_string()));
         assert!(ignored.contains(&"modules/example/.heidrun/".to_string()));
@@ -656,6 +908,27 @@ mod helper_tests {
     fn splits_a_zero_separated_list_and_skips_empty_items() {
         let items: Vec<String> = split_z(b"a\0b c\0\0d\0").collect();
         assert_eq!(items, vec!["a", "b c", "d"]);
+    }
+
+    #[test]
+    fn parses_grep_output_with_a_stripped_prefix() {
+        let r = parse_grep("/root/a.txt\x001\x00hello\n", Some("/root/"));
+        assert_eq!(r.hits[0].path, "a.txt");
+    }
+
+    #[test]
+    fn cuts_a_very_long_match_line() {
+        let long = "x".repeat(500);
+        let r = parse_grep(&format!("a.txt\x001\x00{long}\n"), None);
+        assert_eq!(r.hits[0].text.chars().count(), 300);
+    }
+
+    #[test]
+    fn stops_after_the_maximum_number_of_hits() {
+        let out: String = (0..MAX_HITS + 5).map(|i| format!("a.txt\x00{}\x00x\n", i + 1)).collect();
+        let r = parse_grep(&out, None);
+        assert_eq!(r.hits.len(), MAX_HITS);
+        assert!(r.truncated);
     }
 
     #[test]

@@ -1,0 +1,10 @@
+{
+  "dialogLabel": "Open a project file",
+  "inputLabel": "Name of the file to open",
+  "placeholder": "Type a part of the file name…",
+  "resultsLabel": "Files of the project",
+  "loading": "Reading the files of the project…",
+  "noFile": "No file matches \"{query}\"",
+  "openTitle": "Open the file in a file view pane",
+  "noFolder": "Select a pane or a workspace first: the box searches its project"
+}

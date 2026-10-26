@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { Editor } from "../lib/editor";
+import type { Editor, EditorSelection } from "../lib/editor";
 import { codeIsDark } from "../stores/theme";
 
-const props = defineProps<{ path: string; text: string; wrap: boolean; line?: number | null; readOnly?: boolean }>();
-const emit = defineEmits<{ change: [text: string]; save: [] }>();
+const props = defineProps<{
+  path: string;
+  text: string;
+  wrap: boolean;
+  line?: number | null;
+  readOnly?: boolean;
+  /** False: the editor does not take the keyboard when it opens. By default, an editor that can change the text takes it. */
+  autoFocus?: boolean;
+}>();
+const emit = defineEmits<{ change: [text: string]; save: []; selection: [selection: EditorSelection | null] }>();
 const host = ref<HTMLElement>();
 let ed: Editor | null = null;
 let alive = true;
@@ -21,10 +29,11 @@ onMounted(async () => {
     readOnly: props.readOnly === true,
     onChange: (t) => emit("change", t),
     onSave: () => emit("save"),
+    onSelectionChange: (selection) => emit("selection", selection),
   });
   if (props.line) ed.goToLine(props.line);
-  // A read-only view does not take the keyboard from the pane that holds it.
-  if (props.readOnly !== true) ed.focus();
+  // A read-only view, or an editor told so, does not take the keyboard from the pane that holds it.
+  if (props.readOnly !== true && props.autoFocus !== false) ed.focus();
 });
 onBeforeUnmount(() => {
   alive = false;
@@ -46,7 +55,7 @@ watch(
   () => props.line,
   (l) => l && ed?.goToLine(l),
 );
-defineExpose({ focus: () => ed?.focus(), openSearch: () => ed?.openSearch() });
+defineExpose({ focus: () => ed?.focus(), openSearch: () => ed?.openSearch(), goToLine: (line: number) => ed?.goToLine(line) });
 </script>
 
 <template>

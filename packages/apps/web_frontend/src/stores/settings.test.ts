@@ -535,6 +535,8 @@ describe("sidebar section of the left sidebar that held the workspaces", () => {
 /** The options of the windows and of the sidebar sections that the application saves: name, default value, other value. */
 const SAVED_OPTIONS: [string, unknown, unknown][] = [
   ["filesShowIgnored", false, true],
+  ["fileSearchMatchCase", false, true],
+  ["fileSearchRegularExpression", false, true],
   ["diffMode", "unified", "split"],
   ["agentsActivityScope", "all", "pane"],
   ["historyPeriod", "today", "90"],

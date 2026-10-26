@@ -46,7 +46,7 @@ export type DetectionAction =
 			url: string | null;
 	  }
 	| {
-			/** Opens a file in the File explorer sidebar section. */
+			/** Opens a file in a file view pane, at its line. */
 			type: 'openFile';
 			/** The path as the text writes it. It is relative to the folder of the pane when it is not absolute. */
 			path: string;

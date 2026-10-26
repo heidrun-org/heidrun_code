@@ -11,6 +11,10 @@
         "actionKey": "action.shortcutsList"
       },
       {
+        "keys": "⌘P",
+        "actionKey": "action.openProjectFile"
+      },
+      {
         "keys": "⇧⌘F",
         "actionKey": "action.searchTerminals"
       },

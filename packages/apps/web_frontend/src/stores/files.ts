@@ -140,16 +140,17 @@ export async function loadFiles(cwd: string): Promise<boolean> {
 }
 
 /**
- * Opens a file name seen in a terminal, such as "src/app.ts:42", in a file view pane. The path is resolved from the folder of
- * the pane.
+ * Opens a file name seen in a terminal, such as "src/app.ts:42", in a file view pane, at its line. The path is resolved from
+ * the folder of the pane.
  * @param cwd - The folder of the pane that shows the file name.
  * @param path - The path of the file, relative to the folder of the pane or absolute.
+ * @param line - The line that follows the file name, or null when the file name has no line.
  */
-export async function openFileRef(cwd: string | null | undefined, path: string) {
+export async function openFileRef(cwd: string | null | undefined, path: string, line: number | null = null) {
   if (!cwd) return toast(t("filesStore.unknownFolder"));
   try {
     const r = await invoke<{ root: string; path: string }>("files_resolve", { cwd, path });
-    await FileViewPanes.open(`${r.root}/${r.path}`);
+    await FileViewPanes.open(`${r.root}/${r.path}`, line);
   } catch (e) {
     toast(String(e));
   }

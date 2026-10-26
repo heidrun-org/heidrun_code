@@ -47,12 +47,14 @@ describe('RemovedWindowsTest', () => {
 		expect(Fs.existsSync(Path.resolve(__dirname, 'i18n', 'locales', language, fileName))).toBe(false);
 	});
 
-	it('the list of shortcuts has no shortcut ⌘P', () => {
-		const groups: { items: { keys?: string }[] }[] = JSON.parse(
+	it('the shortcut ⌘P opens the box that searches a file by its name, and no window (issue #898)', () => {
+		const groups: { items: { keys?: string; actionKey?: string }[] }[] = JSON.parse(
 			Fs.readFileSync(Path.resolve(__dirname, 'lib', 'shortcuts.json'), 'utf8'),
 		);
-		const keyList = groups.flatMap((group) => group.items.map((item) => item.keys));
-		expect(keyList).not.toContain('⌘P');
+		const itemList = groups.flatMap((group) => group.items);
+		expect(itemList.find((item) => item.keys === '⌘P')?.actionKey).toBe('action.openProjectFile');
+		const appSource = Fs.readFileSync(Path.resolve(__dirname, 'App.vue'), 'utf8');
+		expect(appSource).toContain('if (!e.shiftKey) return run(() => QuickOpen.open());');
 	});
 
 	it.each(REMOVED_NAME_LIST)('no source file opens a window with %s', (name) => {

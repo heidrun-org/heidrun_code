@@ -4,45 +4,32 @@
 - Last updated: 26 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Panes](panes.md), [Pane headers](pane_headers.md), [Files](../sidebars/files.md)
-- Related issue: [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886), [issue 897](https://github.com/heidrun-org/heidrun_code/issues/897)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Panes](panes.md), [Pane headers](pane_headers.md), [Files](../sidebars/files.md), [File view pane editing](file_view_pane_editing.md), [Search in files](../sidebars/file_search.md), [Opening a file view pane](file_view_pane_opening.md)
+- Related issue: [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886), [issue 897](https://github.com/heidrun-org/heidrun_code/issues/897), [issue 898](https://github.com/heidrun-org/heidrun_code/issues/898)
 
-This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md). It gives the rules of the file view pane: a pane that shows one file, read only.
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md). It gives the rules of the file view pane: a pane that shows one file. The editing of the file and the actions on the selected lines are in [file_view_pane_editing.md](file_view_pane_editing.md).
 
 ## File view pane
 
-A file view pane shows one file in the place where a pane normally shows a terminal ([issue 714](https://github.com/heidrun-org/heidrun/issues/714)). The developer reads the file there and cannot change it. The first step has no editing, no save button, and no button that writes a file. Heidrun Code has no other place that shows or edits a file: the Files window is gone ([issue 886](https://github.com/heidrun-org/heidrun_code/issues/886)).
+A file view pane shows one file in the place where a pane normally shows a terminal ([issue 714](https://github.com/heidrun-org/heidrun/issues/714)). The developer reads the file there and changes it there. Heidrun Code has no other place that shows or edits a file: the Files window is gone ([issue 886](https://github.com/heidrun-org/heidrun_code/issues/886)).
 
 ## Opening a file
 
-These actions open a file in a file view pane:
-
-- A click on a file in the File explorer sidebar section.
-- The new file that the button "New file" of the File explorer sidebar section creates.
-- The button "Open the file" of a file line of the Source control sidebar section.
-- The entry "Open the file" of the menu of a diff pane.
-- A click on a file name in a terminal. The pane shows the file from its start, and not at the line number that follows the file name.
-
-The file view pane opens in this way:
-
-- When the selected pane is a terminal, running or idle, a new pane opens to the right of it, in the same tab, and shows the file. The terminal stays as it was. Heidrun Code never replaces, hides, or stops a terminal.
-- When the selected pane is a file view pane, the file replaces the file of that pane. No new pane opens.
-- When no pane is selected, nothing opens, and a toast says "Select a pane first: the file opens next to it". When Herdr fails, nothing opens, and a toast shows the error of Herdr.
-- The shortcut ⌘P does nothing: it opened the Files window.
-- The new pane becomes the selected pane.
+The actions that open a file in a file view pane, the line of a file name, the box of ⌘P, and the place of the new pane are in [file_view_pane_opening.md](file_view_pane_opening.md).
 
 ## What the file view pane shows
 
 - The pane has one line of controls, the header, and no second line under it ([issue 784](https://github.com/heidrun-org/heidrun/issues/784)). The header has the name of the file and the short path of the file, then the controls of the file, then the buttons "Pin the pane", "Split right", "Split down", Zen Mode, and "Close the pane". The title of the name is the absolute path of the file. A double click on the name does not start a rename, because the label of the pane holds the file. The header has no button for the composition bar and no macro menu, and the pane has no composition bar.
 - The controls of the file are always visible, and they are in this order:
+  - The button "Save", only while the file has unsaved changes ([file_view_pane_editing.md](file_view_pane_editing.md)).
   - The button group "Preview" and "Raw" (only for a Markdown file). The title of "Preview" is "Preview: show the rendered text, with the front matter in a card", and the title of "Raw" is "Raw: show the file as it is".
   - The menu button with three vertical dots. It opens a dropdown menu with the entries "Search" (only while code or Raw is shown), "Copy path", "Show in Finder", and "Open in VS Code", then a divider, then the switches "Wrap lines" and "Wrap at 80 columns" (only for a Markdown file) ([issue 897](https://github.com/heidrun-org/heidrun_code/issues/897)). A click on a switch changes its setting and leaves the menu open. The button opens the menu with a click, Enter, or Space. The arrow keys, Home, and End move between the entries and the switches, and the key Escape or the key Tab closes the menu. Escape gives the keyboard back to the button.
 - When the header is narrow, the short path is shortened first, then the name. The controls of the file never shrink.
 - The button group "Preview" and "Raw" saves its choice in the setting `filesMdRead`, the switch "Wrap lines" saves its choice in the setting `codeWrap`, and the switch "Wrap at 80 columns" saves its choice in the setting `markdownWrapAt80Columns`. The texts of the controls are in the locale file `fileView.json`.
-- A code file is shown in the code editor, in read only mode. The key ⌘F opens the search panel of the editor in the same way as the button "Search". The editor never takes the keyboard from the pane when the file opens.
+- A code file, and a Markdown file in Raw, is shown in the code editor, where the developer can change it. The key ⌘F opens the search panel of the editor in the same way as the button "Search". The editor never takes the keyboard from the pane when the file opens.
 - A Markdown file is shown as rendered text in Preview, and a link of the text opens in the browser. The rendered text uses the whole width of the pane. When the switch "Wrap at 80 columns" is on, the rendered text stays in a column of about 80 characters, in the middle of the pane. The rendered skill file of the window of a skill follows the same setting ([issue 897](https://github.com/heidrun-org/heidrun_code/issues/897)). An image is shown as a picture. A file that cannot be read shows the error in the place of the file.
 - The entry "Copy path" copies the path inside the project, and the absolute path when the developer holds the key Option.
-- The file is read when the pane opens, when the file of the pane changes, and when the developer changes the button group "Preview" and "Raw". The first step does not read the file again when the file changes on the disk.
+- The file is read when the pane opens, when the file of the pane changes, and when the developer changes the button group "Preview" and "Raw". The pane looks at the file on the disk every 4 seconds, as [file_view_pane_editing.md](file_view_pane_editing.md) says.
 
 ## The front matter card
 
@@ -67,10 +54,10 @@ A pane of Heidrun Code is a pane of Herdr, and Herdr sets the layout of the pane
 ## Where the code is
 
 - `FileViewLabel` in `lib/file_view_label.ts` writes and reads the label.
-- `FileViewPanes` in `stores/file_view_panes.ts` opens a file in a file view pane, with `ViewPanes` in `stores/view_panes.ts`, which the diff pane also uses ([diff_pane.md](diff_pane.md)).
+- `FileViewPanes` in `stores/file_view_panes.ts` opens a file in a file view pane, and keeps the line to show in `fileViewLineRequests`, with `ViewPanes` in `stores/view_panes.ts`, which the diff pane also uses ([diff_pane.md](diff_pane.md)).
 - `FrontMatter` in `lib/front_matter.ts` splits the front matter block from the body of a Markdown file.
 - `FileView.vue` is the body of the pane, and `PaneCard.vue` shows it in place of the terminal. `PaneCard.vue` gives the file view an element of its header, and `FileView.vue` teleports the controls of the file into that element. `FileViewMenu.vue` is the dropdown menu.
-- `CodeEditor.vue` and `lib/editor.ts` have the read only option.
+- `CodeEditor.vue` and `lib/editor.ts` have the read only option, the option that keeps the keyboard in its place, and the event of the selected lines.
 - The tests are `file_view_label.test.ts`, `file_view_panes.test.ts`, `front_matter.test.ts`, `FileView.test.ts`, `PaneCard.test.ts`, `PaneCardFileView.test.ts`, and `FilesPanel.test.ts`.
 
 ## Background

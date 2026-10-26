@@ -49,10 +49,10 @@ document.documentElement.style.setProperty("--font-size", `${FONT_DEFAULT}px`);
 const KEY = "heidrun.settings";
 
 /**
- * The sidebar sections of the left sidebar: "launchers" is the Launchers sidebar section, "files" is the Files one, and
- * "codeHosting" is the Code hosting one.
+ * The sidebar sections of the left sidebar: "launchers" is the Launchers sidebar section, "files" is the Files one,
+ * "fileSearch" is the Search in files one, and "codeHosting" is the Code hosting one.
  */
-export type LeftSidebarSection = "launchers" | "sourceControl" | "files" | "codeHosting";
+export type LeftSidebarSection = "launchers" | "sourceControl" | "files" | "fileSearch" | "codeHosting";
 
 /** The sidebar sections of the right sidebar: "toHandle" is the Needs you sidebar section. */
 export type RightSidebarSection = "toHandle" | "notes" | "chats" | "userActivity";
@@ -271,6 +271,10 @@ const defaults = {
   filesPanelRowHeight: "comfortable" as "compact" | "comfortable",
   /** Sidebar section File explorer: a thin vertical line under each unfolded folder links its rows. */
   filesPanelIndentGuides: true,
+  /** Sidebar section Search in files: the search finds only the text with the same upper case and lower case letters. */
+  fileSearchMatchCase: false,
+  /** Sidebar section Search in files: the searched text is a regular expression. */
+  fileSearchRegularExpression: false,
   /** Window Agents information: the activity list shows all the panes ("all") or only the selected pane ("pane"). */
   agentsActivityScope: "all" as "all" | "pane",
   /** Window History: the period of the runs. */
