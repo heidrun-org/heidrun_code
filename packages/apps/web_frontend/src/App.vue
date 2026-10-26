@@ -13,8 +13,7 @@ import RcModal from "./components/RcModal.vue";
 import ConfirmModal from "./components/ConfirmModal.vue";
 import DangerModal from "./components/DangerModal.vue";
 import GuardModal from "./components/GuardModal.vue";
-import GitModal from "./components/GitModal.vue";
-import { git, merging } from "./stores/git";
+import { merging } from "./stores/git";
 import MergeModal from "./components/MergeModal.vue";
 import IssueModal from "./components/IssueModal.vue";
 import { issueView } from "./stores/issues";
@@ -80,7 +79,6 @@ import SettingsModal from "./components/SettingsModal.vue";
 import SkillFileModal from "./components/SkillFileModal.vue";
 import InstalledSkillModal from "./components/InstalledSkillModal.vue";
 import FindNewSkillsModal from "./components/FindNewSkillsModal.vue";
-import FilesModal from "./components/FilesModal.vue";
 import AboutModal from "./components/AboutModal.vue";
 import MissingProgramsModal from "./components/MissingProgramsModal.vue";
 import ThreeJsDemoModal from "./components/ThreeJsDemoModal.vue";
@@ -88,7 +86,6 @@ import { threeJsDemoModal } from "./stores/three_js_demo_modal";
 import StatisticsModal from "./components/StatisticsModal.vue";
 import { statisticsModal } from "./stores/statistics_modal";
 import SplashScreen from "./components/SplashScreen.vue";
-import { files, openFiles } from "./stores/files";
 import { startMobile } from "./stores/mobile";
 import { claudeLink, disableClaudeLink, enableClaudeLink, loadClaudeLink, remote, startRemoteWatch } from "./stores/claude";
 import { loadAntigravityLink } from "./stores/antigravity";
@@ -216,8 +213,6 @@ function onKey(e: KeyboardEvent) {
   if (e.metaKey === false || e.ctrlKey === true) {
     return;
   }
-  // The file explorer (and its editor: ⌘D, ⌘F…) owns the keyboard; only the zoom passes.
-  if (files.open && !/^(Equal|Minus|NumpadAdd|NumpadSubtract|Digit0|Numpad0)$/.test(e.code)) return;
   const run = (fn: () => unknown) => {
     e.preventDefault();
     e.stopPropagation();
@@ -254,11 +249,7 @@ function onKey(e: KeyboardEvent) {
 
   switch (e.code) {
     case "KeyP":
-      // ⌘P: find a file of the selected pane's project (the explorer handles it once open).
-      if (!e.shiftKey) {
-        if (files.open) return;
-        return run(() => openFiles(selectedPane.value?.foreground_cwd || selectedPane.value?.cwd, { search: true }));
-      }
+      if (!e.shiftKey) return;
       return run(() => {
         const id = activePaneId();
         const pane = allPanes.value.find((p) => p.pane_id === id) ?? selectedPane.value;
@@ -281,8 +272,6 @@ function onKey(e: KeyboardEvent) {
     case "KeyD":
       return run(() => NewPane.startDefaultSplit(e.shiftKey ? "down" : "right"));
     case "KeyW":
-      // The file explorer uses ⌘W for its own tabs.
-      if (files.open) return;
       return run(() => {
         const tabId = state.selectedTabId;
         if (tabId === null || e.repeat === true) {
@@ -416,7 +405,6 @@ onBeforeUnmount(() => {
     <StatisticsModal v-if="statisticsModal.open" />
     <NoteModal v-if="notes.openId" />
     <RcModal v-if="remote.openFor" />
-    <GitModal v-if="git.modal.open" />
     <MergeModal v-if="merging.open && merging.req" />
     <IssueModal v-if="issueView.open" />
     <WorkspaceFolderRecovery />
@@ -434,7 +422,6 @@ onBeforeUnmount(() => {
     <InstalledSkillModal v-if="installedSkillModal.open" />
     <FindNewSkillsModal v-if="findNewSkillsModal.open" />
     <SkillFileModal v-if="skills.view !== null" />
-    <FilesModal v-if="files.open" />
     <DangerModal v-if="danger.open" />
     <ConfirmModal v-if="confirmDialog.open" />
     <Transition name="toast">

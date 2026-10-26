@@ -13,6 +13,7 @@ const callOrder = vi.hoisted(() => [] as string[]);
 vi.mock('../lib/api', () => ({ split, renamePane, run }));
 vi.mock('./session', () => ({ refresh, selectPane, selectedPane, toast }));
 vi.mock('./workspace_folders', () => ({ WorkspaceFolders: { require: () => '/work/project' } }));
+vi.mock('../i18n/index', () => ({ t: (key: string) => key }));
 
 const NEW_PANE = { pane_id: 'w1:p2', tab_id: 'w1:t1', workspace_id: 'w1' };
 
@@ -82,12 +83,12 @@ describe('FileViewPanes (issue #714)', () => {
 		expect(split).toHaveBeenCalledTimes(1);
 	});
 
-	it('returns false and changes nothing when no pane is selected', async () => {
+	it('returns false, changes nothing, and asks for a pane in a toast when no pane is selected (issue #886)', async () => {
 		selectedPane.value = null;
 		const { FileViewPanes } = await import('./file_view_panes');
 		expect(await FileViewPanes.open('/work/project/README.md')).toBe(false);
 		expect(split).not.toHaveBeenCalled();
-		expect(toast).not.toHaveBeenCalled();
+		expect(toast).toHaveBeenCalledWith('viewPanes.noSelectedPane', 'error');
 	});
 
 	it('returns false and shows the error in a toast when Herdr fails', async () => {

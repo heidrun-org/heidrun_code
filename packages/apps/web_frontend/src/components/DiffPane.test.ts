@@ -172,15 +172,6 @@ describe("DiffPane (issue #885)", () => {
     expect(wrapper.findAll(".side")).toHaveLength(2);
   });
 
-  it("shows the unified diff when the large Git window left the setting diffMode on File or Preview", async () => {
-    settings.diffMode = "file";
-    const wrapper = mountDiffPane();
-    await flushPromises();
-    expect((controls().get('input[value="unified"]').element as HTMLInputElement).checked).toBe(true);
-    expect(wrapper.find(".side").exists()).toBe(false);
-    expect(wrapper.findAll("tr.add")).toHaveLength(1);
-  });
-
   it("reads the diff and the Git status again after a click on Refresh", async () => {
     mountDiffPane();
     await flushPromises();

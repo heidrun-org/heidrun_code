@@ -5,9 +5,9 @@
 import { computed } from "vue";
 import Icon from "./Icon.vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
-import { currentGit, git, openGitModal, refreshGit } from "../stores/git";
-import { openFiles } from "../stores/files";
+import { currentGit, git, refreshGit } from "../stores/git";
 import { DiffPanes } from "../stores/diff_panes";
+import { FileViewPanes } from "../stores/file_view_panes";
 import {
   commit,
   discardFiles,
@@ -53,7 +53,6 @@ const moreItems = computed(() => [
   { id: "pull", label: t("sourceControlPanel.moreMenu.pull", { count: currentGit.value?.behind ?? 0 }) },
   { id: "push", label: t("sourceControlPanel.moreMenu.push", { count: currentGit.value?.ahead ?? 0 }) },
   { id: "fetch", label: t("sourceControlPanel.moreMenu.fetch") },
-  { id: "openLarge", label: t("sourceControlPanel.moreMenu.openLarge") },
 ]);
 
 /** The class that gives a status letter its color. */
@@ -99,14 +98,17 @@ function paths(group: SourceControlGroup): string[] {
 }
 
 function openFile(file: SourceControlFile) {
-  void openFiles(currentGit.value?.root, { path: file.path });
+  const root = currentGit.value?.root;
+  if (root !== undefined) {
+    void FileViewPanes.open(`${root}/${file.path}`);
+  }
 }
 
-// A click on a file line shows its changes in a diff pane. When no pane can show them, the large Git window shows them (issue #885).
-async function openDiff(file: SourceControlFile) {
+// A click on a file line shows its changes in a diff pane (issue #885).
+function openDiff(file: SourceControlFile) {
   const root = currentGit.value?.root;
-  if (root === undefined || (await DiffPanes.open(`${root}/${file.path}`)) === false) {
-    openGitModal(file.path);
+  if (root !== undefined) {
+    void DiffPanes.open(`${root}/${file.path}`);
   }
 }
 
@@ -118,10 +120,6 @@ function onCommitKeyDown(event: KeyboardEvent) {
 }
 
 function chooseMore(id: string) {
-  if (id === "openLarge") {
-    openGitModal();
-    return;
-  }
   void syncRepository(id as SyncAction);
 }
 
@@ -221,16 +219,6 @@ function chooseMore(id: string) {
                   @click="stashChanges(group === 'staged')"
                 >
                   <Icon name="archive" />
-                </button>
-                <button
-                  type="button"
-                  class="btn icon btn-sm icon-button"
-                  :aria-label="t('sourceControlPanel.viewChanges')"
-                  :title="t('sourceControlPanel.viewChanges')"
-                  :disabled="groups[group].length === 0"
-                  @click="openGitModal()"
-                >
-                  <Icon name="files" />
                 </button>
                 <button
                   v-if="group === 'changes'"

@@ -1,6 +1,7 @@
 import * as api from '../lib/api';
 import { refresh, selectPane, selectedPane, toast } from './session';
 import { WorkspaceFolders } from './workspace_folders';
+import { t } from '../i18n/index';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -22,13 +23,15 @@ export type ViewPaneOptions = {
 export class ViewPanes {
 	/**
 	 * Shows a view pane. When the selected pane is of the same kind, the new label replaces its label. Otherwise a new pane
-	 * opens to the right of the selected pane, and the selected pane stays as it was.
+	 * opens to the right of the selected pane, and the selected pane stays as it was. Without a selected pane, a toast asks the
+	 * developer to select a pane, and nothing opens.
 	 * @param options The label, the test of the kind, and the line of the waiting terminal.
 	 * @returns True when a view pane shows the file, false when there is no selected pane or when Herdr failed.
 	 */
 	static async open(options: ViewPaneOptions): Promise<boolean> {
 		const pane = selectedPane.value;
 		if (pane === null) {
+			toast(t('viewPanes.noSelectedPane'), 'error');
 			return false;
 		}
 		try {

@@ -9,5 +9,13 @@
   "menuTitle": "More actions on the file",
   "copyPath": "Copy path",
   "showInFinder": "Show in Finder",
-  "openInVisualStudioCode": "Open in VS Code"
+  "openInVisualStudioCode": "Open in VS Code",
+  "copied": "Copied: {path}",
+  "copyPathTitle": "Copy the relative path (⌥: absolute)",
+  "finderTitle": "Show in the Finder",
+  "vscodeTitle": "Open in VS Code",
+  "loading": "Loading…",
+  "markdownLabel": "Markdown display",
+  "preview": "Preview",
+  "wrap": "Wrap lines"
 }
