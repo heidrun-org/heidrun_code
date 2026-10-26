@@ -433,7 +433,7 @@ describe("CodeHostingPanel on GitHub", () => {
     await wrapper.get("button[aria-label=Refresh]").trigger("click");
     await flushPromises();
     const notice = groupOf(wrapper, "issues").get("[data-code-hosting-notice]");
-    expect(notice.text()).toMatch(/^The refresh failed\. This list is from .+\. gh: no network$/);
+    expect(notice.text()).toMatch(/^The refresh failed\. This list is 1 minute old, from .+\. gh: no network$/);
     expect(notice.classes()).toContain("failure");
     expect(groupOf(wrapper, "issues").findAll(".item")).toHaveLength(2);
     vi.mocked(invoke).mockImplementation(async (command, payload) => ({
@@ -465,7 +465,7 @@ describe("CodeHostingPanel on GitHub", () => {
       JSON.stringify((payload as { args: string[] }).args[0] === "issue" ? many : []),
     );
     const wrapper = await mountPanel();
-    expect(wrapper.text()).toContain("The list is too long: only the first 100 are shown.");
+    expect(wrapper.text()).toContain("The list is too long: only the first 30 are shown.");
   });
 });
 
