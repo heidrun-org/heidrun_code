@@ -4,7 +4,10 @@
 //! - the start and the stop of a recording of the voice input, and the start and the end of its transcription;
 //! - the start and the end of each call of the desktop application to a function of a data layer package, with the
 //!   GitHub points of the GraphQL queries of `data_layer_code_hosting` (issue #883);
-//! - the GitHub points left after each call to `gh` that GitHub answered, read with `gh api rate_limit` (issue #883).
+//! - the GitHub points left after each call to `gh` that GitHub answered, read with `gh api rate_limit` (issue #883);
+//! - each request on the socket of Herdr, each `git` command of the Source control sidebar section, the calls, the refused
+//!   requests, and the tunnel of the mobile server, the time to the first window, the load time of the Past chats sidebar
+//!   section and of the tabs of the Statistics window, and each download of a Whisper model (issue #904).
 //!
 //! The developer uses the application, then asks a coding agent to read this file, to find which calls cost the most
 //! points of the GitHub rate limit, which calls repeat, and how long each step takes. This log is separate from the
@@ -17,8 +20,8 @@ use std::fmt::Display;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Mutex;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 /// The name of the file of the log, in the folder of the data of Heidrun Code.
 const LOG_FILE: &str = "application_log.jsonl";
@@ -34,6 +37,13 @@ static LOG_LOCK: Mutex<()> = Mutex::new(());
 
 /// The last identifier given to a call, so that the end of a call names the same call as its start.
 static LAST_CALL_ID: AtomicU64 = AtomicU64::new(0);
+
+/// When the application started, for the time to the first window.
+static APPLICATION_STARTED: OnceLock<Instant> = OnceLock::new();
+
+/// The parts of the web page whose load time the web page writes with the command `application_log_load_time`: the Past chats
+/// sidebar section and the three tabs of the Statistics window. The list is closed, so that the web page writes no other text.
+const LOAD_PARTS: &[&str] = &["past_chats", "statistics_user_activity", "statistics_git_history", "statistics_ai_cost"];
 
 /// Where the answer of a call to `gh` or `glab` came from.
 #[derive(Serialize, Debug, Clone, Copy, PartialEq)]
@@ -182,6 +192,38 @@ pub(crate) fn record_github_rate_limit(call_id: u64, caller: &str, rate_limit_an
     write("github_rate_limit", github_rate_limit_fields(call_id, caller, rate_limit_answer));
 }
 
+/// Keeps the moment when the application started. Only the first call counts.
+pub(crate) fn mark_application_start() {
+    let _ = APPLICATION_STARTED.set(Instant::now());
+}
+
+/// Writes the line `main_window_shown`: the time from the start of the application to the first window. `reason` is
+/// `splash_image_ready` when the web page asked to show the window, or `timeout` when the wait for the web page ended.
+pub(crate) fn record_main_window_shown(reason: &str) {
+    let duration_ms = APPLICATION_STARTED.get().map(|started| started.elapsed().as_millis() as u64);
+    write("main_window_shown", serde_json::json!({ "duration_ms": duration_ms, "reason": reason }));
+}
+
+/// Writes the line `herdr_request`: one request on the socket of Herdr, with its duration and its failure. The line never
+/// holds the parameters, because a parameter can hold the text that the developer typed in a pane.
+pub(crate) fn record_herdr_request(method: &str, started: Instant, error: Option<&str>) {
+    write("herdr_request", herdr_request_fields(method, started.elapsed(), error));
+}
+
+/// Writes the line `git_call`: one `git` command, with its duration and its failure. The line holds only the name of the
+/// command, for example `status`, and never the other arguments, which can hold a commit message.
+pub(crate) fn record_git_call(args: &[&str], started: Instant, error: Option<&str>) {
+    write("git_call", git_call_fields(args, started.elapsed(), error));
+}
+
+/// Writes the line `load_time`: the time that a part of the web page took to load its data, measured by the web page. `part`
+/// must be one of `LOAD_PARTS`.
+#[tauri::command]
+pub fn application_log_load_time(part: String, duration_ms: u64, error: Option<String>) -> Result<(), String> {
+    write("load_time", load_time_fields(&part, duration_ms, error.as_deref())?);
+    Ok(())
+}
+
 /// Writes one line in the log: `event` is the kind of the event, for example `voice_recording_start`, and `fields` is an
 /// object with the other fields. A failure to write is ignored: the log never stops the application. The Rust tests write
 /// nothing, so that a test never changes the log of the developer.
@@ -251,6 +293,53 @@ fn github_rate_limit_fields(call_id: u64, caller: &str, rate_limit_answer: Resul
             "error": first_line(&error),
         }),
     }
+}
+
+/// The fields of the line `herdr_request`.
+fn herdr_request_fields(method: &str, duration: Duration, error: Option<&str>) -> Value {
+    serde_json::json!({
+        "method": first_line(method),
+        "duration_ms": duration.as_millis() as u64,
+        "error": error.map(first_line),
+    })
+}
+
+/// The fields of the line `git_call`.
+fn git_call_fields(args: &[&str], duration: Duration, error: Option<&str>) -> Value {
+    serde_json::json!({
+        "command": git_command_name(args),
+        "duration_ms": duration.as_millis() as u64,
+        "error": error.map(first_line),
+    })
+}
+
+/// The name of a `git` command: the first argument that is not an option, after the options `-c` and `-C` and their values.
+/// For example `status` for `-c core.quotepath=off status --porcelain=v2`, or `unknown`.
+fn git_command_name(args: &[&str]) -> String {
+    let mut arguments = args.iter();
+    while let Some(argument) = arguments.next() {
+        if *argument == "-c" || *argument == "-C" {
+            arguments.next();
+            continue;
+        }
+        if argument.starts_with('-') {
+            continue;
+        }
+        return argument.to_string();
+    }
+    "unknown".to_string()
+}
+
+/// The fields of the line `load_time`, or an error when `part` is not one of `LOAD_PARTS`.
+fn load_time_fields(part: &str, duration_ms: u64, error: Option<&str>) -> Result<Value, String> {
+    if LOAD_PARTS.contains(&part) == false {
+        return Err(format!("unknown part of the web page: {}", first_line(part)));
+    }
+    Ok(serde_json::json!({
+        "part": part,
+        "duration_ms": duration_ms,
+        "error": error.map(first_line),
+    }))
 }
 
 /// The file of the log: `application_log.jsonl` in the folder of the data of Heidrun Code.
@@ -412,5 +501,41 @@ mod tests {
         assert_eq!(std::fs::metadata(folder.join(FORMER_LOG_FILE)).unwrap().len(), MAX_LOG_BYTES + 1);
         assert_eq!(read_lines(&path).len(), 1);
         std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    #[test]
+    fn writes_a_herdr_request_with_its_method_its_duration_and_its_failure() {
+        let fields = herdr_request_fields("pane.read", Duration::from_millis(12), None);
+        assert_eq!(fields, serde_json::json!({ "method": "pane.read", "duration_ms": 12, "error": null }));
+        let failure = herdr_request_fields("ping", Duration::from_millis(3), Some("herdr_unreachable: /tmp/herdr.sock\nmore"));
+        assert_eq!(failure["error"], "herdr_unreachable: /tmp/herdr.sock");
+    }
+
+    #[test]
+    fn writes_only_the_name_of_a_git_command_and_never_its_other_arguments() {
+        let fields = git_call_fields(&["commit", "--message", "a secret message"], Duration::from_millis(40), None);
+        assert_eq!(fields, serde_json::json!({ "command": "commit", "duration_ms": 40, "error": null }));
+        assert_eq!(fields.to_string().contains("secret"), false);
+        let failure = git_call_fields(&["push"], Duration::from_millis(5), Some("fatal: no upstream\nmore"));
+        assert_eq!(failure["error"], "fatal: no upstream");
+    }
+
+    #[test]
+    fn finds_the_name_of_a_git_command_after_the_options() {
+        assert_eq!(git_command_name(&["-c", "core.quotepath=off", "status", "--porcelain=v2"]), "status");
+        assert_eq!(git_command_name(&["-C", "/repository", "log", "-1"]), "log");
+        assert_eq!(git_command_name(&["--no-pager", "diff"]), "diff");
+        assert_eq!(git_command_name(&["--version"]), "unknown");
+        assert_eq!(git_command_name(&[]), "unknown");
+    }
+
+    #[test]
+    fn writes_the_load_time_of_a_known_part_and_refuses_another_part() {
+        let fields = load_time_fields("past_chats", 250, Some("no folder\nmore")).unwrap();
+        assert_eq!(fields, serde_json::json!({ "part": "past_chats", "duration_ms": 250, "error": "no folder" }));
+        for part in LOAD_PARTS {
+            assert_eq!(load_time_fields(part, 1, None).is_ok(), true);
+        }
+        assert_eq!(load_time_fields("any_text", 1, None).is_err(), true);
     }
 }

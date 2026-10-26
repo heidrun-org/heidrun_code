@@ -201,12 +201,14 @@ fn claim_first_show(flag: &std::sync::atomic::AtomicBool) -> bool {
     !flag.swap(true, std::sync::atomic::Ordering::SeqCst)
 }
 
-/// Shows the main window and gives it the keyboard focus. Only the first call does the work.
-fn show_main_window_once(app: &AppHandle) {
+/// Shows the main window and gives it the keyboard focus. Only the first call does the work, and writes in the application log
+/// the time from the start of the application, with `reason`: `splash_image_ready` or `timeout`.
+fn show_main_window_once(app: &AppHandle, reason: &str) {
     use tauri::Manager;
     if !claim_first_show(&MAIN_WINDOW_SHOWN) {
         return;
     }
+    application_log::record_main_window_shown(reason);
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
@@ -217,7 +219,7 @@ fn show_main_window_once(app: &AppHandle) {
 /// in its first frame.
 #[tauri::command]
 fn show_main_window(app: AppHandle) {
-    show_main_window_once(&app);
+    show_main_window_once(&app, "splash_image_ready");
 }
 
 /// The command line option that starts Heidrun Code without the splash screen. A program that drives Heidrun Code, for example to
@@ -248,6 +250,7 @@ fn set_keep_agents_running(is_keeping: bool) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    application_log::mark_application_start();
     let context = tauri::generate_context!();
     application_profile::initialize(&context.config().identifier);
     login_shell_path::apply();
@@ -279,7 +282,7 @@ pub fn run() {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(MAIN_WINDOW_SHOW_TIMEOUT).await;
-                show_main_window_once(&handle);
+                show_main_window_once(&handle, "timeout");
             });
             Ok(())
         })
@@ -295,6 +298,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             set_keep_agents_running,
             show_main_window,
+            application_log::application_log_load_time,
             is_splash_screen_disabled,
             status_item::status_item_update,
             status_item::status_item_set_visible,

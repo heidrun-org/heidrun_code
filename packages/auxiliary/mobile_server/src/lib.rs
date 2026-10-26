@@ -14,6 +14,6 @@ mod server;
 mod tunnel;
 
 pub use config::{load_config, new_token, save_config, MobileConfig};
-pub use handler::{CallFuture, MobileCallHandler};
+pub use handler::{CallFuture, MobileCallHandler, MobileEvent};
 pub use server::{MobileError, MobileErrorKind, MobileServer, MobileStatus};
 pub use tunnel::find_ngrok;

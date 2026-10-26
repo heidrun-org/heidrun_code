@@ -12,6 +12,7 @@ import {
   type AiCostSynchronization,
   type AiTokensByAgent,
 } from "../lib/ai_cost";
+import { ApplicationLog } from "../lib/application_log";
 import { AveragePerDay } from "../lib/average_per_day";
 import { CalendarDays } from "../lib/calendar_days";
 import { SLOT_HOURS_OF_A_DAY } from "../lib/calendar_slots";
@@ -572,6 +573,7 @@ async function readGitHistory(folderToRead: string): Promise<void> {
     gitHistoryUpdates[folderToRead] = UpdateStages.withReport(gitHistoryUpdates[folderToRead] ?? {}, report);
   };
   const now = Date.now();
+  const startedAt = performance.now();
   try {
     const synchronization = await invoke<PersonWorkSynchronization>("person_work_synchronize", { folder: folderToRead, onProgress });
     const items = await invoke<Omit<PersonWorkItems, "codeHostingError">>("person_work_in_range", {
@@ -583,8 +585,10 @@ async function readGitHistory(folderToRead: string): Promise<void> {
       items: { ...items, codeHostingError: synchronization.codeHostingError },
       readAt: now,
     };
+    void ApplicationLog.recordLoadTime("statistics_git_history", startedAt, null);
   } catch (error) {
     gitHistoryReads[folderToRead] = { state: "failed", error: String(error) };
+    void ApplicationLog.recordLoadTime("statistics_git_history", startedAt, String(error));
   }
 }
 
@@ -600,6 +604,7 @@ async function readAiCost(isImportAllowed: boolean): Promise<void> {
   const readNumber = aiCostReadNumber;
   aiCostRead.value = { state: "working", isImport: isImportAllowed };
   const folders = chosenFolders.value;
+  const startedAt = performance.now();
   try {
     const synchronization = await invoke<AiCostSynchronization>("ai_cost_synchronize", { folders, isImportAllowed });
     const now = Date.now();
@@ -612,10 +617,12 @@ async function readAiCost(isImportAllowed: boolean): Promise<void> {
         priceWarning: synchronization.priceWarning,
       };
     }
+    void ApplicationLog.recordLoadTime("statistics_ai_cost", startedAt, null);
   } catch (error) {
     if (readNumber === aiCostReadNumber) {
       aiCostRead.value = { state: "failed", error: String(error) };
     }
+    void ApplicationLog.recordLoadTime("statistics_ai_cost", startedAt, String(error));
   }
 }
 

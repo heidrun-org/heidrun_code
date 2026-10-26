@@ -172,6 +172,7 @@ export class TauriMock {
 			case 'herdr_watch_panes':
 			case 'show_main_window':
 			case 'history_append':
+			case 'application_log_load_time':
 				return null;
 			default:
 				throw new Error(`mock: the command "${command}" is not available in the browser`);

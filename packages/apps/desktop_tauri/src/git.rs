@@ -6,7 +6,8 @@
 
 use coding_agent_cli::login_shell;
 use serde::Serialize;
-use std::time::Duration;
+use crate::application_log::record_git_call;
+use std::time::{Duration, Instant};
 use tokio::process::Command;
 
 #[derive(Serialize, Default)]
@@ -51,15 +52,34 @@ async fn worktree_details(folder: String, branch: Option<String>) -> GitWorktree
     GitWorktree { folder, branch, created_at, last_commit_at }
 }
 
+/// Runs `git -C cwd args`, writes it in the application log, and gives the standard output, or None when it fails.
 async fn git(cwd: &str, args: &[&str]) -> Option<String> {
-    let out = tokio::time::timeout(
+    let started = Instant::now();
+    let output = tokio::time::timeout(
         Duration::from_secs(8),
         Command::new("git").arg("-C").arg(cwd).args(args).kill_on_drop(true).output(),
     )
-    .await
-    .ok()?
-    .ok()?;
-    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+    .await;
+    let result = match output {
+        Err(_) => Err("no answer in 8 s".to_string()),
+        Ok(Err(error)) => Err(error.to_string()),
+        Ok(Ok(out)) => match output_error(&out) {
+            None => Ok(String::from_utf8_lossy(&out.stdout).into_owned()),
+            Some(error) => Err(error),
+        },
+    };
+    record_git_call(args, started, result.as_ref().err().map(String::as_str));
+    result.ok()
+}
+
+/// The failure of a finished `git` command: None when it succeeded, else its standard error output, or its exit status when
+/// the standard error output is empty.
+pub(crate) fn output_error(output: &std::process::Output) -> Option<String> {
+    if output.status.success() {
+        return None;
+    }
+    let error = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    Some(if error.is_empty() { output.status.to_string() } else { error })
 }
 
 /// Names with quotes or control characters are still C-quoted by git, even with
@@ -157,18 +177,21 @@ pub async fn git_status(cwd: String) -> Option<GitStatus> {
 #[tauri::command]
 pub async fn git_worktrees(root: String) -> Result<Vec<GitWorktree>, String> {
     known_root(&root)?;
+    let args = ["worktree", "list", "--porcelain", "-z"];
+    let started = Instant::now();
     let output = tokio::time::timeout(
         Duration::from_secs(8),
-        Command::new("git")
-            .arg("-C")
-            .arg(&root)
-            .args(["worktree", "list", "--porcelain", "-z"])
-            .kill_on_drop(true)
-            .output(),
+        Command::new("git").arg("-C").arg(&root).args(args).kill_on_drop(true).output(),
     )
     .await
-    .map_err(|_| "Git worktree listing timed out.".to_string())?
-    .map_err(|error| format!("Git worktree listing failed: {error}"))?;
+    .map_err(|_| "Git worktree listing timed out.".to_string())
+    .and_then(|output| output.map_err(|error| format!("Git worktree listing failed: {error}")));
+    let error = match &output {
+        Ok(output) => output_error(output),
+        Err(error) => Some(error.clone()),
+    };
+    record_git_call(&args, started, error.as_deref());
+    let output = output?;
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
     }
@@ -228,7 +251,11 @@ pub async fn git_diff(root: String, path: String) -> Result<String, String> {
     known_root(&root)?;
     let rel = safe_rel(&path)?;
     let spec = format!("HEAD:{rel}");
-    let in_head = git_literal(&root).args(["cat-file", "-e", &spec]).output().await.map(|o| o.status.success()).unwrap_or(false);
+    let started = Instant::now();
+    // `cat-file -e` exits with 1 when the file is not in HEAD: an answer, not a failure.
+    let in_head = git_literal(&root).args(["cat-file", "-e", &spec]).output().await;
+    record_git_call(&["cat-file"], started, in_head.as_ref().err().map(|error| error.to_string()).as_deref());
+    let in_head = in_head.map(|o| o.status.success()).unwrap_or(false);
     let mut cmd = git_literal(&root);
     cmd.args(["-c", "core.quotepath=off", "diff", "--no-color", "--no-ext-diff", "-U3"]);
     if in_head {
@@ -236,16 +263,27 @@ pub async fn git_diff(root: String, path: String) -> Result<String, String> {
     } else {
         cmd.args(["--no-index", "--", "/dev/null", rel]);
     }
+    let started = Instant::now();
     let out = tokio::time::timeout(Duration::from_secs(8), cmd.output())
         .await
-        .map_err(|_| "git diff : pas de réponse".to_string())?
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "git diff : pas de réponse".to_string())
+        .and_then(|output| output.map_err(|e| e.to_string()));
+    let out = match out {
+        Ok(out) => out,
+        Err(error) => {
+            record_git_call(&["diff"], started, Some(&error));
+            return Err(error);
+        }
+    };
     // `--no-index` exits with 1 when the files differ; anything else is an error.
     let code = out.status.code().unwrap_or(-1);
     if code != 0 && !(code == 1 && !in_head) {
         let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
-        return Err(if err.is_empty() { format!("git diff a échoué ({code})") } else { err });
+        let err = if err.is_empty() { format!("git diff a échoué ({code})") } else { err };
+        record_git_call(&["diff"], started, Some(&err));
+        return Err(err);
     }
+    record_git_call(&["diff"], started, None);
     as_text(out.stdout)
 }
 
@@ -274,7 +312,11 @@ pub async fn git_file(root: String, path: String, rev: Option<String>) -> Result
         }
         Some("HEAD") => {
             let spec = format!("HEAD:{rel}");
-            let size = git_literal(&root).args(["cat-file", "-s", &spec]).output().await.map_err(|e| e.to_string())?;
+            let started = Instant::now();
+            let size = git_literal(&root).args(["cat-file", "-s", &spec]).output().await.map_err(|e| e.to_string());
+            let error = size.as_ref().map(output_error).unwrap_or_else(|error| Some(error.clone()));
+            record_git_call(&["cat-file"], started, error.as_deref());
+            let size = size?;
             if !size.status.success() {
                 return Err("absent de HEAD (nouveau fichier)".into());
             }
@@ -282,11 +324,14 @@ pub async fn git_file(root: String, path: String, rev: Option<String>) -> Result
             if n > MAX_TEXT {
                 return Err(format!("fichier trop gros pour l’aperçu ({} Ko)", n / 1024));
             }
+            let started = Instant::now();
             let out = tokio::time::timeout(Duration::from_secs(8), git_literal(&root).args(["show", &spec]).output())
                 .await
-                .map_err(|_| "git show : pas de réponse".to_string())?
-                .map_err(|e| e.to_string())?;
-            as_text(out.stdout)
+                .map_err(|_| "git show : pas de réponse".to_string())
+                .and_then(|output| output.map_err(|e| e.to_string()));
+            let error = out.as_ref().map(output_error).unwrap_or_else(|error| Some(error.clone()));
+            record_git_call(&["show"], started, error.as_deref());
+            as_text(out?.stdout)
         }
         Some(_) => Err("révision non prise en charge".into()),
     }

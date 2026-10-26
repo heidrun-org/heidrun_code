@@ -4,7 +4,7 @@
 //!
 //! The server itself (the loopback address, the ngrok tunnel, the pairing key, the page) is the package `mobile_server`.
 
-use mobile_server::{CallFuture, MobileCallHandler, MobileServer, MobileStatus};
+use mobile_server::{CallFuture, MobileCallHandler, MobileEvent, MobileServer, MobileStatus};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -36,6 +36,28 @@ impl MobileCallHandler for WindowBridge {
     fn handle_call(&self, method: String, params: Value) -> CallFuture {
         let app = self.app.clone();
         Box::pin(async move { call(&app, &method, params).await })
+    }
+
+    fn record_event(&self, event: MobileEvent) {
+        let (name, fields) = log_line(event);
+        crate::application_log::write(name, fields);
+    }
+}
+
+/// The kind and the fields of the line of the application log for one event of the mobile server.
+fn log_line(event: MobileEvent) -> (&'static str, Value) {
+    match event {
+        MobileEvent::Call { method, status, duration_ms, error } => (
+            "mobile_call",
+            json!({ "method": method, "status": status, "duration_ms": duration_ms, "error": error }),
+        ),
+        MobileEvent::Refused { reason } => ("mobile_request_refused", json!({ "reason": reason })),
+        MobileEvent::Locked => ("mobile_pairing_locked", json!({})),
+        MobileEvent::TunnelStart => ("mobile_tunnel_start", json!({})),
+        MobileEvent::TunnelReady { duration_ms } => ("mobile_tunnel_ready", json!({ "duration_ms": duration_ms })),
+        MobileEvent::TunnelStop { duration_ms, error } => {
+            ("mobile_tunnel_stop", json!({ "duration_ms": duration_ms, "error": error }))
+        }
     }
 }
 
@@ -154,5 +176,23 @@ mod tests {
         assert!(!is_push_wanted(&config));
         config.enabled = true;
         assert!(is_push_wanted(&config));
+    }
+
+    #[test]
+    fn writes_each_event_of_the_mobile_server_as_a_line_of_the_application_log() {
+        let call = MobileEvent::Call { method: "state".into(), status: 200, duration_ms: 7, error: None };
+        assert_eq!(
+            log_line(call),
+            ("mobile_call", json!({ "method": "state", "status": 200, "duration_ms": 7, "error": null }))
+        );
+        assert_eq!(
+            log_line(MobileEvent::Refused { reason: "unpaired" }),
+            ("mobile_request_refused", json!({ "reason": "unpaired" }))
+        );
+        assert_eq!(log_line(MobileEvent::Locked), ("mobile_pairing_locked", json!({})));
+        assert_eq!(log_line(MobileEvent::TunnelStart), ("mobile_tunnel_start", json!({})));
+        assert_eq!(log_line(MobileEvent::TunnelReady { duration_ms: 900 }), ("mobile_tunnel_ready", json!({ "duration_ms": 900 })));
+        let stop = MobileEvent::TunnelStop { duration_ms: 3000, error: Some("ngrokNotSignedIn".into()) };
+        assert_eq!(log_line(stop), ("mobile_tunnel_stop", json!({ "duration_ms": 3000, "error": "ngrokNotSignedIn" })));
     }
 }
