@@ -1,7 +1,7 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
 import { chromium } from 'playwright-core';
-import type { GameCommand } from 'parallax_dino_runner';
+import type { GameCommand } from 'git_runner';
 import { AudioCaptureScript } from './audio_capture_script.ts';
 import type { CapturedAudio } from './audio_capture_script.ts';
 import type {
@@ -28,8 +28,11 @@ const __dirname = import.meta.dirname;
  * developer. It writes the video of the browser, and it gives back the time of each key press in this video.
  */
 export class DinoRunRecorder {
-	/** The folder of the package `parallax_dino_runner`, which is the folder next to this package. */
-	private static readonly _GAME_FOLDER = Path.resolve(__dirname, '../../parallax_dino_runner');
+	/** The folder of the package `git_runner`, in the Git submodule `submodules/heidrun_git_runner`. */
+	private static readonly _GAME_FOLDER = Path.resolve(
+		__dirname,
+		'../../../../submodules/heidrun_git_runner/packages/git_runner',
+	);
 
 	/** The code of the key of each command, as the page reads it. */
 	private static readonly _COMMAND_KEYS: Readonly<Record<GameCommand, string>> = {

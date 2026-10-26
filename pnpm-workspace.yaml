@@ -3,3 +3,4 @@ packages:
   - packages/auxiliary/*
   - packages/dev_tools/*
   - packages/experiments/*
+  - submodules/heidrun_git_runner/packages/git_runner

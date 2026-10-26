@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GameCommand } from 'parallax_dino_runner';
+import type { GameCommand } from 'git_runner';
 import { DinoRunRecorder } from '../src/dino_run_recorder.ts';
 
 describe('DinoRunRecorder', () => {
