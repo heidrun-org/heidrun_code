@@ -356,10 +356,34 @@ async fn run_forge_logged(caller: &str, cwd: &str, tool: &str, args: &[String], 
     let call = ForgeCall::start(Some(caller), tool, args, true);
     let result = run_forge(cwd, tool, args, timeout).await;
     match &result {
-        Ok(_) => call.end(ForgeAnswerSource::Forge, None),
+        Ok(_) => {
+            log_github_points_after(&call, cwd, tool, args);
+            call.end(ForgeAnswerSource::Forge, None)
+        }
         Err(failure) => call.end(ForgeAnswerSource::Failed, Some(failure)),
     }
     result
+}
+
+/// After a call to `gh` that GitHub answered, reads `gh api rate_limit` in the background and writes the GitHub points
+/// left in the application log, because `gh issue list`, `gh pr list`, `gh issue view`, and `gh pr view` do not give the
+/// cost of the call. GitHub does not count `gh api rate_limit`, so the read itself is not followed by another read
+/// (issue #883).
+pub(crate) fn log_github_points_after(call: &crate::application_log::ForgeCall, cwd: &str, tool: &str, args: &[String]) {
+    if tool != "gh" || is_rate_limit_read(args) {
+        return;
+    }
+    let (call_id, caller, cwd) = (call.call_id(), call.caller().to_string(), cwd.to_string());
+    tauri::async_runtime::spawn(async move {
+        let args = ["api", "rate_limit"].map(String::from);
+        let answer = run_forge(&cwd, "gh", &args, 20).await;
+        crate::application_log::record_github_rate_limit(call_id, &caller, answer);
+    });
+}
+
+/// True when the arguments of `gh` are the read of the rate limit, `api rate_limit`.
+fn is_rate_limit_read(args: &[String]) -> bool {
+    args.len() == 2 && args[0] == "api" && args[1] == "rate_limit"
 }
 
 /// The time when the exceeded GitHub rate limit resets, in seconds since 1970, or `None` when no limit is exceeded. It
@@ -460,6 +484,9 @@ mod tests {
         assert_eq!(rate_limit_reset_of(fine), Ok(None));
         assert!(rate_limit_reset_of("{}").is_err());
         assert!(rate_limit_reset_of("not json").is_err());
+        assert!(is_rate_limit_read(&["api".into(), "rate_limit".into()]));
+        assert!(is_rate_limit_read(&["issue".into(), "list".into()]) == false);
+        assert!(is_rate_limit_read(&["api".into(), "graphql".into()]) == false);
     }
 
     #[test]

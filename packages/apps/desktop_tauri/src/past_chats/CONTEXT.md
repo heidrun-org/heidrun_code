@@ -14,6 +14,7 @@ The commands that the Past chats sidebar section calls: the list of chats, the s
 - A command that reads is separate from a command that synchronizes. A read command opens the SQLite file only and gives an empty answer when nothing was synchronized yet.
 - Every command that writes the SQLite file takes `heidrun_data::lock_database` first.
 - A file here may call only the functions named `refresh_*` and `find_*` of the packages, and the helpers that the checker lists.
+- Every call to a function of a package runs inside `crate::application_log::data_layer_call` or `data_layer_value`, so the application log holds its start, its end, and its duration ([issue #883](https://github.com/heidrun-org/heidrun_code/issues/883)).
 
 ## Background
 - The rule, the audit of the bypasses, and the allowed exceptions are in [data_layer_access.md](../../../../../docs/agents_rules/data_layer_access.md).

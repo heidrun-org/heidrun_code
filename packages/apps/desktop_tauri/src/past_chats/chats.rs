@@ -8,6 +8,7 @@
 //!
 //! The sort, the cut to the limit, the tokens, and the cost are in the package.
 
+use crate::application_log::{data_layer_call, no_details};
 use chrono::Utc;
 use data_layer_coding_agents::{
     default_database_path, find_chat_list, refresh_chat_sessions, refresh_public_model_prices_when_due, ChatList, SortKey,
@@ -52,7 +53,12 @@ fn synchronize(folder: &str, database_path: &Path) -> Result<ChatsSynchronizatio
         // Two programs that write the SQLite file at the same time would fail with "database is locked". The command line
         // heidrun_data takes the same lock.
         let _guard = heidrun_data::lock_database(database_path)?;
-        refresh_chat_sessions(database_path, &root)?
+        data_layer_call(
+            "coding_agents",
+            "refresh_chat_sessions",
+            || refresh_chat_sessions(database_path, &root),
+            |report| serde_json::json!({ "chat_session_count": report.chat_session_count }),
+        )?
     };
     refresh_prices_in_background(database_path.to_path_buf());
     Ok(ChatsSynchronization { root, chat_session_count: report.chat_session_count })
@@ -61,7 +67,7 @@ fn synchronize(folder: &str, database_path: &Path) -> Result<ChatsSynchronizatio
 /// Reads the chats of the workspace that holds `folder` from the SQLite file at `database_path`.
 fn list(folder: &str, limit: usize, sorting: Sorting, database_path: &Path) -> Result<ChatList, String> {
     let root = crate::project::find_root(Path::new(folder)).display().to_string();
-    find_chat_list(database_path, &root, limit, sorting)
+    data_layer_call("coding_agents", "find_chat_list", || find_chat_list(database_path, &root, limit, sorting), no_details)
 }
 
 /// Asks the package for a refresh of the prices of the models, without waiting for the answer: the package fetches the price
@@ -70,7 +76,8 @@ fn list(folder: &str, limit: usize, sorting: Sorting, database_path: &Path) -> R
 fn refresh_prices_in_background(database_path: std::path::PathBuf) {
     tauri::async_runtime::spawn_blocking(move || {
         if let Ok(_guard) = heidrun_data::lock_database(&database_path) {
-            let _ = refresh_public_model_prices_when_due(&database_path, Utc::now().timestamp_millis());
+            let refresh = || refresh_public_model_prices_when_due(&database_path, Utc::now().timestamp_millis());
+            let _ = data_layer_call("coding_agents", "refresh_public_model_prices_when_due", refresh, no_details);
         }
     });
 }
