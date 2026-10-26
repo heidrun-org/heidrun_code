@@ -57,6 +57,12 @@ const BYPASSES: Bypass[] = [
 		ruleId: 'file-access',
 	},
 	{
+		name: 'the command of the images of a chat reads a chat session file itself',
+		filePath: `${desktop}/chat_images/chat_images.rs`,
+		addedText: 'fn bypass() { let _ = std::fs::read_to_string("/home/a/.claude/projects/chat.jsonl"); }',
+		ruleId: 'file-access',
+	},
+	{
 		name: 'a command makes a network request',
 		filePath: `${desktop}/past_chats/chat_references.rs`,
 		addedText: 'fn bypass() { let _ = reqwest::blocking::get("https://api.github.com/repos/a/b/issues"); }',

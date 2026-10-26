@@ -9,8 +9,15 @@ import type { FrontendPatternRule, PatternRule } from './boundary_types.ts';
 /** The folder of the source of the desktop application, relative to the root of the repository. */
 export const DESKTOP_SOURCE_FOLDER = 'packages/apps/desktop_tauri/src';
 
-/** The folders of the desktop application where the commands of the Past chats sidebar section and of the Statistics window are. */
-export const RUST_SCOPE_FOLDERS = [`${DESKTOP_SOURCE_FOLDER}/past_chats`, `${DESKTOP_SOURCE_FOLDER}/statistics`];
+/**
+ * The folders of the desktop application where the commands of the Past chats sidebar section, of the Statistics window, and of
+ * the images of a chat in the Clipboard sidebar section are (issue #790).
+ */
+export const RUST_SCOPE_FOLDERS = [
+	`${DESKTOP_SOURCE_FOLDER}/past_chats`,
+	`${DESKTOP_SOURCE_FOLDER}/statistics`,
+	`${DESKTOP_SOURCE_FOLDER}/chat_images`,
+];
 
 /** The files of the desktop application that the commands of the scope use as a helper, and that follow the same rules. */
 export const RUST_SCOPE_FILES = [`${DESKTOP_SOURCE_FOLDER}/app_data.rs`];
@@ -23,7 +30,7 @@ export const FRONTEND_SOURCE_FOLDER = 'packages/apps/web_frontend/src';
  * relative to the folder of the web frontend source. A file of the tests is never in the scope.
  */
 export const FRONTEND_SCOPE_PATTERNS = [
-	/^stores\/(chats|chat_references|chat_open|dynamic_topics|language_model_topics|topic_clusters)\.ts$/,
+	/^stores\/(chats|chat_references|chat_images|chat_open|dynamic_topics|language_model_topics|topic_clusters)\.ts$/,
 	/^components\/(Chat[A-Za-z]*|DynamicTopicBar|PersonWorkTab|StatisticsModal|UserActivityTab|UserActivityHistogram)\.vue$/,
 	/^lib\/(chat_[a-z_]+|dynamic_topic[a-z_]*|topic_clusters|ai_cost|person_work|slot_text|calendar_slots)\.ts$/,
 	/^lib\/user_activity_(slots|slot_length_text|view|workspaces)\.ts$/,
@@ -101,6 +108,7 @@ export const RUST_STRING_RULES: PatternRule[] = [
 export const ALLOWED_CRATE_PATHS = [
 	'app_data::',
 	'application_log::',
+	'chat_images::',
 	'past_chats::',
 	'statistics::',
 	'project::find_root',
@@ -140,6 +148,8 @@ export const ALLOWED_FRONTEND_COMMANDS: Record<string, string> = {
 	ai_cost_in_range: 'reads the stored tokens and costs',
 	user_activity_synchronize: 'copies the records of the activity of the user, with the package data_layer_user_activity',
 	user_activity_records_in_range: 'reads the stored records of the activity of the user',
+	chat_images_find:
+		'reads the images of one chat of Claude Code with the package data_layer_coding_agents, which reads the chat session file at each call (issue #790)',
 	topic_clusters_read: 'application state: it reads the translation table of the clustered dynamic topics, a file that Heidrun Code writes itself',
 	topic_clusters_write: 'application state: it saves the translation table of the clustered dynamic topics, a file that Heidrun Code writes itself',
 	coding_agent_ask: 'an action: it asks a coding agent to name topics, and it reads no source',
@@ -196,7 +206,7 @@ export const ALLOWED_COMMAND_FILES_OUTSIDE_SCOPE: Record<string, string> = {
 
 /** The beginning of the name of a Tauri command that reads or copies data for the Past chats sidebar section or the Statistics window. */
 export const SCOPE_COMMAND_NAME_PATTERN =
-	/\bfn\s+((?:chats_|chat_references_|person_work_|ai_cost_|user_activity_synchronize|user_activity_records)\w*)/g;
+	/\bfn\s+((?:chats_|chat_references_|chat_images_|person_work_|ai_cost_|user_activity_synchronize|user_activity_records)\w*)/g;
 
 /** The libraries that the manifest of the desktop application may not depend on: only a package of the data layer opens SQLite. */
 export const FORBIDDEN_DESKTOP_DEPENDENCIES = ['rusqlite', 'sqlx', 'diesel'];

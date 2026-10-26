@@ -119,6 +119,11 @@ export class TauriMock {
 				return null;
 			case 'launcher_folder_exists':
 				return true;
+			case 'chat_images_find':
+				return {
+					numbers: [],
+					images: [],
+				};
 			case 'chat_references_synchronize':
 				return { repository: 'heidrun-org/heidrun', codeHostingError: null };
 			case 'chat_references_find':

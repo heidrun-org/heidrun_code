@@ -5,7 +5,7 @@
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: sidebars](../user_interface/sidebars/index.md)
-- Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 425](https://github.com/heidrun-org/heidrun/issues/425), [issue 430](https://github.com/heidrun-org/heidrun/issues/430), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 446](https://github.com/heidrun-org/heidrun/issues/446), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 853](https://github.com/heidrun-org/heidrun_code/issues/853), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886)
+- Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 425](https://github.com/heidrun-org/heidrun/issues/425), [issue 430](https://github.com/heidrun-org/heidrun/issues/430), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 446](https://github.com/heidrun-org/heidrun/issues/446), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 853](https://github.com/heidrun-org/heidrun_code/issues/853), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886), [issue 790](https://github.com/heidrun-org/heidrun_code/issues/790)
 
 This document gives one short definition for each word of the sidebars and their sidebar sections. The other words of Heidrun Code are in [index.md](index.md).
 
@@ -25,7 +25,7 @@ One part of a sidebar, for example the Needs you, the Clipboard, the Launchers, 
 
 ### Clipboard sidebar section
 
-The sidebar section of the right sidebar that lists the notes that the developer pinned from the text of a terminal, with the icon `sticky`. It replaces the Notes sidebar section. Its header has the title "Clipboard" and a Bootstrap switch "All workspaces". The word "note" stays for one item of the list.
+The sidebar section of the right sidebar that lists the notes that the developer pinned from the text of a terminal, with the icon `sticky`. It replaces the Notes sidebar section. Its header has the title "Clipboard" and a Bootstrap switch "All workspaces". The word "note" stays for one item of the list. Its bottom part, "Images of the chat", shows the image behind each text `[Image #N]` of the chat of the selected pane.
 
 ### Launchers sidebar section
 

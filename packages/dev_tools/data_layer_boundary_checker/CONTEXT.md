@@ -1,7 +1,7 @@
 # Directory Context: `/packages/dev_tools/data_layer_boundary_checker`
 
 ## Purpose
-A full npm package that holds the test of the data layer access boundary. The test fails when the Past chats sidebar section or the Statistics window gets data without a package of the folder `submodules/heidrun_data/packages`: a conversation file read, a Git or hosting tool started, a network request, an SQL statement, or a Tauri command that no package backs.
+A full npm package that holds the test of the data layer access boundary. The test fails when the Past chats sidebar section, the Statistics window, or the images of a chat in the Clipboard sidebar section get data without a package of the folder `submodules/heidrun_data/packages`: a conversation file read, a Git or hosting tool started, a network request, an SQL statement, or a Tauri command that no package backs.
 
 ## Key Exports & Entry Points
 - `src/index.ts`: the public interface for another package. It exports the class `DataLayerBoundaryChecker` and the type `BoundaryViolation`.
