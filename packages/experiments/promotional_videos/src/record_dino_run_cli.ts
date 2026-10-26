@@ -1,8 +1,8 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
 import { Command } from 'commander';
-import { CommitFileReader, FallbackCommits } from 'parallax_dino_runner';
-import type { CommitRecord } from 'parallax_dino_runner';
+import { CommitFileReader, FallbackCommits } from 'git_runner';
+import type { CommitRecord } from 'git_runner';
 import { DinoHitsABoulderScenario } from './dino_hits_a_boulder_scenario.ts';
 import { DinoRunRecorder } from './dino_run_recorder.ts';
 import { ScenarioChecker } from './scenario_checker.ts';
@@ -25,7 +25,10 @@ export class RecordDinoRunCli {
 	private static readonly _DEFAULT_OUTPUT_FOLDER = Path.resolve(__dirname, '../outputs/video_game');
 
 	/** The file of commits that the page of the game reads. */
-	private static readonly _COMMITS_PATH = Path.resolve(__dirname, '../../parallax_dino_runner/public/commits.json');
+	private static readonly _COMMITS_PATH = Path.resolve(
+		__dirname,
+		'../../../../submodules/heidrun_git_runner/packages/git_runner/public/commits.json',
+	);
 
 	/**
 	 * Runs the command line.
