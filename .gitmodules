@@ -4,3 +4,6 @@
 [submodule "submodules/heidrun_data"]
 	path = submodules/heidrun_data
 	url = git@github.com:heidrun-org/heidrun_data.git
+[submodule "submodules/heidrun_git_runner"]
+	path = submodules/heidrun_git_runner
+	url = git@github.com:heidrun-org/heidrun_git_runner.git

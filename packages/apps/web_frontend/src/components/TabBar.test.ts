@@ -566,3 +566,29 @@ describe("TabBar place in the window", () => {
     expect(tabBarIndex).toBeLessThan(sourceText.indexOf('<div class="stage"'));
   });
 });
+
+describe("TabBar recording icon (issue 762)", () => {
+  it("shows the recording icon on the tab whose pane records, only while the microphone records", async () => {
+    const { settings: voiceSettings } = await import("../stores/settings");
+    const { voiceInput } = await import("../stores/voice_input");
+    const { wrapper } = await mountTabBar();
+    voiceSettings.voiceInput = true;
+    voiceInput.ownerPaneId = "p3";
+    voiceInput.state = "recording";
+    try {
+      await flushPromises();
+      const icons = wrapper.findAll("[role=tab]").map((tab) => tab.find(".voice-recording-icon").exists());
+      expect(icons).toEqual([false, true, false]);
+      expect(wrapper.get(".voice-recording-icon").attributes("aria-label")).toBe("Voice input is recording");
+      voiceInput.state = "idle";
+      voiceInput.transcriptions = [{ id: 1, paneId: "p3", recordingId: 1, state: "waiting", recordingSeconds: 1 }];
+      await flushPromises();
+      expect(wrapper.find(".voice-recording-icon").exists()).toBe(false);
+    } finally {
+      voiceInput.ownerPaneId = null;
+      voiceInput.state = "idle";
+      voiceInput.transcriptions = [];
+      voiceSettings.voiceInput = false;
+    }
+  });
+});

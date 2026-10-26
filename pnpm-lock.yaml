@@ -386,39 +386,14 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
-  packages/experiments/parallax_dino_runner:
-    dependencies:
-      zod:
-        specifier: ^4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@types/node':
-        specifier: ^26.6.5
-        version: 26.6.5
-      commander:
-        specifier: ^15.0.0
-        version: 15.0.0
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
-      typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
-      vite:
-        specifier: ^5.4.0
-        version: 5.4.21(@types/node@26.6.5)(sass@1.105.1)
-      vitest:
-        specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
-
   packages/experiments/promotional_videos:
     dependencies:
       commander:
         specifier: ^15.0.0
         version: 15.0.0
-      parallax_dino_runner:
+      git_runner:
         specifier: workspace:*
-        version: link:../parallax_dino_runner
+        version: link:../../../submodules/heidrun_git_runner/packages/git_runner
       playwright-core:
         specifier: 1.58.2
         version: 1.58.2
@@ -453,6 +428,31 @@ importers:
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
+
+  submodules/heidrun_git_runner/packages/git_runner:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
+      commander:
+        specifier: ^15.0.0
+        version: 15.0.0
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vite:
+        specifier: ^5.4.0
+        version: 5.4.21(@types/node@26.6.5)(sass@1.105.1)
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
 packages:
 

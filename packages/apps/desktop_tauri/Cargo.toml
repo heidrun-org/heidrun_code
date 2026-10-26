@@ -7,7 +7,9 @@ edition = "2021"
 
 [lib]
 name = "heidrun_code_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# Only the iOS and Android versions of Tauri need the kinds staticlib and cdylib, and Heidrun Code has neither. Each
+# build wrote a static library of 737 MB that the desktop executable never used (issue 915).
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -32,8 +34,6 @@ data_layer_source_control = { path = "../../../submodules/heidrun_data/packages/
 data_layer_code_hosting = { path = "../../../submodules/heidrun_data/packages/data_layer_code_hosting" }
 # The one lock of the SQLite file of the data layer, which the command line heidrun_data takes too
 heidrun_data = { path = "../../../submodules/heidrun_data/packages/heidrun_data" }
-# The log of the operations that the data layer packages receive: the application gives its name as the caller
-data_layer_operation_log = { path = "../../../submodules/heidrun_data/packages/data_layer_operation_log" }
 # The format of the macro files, which the command line heidrun_code_ctrl changes too: the hard-coded macros and the personal macros
 heidrun_code_ctrl = { path = "../../auxiliary/heidrun_code_ctrl" }
 # The voice input: it records the microphone, downloads a Whisper model, and changes the speech into text on the computer

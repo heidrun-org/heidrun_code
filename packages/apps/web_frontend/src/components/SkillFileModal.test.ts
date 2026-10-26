@@ -61,6 +61,17 @@ describe("SkillFileModal", () => {
     expect(wrapper.findAll(".front dd").map((node) => node.text())).toEqual(["pdf", "Read PDF files."]);
   });
 
+  it("uses the whole width by default, and a column of about 80 characters with Wrap at 80 columns (issue #897)", async () => {
+    const { wrapper, settings } = await mountModal();
+    expect(wrapper.get(".md-doc").classes()).toContain("full");
+    expect(wrapper.get(".front").classes()).toContain("full");
+    settings.markdownWrapAt80Columns = true;
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get(".md-doc").classes()).toContain("wrap-at-80-columns");
+    expect(wrapper.get(".md-doc").classes()).not.toContain("full");
+    expect(wrapper.get(".front").classes()).toContain("wrap-at-80-columns");
+  });
+
   it("shows the source with colours and line numbers when the user chooses Source", async () => {
     const { wrapper, settings } = await mountModal();
     await wrapper.findAll(".seg button")[1].trigger("click");

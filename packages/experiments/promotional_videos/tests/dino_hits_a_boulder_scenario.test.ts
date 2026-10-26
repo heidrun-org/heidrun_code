@@ -1,7 +1,7 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CommitFileReader } from 'parallax_dino_runner';
+import { CommitFileReader } from 'git_runner';
 import { DinoHitsABoulderScenario } from '../src/dino_hits_a_boulder_scenario.ts';
 import { ScenarioChecker } from '../src/scenario_checker.ts';
 
@@ -9,7 +9,10 @@ const __dirname = import.meta.dirname;
 const firstFortyCommits = CommitFileReader.read(
 	JSON.parse(Fs.readFileSync(Path.join(__dirname, 'fixtures/first_forty_commits.json'), 'utf8')),
 ).commits;
-const fullCommitsPath = Path.resolve(__dirname, '../../parallax_dino_runner/public/commits.json');
+const fullCommitsPath = Path.resolve(
+	__dirname,
+	'../../../../submodules/heidrun_git_runner/packages/git_runner/public/commits.json',
+);
 
 describe('DinoHitsABoulderScenario', () => {
 	it('survives the first five seconds, then hits a boulder inside the time window', () => {

@@ -6,8 +6,9 @@
 //! Each command accepts only a root that `git_status` gave before (`known_root`), and only paths inside it
 //! (`safe_rel`). The paths are literal: no globs, no pathspec magic.
 
+use crate::application_log::record_git_call;
 use crate::git::{known_root, safe_rel};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::process::Command;
 
 /// The time a local Git action may take.
@@ -18,8 +19,15 @@ const REMOTE_TIMEOUT: u64 = 90;
 const MAX_DIFF: usize = 60_000;
 
 /// Runs `git -C root args`, with literal paths and no prompt, and gives the standard output, or the standard error
-/// output as the error.
+/// output as the error. The application log receives the name of the command, its duration, and its failure.
 async fn run(root: &str, args: &[&str], timeout: u64) -> Result<String, String> {
+    let started = Instant::now();
+    let result = unlogged_run(root, args, timeout).await;
+    record_git_call(args, started, result.as_ref().err().map(String::as_str));
+    result
+}
+
+async fn unlogged_run(root: &str, args: &[&str], timeout: u64) -> Result<String, String> {
     let mut command = Command::new("git");
     command
         .arg("-C")

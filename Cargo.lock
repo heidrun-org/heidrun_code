@@ -982,7 +982,6 @@ name = "data_layer_code_hosting"
 version = "0.3.0"
 dependencies = [
  "chrono",
- "data_layer_operation_log",
  "dirs 6.0.0",
  "jsonschema",
  "rusqlite",
@@ -996,7 +995,6 @@ version = "0.3.0"
 dependencies = [
  "chrono",
  "chrono-tz",
- "data_layer_operation_log",
  "dirs 6.0.0",
  "iana-time-zone",
  "jsonschema",
@@ -1008,21 +1006,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "data_layer_operation_log"
-version = "0.3.0"
-dependencies = [
- "dirs 6.0.0",
- "libc",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "data_layer_source_control"
 version = "0.3.0"
 dependencies = [
  "chrono",
- "data_layer_operation_log",
  "dirs 6.0.0",
  "jsonschema",
  "rusqlite",
@@ -1035,7 +1022,6 @@ name = "data_layer_user_activity"
 version = "0.3.0"
 dependencies = [
  "chrono",
- "data_layer_operation_log",
  "dirs 6.0.0",
  "jsonschema",
  "rusqlite",
@@ -2083,7 +2069,6 @@ dependencies = [
  "coding_agent_cli",
  "data_layer_code_hosting",
  "data_layer_coding_agents",
- "data_layer_operation_log",
  "data_layer_source_control",
  "data_layer_user_activity",
  "dirs 6.0.0",
@@ -2123,7 +2108,6 @@ version = "0.3.0"
 dependencies = [
  "data_layer_code_hosting",
  "data_layer_coding_agents",
- "data_layer_operation_log",
  "data_layer_source_control",
  "data_layer_user_activity",
  "dirs 6.0.0",

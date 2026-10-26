@@ -1,7 +1,7 @@
 # Web styling of Heidrun Code: appearance of the viewport and the panes
 
 - Created: 22 October 2026
-- Last updated: 23 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Shared design rules](shared_design.md), [Colors and scroll bars](colors_and_scroll_bars.md), [Glossary of Heidrun Code](../glossary/index.md)
@@ -31,7 +31,7 @@ This file gives the rules about how the frames of the window, the panes, the pan
 
 - The layer of a drop of images covers the whole composition bar under the pointer: a solid border of 3 pixels in the color `--accent` (orange) and a background of the same color at 12 percent strength, with no text, so that the composition bar stays visible under it. No automated test checks the colors of the layer.
 - The composition bar has air: 14 pixels of space above and below, 16 pixels at each side, 16 pixels between two lines, and 4 pixels between two controls of the last line. The last line is the exception at the sides: it starts and ends 8 pixels from the edge of the bar, half of the 16 pixels, so that the icon of the plus button lines up with the left edge of the pictures. The controls of the last line are 46 pixels high, and the text of the text input is 20% bigger than the other text of the window. The buttons of this line, the push-to-talk button included, are icon buttons (`btn icon`), 46 pixels high, with a width that leaves 6.3 pixels at each side of the icon, with no text, no border, and no background at rest: only the icon shows, and the hover background of the shared icon button (`--hover`) shows under the pointer. Tests: `components/CompositionBar.test.ts` and `components/PushToTalkButton.test.ts` check the buttons with no border; no automated test measures the spaces.
-- While the microphone is open, the icon of the push-to-talk button is red (the color `--danger-fg` of the theme). While Whisper works, the spinner of the button is green (the color `--success-fg` of the theme) and is not dimmed ([issue 662](https://github.com/heidrun-org/heidrun/issues/662)). Test: `components/PushToTalkButton.test.ts` checks the class of the red state; no automated test checks the two color variables.
+- While the microphone is open, the icon of the push-to-talk button is red (the color `--danger-fg` of the theme). While Whisper works, the spinner of the button is green (the color `--success-fg` of the theme) and is not dimmed ([issue 662](https://github.com/heidrun-org/heidrun/issues/662)). While the recording waits for Whisper, the spinner is orange (the color `--voice-wait` of the theme) and is not dimmed ([issue 868](https://github.com/heidrun-org/heidrun_code/issues/868)). Test: `components/PushToTalkButton.test.ts` checks the classes of the red state and of the orange state; no automated test checks the three color variables.
 
 ## File view pane
 

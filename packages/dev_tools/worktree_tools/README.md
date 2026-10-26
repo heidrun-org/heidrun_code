@@ -128,7 +128,7 @@ Now `pnpm dev` starts with `pnpm bundled_commands:build`:
 
 `pnpm worktree:create` clones the folder `bundled_commands` with its file `sources.sha256`, and the fingerprint uses relative paths, so a new worktree builds nothing when the sources of the tools are the same as in the main checkout.
 
-Measured on 2026-10-25: the step took 62 seconds in a new worktree before the change, and 0.6 seconds after it. A change in the application `desktop_tauri` does not change the fingerprint. A change in `data_layer_operation_log`, a dependency of `heidrun_data`, does.
+Measured on 2026-10-25: the step took 62 seconds in a new worktree before the change, and 0.6 seconds after it. A change in the application `desktop_tauri` does not change the fingerprint. A change in a dependency of `heidrun_data`, such as `data_layer_source_control`, does.
 
 Limits:
 

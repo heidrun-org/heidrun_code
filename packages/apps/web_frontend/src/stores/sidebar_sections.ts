@@ -1,7 +1,7 @@
 import { settings, type LeftSidebarSection, type RightSidebarSection } from "./settings";
 
 /** The sidebar sections of the left sidebar. The other sidebar sections belong to the right sidebar. */
-const LEFT_SIDEBAR_SECTIONS: readonly string[] = ["launchers", "sourceControl", "files", "codeHosting"];
+const LEFT_SIDEBAR_SECTIONS: readonly string[] = ["launchers", "sourceControl", "files", "fileSearch", "codeHosting"];
 
 /** True when the sidebar section belongs to the left sidebar, false when it belongs to the right sidebar. */
 function isLeftSidebarSection(sidebarSection: string): sidebarSection is LeftSidebarSection {
@@ -29,8 +29,8 @@ export type SidebarSectionButton = {
 
 /**
  * Shows a sidebar section. The sidebar that holds the sidebar section expands if it is collapsed to the sidebar icon
- * bar, and shows the sidebar section. The Launchers, Source control, Code hosting, and File explorer sidebar sections
- * belong to the left sidebar. The Needs you, Clipboard, Past chats, and User activity sidebar sections belong to the right
+ * bar, and shows the sidebar section. The Launchers, Source control, Code hosting, File explorer, and Search in files
+ * sidebar sections belong to the left sidebar. The Needs you, Clipboard, Past chats, and User activity sidebar sections belong to the right
  * sidebar.
  */
 export function openSidebarSection(sidebarSection: LeftSidebarSection | RightSidebarSection) {

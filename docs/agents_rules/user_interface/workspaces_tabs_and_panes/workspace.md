@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: workspace
 
 - Created: 13 October 2026
-- Last updated: 23 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Tabs](tabs.md)
@@ -31,3 +31,4 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 - In Zen Mode, the workspace shortcuts and command search keep working while the top bar, sidebars, and status bar stay hidden. Zen Mode remains active and shows the pane last focused in the selected workspace and its selected tab.
 - Heidrun Code saves the identifier of the selected workspace each time that the selection changes, in the option `selectedWorkspaceId` of the store `settings.ts`. At the next start, Heidrun Code selects this workspace again, with its last tab and its last pane. When this workspace does not exist any more, Heidrun Code selects the workspace that Herdr has focused, or the first workspace.
 - Herdr events refresh the workspace list; no timer reads its snapshot. See [workspace command integration](workspace_commands.md) for refresh, focus, and creation folder rules.
+- While the microphone of the voice input records for a pane of a workspace, its row in the information card shows the recording icon after its name, as [voice_input_across_panes.md](voice_input_across_panes.md) says ([issue 762](https://github.com/heidrun-org/heidrun_code/issues/762)).

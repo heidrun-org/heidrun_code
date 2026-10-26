@@ -1,0 +1,13 @@
+{
+  "title": "Images de la conversation",
+  "noChat": "Le panneau sélectionné ne montre aucune conversation de Claude Code.",
+  "noImage": "La conversation du panneau sélectionné n’a aucune image.",
+  "failed": "Les images ne peuvent pas être lues : {error}",
+  "imageName": "[Image #{number}]",
+  "openLarge": "Ouvrir en grand",
+  "viewerLabel": "Vue en grand des images de la conversation",
+  "previous": "Image précédente",
+  "next": "Image suivante",
+  "close": "Fermer la vue en grand",
+  "position": "{position} sur {total}"
+}

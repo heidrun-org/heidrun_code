@@ -11,7 +11,6 @@ members = [
     "packages/auxiliary/voice_input",
     "submodules/heidrun_data/packages/data_layer_code_hosting",
     "submodules/heidrun_data/packages/data_layer_coding_agents",
-    "submodules/heidrun_data/packages/data_layer_operation_log",
     "submodules/heidrun_data/packages/data_layer_source_control",
     "submodules/heidrun_data/packages/data_layer_user_activity",
     "submodules/heidrun_data/packages/heidrun_data",
@@ -22,6 +21,14 @@ exclude = [
     "submodules/coding_agent_plugin",
     "tmp",
 ]
+
+# A development build needs a fast compilation, not a fast executable. The packages of the workspace keep only the
+# line tables, so a panic still shows the file and the line, and the dependencies keep no debug information (issue 915).
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
 
 # The first read of the chat files, for the AI cost, decompresses and scans gigabytes of text. The code that does it runs at
 # full speed in a development build too: it takes about 15 seconds instead of about 3 minutes.

@@ -4,21 +4,10 @@
 The working folder to try promotional marketing videos of Heidrun Code that a coding agent makes. The first video shows the dinosaur game: the real splash screen of the application, a crossfade to the game, the dinosaur that shoots and then runs into a boulder, and an outro with the baby goat, the motto, and the address of the website.
 
 ## Key Exports & Entry Points
-- `src/index.ts`: the public interface. It exports the scenario, the checker, the recorder, the pictures, and the composer.
-- `src/dino_hits_a_boulder_scenario.ts`: the scenario of the first video: the seed and the timed commands of the player.
-- `src/scenario_checker.ts`: plays a scenario with the rules of `parallax_dino_runner`, with no browser, and checks the time of the hit and the required events.
-- `src/dino_run_recorder.ts`: records the page of the game in a headless Chromium, presses the keys of the scenario, and gives back the time of each key press in the video.
-- `src/audio_capture_script.ts`: the script that the browser runs before the page: it copies the sound that the page makes with the Web Audio API into a recorder of the browser, because Playwright records no sound.
-- `src/music_analyzer.ts`: finds where the sound of a music file ends, before its last silence.
-- `src/program_runner.ts`: runs `ffmpeg` and `ffprobe` and gives back what they wrote.
-- `src/promotional_pictures.ts`: draws the real splash screen of the application, the comic word, and the outro card with a browser.
-- `src/video_composer.ts`: puts the intro, the comic words, and the outro around the gameplay with `ffmpeg`.
-- `src/vite_servers.ts`: starts the Vite server of a package of this repository on a free port.
-- Command to make the first video: `pnpm --filter promotional_videos record:video_game_first`. It writes `outputs/video_game/video_game_first.mp4` and the work files in `outputs/video_game/video_game_first_work/`. Git ignores the folder `outputs/`.
+- `src/index.ts`: the public interface. It exports the scenario, the checker (`ScenarioChecker`, which plays a scenario with the rules of the package `git_runner`, with no browser), the recorder (`DinoRunRecorder`, a headless Chromium that presses the keys of the scenario), the pictures, and the composer (`VideoComposer`, which uses `ffmpeg`).
 - `data/scenarios/video_game_first.scenario.md`: the scenario of the first video. A test compares its table of timed commands with the code.
-- The command `record:dino_run` takes the same options without music; `--output-dir <folder>` changes the folder.
-- Add `--intro-music <file>` to play a music file during the intro. The music starts with the video and fades out while the splash screen fades out.
-- Add `--outro-music <file>` to play a music file during the outro. The video ends when the sound of the music ends: `MusicAnalyzer` finds the last silence of the file, and the outro plays the last three seconds of the sound before it. The music fades in with the outro card and has no fade-out.
+- Command to make the first video: `pnpm --filter promotional_videos record:video_game_first`. It writes `outputs/video_game/video_game_first.mp4`. Git ignores the folder `outputs/`. The command `record:dino_run` takes the same options without music.
+- `--intro-music <file>` plays a music file during the intro, and it fades out with the splash screen. `--outro-music <file>` plays a music file during the outro, and the video ends when `MusicAnalyzer` finds the last silence of the file.
 - Command to test this folder: `pnpm --filter promotional_videos test`
 
 ## Rules
@@ -33,7 +22,9 @@ The working folder to try promotional marketing videos of Heidrun Code that a co
 - The motto comes from `data/identity.json` and the images come from `data/images`: this package never copies them.
 - The videos and the music files stay out of the repository: the command line receives the path of the music file. The music of the first video is "Epic Background Music" by echoes_of_lumen, and the music of the outro is "Podcast Outro Music" by Vadim_Makes_Sound. Both come from Pixabay (Pixabay Content License, credit not required).
 - Nothing outside the folder `packages/experiments` imports this package.
+- The game comes from the package `git_runner` of the Git submodule `submodules/heidrun_git_runner`. Change the game in the repository `heidrun_git_runner`, never here.
 
 ## Background
 - The package comes from [issue #548](https://github.com/heidrun-org/heidrun/issues/548) and its parent, [issue #547](https://github.com/heidrun-org/heidrun/issues/547).
+- The game moved to the repository `heidrun_git_runner` in [issue #889](https://github.com/heidrun-org/heidrun_code/issues/889).
 - The method to record the window of Heidrun Code itself is in [recording_videos.md](../../../docs/marketing/recording_videos.md).

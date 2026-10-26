@@ -27,8 +27,8 @@ import { hardCodedMacros, macros, projectMacros, resolveMacroVariables } from ".
 import { insertIntoFocusedPane } from "../stores/input";
 import { search } from "../stores/search";
 import { isPinned, togglePinnedPane } from "../stores/pinned_panes";
-import { openFiles } from "../stores/files";
 import { openThreeJsDemoModal } from "../stores/three_js_demo_modal";
+import { QuickOpen } from "../stores/quick_open";
 import { openFindNewSkillsModal, openInstalledSkillModal } from "../stores/skills";
 import { t } from "../i18n/index";
 
@@ -111,7 +111,7 @@ const items = computed<Item[]>(() => {
     ...(state.selectedTabId ? [{ section: t("commandPalette.section.rename"), label: t("commandPalette.renameTab"), run: () => startRename("tab", state.selectedTabId!) }] : []),
     ...(sel ? [{ section: t("commandPalette.section.rename"), label: t("commandPalette.renamePane"), run: () => startRename("pane", sel.pane_id) }] : []),
     { section: t("commandPalette.section.navigation"), label: t("commandPalette.searchTerminals"), hint: "⇧⌘F", run: () => (search.open = true) },
-    { section: t("commandPalette.section.navigation"), label: t("commandPalette.openFile"), hint: "⌘P", run: () => openFiles(selectedPane.value?.foreground_cwd || selectedPane.value?.cwd, { search: true }) },
+    { section: t("commandPalette.section.navigation"), label: t("commandPalette.openFile"), hint: "⌘P", run: () => QuickOpen.open() },
     { section: t("commandPalette.section.help"), label: t("commandPalette.shortcuts"), hint: "⌘/", run: () => (state.shortcutsOpen = true) },
     { section: t("commandPalette.section.help"), label: t("commandPalette.threeJsDemo"), run: () => openThreeJsDemoModal() },
     { section: t("commandPalette.section.display"), label: t("commandPalette.mobile"), run: () => openSettings("mobileAccess") },

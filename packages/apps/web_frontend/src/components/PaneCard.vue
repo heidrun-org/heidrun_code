@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import TerminalView from "./TerminalView.vue";
 import FileView from "./FileView.vue";
+import DiffPane from "./DiffPane.vue";
 import ConfirmButton from "./ConfirmButton.vue";
 import Icon from "./Icon.vue";
 import InlineRename from "./InlineRename.vue";
@@ -18,6 +19,7 @@ import { mosaic } from "../stores/mosaic";
 import { CompositionBar as CompositionBarStore } from '../stores/composition_bar';
 import { ImageDrop } from "../lib/image_drop";
 import { FileViewLabel } from "../lib/file_view_label";
+import { DiffPaneLabel } from "../lib/diff_pane_label";
 import { paneDynamicName, paneName, shortPath } from "../lib/format";
 import { pinText } from "../stores/notes";
 import { ZenMode } from "../stores/zen_mode";
@@ -61,8 +63,8 @@ function onDown() {
   }
 }
 const paneElement = ref<HTMLElement | null>(null);
-// The header of a file view pane holds the controls of the file, which the file view draws there.
-const fileViewControlsHost = ref<HTMLElement | null>(null);
+// The header of a file view pane or of a diff pane holds the controls of the file, which the body of the pane draws there.
+const viewControlsHost = ref<HTMLElement | null>(null);
 // After the composition bar sends its images and its text, the keyboard goes back to the terminal, so that the developer can speak or type, then send.
 function focusTerminal() {
   paneElement.value?.querySelector<HTMLTextAreaElement>("textarea.xterm-helper-textarea")?.focus();
@@ -73,12 +75,17 @@ const shellFolder = computed(() => props.pane.foreground_cwd || props.pane.cwd |
 const displayName = computed(() => paneName(props.pane));
 // A file view pane shows a file, read only, in place of its terminal. The label of the pane holds the absolute path of the file.
 const fileViewPath = computed(() => FileViewLabel.parse(props.pane.label));
+// A diff pane shows the changes of a file, read only, in place of its terminal. The label of the pane holds the absolute path of
+// the file (issue #885).
+const diffPath = computed(() => DiffPaneLabel.parse(props.pane.label));
+// The absolute path of the file of a file view pane or of a diff pane, or null for a terminal.
+const viewPath = computed(() => fileViewPath.value ?? diffPath.value);
 function closePaneFromHeader() {
   closePane(props.pane.pane_id);
 }
 const subtitle = computed(() => {
   const p = props.pane;
-  if (fileViewPath.value !== null) return shortPath(fileViewPath.value);
+  if (viewPath.value !== null) return shortPath(viewPath.value);
   if (props.isInColumnOfPinnedPanes) return paneFullName(p);
   if (p.agent) return `${p.agent} · ${p.pane_id}`;
   const branch = git.branchByFolder[shellFolder.value];
@@ -108,15 +115,15 @@ const subtitle = computed(() => {
         @save="(v) => finishRename('pane', pane.pane_id, v)"
         @cancel="state.renaming = null"
       />
-      <span v-else-if="fileViewPath !== null" class="name" :title="fileViewPath">{{ displayName }}</span>
+      <span v-else-if="viewPath !== null" class="name" :title="viewPath">{{ displayName }}</span>
       <span v-else class="name" :title="t('paneCard.nameTitle', { name: displayName })" @dblclick="startRename('pane', pane.pane_id)">{{ displayName }}</span>
-      <span class="sub" :class="{ 'file-view-path': fileViewPath !== null }">{{ subtitle }}</span>
-      <span v-if="fileViewPath !== null" ref="fileViewControlsHost" class="file-view-controls"></span>
+      <span class="sub" :class="{ 'file-view-path': viewPath !== null }">{{ subtitle }}</span>
+      <span v-if="viewPath !== null" ref="viewControlsHost" class="file-view-controls"></span>
       <span class="spacer"></span>
       <span class="tools">
         <UsageWheel v-if="ctx" :usage="ctx" />
         <button
-          v-if="fileViewPath === null"
+          v-if="viewPath === null"
           class="btn icon small tool"
           :class="{ on: compositionBar.isOpen }"
           :aria-pressed="compositionBar.isOpen"
@@ -127,7 +134,7 @@ const subtitle = computed(() => {
         >
           <Icon name="input-cursor-text" />
         </button>
-        <MacroMenu v-if="fileViewPath === null" :pane-id="pane.pane_id" />
+        <MacroMenu v-if="viewPath === null" :pane-id="pane.pane_id" />
         <template v-if="isInColumnOfPinnedPanes">
           <button class="btn icon small tool" :title="t('paneCard.goToTab')" @mousedown.stop @click="selectPane(pane)"><Icon name="box-arrow-up-right" /></button>
           <button
@@ -188,7 +195,8 @@ const subtitle = computed(() => {
         />
       </span>
     </header>
-    <FileView v-if="fileViewPath !== null" :pane="pane" :controls-host="fileViewControlsHost" />
+    <FileView v-if="fileViewPath !== null" :pane="pane" :controls-host="viewControlsHost" />
+    <DiffPane v-else-if="diffPath !== null" :pane="pane" :controls-host="viewControlsHost" />
     <TerminalView
       v-else
       :key="pane.terminal_id"
@@ -199,7 +207,7 @@ const subtitle = computed(() => {
       :focused="selected"
       @pin="(text) => pinText(text, pane)"
     />
-    <CompositionBar v-if="fileViewPath === null && compositionBar.isOpen" :pane-id="pane.pane_id" @sent="focusTerminal" />
+    <CompositionBar v-if="viewPath === null && compositionBar.isOpen" :pane-id="pane.pane_id" @sent="focusTerminal" />
   </section>
 </template>
 
@@ -245,7 +253,7 @@ const subtitle = computed(() => {
 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 600; white-space: nowrap; cursor: default; }
 .pane-rename { width: 180px; height: 24px; }
 .sub { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* In a file view pane, a narrow header shortens the short path first, then the name. The controls of the file stay visible. */
+/* In a file view pane and in a diff pane, a narrow header shortens the short path first, then the name. The controls of the file stay visible. */
 .sub.file-view-path { min-width: 0; flex-shrink: 10000; }
 .file-view-controls { flex-shrink: 0; display: flex; align-items: center; gap: 8px; margin-left: 4px; }
 .spacer { flex: 1; }

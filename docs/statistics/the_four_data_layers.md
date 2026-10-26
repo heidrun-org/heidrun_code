@@ -1,7 +1,7 @@
 # The four data layers
 
 - Created: 15 October 2026
-- Last updated: 25 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained description of the four data layers
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: chats](../agents_rules/glossary/chats.md), [Rule for GitHub and GitLab support](../agents_rules/github_and_gitlab_support.md), [Data layer access](../agents_rules/data_layer_access.md)
@@ -49,8 +49,8 @@ The mode `update` of each data layer reads only what is new:
 - Each data layer is a Rust library and a command line tool. The script `pnpm --silent data_layer:<name>` at the root of the repository runs the command line tool, and the script `pnpm --filter <package> test` runs the tests. The calls of the library are blocking.
 - No data layer imports another data layer. They share the SQLite file only.
 - Each data layer offers the desktop application two kinds of function: `refresh_*` reads the source and writes the SQLite file, and `find_*` reads the SQLite file only and gives typed rows. The Past chats sidebar section and the Statistics window call only these functions, as [data_layer_access.md](../agents_rules/data_layer_access.md) says.
-- The package [`heidrun_data`](../../submodules/heidrun_data/packages/heidrun_data/README.md) is not a data layer. It is one command line for a coding agent that calls the four libraries: `update` and `initialize` of every source or of the sources given, `query` with a default `LIMIT`, `sources`, `schema`, `usage`, `requests` (the request log), and `read` (the content of a chat session, a commit, an issue, or a pull request, which the tables do not store), with the output formats `jsonl`, `json`, and `table`. Its [SKILL.md](../../submodules/heidrun_data/packages/heidrun_data/SKILL.md) teaches a coding agent to use it. The script `pnpm --silent data_layer:heidrun_data` runs it. It is the only package that imports more than one data layer ([issue 564](https://github.com/heidrun-org/heidrun/issues/564)).
-- Every data layer imports the library `data_layer_operation_log`, and nothing else from the repository. Every public function of the four packages and of `heidrun_data` is recorded in the operation log, with the library [`data_layer_operation_log`](../../submodules/heidrun_data/packages/data_layer_operation_log/README.md). It is the one package that the data layer packages import, and it records who asked, what, with which parameters, how long it took, and how it ended. The log, the command `heidrun_data operations`, and the replay are described in [data_layer_operation_log.md](data_layer_operation_log.md) ([issue 618](https://github.com/heidrun-org/heidrun/issues/618)).
+- The package [`heidrun_data`](../../submodules/heidrun_data/packages/heidrun_data/README.md) is not a data layer. It is one command line for a coding agent that calls the four libraries: `update` and `initialize` of every source or of the sources given, `query` with a default `LIMIT`, `sources`, `schema`, `usage`, and `read` (the content of a chat session, a commit, an issue, or a pull request, which the tables do not store), with the output formats `jsonl`, `json`, and `table`. Its [SKILL.md](../../submodules/heidrun_data/packages/heidrun_data/SKILL.md) teaches a coding agent to use it. The script `pnpm --silent data_layer:heidrun_data` runs it. It is the only package that imports more than one data layer ([issue 564](https://github.com/heidrun-org/heidrun/issues/564)).
+- A data layer imports no other package of the repository.
 - Every data layer has the same folders: `src/model`, `src/storage`, the folder that reads the source, `src/synchronization.rs`, `schemas`, and `tests`.
 
 ## How Heidrun Code uses the four data layers

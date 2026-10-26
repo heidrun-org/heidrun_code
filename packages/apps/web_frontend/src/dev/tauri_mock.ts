@@ -119,6 +119,11 @@ export class TauriMock {
 				return null;
 			case 'launcher_folder_exists':
 				return true;
+			case 'chat_images_find':
+				return {
+					numbers: [],
+					images: [],
+				};
 			case 'chat_references_synchronize':
 				return { repository: 'heidrun-org/heidrun', codeHostingError: null };
 			case 'chat_references_find':
@@ -172,7 +177,7 @@ export class TauriMock {
 			case 'herdr_watch_panes':
 			case 'show_main_window':
 			case 'history_append':
-			case 'set_unsaved':
+			case 'application_log_load_time':
 				return null;
 			default:
 				throw new Error(`mock: the command "${command}" is not available in the browser`);

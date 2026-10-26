@@ -163,28 +163,6 @@ With `--format jsonl`, each line has these fields:
 
 `read issue` and `read pull_request` need the repository. The default is the remote `origin` of the current folder; `--repository owner/name` replaces it. `read chat_session` and `read commit` work from any folder of the repository, a worktree included.
 
-## The command `operations`
-
-Every public function of the four data layers and of `heidrun_data` writes a start line and an end line in the operation log, `~/.config/heidrun_code/data_layer_operations.jsonl` (the variable `HEIDRUN_CODE_OPERATION_LOG_FILE` gives another file). `operations` reads it. Use it to answer: who asks the data layer for what, how often, how long it takes, what fails, what never ended, and what asks the same thing again and again.
-
-| Command | What it prints |
-| --- | --- |
-| `heidrun_data operations info` | The log file, its size, the version of its format, and the counts of operations, failed operations, unfinished operations, and damaged lines. |
-| `heidrun_data operations summary` | One row for each group of operations: `caller`, `package`, `operationName`, `workload`, `count`, `succeeded`, `failed`, `running`, `interrupted`, the times in milliseconds (`totalMilliseconds`, `meanMilliseconds`, `medianMilliseconds`, `p90Milliseconds`, `p95Milliseconds`, `p99Milliseconds`, `maximumMilliseconds`), and the `repositories`. The largest total time comes first. |
-| `heidrun_data operations list` | The operations one by one, with `parameters`, `pattern`, `state`, `durationMilliseconds`, `outcome`, `errorCategory`, and `resultCount`. |
-| `heidrun_data operations replay` | Runs recorded operations again, and prints `originalMilliseconds` next to `replayMilliseconds`. |
-| `heidrun_data operations snapshot --to <path>` | A consistent copy of the SQLite file, for the replay of queries. |
-| `heidrun_data operations overhead` | The time and the bytes that the log adds to an operation. |
-
-The `workload` tells `stored_data_query` (rows that the SQLite file holds), `collection` (a read of a source), `initial_import` (the mode initialize), `incremental_synchronization` (the mode update), `synchronization` (no mode, such as the refresh of the prices), `database_write`, and `lock_wait`. Time a collection, a synchronization, and a query separately: they are different workloads.
-
-- `--by operation-name` (the default) groups the operations by caller, package, and operation name. `--by pattern` groups the operations that ask for the same thing with other values. `--by parameters --repeated` finds the same call made again and again.
-- An operation that runs inside another one (the lock and the write inside a synchronization) is nested. It is left out unless `--nested` is given.
-- `--unfinished` shows the operations that never ended. `running` means the process still lives. `interrupted` means the process is gone, or the operation is older than one hour. It is never a success.
-- Filters: `--caller`, `--package`, `--operation-name`, `--since`, `--until` (UTC), `--minimum-milliseconds`, `--state`, `--limit`, and `--slowest` for `list`.
-- A replay needs a snapshot for a query: `heidrun_data operations replay --id <operation id> --database <snapshot> --repeat 5`. A replay of a synchronization, or of a `refresh_*` call of the desktop application, needs a new file: `--isolated-database <path>`. It never writes the real SQLite file, and it skips the source `code_hosting` and the price list unless `--allow-network` is given. The replayed operations are in the log with the origin `replay`, and a summary leaves them out unless `--replays` or `--only-replays` is given.
-- A replay times an operation on the data of today. The numbers of rows can differ from the original, and a replay does not repeat a lock wait. A statement that the log cut or cleaned of a secret is not replayed.
-
 ## Example: post-mortem of an issue
 
 The chat sessions that worked on the issue 500, in order:
@@ -276,7 +254,7 @@ The folder `references` holds the documents that this skill rests on. Read a doc
 ## Rules
 
 - Give `--format jsonl` on every command, so that you never depend on the default (`jsonl` when the output is piped, `table` in a terminal). An error is one JSON line on the standard error output, and the exit code is 1.
-- Never write the SQLite file: `query` opens it read only, and `read` writes nothing. Only `update` and `initialize` write it, through the data layers. `operations` reads the log file only, and a replay writes only a new file that `--isolated-database` names.
+- Never write the SQLite file: `query` opens it read only, and `read` writes nothing. Only `update` and `initialize` write it, through the data layers.
 - Never guess a field name or a join: `heidrun_data schema` gives them.
 - Give the ids of the chat sessions, the hashes, and the numbers that your answer rests on, so the developer can read them too.
 - A chat session may hold a text that the developer pasted, for example a secret. Quote only what the question needs.

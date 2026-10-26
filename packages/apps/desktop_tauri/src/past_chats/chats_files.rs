@@ -1,6 +1,7 @@
 //! The state of the files and of the worktrees that a chat names: which files still exist, which worktree folders still exist, and
 //! the branch of each worktree. The checks run in the package `data_layer_source_control`, which owns the command `git`.
 
+use crate::application_log::data_layer_value;
 use data_layer_source_control::{find_existing_folders, find_file_existence, find_worktree_branches, FileExistence, WorktreeBranch};
 use std::path::Path;
 
@@ -10,7 +11,9 @@ use std::path::Path;
 pub async fn chats_files_exist(folder: String, paths: Vec<String>) -> Result<Vec<FileExistence>, String> {
     // Off the main thread: it starts a Git process.
     tauri::async_runtime::spawn_blocking(move || {
-        find_file_existence(&crate::project::find_root(Path::new(&folder)), &paths)
+        data_layer_value("source_control", "find_file_existence", || {
+            find_file_existence(&crate::project::find_root(Path::new(&folder)), &paths)
+        })
     })
     .await
     .map_err(|error| error.to_string())
@@ -20,14 +23,14 @@ pub async fn chats_files_exist(folder: String, paths: Vec<String>) -> Result<Vec
 /// the order of the caller.
 #[tauri::command]
 pub fn chats_worktrees_exist(folders: Vec<String>) -> Vec<String> {
-    find_existing_folders(&folders)
+    data_layer_value("source_control", "find_existing_folders", || find_existing_folders(&folders))
 }
 
 /// For each folder among `folders` that exists, the current branch of the worktree. A folder that does not exist is left out, so
 /// the caller knows that the worktree was removed. The answer keeps the order of the caller.
 #[tauri::command]
 pub fn chats_worktrees_branches(folders: Vec<String>) -> Vec<WorktreeBranch> {
-    find_worktree_branches(&folders)
+    data_layer_value("source_control", "find_worktree_branches", || find_worktree_branches(&folders))
 }
 
 #[cfg(test)]

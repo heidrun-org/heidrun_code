@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DOMWrapper, enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
+import { DOMWrapper, enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 
 const invokeMock = vi.hoisted(() => vi.fn(async (_command: string, _args: Record<string, string>): Promise<unknown> => null));
 const writeTextMock = vi.hoisted(() => vi.fn(async (_text: string) => {}));
 const revealMock = vi.hoisted(() => vi.fn(async (_path: string) => {}));
 const openSearchMock = vi.hoisted(() => vi.fn());
+const goToLineMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
@@ -21,9 +22,10 @@ vi.mock("./CodeEditor.vue", async () => {
   const { defineComponent, h } = await import("vue");
   return {
     default: defineComponent({
-      props: { path: String, text: String, wrap: Boolean, readOnly: Boolean },
+      props: { path: String, text: String, wrap: Boolean, readOnly: Boolean, line: Number, autoFocus: { type: Boolean, default: undefined } },
+      emits: ["change", "save", "selection"],
       setup(props, { expose }) {
-        expose({ openSearch: openSearchMock });
+        expose({ openSearch: openSearchMock, goToLine: goToLineMock });
         return () =>
           h("div", {
             class: "code-editor-stub",
@@ -31,6 +33,8 @@ vi.mock("./CodeEditor.vue", async () => {
             "data-read-only": String(props.readOnly),
             "data-wrap": String(props.wrap),
             "data-text": props.text,
+            "data-line": String(props.line ?? ""),
+            "data-auto-focus": String(props.autoFocus),
           });
       },
     }),
@@ -39,6 +43,8 @@ vi.mock("./CodeEditor.vue", async () => {
 
 import FileView from "./FileView.vue";
 import { settings } from "../stores/settings";
+import { fileViewEdits } from "../stores/file_view_edit_state";
+import { fileViewLineRequests } from "../stores/file_view_panes";
 
 enableAutoUnmount(afterEach);
 
@@ -59,6 +65,15 @@ function answer(command: string, args: Record<string, string>) {
   if (command === "git_file") {
     return args.path.endsWith(".md") ? markdownContent : "const a = 1;\n";
   }
+  if (command === "file_read") {
+    return { text: args.path.endsWith(".md") ? markdownContent : "const a = 1;\n", hash: "hash-1" };
+  }
+  if (command === "file_stat") {
+    return { hash: "hash-1" };
+  }
+  if (command === "file_write") {
+    return { hash: "hash-2" };
+  }
   if (command === "file_image") {
     return "data:image/png;base64,AAAA";
   }
@@ -72,6 +87,11 @@ function mountFileView(label = LABEL) {
       controlsHost: host,
     },
   });
+}
+
+/** The stub of the code editor, to send the events of the editor. */
+function editorOf(wrapper: ReturnType<typeof mountFileView>): VueWrapper {
+  return wrapper.findComponent(".code-editor-stub") as unknown as VueWrapper;
 }
 
 /** The controls that the file view puts in the header of the pane. */
@@ -95,6 +115,16 @@ function menuEntry(action: string) {
   return new DOMWrapper(document.body).get(`[role='menuitem'][data-action='${action}']`);
 }
 
+/** The switch of the open menu that has this `data-action`. */
+function menuSwitch(action: string) {
+  return new DOMWrapper(document.body).get(`[role='menuitemcheckbox'][data-action='${action}']`);
+}
+
+/** The text of every switch of the open menu, from the first to the last. */
+function menuSwitchTexts(): string[] {
+  return Array.from(document.body.querySelectorAll("[role='menuitemcheckbox']")).map((entry) => (entry.textContent ?? "").trim());
+}
+
 /** The text of every entry of the open menu, from the first to the last. */
 function menuTexts(): string[] {
   return Array.from(document.body.querySelectorAll("[role='menuitem']")).map((entry) => (entry.textContent ?? "").trim());
@@ -114,8 +144,16 @@ beforeEach(() => {
   writeTextMock.mockClear();
   revealMock.mockClear();
   openSearchMock.mockClear();
+  goToLineMock.mockClear();
+  for (const paneId of Object.keys(fileViewEdits)) {
+    delete fileViewEdits[paneId];
+  }
+  for (const path of Object.keys(fileViewLineRequests)) {
+    delete fileViewLineRequests[path];
+  }
   settings.filesMdRead = true;
   settings.codeWrap = false;
+  settings.markdownWrapAt80Columns = false;
 });
 
 afterEach(() => {
@@ -124,18 +162,19 @@ afterEach(() => {
 });
 
 describe("FileView (issue #714)", () => {
-  it("resolves the file from the folder of the pane, reads it, and gives it to a read only editor", async () => {
+  it("resolves the file from the folder of the pane, reads it, and gives it to an editor that can change it (issue #899)", async () => {
     const wrapper = mountFileView();
     await flushPromises();
     expect(invokeMock).toHaveBeenCalledWith("files_resolve", { cwd: "/work/project", path: "/work/project/src/main.ts" });
-    expect(invokeMock).toHaveBeenCalledWith("git_file", { root: "/work/project", path: "src/main.ts", rev: null });
+    expect(invokeMock).toHaveBeenCalledWith("file_read", { root: "/work/project", path: "src/main.ts" });
     const editor = wrapper.get(".code-editor-stub");
-    expect(editor.attributes("data-read-only")).toBe("true");
+    expect(editor.attributes("data-read-only")).toBe("false");
+    expect(editor.attributes("data-auto-focus")).toBe("false");
     expect(editor.attributes("data-path")).toBe("src/main.ts");
-    expect(editor.attributes("data-text")).toBe("const a = 1;");
+    expect(editor.attributes("data-text")).toBe("const a = 1;\n");
   });
 
-  it("has no button to edit or to save, and never calls a command that writes", async () => {
+  it("has no button Save while the file has no unsaved changes, and never writes the file before a save", async () => {
     mountFileView();
     await flushPromises();
     expect(controls().findAll("button")).toHaveLength(1);
@@ -153,7 +192,7 @@ describe("FileView (issue #714)", () => {
     await controls().findAll("input[type='radio']")[1].setValue();
     await flushPromises();
     expect(settings.filesMdRead).toBe(false);
-    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("# Title\n\nSome **text**.");
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("# Title\n\nSome **text**.\n");
   });
 
   it("names the two buttons of a Markdown file Preview and Raw, and gives each one a title", async () => {
@@ -171,14 +210,44 @@ describe("FileView (issue #714)", () => {
     expect(controls().find(".btn-group").exists()).toBe(false);
   });
 
-  it("gives the choice of wrapping lines to the editor, with a switch", async () => {
+  it("gives the choice of wrapping lines to the editor, with a switch in the menu that leaves the menu open", async () => {
     const wrapper = mountFileView();
     await flushPromises();
     expect(wrapper.get(".code-editor-stub").attributes("data-wrap")).toBe("false");
-    expect(controls().get(".switch + label").text()).toBe("Wrap lines");
-    await controls().get("input[role='switch']").setValue(true);
+    expect(controls().find(".switch").exists()).toBe(false);
+    await openMenu();
+    expect(menuSwitch("wrap-lines").attributes("aria-checked")).toBe("false");
+    await menuSwitch("wrap-lines").trigger("click");
     expect(settings.codeWrap).toBe(true);
     expect(wrapper.get(".code-editor-stub").attributes("data-wrap")).toBe("true");
+    expect(menuSwitch("wrap-lines").attributes("aria-checked")).toBe("true");
+    expect(menuSwitch("wrap-lines").get("input").element.checked).toBe(true);
+    expect(document.body.querySelector("[role='menu']")).not.toBeNull();
+  });
+
+  it("shows the Markdown preview on the whole width of the pane by default (issue #897)", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    expect(wrapper.get(".md-doc").classes()).toContain("full");
+    expect(wrapper.get(".md-doc").classes()).not.toContain("wrap-at-80-columns");
+  });
+
+  it("gives a switch Wrap at 80 columns after Wrap lines, which keeps the preview in a narrow column (issue #897)", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    await openMenu();
+    expect(menuSwitchTexts()).toEqual(["Wrap lines", "Wrap at 80 columns"]);
+    await menuSwitch("wrap-at-80-columns").trigger("click");
+    expect(settings.markdownWrapAt80Columns).toBe(true);
+    expect(wrapper.get(".md-doc").classes()).toContain("wrap-at-80-columns");
+    expect(wrapper.get(".md-doc").classes()).not.toContain("full");
+  });
+
+  it("shows no switch Wrap at 80 columns for a file that is not Markdown (issue #897)", async () => {
+    mountFileView();
+    await flushPromises();
+    await openMenu();
+    expect(menuSwitchTexts()).toEqual(["Wrap lines"]);
   });
 
   it("opens the search panel of the editor with the entry Search of the menu, and closes the menu", async () => {
@@ -249,12 +318,28 @@ describe("FileView (issue #714)", () => {
     await flushPromises();
     await wrapper.setProps({ pane: { ...wrapper.props("pane"), label: "Heidrun file view: /work/project/src/other.ts" } });
     await flushPromises();
-    expect(invokeMock).toHaveBeenCalledWith("git_file", { root: "/work/project", path: "src/other.ts", rev: null });
+    expect(invokeMock).toHaveBeenCalledWith("file_read", { root: "/work/project", path: "src/other.ts" });
     expect(wrapper.get(".code-editor-stub").attributes("data-path")).toBe("src/other.ts");
   });
 });
 
 describe("FileView menu (issue #784)", () => {
+  it("shows three vertical dots on the menu button, and the two switches under a divider after the actions (issue #897)", async () => {
+    mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    expect(menuButton().find(".bi-three-dots-vertical").exists()).toBe(true);
+    await openMenu();
+    const children = Array.from(document.body.querySelector("[role='menu']")!.children);
+    expect(children.map((child) => child.getAttribute("data-action") ?? child.getAttribute("role"))).toEqual([
+      "copy-path",
+      "show-in-finder",
+      "open-in-visual-studio-code",
+      "separator",
+      "wrap-lines",
+      "wrap-at-80-columns",
+    ]);
+  });
+
   it("opens with a click, moves between the entries with the arrow keys, and closes with the key Escape", async () => {
     mountFileView();
     await flushPromises();
@@ -265,11 +350,13 @@ describe("FileView menu (issue #784)", () => {
     expect(document.activeElement).toBe(menuEntry("copy-path").element);
     pressKey("ArrowUp");
     pressKey("ArrowUp");
+    expect(document.activeElement).toBe(menuSwitch("wrap-lines").element);
+    pressKey("ArrowUp");
     expect(document.activeElement).toBe(menuEntry("open-in-visual-studio-code").element);
     pressKey("Home");
     expect(document.activeElement).toBe(menuEntry("search").element);
     pressKey("End");
-    expect(document.activeElement).toBe(menuEntry("open-in-visual-studio-code").element);
+    expect(document.activeElement).toBe(menuSwitch("wrap-lines").element);
     pressKey("Escape");
     await flushPromises();
     expect(document.body.querySelector("[role='menu']")).toBeNull();
@@ -362,6 +449,136 @@ describe("FileView front matter card (issue #784)", () => {
     await controls().findAll("input[type='radio']")[1].setValue();
     await flushPromises();
     expect(wrapper.find(".front-matter-card").exists()).toBe(false);
-    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe(`---\n${FRONT_MATTER}\n---\n\n# Project\n\nThe text.`);
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe(`---\n${FRONT_MATTER}\n---\n\n# Project\n\nThe text.\n`);
+  });
+});
+
+describe("FileView editing (issue #899)", () => {
+  it("shows the button Save after a change, saves with the fingerprint that was read, and hides the button again", async () => {
+    const wrapper = mountFileView();
+    await flushPromises();
+    editorOf(wrapper).vm.$emit("change", "const a = 2;\n");
+    await flushPromises();
+    const saveButton = controls().get("button[data-action='save']");
+    expect(saveButton.text()).toBe("Save");
+    expect(saveButton.attributes("title")).toBe("Save the file (⌘S)");
+    await saveButton.trigger("click");
+    await flushPromises();
+    expect(invokeMock).toHaveBeenCalledWith("file_write", { root: "/work/project", path: "src/main.ts", content: "const a = 2;\n", expected: "hash-1" });
+    expect(controls().find("button[data-action='save']").exists()).toBe(false);
+  });
+
+  it("saves with the key ⌘S of the editor", async () => {
+    const wrapper = mountFileView();
+    await flushPromises();
+    const editor = editorOf(wrapper);
+    editor.vm.$emit("change", "const b = 3;\n");
+    editor.vm.$emit("save");
+    await flushPromises();
+    expect(invokeMock).toHaveBeenCalledWith("file_write", expect.objectContaining({ content: "const b = 3;\n" }));
+  });
+
+  it("shows a conflict when the file changed on the disk, and overwrites it only after a click", async () => {
+    invokeMock.mockImplementation(async (command: string, args: Record<string, string>) => {
+      if (command === "file_write" && (args as unknown as { expected: string }).expected === "hash-1") {
+        throw "changed_on_disk";
+      }
+      if (command === "file_stat") {
+        return { hash: "hash-disk" };
+      }
+      if (command === "file_read" && fileViewEdits["w1:p2"] !== undefined) {
+        return { text: "const disk = 1;\n", hash: "hash-disk" };
+      }
+      return answer(command, args);
+    });
+    const wrapper = mountFileView();
+    await flushPromises();
+    editorOf(wrapper).vm.$emit("change", "const mine = 1;\n");
+    await flushPromises();
+    await controls().get("button[data-action='save']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get(".banner.warn").text()).toContain("The file changed on the disk");
+    await wrapper.get(".banner.warn button[data-action='overwrite']").trigger("click");
+    await flushPromises();
+    expect(invokeMock).toHaveBeenCalledWith("file_write", { root: "/work/project", path: "src/main.ts", content: "const mine = 1;\n", expected: "hash-disk" });
+    expect(invokeMock).toHaveBeenLastCalledWith("set_unsaved", { on: false });
+  });
+
+  it("drops the changes and reads the disk again with the button Reload of the conflict", async () => {
+    invokeMock.mockImplementation(async (command: string, args: Record<string, string>) => {
+      if (command === "file_write") {
+        throw "changed_on_disk";
+      }
+      if (command === "file_stat") {
+        return { hash: "hash-disk" };
+      }
+      if (command === "file_read" && fileViewEdits["w1:p2"] !== undefined) {
+        return { text: "const disk = 1;\n", hash: "hash-disk" };
+      }
+      return answer(command, args);
+    });
+    const wrapper = mountFileView();
+    await flushPromises();
+    editorOf(wrapper).vm.$emit("change", "const mine = 1;\n");
+    await flushPromises();
+    await controls().get("button[data-action='save']").trigger("click");
+    await flushPromises();
+    await wrapper.get(".banner.warn button[data-action='reload']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("const disk = 1;\n");
+    expect(wrapper.find(".banner.warn").exists()).toBe(false);
+    expect(controls().find("button[data-action='save']").exists()).toBe(false);
+  });
+
+  it("keeps a file that cannot be edited read only, and says why", async () => {
+    invokeMock.mockImplementation(async (command: string, args: Record<string, string>) => {
+      if (command === "file_read") {
+        throw "binary file: it cannot be edited";
+      }
+      return answer(command, args);
+    });
+    const wrapper = mountFileView();
+    await flushPromises();
+    expect(wrapper.get(".code-editor-stub").attributes("data-read-only")).toBe("true");
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("const a = 1;");
+    expect(wrapper.get(".banner.info").text()).toBe("Read only: binary file: it cannot be edited");
+  });
+
+  it("shows the unsaved changes in the Markdown preview", async () => {
+    settings.filesMdRead = false;
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    editorOf(wrapper).vm.$emit("change", "# Changed\n");
+    await controls().findAll("input[type='radio']")[0].setValue();
+    await flushPromises();
+    expect(wrapper.get(".md-doc h1").text()).toBe("Changed");
+  });
+});
+
+describe("FileView line (issue #898)", () => {
+  it("gives the editor the line of the file name, and goes to a line asked again", async () => {
+    fileViewLineRequests["/work/project/src/main.ts"] = { line: 42, sequence: 1 };
+    const wrapper = mountFileView();
+    await flushPromises();
+    expect(wrapper.get(".code-editor-stub").attributes("data-line")).toBe("42");
+    fileViewLineRequests["/work/project/src/main.ts"] = { line: 7, sequence: 2 };
+    await flushPromises();
+    expect(goToLineMock).toHaveBeenCalledWith(7);
+  });
+});
+
+describe("FileView selected lines (issue #901)", () => {
+  it("shows the actions Explain and Fix these lines under the selected lines, and hides them when nothing is selected", async () => {
+    const wrapper = mountFileView();
+    await flushPromises();
+    const editor = editorOf(wrapper);
+    editor.vm.$emit("selection", { fromLine: 3, toLine: 5, text: "x", left: 40, bottom: 60 });
+    await flushPromises();
+    const bar = wrapper.get(".selection-bar");
+    expect(bar.text()).toContain("lines 3–5");
+    expect(bar.findAll("button").map((button) => button.text())).toEqual(["Explain", "Fix these lines"]);
+    editor.vm.$emit("selection", null);
+    await flushPromises();
+    expect(wrapper.find(".selection-bar").exists()).toBe(false);
   });
 });

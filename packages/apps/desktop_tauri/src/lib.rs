@@ -1,7 +1,9 @@
 mod app_data;
 mod application_log;
 mod application_profile;
+mod build_settings;
 mod antigravity;
+mod chat_images;
 mod claude;
 mod clipboard;
 mod coding_agent_models;
@@ -180,7 +182,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     MenuBuilder::new(app).items(&[&app_menu, &edit, &window]).build()
 }
 
-/// Files edited and not saved: quitting or closing the window asks first.
+/// File view panes with unsaved changes: quitting or closing the window asks first (issue #899).
 static UNSAVED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 #[tauri::command]
@@ -209,12 +211,14 @@ fn claim_first_show(flag: &std::sync::atomic::AtomicBool) -> bool {
     !flag.swap(true, std::sync::atomic::Ordering::SeqCst)
 }
 
-/// Shows the main window and gives it the keyboard focus. Only the first call does the work.
-fn show_main_window_once(app: &AppHandle) {
+/// Shows the main window and gives it the keyboard focus. Only the first call does the work, and writes in the application log
+/// the time from the start of the application, with `reason`: `splash_image_ready` or `timeout`.
+fn show_main_window_once(app: &AppHandle, reason: &str) {
     use tauri::Manager;
     if !claim_first_show(&MAIN_WINDOW_SHOWN) {
         return;
     }
+    application_log::record_main_window_shown(reason);
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
@@ -225,7 +229,7 @@ fn show_main_window_once(app: &AppHandle) {
 /// in its first frame.
 #[tauri::command]
 fn show_main_window(app: AppHandle) {
-    show_main_window_once(&app);
+    show_main_window_once(&app, "splash_image_ready");
 }
 
 /// The command line option that starts Heidrun Code without the splash screen. A program that drives Heidrun Code, for example to
@@ -254,7 +258,7 @@ fn set_keep_agents_running(is_keeping: bool) {
     KEEP_AGENTS_RUNNING.store(is_keeping, std::sync::atomic::Ordering::Relaxed);
 }
 
-/// "Quitter sans enregistrer": the user chose, the app leaves.
+/// "Quit without saving": the developer chose, the application leaves.
 #[tauri::command]
 fn quit_now(app: AppHandle) {
     UNSAVED.store(false, std::sync::atomic::Ordering::Relaxed);
@@ -263,10 +267,10 @@ fn quit_now(app: AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    application_log::mark_application_start();
     let context = tauri::generate_context!();
     application_profile::initialize(&context.config().identifier);
     login_shell_path::apply();
-    data_layer_operation_log::set_default_caller("heidrun");
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -280,8 +284,8 @@ pub fn run() {
         .manage(status_item::StatusItemState::default())
         .setup(|app| {
             if application_profile::is_development() == false {
-                legacy::migrate_config_dir();
                 claude::migrate_legacy();
+                antigravity::migrate_former_folder();
             }
             voice_commands::open_whisper_log();
             if application_profile::is_development() == false {
@@ -294,7 +298,7 @@ pub fn run() {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(MAIN_WINDOW_SHOW_TIMEOUT).await;
-                show_main_window_once(&handle);
+                show_main_window_once(&handle, "timeout");
             });
             Ok(())
         })
@@ -326,6 +330,7 @@ pub fn run() {
             set_keep_agents_running,
             quit_now,
             show_main_window,
+            application_log::application_log_load_time,
             is_splash_screen_disabled,
             status_item::status_item_update,
             status_item::status_item_set_visible,
@@ -352,6 +357,8 @@ pub fn run() {
             voice_commands::voice_start_recording,
             voice_commands::voice_cancel_recording,
             voice_commands::voice_stop_recording,
+            voice_commands::voice_discard_recording,
+            voice_commands::voice_transcribe_recording,
             voice_words::voice_words_read,
             voice_words::voice_words_add,
             voice_words::voice_words_update,
@@ -371,6 +378,7 @@ pub fn run() {
             git::git_status,
             git::git_worktrees,
             git::forge_rate_limit_reset,
+            git::forge_gitlab_rate_limit_reset,
             forge_cache::forge_cli_cached,
             forge_cache::forge_cli_cached_with_source,
             topic_clusters::topic_clusters_read,
@@ -402,6 +410,7 @@ pub fn run() {
             claude::claude_set_rc_startup,
             claude::claude_commands,
             claude::claude_session_agents,
+            chat_images::chat_images::chat_images_find,
             past_chats::chats::chats_synchronize,
             past_chats::chats::chats_list,
             past_chats::chats_files::chats_files_exist,
@@ -433,8 +442,6 @@ pub fn run() {
             files::files_grep,
             files::file_create,
             files::dirs_existing,
-            files::file_rename,
-            files::file_trash,
             mobile::mobile_reply,
             mobile::mobile_status,
             mobile::mobile_push,

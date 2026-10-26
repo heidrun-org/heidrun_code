@@ -534,10 +534,10 @@ describe("sidebar section of the left sidebar that held the workspaces", () => {
 
 /** The options of the windows and of the sidebar sections that the application saves: name, default value, other value. */
 const SAVED_OPTIONS: [string, unknown, unknown][] = [
-  ["filesSideMode", "tree", "grep"],
-  ["filesGrepRegex", false, true],
-  ["filesGrepCase", false, true],
   ["filesShowIgnored", false, true],
+  ["fileSearchMatchCase", false, true],
+  ["fileSearchRegularExpression", false, true],
+  ["diffMode", "unified", "split"],
   ["agentsActivityScope", "all", "pane"],
   ["historyPeriod", "today", "90"],
   ["historyGroupBy", "ws", "feature"],
@@ -591,7 +591,7 @@ describe("a corrupted saved value", () => {
     localStorage.setItem("heidrun.settings", savedText);
     vi.resetModules();
     const restarted = await import("./settings");
-    expect(restarted.settings.filesSideMode).toBe("tree");
+    expect(restarted.settings.diffMode).toBe("unified");
     expect(restarted.settings.historyPeriod).toBe("today");
     expect(restarted.settings.fontSize).toBe(FONT_DEFAULT);
   });
@@ -600,7 +600,7 @@ describe("a corrupted saved value", () => {
     localStorage.setItem(
       "heidrun.settings",
       JSON.stringify({
-        filesGrepRegex: "yes",
+        filesShowIgnored: "yes",
         historyPeriod: 7,
         workingDays: "monday",
         budgets: null,
@@ -617,7 +617,7 @@ describe("a corrupted saved value", () => {
     expect(restarted.settings.dynamicTopics).toBe(true);
     expect(restarted.settings.gitFetchMinutes).toBe(5);
     expect(restarted.settings.chatsRefreshSeconds).toBe(10);
-    expect(restarted.settings.filesGrepRegex).toBe(false);
+    expect(restarted.settings.filesShowIgnored).toBe(false);
     expect(restarted.settings.historyPeriod).toBe("today");
     expect(restarted.settings.workingDays).toEqual([0, 1, 2, 3, 4, 5, 6]);
     expect(restarted.settings.budgets).toEqual({});
@@ -630,7 +630,7 @@ describe("a corrupted saved value", () => {
     localStorage.setItem(
       "heidrun.settings",
       JSON.stringify({
-        filesSideMode: "sideways",
+        diffMode: "sideways",
         agentsActivityScope: "none",
         historyPeriod: "12",
         historyGroupBy: "year",
@@ -646,7 +646,7 @@ describe("a corrupted saved value", () => {
     );
     vi.resetModules();
     const restarted = await import("./settings");
-    expect(restarted.settings.filesSideMode).toBe("tree");
+    expect(restarted.settings.diffMode).toBe("unified");
     expect(restarted.settings.agentsActivityScope).toBe("all");
     expect(restarted.settings.historyPeriod).toBe("today");
     expect(restarted.settings.historyGroupBy).toBe("ws");
@@ -724,19 +724,44 @@ describe("sidebars that an older version hid completely (issue #315)", () => {
   });
 });
 
-describe("diff mode of the large Git window", () => {
-  it("reads the old saved value read as preview", async () => {
-    localStorage.setItem("heidrun.settings", JSON.stringify({ diffMode: "read" }));
+describe("the options of the Files window and of the large Git window (issue #886)", () => {
+  it.each(["read", "preview", "file"])("reads the old saved diff mode %s as unified", async (savedMode) => {
+    localStorage.setItem("heidrun.settings", JSON.stringify({ diffMode: savedMode }));
     vi.resetModules();
     const restarted = await import("./settings");
-    expect(restarted.settings.diffMode).toBe("preview");
+    expect(restarted.settings.diffMode).toBe("unified");
   });
 
-  it("keeps the saved value preview", async () => {
-    localStorage.setItem("heidrun.settings", JSON.stringify({ diffMode: "preview" }));
+  it("forgets the saved options of the two windows", async () => {
+    localStorage.setItem(
+      "heidrun.settings",
+      JSON.stringify({
+        filesListWidth: 280,
+        filesDiffBeforeSave: true,
+        filesSideMode: "grep",
+        filesGrepRegex: true,
+        filesGrepCase: true,
+        gitListHidden: true,
+        gitListWidth: 400,
+        diffMode: "split",
+      }),
+    );
     vi.resetModules();
     const restarted = await import("./settings");
-    expect(restarted.settings.diffMode).toBe("preview");
+    const names = Object.keys(restarted.settings);
+    const removedNames = [
+      "filesListWidth",
+      "filesDiffBeforeSave",
+      "filesSideMode",
+      "filesGrepRegex",
+      "filesGrepCase",
+      "gitListHidden",
+      "gitListWidth",
+    ];
+    for (const name of removedNames) {
+      expect(names).not.toContain(name);
+    }
+    expect(restarted.settings.diffMode).toBe("split");
   });
 });
 

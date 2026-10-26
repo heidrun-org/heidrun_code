@@ -56,13 +56,7 @@ if [ -n "$HERDR_PANE_ID" ]; then
 fi
 
 # ---- The line shown in Claude Code -----------------------------------------
-desk_dir="${HEIDRUN_CODE_DIR:-${HEIDRUN_DIR:-}}"
-if [ -z "$desk_dir" ]; then
-	desk_dir="$HOME/.config/heidrun_code"
-	if [ ! -d "$desk_dir" ] && [ -d "$HOME/.config/heidrun" ]; then
-		desk_dir="$HOME/.config/heidrun"
-	fi
-fi
+desk_dir="${HEIDRUN_CODE_DIR:-$HOME/.config/heidrun_code}"
 # "Masquer dans le terminal" in Heidrun Code: print nothing, the app shows the numbers.
 if [ -e "$desk_dir/claude-statusline-hidden" ]; then
   exit 0

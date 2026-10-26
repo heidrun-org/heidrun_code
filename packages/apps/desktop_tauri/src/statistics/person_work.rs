@@ -9,11 +9,12 @@
 //! - `person_work_in_range` reads the SQLite file only. It runs no `git` command and no `gh` command, and it makes no network
 //!   request. A merge commit does not count: it brings in commits that count already.
 
+use crate::application_log::{data_layer_call, github_points_details, no_details, row_count};
 #[cfg(test)]
 use data_layer_code_hosting::{refresh_code_hosting_with_runner_and_progress, GraphqlRunner};
 use data_layer_code_hosting::{
     find_issues_opened_between, find_pull_requests_opened_between, refresh_code_hosting_with_progress, CodeHostingProgress,
-    CodeHostingStage,
+    CodeHostingStage, SynchronizationReport,
 };
 use data_layer_source_control::{
     default_database_path, find_commits, find_repository, refresh_source_control_with_progress, SourceControlProgress,
@@ -103,7 +104,16 @@ pub async fn person_work_synchronize(
     // Off the main thread: it starts a Git process and a request to GitHub.
     tauri::async_runtime::spawn_blocking(move || {
         let refresh_hosting = |database_path: &Path, repository: &str, progress: &dyn Fn(&CodeHostingProgress)| {
-            refresh_code_hosting_with_progress(database_path, repository, progress).map(|_| ())
+            data_layer_call(
+                "code_hosting",
+                "refresh_code_hosting_with_progress",
+                || refresh_code_hosting_with_progress(database_path, repository, progress),
+                |report: &SynchronizationReport| {
+                    let points = report.github_points;
+                    github_points_details(points.query_count, points.cost, points.remaining)
+                },
+            )
+            .map(|_| ())
         };
         // A web page that is closed does not receive the report, and the update goes on.
         let progress = |report: PersonWorkProgress| {
@@ -138,16 +148,22 @@ fn synchronize(
     refresh_hosting: &RefreshFn,
     progress: &dyn Fn(PersonWorkProgress),
 ) -> Result<PersonWorkSynchronization, String> {
-    let repository = find_repository(folder)?;
+    let repository = data_layer_call("source_control", "find_repository", || find_repository(folder), no_details)?;
     // Two commands that write the SQLite file at the same time would fail with "database is locked". The command line
     // heidrun_data takes the same lock.
     let _guard = heidrun_data::lock_database(database_path)?;
     let send = |stage: &'static str, done_count: usize, total_count: Option<usize>, is_finished: bool| {
         progress(PersonWorkProgress { repository: repository.clone(), stage, done_count, total_count, is_finished })
     };
-    refresh_source_control_with_progress(database_path, folder, &repository, &|report: &SourceControlProgress| {
+    let source_control_progress = |report: &SourceControlProgress| {
         send(source_control_stage_name(report.stage), report.done_count, report.total_count, report.is_finished)
-    })?;
+    };
+    data_layer_call(
+        "source_control",
+        "refresh_source_control_with_progress",
+        || refresh_source_control_with_progress(database_path, folder, &repository, &source_control_progress),
+        no_details,
+    )?;
     let code_hosting_error = refresh_hosting(database_path, &repository, &|report: &CodeHostingProgress| {
         send(code_hosting_stage_name(report.stage), report.done_count, report.total_count, report.is_finished)
     })
@@ -175,7 +191,8 @@ fn code_hosting_stage_name(stage: CodeHostingStage) -> &'static str {
 
 /// Reads the three kinds of items of `repository` from the SQLite file at `database_path`.
 fn read(database_path: &Path, repository: &str, since: &str, until: &str) -> Result<PersonWorkItems, String> {
-    let commits = find_commits(database_path, repository, since, until, false)?
+    let find = || find_commits(database_path, repository, since, until, false);
+    let commits = data_layer_call("source_control", "find_commits", find, row_count)?
         .into_iter()
         .map(|commit| CommitWork {
             author_name: commit.author_name,
@@ -185,11 +202,13 @@ fn read(database_path: &Path, repository: &str, since: &str, until: &str) -> Res
             deletions: commit.deletions,
         })
         .collect();
-    let pull_requests = find_pull_requests_opened_between(database_path, repository, since, until)?
+    let find = || find_pull_requests_opened_between(database_path, repository, since, until);
+    let pull_requests = data_layer_call("code_hosting", "find_pull_requests_opened_between", find, row_count)?
         .into_iter()
         .map(|pull_request| OpenedItemWork { author: pull_request.author, created_at: pull_request.created_at })
         .collect();
-    let issues = find_issues_opened_between(database_path, repository, since, until)?
+    let find = || find_issues_opened_between(database_path, repository, since, until);
+    let issues = data_layer_call("code_hosting", "find_issues_opened_between", find, row_count)?
         .into_iter()
         .map(|issue| OpenedItemWork { author: issue.author, created_at: issue.created_at })
         .collect();

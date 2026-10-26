@@ -18,6 +18,8 @@ const dialog = ref<HTMLElement>();
 const view = computed(() => skills.view);
 const parts = computed(() => splitSkillText(view.value?.text ?? ""));
 const rendered = computed(() => renderMarkdown(parts.value.body));
+/** The rendered skill uses the whole width, or a column of about 80 characters, as the file view pane (issue 897). */
+const markdownWidthClass = computed(() => (settings.markdownWrapAt80Columns ? "wrap-at-80-columns" : "full"));
 const lines = computed(() => {
   const text = view.value?.text ?? "";
   return highlightFile(text, text.length > MAX_HIGHLIGHTED_CHARS ? null : languageFor("SKILL.md"));
@@ -114,13 +116,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
           </div>
         </template>
         <template v-else-if="settings.skillsViewRendered">
-          <dl v-if="parts.fields.length > 0" class="front">
+          <dl v-if="parts.fields.length > 0" class="front" :class="markdownWidthClass">
             <template v-for="field in parts.fields" :key="field.key">
               <dt>{{ field.key }}</dt>
               <dd>{{ field.value }}</dd>
             </template>
           </dl>
-          <article class="md-doc" @click="onLinkClick" v-html="rendered"></article>
+          <article class="md-doc" :class="markdownWidthClass" @click="onLinkClick" v-html="rendered"></article>
         </template>
         <table v-else class="tbl">
           <tbody>
@@ -149,7 +151,9 @@ h2 { margin: 0; font-size: var(--font-size); font-weight: 600; white-space: nowr
 .seg { display: flex; padding: 3px; border-radius: 9px; background: var(--bg); gap: 3px; flex-shrink: 0; }
 .body { flex: 1; min-height: 0; overflow: auto; font-family: var(--mono); line-height: 1.55; }
 .empty { padding: 24px; color: var(--muted); font-family: var(--sans); font-size: var(--font-size); }
-.front { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; max-width: 860px; margin: 24px auto 0; padding: 12px 16px; border-radius: 10px; background: var(--field); font: var(--font-size)/1.5 var(--sans); }
+.front { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 24px auto 0; padding: 12px 16px; border-radius: 10px; background: var(--field); font: var(--font-size)/1.5 var(--sans); }
+.front.full { margin-inline: 36px; }
+.front.wrap-at-80-columns { max-width: 37em; }
 .front dt { color: var(--muted); }
 .front dd { margin: 0; color: var(--text-2); overflow-wrap: anywhere; user-select: text; }
 .md-doc { padding: 24px 36px 60px; }

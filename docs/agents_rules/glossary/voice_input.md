@@ -1,11 +1,11 @@
 # Glossary of Heidrun Code: voice input
 
 - Created: 18 October 2026
-- Last updated: 23 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: voice input](../user_interface/window/settings_voice_input.md), [User interface of Heidrun Code: word replacement list of the voice input](../user_interface/window/settings_voice_words.md), [User interface of Heidrun Code: composition bar](../user_interface/workspaces_tabs_and_panes/composition_bar.md)
-- Related issue: [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 712](https://github.com/heidrun-org/heidrun/issues/712), [issue 820](https://github.com/heidrun-org/heidrun/issues/820), [issue 836](https://github.com/heidrun-org/heidrun_code/issues/836)
+- Related issue: [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 712](https://github.com/heidrun-org/heidrun/issues/712), [issue 820](https://github.com/heidrun-org/heidrun/issues/820), [issue 836](https://github.com/heidrun-org/heidrun_code/issues/836), [issue 762](https://github.com/heidrun-org/heidrun_code/issues/762), [issue 868](https://github.com/heidrun-org/heidrun_code/issues/868)
 
 This document gives one short definition for each word of the voice input. The other words of Heidrun Code are in [index.md](index.md).
 
@@ -13,7 +13,7 @@ This document gives one short definition for each word of the voice input. The o
 
 ### Voice input
 
-The feature that changes the speech of the developer into text. The developer holds the push-to-talk button, speaks, and releases the button, or clicks the button to start and clicks it again to stop. Heidrun Code records the microphone only between these two moments, changes the speech into text on the computer with a Whisper model, and writes the text in the composition bar whose push-to-talk button started the recording, even if focus changes. All panes share one recorder, so only one recording can run. The voice input is off at first.
+The feature that changes the speech of the developer into text. The developer holds the push-to-talk button, speaks, and releases the button, or clicks the button to start and clicks it again to stop. Heidrun Code records the microphone only between these two moments, changes the speech into text on the computer with a Whisper model, and writes the text in the composition bar whose push-to-talk button started the recording, even if focus changes. All panes share one microphone, so only one composition bar records at a time, and the recordings wait in one queue for Whisper. The voice input is off at first.
 
 ### Push-to-talk button
 
@@ -21,7 +21,15 @@ The button that the developer uses to speak. A long press is push to talk: the d
 
 ### Level bars
 
-The row of thin vertical bars inside the text input of the composition bar, at its right end, that shows how loud the voice is while the microphone is open. The newest bar is on the right, and a silent moment is a dot. The elapsed recording time is written after the bars. The level bars stay visible during transcription: they become flat dots, and one green sine wave goes across them, again and again. A small X button immediately to the left of the level bars cancels recording or transcription.
+The row of thin vertical bars inside the text input of the composition bar, at its right end, that shows how loud the voice is while the microphone is open. The newest bar is on the right, and a silent moment is a dot. The elapsed recording time is written after the bars. The level bars stay visible during the wait for transcription and during transcription: they become flat dots, and one sine wave goes across them, again and again, orange during the wait and green during transcription. A small X button immediately to the left of the level bars cancels recording, the wait, or transcription.
+
+### Waiting for transcription
+
+The state of a composition bar whose recording has ended, while Whisper still changes the recording of another composition bar into text. Whisper changes the recordings into text one by one, in the order of the recordings.
+
+### Recording icon
+
+The red microphone on the tab button and on the workspace buttons while the microphone records for a pane of that tab or of that workspace.
 
 ### Whisper model
 

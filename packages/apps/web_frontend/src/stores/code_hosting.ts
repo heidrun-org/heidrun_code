@@ -10,7 +10,9 @@
 // - issue #607
 // - issue #869
 // - issue #870
+// - issue #872
 // - issue #890
+// - issue #910
 import { reactive } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { runForgeCli, runForgeCliWithSource } from "../lib/forge_cli";
@@ -26,8 +28,11 @@ import {
 import { refContext, type Forge, type RefContext } from "../lib/refs";
 import type { ChatReferenceLabel } from "./chat_references";
 
-/** The most items that one list reads from GitHub or GitLab. A list that reaches it may hold more items. */
-export const CODE_HOSTING_LIMIT = 100;
+/**
+ * The most items that one list reads from GitHub or GitLab. A list that reaches it may hold more items. The sidebar
+ * section shows about 30 rows, and a smaller list takes fewer points of the GitHub rate limit (issue #910).
+ */
+export const CODE_HOSTING_LIMIT = 30;
 
 /** The two lists of the Code hosting sidebar section: the issues, and the pull requests or merge requests. */
 export type CodeHostingGroup = "issues" | "requests";
@@ -368,26 +373,58 @@ async function readGitlabGroup(
 }
 
 /**
- * The message of a failure of `gh` that says the GitHub rate limit is exceeded, with the local time of the reset.
+ * The message of a failure of `gh` or `glab` that says the rate limit of the hosting service is exceeded, with the local
+ * time of the reset. The secondary rate limit of GitHub leaves points in `gh api rate_limit`, so its reset time is
+ * unknown, and the message then says to try again in a few minutes (issue #910). `glab` says "HTTP 429" when the GitLab
+ * rate limit is exceeded, and the reset time comes from the headers of the answer of GitLab (issue #872).
  * @param folder - the folder of the repository
+ * @param forge - the hosting service of the repository
  * @param message - the first line of the failure
- * @returns the message with the reset time, or null when the failure is not a rate limit or the reset time is unknown
+ * @returns the message, or null when the failure is not a rate limit
  */
-async function githubRateLimitMessage(folder: string, message: string): Promise<string | null> {
-  if (/rate limit/i.test(message) === false) {
+async function rateLimitMessage(folder: string, forge: Forge, message: string): Promise<string | null> {
+  const isGithub = forge === "github";
+  const isRateLimit = isGithub ? /rate limit/i.test(message) : /HTTP 429|rate limit|too many requests/i.test(message);
+  if (isRateLimit === false) {
     return null;
   }
   try {
-    const reset = await invoke<number | null>("forge_rate_limit_reset", { cwd: folder });
-    return reset === null ? null : t("codeHostingPanel.rateLimit", { time: clockTime(reset) });
+    const command = isGithub ? "forge_rate_limit_reset" : "forge_gitlab_rate_limit_reset";
+    const reset = await invoke<number | null>(command, { cwd: folder });
+    if (reset !== null) {
+      return t(isGithub ? "codeHostingPanel.rateLimit" : "codeHostingPanel.rateLimitGitlab", { time: clockTime(reset) });
+    }
   } catch {
-    return null;
+    // The reset time cannot be read: the message without a time follows.
   }
+  return t(isGithub ? "codeHostingPanel.rateLimitUnknown" : "codeHostingPanel.rateLimitGitlabUnknown");
 }
 
 /**
- * The message that says that a refresh failed and that the list shows the kept answer, with the time of the oldest
- * kept answer and the first line of the first failure.
+ * The age of a kept answer, with one unit: "less than a minute", "5 minutes", "26 hours", "3 days". Hours are used up
+ * to 48 hours, so that an answer from yesterday does not read as "1 day" (issue #910).
+ * @param keptAt - the time of the kept answer, in milliseconds since 1970
+ * @param now - the present time, in milliseconds since 1970
+ * @returns the text
+ */
+export function keptAgeText(keptAt: number, now: number): string {
+  const minutes = Math.floor(Math.max(0, now - keptAt) / 60_000);
+  if (minutes < 1) {
+    return t("codeHostingPanel.keptAge.lessThanMinute");
+  }
+  if (minutes < 60) {
+    return t("codeHostingPanel.keptAge.minutes", { count: minutes });
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) {
+    return t("codeHostingPanel.keptAge.hours", { count: hours });
+  }
+  return t("codeHostingPanel.keptAge.days", { count: Math.floor(hours / 24) });
+}
+
+/**
+ * The message that says that a refresh failed and that the list shows the kept answer, with the age and the time of
+ * the oldest kept answer and the first line of the first failure.
  * @param folder - the folder of the repository
  * @param forge - the hosting service of the repository
  * @param keptFailures - the kept answers that replaced a failure, at least one
@@ -395,9 +432,13 @@ async function githubRateLimitMessage(folder: string, message: string): Promise<
  */
 async function keptAfterFailureNotice(folder: string, forge: Forge, keptFailures: KeptAfterFailure[]): Promise<string> {
   const message = keptFailures[0].failure.split("\n")[0].slice(0, 300);
-  const rateLimitMessage = forge === "github" ? await githubRateLimitMessage(folder, message) : null;
+  const limitMessage = await rateLimitMessage(folder, forge, message);
   const keptAt = Math.min(...keptFailures.map((kept) => kept.keptAt));
-  return t("codeHostingPanel.keptAfterFailure", { time: clockTime(keptAt / 1000), error: rateLimitMessage ?? message });
+  return t("codeHostingPanel.keptAfterFailure", {
+    age: keptAgeText(keptAt, Date.now()),
+    time: clockTime(keptAt / 1000),
+    error: limitMessage ?? message,
+  });
 }
 
 /**
@@ -439,11 +480,11 @@ async function loadCodeHostingList(folder: string, group: CodeHostingGroup, isRe
     }
     const message =
       failure instanceof CodeHostingSearchError ? failure.message : String(failure).split("\n")[0].slice(0, 300);
-    const rateLimitMessage = forge === "github" ? await githubRateLimitMessage(folder, message) : null;
+    const limitMessage = await rateLimitMessage(folder, forge, message);
     if (thisLoad !== lastListLoad[group]) {
       return;
     }
-    codeHosting.listError[group] = rateLimitMessage ?? message;
+    codeHosting.listError[group] = limitMessage ?? message;
     codeHosting.listStatus[group] = "failed";
   }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // The File explorer sidebar section of the left sidebar: the whole folder tree of the Git repository of the selected
-// workspace. A click on a folder folds or unfolds it. A click on a file opens it in the Files window. The only
+// workspace. A click on a folder folds or unfolds it. A click on a file opens it in a file view pane. The only
 // changes that the section makes are a new empty file and a new empty folder. It has no button to rename, move,
 // delete, or edit a file. A right click on the row of a file or of a folder opens a context menu that copies the
 // absolute path or the relative path to the clipboard, and starts a chat about the file. The option "Ignored files" of
@@ -15,7 +15,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import Icon from "./Icon.vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
-import { currentGit, openGitModal } from "../stores/git";
+import { currentGit } from "../stores/git";
 import {
   buildTree,
   files,
@@ -26,7 +26,6 @@ import {
   loadExpandedIgnoredFolders,
   loadFiles,
   loadIgnoredFolder,
-  openFiles,
   visibleRows,
   type TreeRow,
 } from "../stores/files";
@@ -263,7 +262,7 @@ async function submitNaming() {
   select(path, current.kind === "dir");
   await loadTree(files.root);
   if (current.kind === "file") {
-    openGitModal(path);
+    void FileViewPanes.open(`${files.root}/${path}`);
   }
 }
 
@@ -309,18 +308,8 @@ function chooseRow(row: TreeRow) {
     toggleFolder(row);
     return;
   }
-  void openFileInPane(row.path);
-}
-
-/**
- * Shows a file in a file view pane, read only. Without a selected pane to put it next to, the Files window opens the file.
- * Issue: https://github.com/heidrun-org/heidrun/issues/714
- */
-async function openFileInPane(path: string) {
-  if (await FileViewPanes.open(`${files.root}/${path}`)) {
-    return;
-  }
-  await openFiles(files.root, { path });
+  // A file opens in a file view pane, read only (issue #714).
+  void FileViewPanes.open(`${files.root}/${row.path}`);
 }
 
 /** The context menu of a file row or a folder row: the relative path, and where the pointer was. Null when closed. */

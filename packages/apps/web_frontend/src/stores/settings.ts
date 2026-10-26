@@ -49,10 +49,10 @@ document.documentElement.style.setProperty("--font-size", `${FONT_DEFAULT}px`);
 const KEY = "heidrun.settings";
 
 /**
- * The sidebar sections of the left sidebar: "launchers" is the Launchers sidebar section, "files" is the Files one, and
- * "codeHosting" is the Code hosting one.
+ * The sidebar sections of the left sidebar: "launchers" is the Launchers sidebar section, "files" is the Files one,
+ * "fileSearch" is the Search in files one, and "codeHosting" is the Code hosting one.
  */
-export type LeftSidebarSection = "launchers" | "sourceControl" | "files" | "codeHosting";
+export type LeftSidebarSection = "launchers" | "sourceControl" | "files" | "fileSearch" | "codeHosting";
 
 /** The sidebar sections of the right sidebar: "toHandle" is the Needs you sidebar section. */
 export type RightSidebarSection = "toHandle" | "notes" | "chats" | "userActivity";
@@ -218,15 +218,12 @@ const defaults = {
   notificationChannels: NotificationChannels.createDefaults(),
   /** The status item (the dots) is shown in the macOS menu bar. */
   showStatusItem: true,
-  /** Git viewer: "unified" | "split" diff, the whole "file", or the "preview" of a Markdown file. */
-  diffMode: "unified" as "unified" | "split" | "file" | "preview",
+  /** Diff pane: the "unified" diff or the "split" diff, side by side. */
+  diffMode: "unified" as "unified" | "split",
   /** Side-by-side diff: share of the width for the old version (0.5 = middle). */
   splitRatio: 0.5,
   /** Markdown reading: centred column, or the whole width. */
   mdWidth: "center" as "center" | "full",
-  /** Git window: file list hidden (the viewer takes the whole window). */
-  gitListHidden: false,
-  gitListWidth: 340,
   /** Language of the user interface. */
   language: "en" as "en" | "fr",
   /** Clock display: "auto" follows the language, "12h" shows AM and PM, "24h" shows the hour from 0 to 23. */
@@ -237,6 +234,8 @@ const defaults = {
   theme: "system" as "system" | "light" | "dark",
   /** Code views (diff, file): long lines wrap instead of scrolling sideways. */
   codeWrap: false,
+  /** Markdown preview of the file view pane and of a skill file: a column of about 80 characters. Off: the whole width (issue 897). */
+  markdownWrapAt80Columns: false,
   rightWidth: 320,
   noteHeight: 520,
   /** Pinned panes (pane ids), stacked in the column of pinned panes on the right of the panes of the selected tab. */
@@ -246,11 +245,8 @@ const defaults = {
   /** Your own time: minutes per consigne written, per decision answered. */
   histPromptMin: 3,
   histDecisionMin: 0.5,
-  /** File explorer: tree width, Markdown shown rendered. */
-  filesListWidth: 300,
+  /** File view pane: a Markdown file shows rendered. */
   filesMdRead: true,
-  /** Show the diff before each save in the editor. */
-  filesDiffBeforeSave: false,
   /** Mosaic: only the agents at work (main, recent journal, or in Claude's list). */
   mosaicActiveOnly: true,
   /** Monthly budget per workspace (label → USD); alert at 80 % and 100 %. */
@@ -267,13 +263,7 @@ const defaults = {
   skillsLevel: "workspace" as "workspace" | "user",
   /** The window of a SKILL.md file shows the rendered Markdown (true) or the highlighted source (false). */
   skillsViewRendered: true,
-  /** Window Files: the side column shows the file tree ("tree") or the search in the files ("grep"). */
-  filesSideMode: "tree" as "tree" | "grep",
-  /** Window Files, search in the files: the query is a regular expression. */
-  filesGrepRegex: false,
-  /** Window Files, search in the files: the case of the letters counts. */
-  filesGrepCase: false,
-  /** Window Files and sidebar section File explorer: the file tree shows the files that Git ignores. */
+  /** Sidebar section File explorer: the file tree shows the files that Git ignores. */
   filesShowIgnored: false,
   /** Sidebar section File explorer: the space that each level of a folder adds at the left of a row. */
   filesPanelIndent: "medium" as "small" | "medium" | "large",
@@ -281,6 +271,10 @@ const defaults = {
   filesPanelRowHeight: "comfortable" as "compact" | "comfortable",
   /** Sidebar section File explorer: a thin vertical line under each unfolded folder links its rows. */
   filesPanelIndentGuides: true,
+  /** Sidebar section Search in files: the search finds only the text with the same upper case and lower case letters. */
+  fileSearchMatchCase: false,
+  /** Sidebar section Search in files: the searched text is a regular expression. */
+  fileSearchRegularExpression: false,
   /** Window Agents information: the activity list shows all the panes ("all") or only the selected pane ("pane"). */
   agentsActivityScope: "all" as "all" | "pane",
   /** Window History: the period of the runs. */
@@ -340,7 +334,7 @@ const defaults = {
 /** The values that an option accepts, for the options that have a short list of values. A saved value outside the list is dropped. */
 const ALLOWED_VALUES: Record<string, readonly unknown[]> = {
   rightSidebarSection: ["toHandle", "notes", "chats", "userActivity"],
-  filesSideMode: ["tree", "grep"],
+  diffMode: ["unified", "split"],
   filesPanelIndent: ["small", "medium", "large"],
   filesPanelRowHeight: ["compact", "comfortable"],
   agentsActivityScope: ["all", "pane"],
@@ -542,9 +536,18 @@ function load(): typeof defaults {
     }
     // The choice of the code theme is gone (issue #446): the code colors follow the theme of the application.
     delete stored.codeTheme;
-    // The button "Reading" of the large Git window became the button "Preview" (issue #446): the saved value "read" is now "preview".
-    if (stored.diffMode === "read") {
-      stored.diffMode = "preview";
+    // The Files window and the large Git window are gone (issue #886): their saved options are forgotten.
+    const removedNames = [
+      "filesListWidth",
+      "filesDiffBeforeSave",
+      "filesSideMode",
+      "filesGrepRegex",
+      "filesGrepCase",
+      "gitListHidden",
+      "gitListWidth",
+    ];
+    for (const name of removedNames) {
+      delete stored[name];
     }
     // The hide buttons of the sidebars are gone (issue #315): a sidebar that was hidden is now collapsed.
     if (stored.leftOpen === false) {

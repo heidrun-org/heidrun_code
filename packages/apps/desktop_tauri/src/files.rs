@@ -403,7 +403,7 @@ pub struct FileStamp {
     pub hash: Option<String>,
 }
 
-/// Never inside .git (hooks, config): editing those is not what the explorer is for.
+/// Never inside .git (hooks, config): editing those is not what a file view pane is for.
 fn not_in_git_dir(path: &str) -> Result<(), String> {
     if Path::new(path).components().any(|c| c.as_os_str() == ".git") {
         return Err("fichier interne de git : non modifiable ici".into());
@@ -417,14 +417,14 @@ pub fn file_read(root: String, path: String) -> Result<FileText, String> {
     let real = full_path(&root, &path)?;
     let meta = std::fs::metadata(&real).map_err(|e| e.to_string())?;
     if meta.len() > MAX_EDIT {
-        return Err(format!("fichier trop gros pour l’édition ({} Ko)", meta.len() / 1024));
+        return Err(format!("file too large to edit ({} KB)", meta.len() / 1024));
     }
     let bytes = std::fs::read(&real).map_err(|e| e.to_string())?;
     if bytes.iter().take(8000).any(|b| *b == 0) {
-        return Err("fichier binaire : non modifiable".into());
+        return Err("binary file: it cannot be edited".into());
     }
     let hash = fingerprint(&bytes);
-    let text = String::from_utf8(bytes).map_err(|_| "fichier qui n’est pas en UTF-8 : non modifiable ici (risque d’abîmer les accents)".to_string())?;
+    let text = String::from_utf8(bytes).map_err(|_| "file not in UTF-8: it cannot be edited here".to_string())?;
     Ok(FileText { text, hash })
 }
 
@@ -455,7 +455,7 @@ pub fn file_write(root: String, path: String, content: String, expected: Option<
     known_root(&root)?;
     let rel = safe_rel(&path)?;
     if content.len() as u64 > MAX_EDIT {
-        return Err("contenu trop gros".into());
+        return Err("content too large".into());
     }
     let base = std::fs::canonicalize(&root).map_err(|e| e.to_string())?;
     let target = base.join(rel);
@@ -465,12 +465,12 @@ pub fn file_write(root: String, path: String, content: String, expected: Option<
     } else {
         // Deleted meanwhile, and the user chose to write it back: its folder must
         // still be inside the project.
-        let parent = target.parent().ok_or("dossier introuvable")?;
-        let parent = std::fs::canonicalize(parent).map_err(|_| "le dossier du fichier n’existe plus".to_string())?;
+        let parent = target.parent().ok_or("folder not found")?;
+        let parent = std::fs::canonicalize(parent).map_err(|_| "the folder of the file no longer exists".to_string())?;
         if !parent.starts_with(&base) {
-            return Err("chemin hors du projet".into());
+            return Err("path outside the project".into());
         }
-        parent.join(target.file_name().ok_or("nom invalide")?)
+        parent.join(target.file_name().ok_or("invalid name")?)
     };
     let current = if exists { Some(fingerprint(&std::fs::read(&real).map_err(|e| e.to_string())?)) } else { None };
     if current != expected {
@@ -480,43 +480,43 @@ pub fn file_write(root: String, path: String, content: String, expected: Option<
     if exists {
         let meta = std::fs::metadata(&real).map_err(|e| e.to_string())?;
         if !meta.is_file() {
-            return Err("ce n’est pas un fichier".into());
+            return Err("not a file".into());
         }
         if meta.permissions().readonly() {
-            return Err("fichier en lecture seule : non modifié".into());
+            return Err("read-only file: not changed".into());
         }
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
             if meta.nlink() > 1 {
-                std::fs::write(&real, bytes).map_err(|e| format!("écriture impossible : {e}"))?;
+                std::fs::write(&real, bytes).map_err(|e| format!("cannot write the file: {e}"))?;
                 return Ok(FileStamp { hash: Some(fingerprint(bytes)) });
             }
         }
-        let dir = real.parent().ok_or("dossier introuvable")?;
+        let dir = real.parent().ok_or("folder not found")?;
         let name = real.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let n = TMP_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let tmp = dir.join(format!(".{name}.heidrun-{}-{n}", std::process::id()));
         {
             use std::io::Write;
-            let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&tmp).map_err(|e| format!("écriture impossible : {e}"))?;
-            f.write_all(bytes).map_err(|e| format!("écriture impossible : {e}"))?;
+            let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&tmp).map_err(|e| format!("cannot write the file: {e}"))?;
+            f.write_all(bytes).map_err(|e| format!("cannot write the file: {e}"))?;
             f.sync_all().ok();
         }
         let _ = std::fs::set_permissions(&tmp, meta.permissions());
         if let Err(e) = std::fs::rename(&tmp, &real) {
             let _ = std::fs::remove_file(&tmp);
-            return Err(format!("enregistrement impossible : {e}"));
+            return Err(format!("cannot save the file: {e}"));
         }
     } else {
         use std::io::Write;
-        let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&real).map_err(|e| format!("écriture impossible : {e}"))?;
-        f.write_all(bytes).map_err(|e| format!("écriture impossible : {e}"))?;
+        let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&real).map_err(|e| format!("cannot write the file: {e}"))?;
+        f.write_all(bytes).map_err(|e| format!("cannot write the file: {e}"))?;
     }
     Ok(FileStamp { hash: Some(fingerprint(bytes)) })
 }
 
-// ---- Search, create, rename, delete ------------------------------------------------
+// ---- Search and create ---------------------------------------------------------------
 
 #[derive(Serialize, Debug)]
 pub struct GrepHit {
@@ -562,7 +562,7 @@ pub async fn files_grep(root: String, query: String, regex: Option<bool>, case: 
         return Ok(GrepResult { hits: vec![], truncated: false });
     }
     if query.len() > 500 {
-        return Err("recherche trop longue".into());
+        return Err("search text too long".into());
     }
     let regex = regex.unwrap_or(false);
     let case = case.unwrap_or(false);
@@ -592,14 +592,14 @@ pub async fn files_grep(root: String, query: String, regex: Option<bool>, case: 
     cmd.kill_on_drop(true);
     let out = tokio::time::timeout(Duration::from_secs(15), cmd.output())
         .await
-        .map_err(|_| "recherche trop longue (plus de 15 s) : précise-la".to_string())?
+        .map_err(|_| "search too long (more than 15 seconds): make the search text more precise".to_string())?
         .map_err(|e| e.to_string())?;
     // Exit 1: nothing found. 2: bad pattern (or, for grep -r, an unreadable file:
     // the hits found are still good).
     let partial = !is_git && out.status.code() == Some(2) && !out.stdout.is_empty();
     if !partial && !out.status.success() && out.status.code() != Some(1) {
         let err = String::from_utf8_lossy(&out.stderr);
-        return Err(format!("recherche impossible : {}", err.lines().next().unwrap_or("expression invalide")));
+        return Err(format!("search failed: {}", err.lines().next().unwrap_or("invalid expression")));
     }
     Ok(parse_grep(&String::from_utf8_lossy(&out.stdout), None))
 }
@@ -658,73 +658,6 @@ pub fn dirs_existing(root: String, paths: Vec<String>) -> Result<Vec<String>, St
         .collect())
 }
 
-/// Existing file or folder of the project (not a symlink, not .git, not the root).
-fn existing(root: &str, path: &str) -> Result<PathBuf, String> {
-    not_in_git_dir(path)?;
-    let real = full_path(root, path)?;
-    let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
-    if real == base {
-        return Err("c’est le dossier du projet".into());
-    }
-    Ok(real)
-}
-
-/// Rename or move inside the project. Never over an existing name.
-#[tauri::command(async)]
-pub fn file_rename(root: String, from: String, to: String) -> Result<(), String> {
-    let src = existing(&root, &from)?;
-    let dst = new_target(&root, &to)?;
-    if dst == src {
-        return Ok(());
-    }
-    if same_file(&src, &dst) {
-        // Case-only rename on a case-insensitive disk (APFS): Foo.ts → foo.ts
-        // "exists" already. Go through a temporary name.
-        let tmp = src.with_file_name(format!(".hd-rename-{}", std::process::id()));
-        taken(&tmp)?;
-        std::fs::rename(&src, &tmp).map_err(|e| e.to_string())?;
-        return std::fs::rename(&tmp, &dst).map_err(|e| {
-            let _ = std::fs::rename(&tmp, &src);
-            e.to_string()
-        });
-    }
-    taken(&dst)?;
-    if dst.starts_with(&src) {
-        return Err("un dossier ne peut pas aller dans lui-même".into());
-    }
-    std::fs::rename(&src, &dst).map_err(|e| e.to_string())
-}
-
-#[cfg(unix)]
-fn same_file(a: &Path, b: &Path) -> bool {
-    use std::os::unix::fs::MetadataExt;
-    match (std::fs::symlink_metadata(a), std::fs::symlink_metadata(b)) {
-        (Ok(x), Ok(y)) => x.dev() == y.dev() && x.ino() == y.ino(),
-        _ => false,
-    }
-}
-
-#[cfg(not(unix))]
-fn same_file(_: &Path, _: &Path) -> bool {
-    false
-}
-
-/// To the macOS Trash (recoverable), never a permanent delete.
-#[tauri::command(async)]
-pub fn file_trash(root: String, path: String) -> Result<(), String> {
-    let real = existing(&root, &path)?;
-    #[allow(unused_mut)]
-    let mut ctx = trash::TrashContext::default();
-    // NSFileManager: no Finder automation prompt (the Finder method would ask
-    // for permission to control the Finder the first time).
-    #[cfg(target_os = "macos")]
-    {
-        use trash::macos::{DeleteMethod, TrashContextExtMacos};
-        ctx.set_delete_method(DeleteMethod::NsFileManager);
-    }
-    ctx.delete(&real).map_err(|e| format!("mise à la Corbeille impossible : {e}"))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -768,17 +701,13 @@ mod tests {
         assert!(file_write(root.clone(), ".git/config".into(), "".into(), None).is_err());
         assert_eq!(std::fs::read_dir(dir.join("src")).unwrap().count(), 1, "no temp file left");
 
-        // Create, rename, refuse escapes and overwrites.
+        // Create, refuse escapes and overwrites.
         file_create(root.clone(), "src/b.txt".into(), false).unwrap();
         file_create(root.clone(), "src/sub".into(), true).unwrap();
         assert!(file_create(root.clone(), "src/b.txt".into(), false).is_err());
         assert!(file_create(root.clone(), "../evil".into(), false).is_err());
         assert!(file_create(root.clone(), "nope/x.txt".into(), false).is_err());
         assert!(file_create(root.clone(), ".git/x".into(), false).is_err());
-        file_rename(root.clone(), "src/b.txt".into(), "src/sub/c.txt".into()).unwrap();
-        assert!(dir.join("src/sub/c.txt").exists());
-        assert!(file_rename(root.clone(), "src/a.txt".into(), "src/sub/c.txt".into()).is_err());
-        assert!(file_rename(root.clone(), "src".into(), "src/sub/src".into()).is_err());
         // A symlink to .git does not open a way in.
         std::fs::create_dir_all(dir.join(".git/hooks")).unwrap();
         std::os::unix::fs::symlink(dir.join(".git/hooks"), dir.join("hk")).unwrap();

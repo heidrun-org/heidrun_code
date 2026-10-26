@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "commander": "^15.0.0",
-    "parallax_dino_runner": "workspace:*",
+    "git_runner": "workspace:*",
     "playwright-core": "1.58.2",
     "vite": "^5.4.0"
   },

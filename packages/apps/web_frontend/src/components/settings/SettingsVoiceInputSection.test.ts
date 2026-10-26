@@ -44,7 +44,8 @@ beforeEach(() => {
 	settings.voiceInputLanguage = "auto";
 	voiceInput.options = null;
 	voiceInput.state = "idle";
-	voiceInput.error = null;
+	voiceInput.errors = {};
+	voiceInput.transcriptions = [];
 	voiceInput.download = { modelId: null, receivedBytes: 0, totalBytes: 0, error: null };
 });
 

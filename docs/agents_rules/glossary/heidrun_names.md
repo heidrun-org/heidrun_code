@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: the names of the project
 
 - Created: 23 October 2026
-- Last updated: 25 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md)
@@ -38,8 +38,8 @@ A name that the project used before the rebrand ([issue 837](https://github.com/
 - "Heidrun Development" became "Heidrun Code Development".
 - `heidrun_ctrl` became `heidrun_code_ctrl`.
 - `heidrun_data` became `heidrun_code_data`. The package and the command line became `heidrun_data` again when they moved to the repository `heidrun_data` ([issue 848](https://github.com/heidrun-org/heidrun_code/issues/848)).
-- The environment variables `HEIDRUN_*` became `HEIDRUN_CODE_*`. The former variable `HEIDRUN_DIR` still works when `HEIDRUN_CODE_DIR` is not set.
-- The data folder `~/.config/heidrun` became `~/.config/heidrun_code`. The former folder is used while the new folder does not exist, so no data moves. The development folder `~/.config/heidrun-development` became `~/.config/heidrun_code_development` in the same way.
+- The environment variables `HEIDRUN_*` became `HEIDRUN_CODE_*`. The former variable `HEIDRUN_DIR` is not read any more ([issue 881](https://github.com/heidrun-org/heidrun_code/issues/881)).
+- The data folder `~/.config/heidrun` became `~/.config/heidrun_code`, and the development folder `~/.config/heidrun-development` became `~/.config/heidrun_code_development`. At its first start, each application moves its former folder to its new folder, once, when the new folder does not exist. No code reads a former folder ([issue 881](https://github.com/heidrun-org/heidrun_code/issues/881)).
 - The installed application `Heidrun.app` became `Heidrun Code.app`, with the identifier `dev.heidrun-org.heidrun-code`. The former identifier was `dev.heidrun-org.heidrun`.
 
 ### Persisted name
@@ -51,7 +51,7 @@ A name that stays as it was, because a file, a session, or a setting of the deve
 - The folder `.heidrun` of a project and the file `.heidrun_origin.json`.
 - The label `Heidrun file view:` of a file view pane, because Herdr keeps it.
 - The text of a stash created by the Git commands of the application.
-- The name `heidrun` of the caller in the operation log, and the folder of the cache of the skills.
+- The folder of the cache of the skills.
 - The names of the image files, and the name drawn inside the images.
 - The repository key `heidrun-org/heidrun` that the data layers store in their SQLite file.
 - The name of the organization `heidrun-org`, and the goat Heiðrún.

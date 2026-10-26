@@ -26,7 +26,12 @@ const compositionBar = CompositionBarStore.forPane('pane-1');
 beforeEach(() => {
 	vi.useFakeTimers({ toFake: ["Date"] });
 	invokeMock.mockReset();
-	invokeMock.mockImplementation(async (name: string) => (name === "voice_stop_recording" ? "Hello" : undefined));
+	invokeMock.mockImplementation(async (name: string) => {
+		if (name === "voice_stop_recording") {
+			return 1;
+		}
+		return name === "voice_transcribe_recording" ? "Hello" : undefined;
+	});
 	settings.voiceInput = true;
 	settings.voiceInputModel = "base";
 	settings.voiceInputLanguage = "auto";
@@ -42,7 +47,8 @@ beforeEach(() => {
 	voiceInput.state = "idle";
 	voiceInput.isLatched = false;
 	voiceInput.levels = [];
-	voiceInput.error = null;
+	voiceInput.errors = {};
+	voiceInput.transcriptions = [];
 	state.toast = '';
 	compositionBar.isOpen = true;
 	compositionBar.text = "";
@@ -97,7 +103,7 @@ describe("PushToTalkButton", () => {
 		passTime(LONG_PRESS_MILLISECONDS + 100);
 		window.dispatchEvent(new Event("pointerup"));
 		await vi.waitFor(() => expect(compositionBar.text).toBe("Hello"));
-		expect(invokeMock.mock.calls.map((call) => call[0])).toEqual(["voice_start_recording", "voice_stop_recording"]);
+		expect(invokeMock.mock.calls.map((call) => call[0])).toEqual(["voice_start_recording", "voice_stop_recording", "voice_transcribe_recording"]);
 		wrapper.unmount();
 	});
 
@@ -116,7 +122,7 @@ describe("PushToTalkButton", () => {
 		expect(voiceInput.state).toBe("recording");
 		await wrapper.trigger("pointerdown", { button: 0 });
 		await vi.waitFor(() => expect(compositionBar.text).toBe("Hello"));
-		expect(invokeMock.mock.calls.map((call) => call[0])).toEqual(["voice_start_recording", "voice_stop_recording"]);
+		expect(invokeMock.mock.calls.map((call) => call[0])).toEqual(["voice_start_recording", "voice_stop_recording", "voice_transcribe_recording"]);
 		expect(voiceInput.isLatched).toBe(false);
 		wrapper.unmount();
 	});
@@ -146,7 +152,7 @@ describe("PushToTalkButton", () => {
 			expect(invokeMock.mock.calls.filter((call) => call[0] === 'voice_start_recording')).toHaveLength(1);
 			expect(voiceInput.ownerPaneId).toBe('pane-1');
 			expect(state.toast).toBe(
-				'Voice input is already in use in another pane. Wait for recording or transcription to finish.',
+				'You cannot record: another composition bar is recording.',
 			);
 			expect(voiceInput.state).toBe('recording');
 			expect(voiceInput.isLatched).toBe(true);
@@ -187,13 +193,13 @@ describe("PushToTalkButton", () => {
 					key: ' ',
 				});
 				expect(state.toast).toBe(
-					'Voice input is already in use in another pane. Wait for recording or transcription to finish.',
+					'You cannot record: another composition bar is recording.',
 				);
 				expect(voiceInput.state).toBe(phase);
 				expect(voiceInput.ownerPaneId).toBe('pane-1');
 				expect(voiceInput.isLatched).toBe(false);
 				expect(voiceInput.levels).toEqual([0.5]);
-				expect(voiceInput.error).toBeNull();
+				expect(voiceInput.errors).toEqual({});
 				expect(invokeMock).not.toHaveBeenCalled();
 			} finally {
 				voiceInput.state = 'idle';
@@ -202,10 +208,13 @@ describe("PushToTalkButton", () => {
 		},
 	);
 
-	it('explains a blocked press during transcription and keeps the text in the original composition bar', async () => {
+	it('records in another pane while the first recording changes into text, and keeps the text in the first bar', async () => {
 		let finishTranscription: (text: string) => void = () => {};
 		invokeMock.mockImplementation(async (name: string) => {
 			if (name === 'voice_stop_recording') {
+				return 1;
+			}
+			if (name === 'voice_transcribe_recording') {
 				return new Promise<string>((resolve) => {
 					finishTranscription = resolve;
 				});
@@ -222,31 +231,18 @@ describe("PushToTalkButton", () => {
 		try {
 			await VoiceInput.press('pane-1');
 			const transcribing = VoiceInput.stopAndWrite();
+			await vi.waitFor(() => expect(VoiceInput.paneState('pane-1')).toBe('transcribing'));
 			await second.trigger('pointerdown', {
 				button: 0,
-			});
-			expect(second.attributes('disabled')).toBeUndefined();
-			expect(state.toast).toBe(
-				'Voice input is already in use in another pane. Wait for recording or transcription to finish.',
-			);
-			expect(voiceInput.state).toBe('transcribing');
-			expect(voiceInput.ownerPaneId).toBe('pane-1');
-			expect(invokeMock.mock.calls.map((call) => call[0])).toEqual([
-				'voice_start_recording',
-				'voice_stop_recording',
-			]);
-			finishTranscription('Original words');
-			await transcribing;
-			expect(compositionBar.text).toBe('Original words');
-			expect(secondBar.text).toBe('Second draft');
-			expect(voiceInput.state).toBe('idle');
-			state.toast = '';
-			await second.trigger('keydown', {
-				key: 'Enter',
 			});
 			await vi.waitFor(() => expect(voiceInput.state).toBe('recording'));
 			expect(voiceInput.ownerPaneId).toBe('pane-2');
 			expect(state.toast).toBe('');
+			finishTranscription('Original words');
+			await transcribing;
+			expect(compositionBar.text).toBe('Original words');
+			expect(secondBar.text).toBe('Second draft');
+			expect(VoiceInput.paneState('pane-1')).toBe('idle');
 		} finally {
 			finishTranscription('');
 			second.unmount();
@@ -280,9 +276,19 @@ describe("PushToTalkButton", () => {
 		wrapper.unmount();
 	});
 
+	it("shows an orange spinner and is disabled while the recording waits for Whisper", async () => {
+		voiceInput.transcriptions = [{ id: 1, paneId: "pane-1", recordingId: 1, state: "waiting", recordingSeconds: 2 }];
+		const wrapper = mount(PushToTalkButton, { props: { paneId: 'pane-1' } });
+		expect(wrapper.find(".spinner-border").exists()).toBe(true);
+		expect(wrapper.classes()).toContain("is-waiting");
+		expect(wrapper.classes()).not.toContain("is-transcribing");
+		expect(wrapper.attributes("disabled")).toBeDefined();
+		expect(wrapper.attributes("title")).toBe("Waiting for Whisper, which changes the speech of another composition bar into text…");
+		wrapper.unmount();
+	});
+
 	it("shows a spinner and is disabled while the speech changes into text", async () => {
-		voiceInput.ownerPaneId = 'pane-1';
-		voiceInput.state = "transcribing";
+		voiceInput.transcriptions = [{ id: 1, paneId: "pane-1", recordingId: 1, state: "transcribing", recordingSeconds: 2 }];
 		const wrapper = mount(PushToTalkButton, { props: { paneId: 'pane-1' } });
 		expect(wrapper.find(".spinner-border").exists()).toBe(true);
 		expect(wrapper.classes()).toContain("is-transcribing");

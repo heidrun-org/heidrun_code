@@ -1,13 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
+
+const openDiffMock = vi.hoisted(() => vi.fn(async (_path: string) => true));
+const openFileViewMock = vi.hoisted(() => vi.fn(async (_path: string) => true));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
+vi.mock("../stores/diff_panes", () => ({ DiffPanes: { open: openDiffMock } }));
+vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
 vi.mock("../stores/source_control", async (importOriginal) => {
   const original = await importOriginal<typeof import("../stores/source_control")>();
   return { ...original, stageFiles: vi.fn(), unstageFiles: vi.fn(), discardFiles: vi.fn(), commit: vi.fn() };
 });
 
 import SourceControlPanel from "./SourceControlPanel.vue";
+import SourceControlMenu from "./SourceControlMenu.vue";
 import { git, type GitStatus } from "../stores/git";
 import { commit, discardFiles, sourceControl, stageFiles, unstageFiles } from "../stores/source_control";
 import { state } from "../stores/session";
@@ -130,6 +136,40 @@ describe("SourceControlPanel", () => {
     expect(discardFiles).toHaveBeenCalledWith(["CHANGELOG.md"]);
     await files[0].get('button[aria-label="Unstage the changes"]').trigger("click");
     expect(unstageFiles).toHaveBeenCalledWith(["docs/agents_rules/user_interface.md"]);
+  });
+
+  it("opens the changes of a file in a diff pane after a click on its line (issue #885)", async () => {
+    openDiffMock.mockClear();
+    const files = mountPanel().findAll(".file");
+    await files[1].get(".file-main").trigger("click");
+    await flushPromises();
+    expect(openDiffMock).toHaveBeenCalledWith("/work/heidrun/CHANGELOG.md");
+  });
+
+  it("opens nothing else when no pane can show the diff (issue #886)", async () => {
+    openDiffMock.mockClear();
+    openDiffMock.mockResolvedValueOnce(false);
+    const files = mountPanel().findAll(".file");
+    await files[1].get(".file-main").trigger("click");
+    await flushPromises();
+    expect(openDiffMock).toHaveBeenCalledTimes(1);
+    expect(Object.keys(git)).not.toContain("modal");
+  });
+
+  it("opens a file in a file view pane with the button Open the file of its line (issue #886)", async () => {
+    const files = mountPanel().findAll(".file");
+    await files[1].get('button[aria-label="Open the file"]').trigger("click");
+    await flushPromises();
+    expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/CHANGELOG.md");
+  });
+
+  it("has no entry and no button that opens the large Git window (issue #886)", () => {
+    const wrapper = mountPanel();
+    const menuItemIds = wrapper
+      .findAllComponents(SourceControlMenu)
+      .flatMap((menu) => menu.props("items").map((item: { id: string }) => item.id));
+    expect(menuItemIds).toEqual(["pull", "push", "fetch", "commit", "commitAndPush", "amend"]);
+    expect(wrapper.find('button[aria-label="View the changes"]').exists()).toBe(false);
   });
 
   it("stages every change with the button of the header of Changes", async () => {
