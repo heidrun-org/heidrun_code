@@ -16,7 +16,6 @@ A full npm package that holds the test of the data layer access boundary. The te
 - Every rule of `src/boundary_rules.ts` has a bypass test in `tests/bypass_mutations.test.ts`. A test fails when a rule has none.
 - The check reads the text of the files and nothing else. It never runs the compiler, and it never follows a link of a markdown file.
 - A file of the scope may call only a function of a package of the data layer that starts with `refresh_` or `find_`, and the functions of `ALLOWED_PACKAGE_FUNCTIONS`. A helper of the desktop application is allowed only when `ALLOWED_CRATE_PATHS` lists it.
-- The package `data_layer_operation_log` is in the folder `submodules/heidrun_data/packages`, but it gives no data: the check does not treat it as a package of the data layer, so the desktop application may call it anywhere ([issue 664](https://github.com/heidrun-org/heidrun/issues/664)).
 - No package in `packages/apps` imports this package.
 
 ## Background

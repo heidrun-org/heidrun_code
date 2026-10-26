@@ -39,7 +39,6 @@ pub fn initialize(identifier: &str) {
             "HERDR_TAB_ID",
             "HERDR_WORKSPACE_ID",
             "HERDR_ENV",
-            "HEIDRUN_CODE_OPERATION_LOG_FILE",
         ] {
             std::env::remove_var(variable);
         }
@@ -242,7 +241,6 @@ mod tests {
             .env("HERDR_SOCKET_PATH", "/daily/herdr.sock")
             .env("HERDR_PANE_ID", "w1:p1")
             .env("HEIDRUN_CODE_DIR", "/daily/work")
-            .env("HEIDRUN_CODE_OPERATION_LOG_FILE", "/daily/operations.jsonl")
             .output()
             .unwrap();
         assert!(
@@ -267,7 +265,6 @@ mod tests {
             "HERDR_SESSION",
             "HERDR_SOCKET_PATH",
             "HERDR_PANE_ID",
-            "HEIDRUN_CODE_OPERATION_LOG_FILE",
         ] {
             assert!(std::env::var_os(variable).is_none());
         }

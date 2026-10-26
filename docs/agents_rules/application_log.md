@@ -15,7 +15,6 @@ This file gives the rules of the application log, the file where Heidrun Code wr
 - The code is `packages/apps/desktop_tauri/src/application_log.rs`. Every line is one JSON object with `at` (milliseconds since 1970), `event`, and the fields of the event.
 - Above 8 MiB, the file becomes `application_log.1.jsonl`, which replaces the previous one, and a new file starts.
 - A failure to write the log never stops the application.
-- The application log is separate from the operation log of the package `data_layer_operation_log`.
 - The log never holds the text that the developer spoke, nor a secret: no pairing key, no address of the tunnel, no parameter of a Herdr request, and no argument of a `git` command after its name.
 - The Rust tests write nothing in the log, so that a test never changes the log of the developer.
 

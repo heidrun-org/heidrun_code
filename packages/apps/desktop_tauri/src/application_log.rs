@@ -10,8 +10,8 @@
 //!   section and of the tabs of the Statistics window, and each download of a Whisper model (issue #904).
 //!
 //! The developer uses the application, then asks a coding agent to read this file, to find which calls cost the most
-//! points of the GitHub rate limit, which calls repeat, and how long each step takes. This log is separate from the
-//! operation log of the package `data_layer_operation_log`. It never holds the text that the developer spoke.
+//! points of the GitHub rate limit, which calls repeat, and how long each step takes. It never holds the text that the
+//! developer spoke.
 
 use serde::Serialize;
 use serde_json::{Map, Value};
