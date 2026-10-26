@@ -39,13 +39,7 @@ if [ -n "$HERDR_PANE_ID" ]; then
   fi
 fi
 
-desk_dir="${HEIDRUN_CODE_DIR:-${HEIDRUN_DIR:-}}"
-if [ -z "$desk_dir" ]; then
-	desk_dir="$HOME/.config/heidrun_code"
-	if [ ! -d "$desk_dir" ] && [ -d "$HOME/.config/heidrun" ]; then
-		desk_dir="$HOME/.config/heidrun"
-	fi
-fi
+desk_dir="${HEIDRUN_CODE_DIR:-$HOME/.config/heidrun_code}"
 next_file="$desk_dir/antigravity-statusline-next"
 if [ -s "$next_file" ]; then
   printf '%s' "$input" | sh -c "$(cat "$next_file")"

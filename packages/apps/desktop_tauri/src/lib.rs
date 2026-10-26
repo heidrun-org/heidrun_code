@@ -284,8 +284,8 @@ pub fn run() {
         .manage(status_item::StatusItemState::default())
         .setup(|app| {
             if application_profile::is_development() == false {
-                legacy::migrate_config_dir();
                 claude::migrate_legacy();
+                antigravity::migrate_former_folder();
             }
             voice_commands::open_whisper_log();
             if application_profile::is_development() == false {

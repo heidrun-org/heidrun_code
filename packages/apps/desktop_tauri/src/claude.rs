@@ -73,13 +73,13 @@ fn current_command(m: &Map<String, Value>) -> Option<String> {
 fn is_ours(cmd: &str) -> bool {
     cmd == script_path().to_string_lossy()
         || (crate::application_profile::is_development() == false
-            && (cmd.contains("heidrun/claude-statusline.sh")
-                || cmd.contains("heidrun_code/claude-statusline.sh")
+            && (cmd.contains("heidrun_code/claude-statusline.sh")
                 || cmd.contains("Heidrun/scripts/claude-statusline.sh")))
 }
 
-/// Moves what the former name "Herdr Desk" left in the Claude Code settings: the backup file, and the
-/// status line command that points into the former configuration folder.
+/// Moves what the former names "Herdr Desk" and "Heidrun" left in the Claude Code settings: the backup file, and the
+/// status line command that points into a former data folder, `~/.config/herdr-desk` or `~/.config/heidrun` ([issue
+/// 881](https://github.com/heidrun-org/heidrun_code/issues/881)).
 pub fn migrate_legacy() {
     let legacy_backup = claude_dir().join("settings.json.herdr-desk-backup");
     let backup = claude_dir().join("settings.json.heidrun-backup");
@@ -88,7 +88,7 @@ pub fn migrate_legacy() {
     }
     let Ok(mut m) = read_settings() else { return };
     let Some(cmd) = current_command(&m) else { return };
-    if !cmd.contains("herdr-desk/claude-statusline.sh") {
+    if points_into_a_former_folder(&cmd) == false {
         return;
     }
     if let Some(Value::Object(line)) = m.get_mut("statusLine") {
@@ -103,6 +103,10 @@ pub fn migrate_legacy() {
             let _ = std::fs::set_permissions(script_path(), std::fs::Permissions::from_mode(0o755));
         }
     }
+}
+
+fn points_into_a_former_folder(cmd: &str) -> bool {
+    cmd.contains(".config/herdr-desk/claude-statusline.sh") || cmd.contains(".config/heidrun/claude-statusline.sh")
 }
 
 #[tauri::command]
@@ -590,8 +594,7 @@ mod status_line_ownership_tests {
     use super::*;
 
     #[test]
-    fn the_status_line_script_in_the_former_or_the_new_data_folder_is_ours() {
-        assert!(is_ours("/Users/someone/.config/heidrun/claude-statusline.sh"));
+    fn the_status_line_script_in_the_data_folder_is_ours() {
         assert!(is_ours("/Users/someone/.config/heidrun_code/claude-statusline.sh"));
     }
 
@@ -599,5 +602,12 @@ mod status_line_ownership_tests {
     fn the_status_line_script_of_another_program_is_not_ours() {
         assert!(is_ours("/Users/someone/.config/other_program/claude-statusline.sh") == false);
         assert!(is_ours("/Users/someone/.config/heidrun_code_development/claude-statusline.sh") == false);
+    }
+    #[test]
+    fn the_status_line_script_in_a_former_data_folder_moves() {
+        assert!(points_into_a_former_folder("/Users/someone/.config/heidrun/claude-statusline.sh"));
+        assert!(points_into_a_former_folder("/Users/someone/.config/herdr-desk/claude-statusline.sh"));
+        assert!(points_into_a_former_folder("/Users/someone/.config/heidrun_code/claude-statusline.sh") == false);
+        assert!(points_into_a_former_folder("/Users/someone/.config/heidrun-development/claude-statusline.sh") == false);
     }
 }
