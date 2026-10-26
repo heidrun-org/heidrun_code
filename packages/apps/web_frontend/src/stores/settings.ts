@@ -234,6 +234,8 @@ const defaults = {
   theme: "system" as "system" | "light" | "dark",
   /** Code views (diff, file): long lines wrap instead of scrolling sideways. */
   codeWrap: false,
+  /** Markdown preview of the file view pane and of a skill file: a column of about 80 characters. Off: the whole width (issue 897). */
+  markdownWrapAt80Columns: false,
   rightWidth: 320,
   noteHeight: 520,
   /** Pinned panes (pane ids), stacked in the column of pinned panes on the right of the panes of the selected tab. */

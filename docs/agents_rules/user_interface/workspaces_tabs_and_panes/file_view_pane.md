@@ -5,7 +5,7 @@
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Panes](panes.md), [Pane headers](pane_headers.md), [Files](../sidebars/files.md)
-- Related issue: [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886)
+- Related issue: [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886), [issue 897](https://github.com/heidrun-org/heidrun_code/issues/897)
 
 This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md). It gives the rules of the file view pane: a pane that shows one file, read only.
 
@@ -36,12 +36,11 @@ The file view pane opens in this way:
 - The pane has one line of controls, the header, and no second line under it ([issue 784](https://github.com/heidrun-org/heidrun/issues/784)). The header has the name of the file and the short path of the file, then the controls of the file, then the buttons "Pin the pane", "Split right", "Split down", Zen Mode, and "Close the pane". The title of the name is the absolute path of the file. A double click on the name does not start a rename, because the label of the pane holds the file. The header has no button for the composition bar and no macro menu, and the pane has no composition bar.
 - The controls of the file are always visible, and they are in this order:
   - The button group "Preview" and "Raw" (only for a Markdown file). The title of "Preview" is "Preview: show the rendered text, with the front matter in a card", and the title of "Raw" is "Raw: show the file as it is".
-  - The switch "Wrap lines".
-  - The menu button with three dots. It opens a dropdown menu with the entries "Search" (only while code or Raw is shown), "Copy path", "Show in Finder", and "Open in VS Code". The button opens the menu with a click, Enter, or Space. The arrow keys, Home, and End move between the entries, and the key Escape or the key Tab closes the menu. Escape gives the keyboard back to the button.
+  - The menu button with three vertical dots. It opens a dropdown menu with the entries "Search" (only while code or Raw is shown), "Copy path", "Show in Finder", and "Open in VS Code", then a divider, then the switches "Wrap lines" and "Wrap at 80 columns" (only for a Markdown file) ([issue 897](https://github.com/heidrun-org/heidrun_code/issues/897)). A click on a switch changes its setting and leaves the menu open. The button opens the menu with a click, Enter, or Space. The arrow keys, Home, and End move between the entries and the switches, and the key Escape or the key Tab closes the menu. Escape gives the keyboard back to the button.
 - When the header is narrow, the short path is shortened first, then the name. The controls of the file never shrink.
-- The button group "Preview" and "Raw" saves its choice in the setting `filesMdRead`, and the switch "Wrap lines" saves its choice in the setting `codeWrap`. The texts of the controls are in the locale file `fileView.json`.
+- The button group "Preview" and "Raw" saves its choice in the setting `filesMdRead`, the switch "Wrap lines" saves its choice in the setting `codeWrap`, and the switch "Wrap at 80 columns" saves its choice in the setting `markdownWrapAt80Columns`. The texts of the controls are in the locale file `fileView.json`.
 - A code file is shown in the code editor, in read only mode. The key ⌘F opens the search panel of the editor in the same way as the button "Search". The editor never takes the keyboard from the pane when the file opens.
-- A Markdown file is shown as rendered text in Preview, and a link of the text opens in the browser. An image is shown as a picture. A file that cannot be read shows the error in the place of the file.
+- A Markdown file is shown as rendered text in Preview, and a link of the text opens in the browser. The rendered text uses the whole width of the pane. When the switch "Wrap at 80 columns" is on, the rendered text stays in a column of about 80 characters, in the middle of the pane. The rendered skill file of the window of a skill follows the same setting ([issue 897](https://github.com/heidrun-org/heidrun_code/issues/897)). An image is shown as a picture. A file that cannot be read shows the error in the place of the file.
 - The entry "Copy path" copies the path inside the project, and the absolute path when the developer holds the key Option.
 - The file is read when the pane opens, when the file of the pane changes, and when the developer changes the button group "Preview" and "Raw". The first step does not read the file again when the file changes on the disk.
 
