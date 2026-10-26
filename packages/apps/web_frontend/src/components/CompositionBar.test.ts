@@ -309,7 +309,8 @@ describe("CompositionBar voice input (issue 662)", () => {
 		voiceInput.state = "idle";
 		voiceInput.isLatched = false;
 		voiceInput.levels = [];
-		voiceInput.error = null;
+		voiceInput.errors = {};
+		voiceInput.transcriptions = [];
 		compositionBar.text = "";
 		vi.useFakeTimers({ toFake: ["Date"] });
 	});
@@ -344,7 +345,12 @@ describe("CompositionBar voice input (issue 662)", () => {
 		settings.voiceInput = true;
 		ImageDrop.handleDrop('pane-1', ["/shots/a.png"]);
 		const wrapper = mountBar();
-		invokeMock.mockImplementation(async (name: string) => (name === "voice_stop_recording" ? "Run the tests again." : undefined));
+		invokeMock.mockImplementation(async (name: string) => {
+			if (name === "voice_stop_recording") {
+				return 1;
+			}
+			return name === "voice_transcribe_recording" ? "Run the tests again." : undefined;
+		});
 		await wrapper.get(".push-to-talk").trigger("pointerdown", { button: 0 });
 		await vi.waitFor(() => expect(voiceInput.state).toBe("recording"));
 		expect(wrapper.get(".push-to-talk").classes()).toContain("is-recording");
@@ -373,14 +379,22 @@ describe("CompositionBar voice input (issue 662)", () => {
 		expect([...field.children].map((child) => child.tagName)).toEqual(["TEXTAREA", "DIV"]);
 		expect(field.querySelector(".voice-level")).not.toBeNull();
 		expect(wrapper.get(".voice-level").classes()).not.toContain("is-transcribing");
-		voiceInput.state = "transcribing";
+		voiceInput.state = "idle";
+		voiceInput.transcriptions = [{ id: 1, paneId: "pane-1", recordingId: 1, state: "waiting", recordingSeconds: 3 }];
+		await wrapper.vm.$nextTick();
+		expect(wrapper.get(".voice-level").classes()).toContain("is-waiting");
+		expect(wrapper.get(".voice-level").classes()).not.toContain("is-transcribing");
+		expect(wrapper.findAll(".voice-level .bar").every((bar) => (bar.element as HTMLElement).style.height === "4px")).toBe(true);
+		expect(placeholder()).toBe("Waiting for Whisper…");
+		voiceInput.transcriptions[0].state = "transcribing";
 		await wrapper.vm.$nextTick();
 		expect(wrapper.find(".voice-level").exists()).toBe(true);
 		expect(wrapper.get(".voice-level").classes()).toContain("is-transcribing");
+		expect(wrapper.get(".voice-level").classes()).not.toContain("is-waiting");
 		expect(wrapper.findAll(".voice-level .bar").every((bar) => (bar.element as HTMLElement).style.height === "4px")).toBe(true);
 		expect(findButton(wrapper, 'Cancel voice input').exists()).toBe(true);
 		expect(placeholder()).toBe("Changing the speech into text…");
-		voiceInput.state = "idle";
+		voiceInput.transcriptions = [];
 		await wrapper.vm.$nextTick();
 		expect(placeholder()).toBe("Type a question, or press Enter to paste the images");
 		wrapper.unmount();
@@ -402,6 +416,10 @@ describe("CompositionBar voice input (issue 662)", () => {
 		await wrapper.vm.$nextTick();
 		expect(wrapper.get(".elapsed").text()).toBe("0:07");
 		voiceInput.state = "idle";
+		voiceInput.transcriptions = [{ id: 1, paneId: "pane-1", recordingId: 1, state: "waiting", recordingSeconds: 75 }];
+		await wrapper.vm.$nextTick();
+		expect(wrapper.get(".elapsed").text()).toBe("1:15");
+		voiceInput.transcriptions = [];
 		wrapper.unmount();
 	});
 
@@ -440,6 +458,9 @@ describe("CompositionBar voice input (issue 662)", () => {
 			compositionBar.text = "Please";
 			invokeMock.mockImplementation(async (name: string) => {
 				if (name === "voice_stop_recording") {
+					return 1;
+				}
+				if (name === "voice_transcribe_recording") {
 					return "run the tests";
 				}
 				return name === "voice_start_recording" ? undefined : "data:image/png;base64,AAAA";
@@ -450,7 +471,8 @@ describe("CompositionBar voice input (issue 662)", () => {
 			await vi.waitFor(() => expect(wrapper.emitted("sent")).toHaveLength(1), { timeout: 3000 });
 			const names = commandNames();
 			expect(names.indexOf("voice_stop_recording")).toBeGreaterThan(names.indexOf("voice_start_recording"));
-			expect(names.indexOf("clipboard_set_image")).toBeGreaterThan(names.indexOf("voice_stop_recording"));
+			expect(names.indexOf("voice_transcribe_recording")).toBeGreaterThan(names.indexOf("voice_stop_recording"));
+			expect(names.indexOf("clipboard_set_image")).toBeGreaterThan(names.indexOf("voice_transcribe_recording"));
 			expect(insertTextMock).toHaveBeenCalledWith('pane-1', "Please run the tests", true);
 			expect(voiceInput.state).toBe("idle");
 			ImageDrop.unregister('pane-1');
@@ -464,6 +486,9 @@ describe("CompositionBar voice input (issue 662)", () => {
 			ImageDrop.handleDrop('pane-1', ["/shots/a.png"]);
 			invokeMock.mockImplementation(async (name: string) => {
 				if (name === "voice_stop_recording") {
+					return 1;
+				}
+				if (name === "voice_transcribe_recording") {
 					return "spoken";
 				}
 				return name === "voice_start_recording" ? undefined : "data:image/png;base64,AAAA";
@@ -491,7 +516,7 @@ describe("CompositionBar voice input (issue 662)", () => {
 			const wrapper = mountBar();
 			await startKeptRecording(wrapper);
 			await findButton(wrapper, "Send").trigger("click");
-			await vi.waitFor(() => expect(voiceInput.error).toBe("no_signal"));
+			await vi.waitFor(() => expect(VoiceInput.errorOf("pane-1")).toBe("no_signal"));
 			expect(wrapper.emitted("sent")).toBeUndefined();
 			expect(writer).not.toHaveBeenCalled();
 			expect(insertTextMock).not.toHaveBeenCalled();
@@ -532,7 +557,7 @@ describe("CompositionBar voice input (issue 662)", () => {
 		settings.voiceInput = true;
 		ImageDrop.handleDrop('pane-1', ["/shots/a.png"]);
 		const wrapper = mountBar();
-		voiceInput.error = "microphone_denied";
+		voiceInput.errors["pane-1"] = "microphone_denied";
 		await wrapper.vm.$nextTick();
 		expect(wrapper.get("[role=alert]").text()).toContain("System Settings, Privacy & Security, Microphone");
 		wrapper.unmount();
@@ -543,20 +568,39 @@ describe("CompositionBar voice input (issue 662)", () => {
 		ImageDrop.handleDrop('pane-1', ["/shots/a.png"]);
 		const wrapper = mountBar();
 		expect(wrapper.find("[role=alert]").exists()).toBe(false);
-		voiceInput.error = "transcription_failed";
+		voiceInput.errors["pane-1"] = "transcription_failed";
 		await wrapper.vm.$nextTick();
 		expect(wrapper.get("[role=alert]").text()).toBe("The voice input failed. Press the button again.");
 		wrapper.unmount();
-		expect(voiceInput.error).toBeNull();
+		expect(VoiceInput.errorOf("pane-1")).toBeNull();
+	});
+
+	it("shows the error of its own pane only", async () => {
+		settings.voiceInput = true;
+		const wrapper = mountBar();
+		voiceInput.errors["pane-2"] = "microphone_denied";
+		await wrapper.vm.$nextTick();
+		expect(wrapper.find("[role=alert]").exists()).toBe(false);
+		wrapper.unmount();
 	});
 });
 
 
 describe('composition bar cancellation (issue 736)', () => {
-	it.each(['recording', 'transcribing'] as const)('cancels %s and preserves the draft and images', async (state) => {
+	it.each([
+		{ phase: 'recording', command: 'voice_cancel_recording' },
+		{ phase: 'waiting', command: 'voice_discard_recording' },
+		{ phase: 'transcribing', command: null },
+	] as const)('cancels $phase and preserves the draft and images', async ({ phase, command }) => {
 		settings.voiceInput = true;
-		voiceInput.ownerPaneId = 'pane-1';
-		voiceInput.state = state;
+		if (phase === 'recording') {
+			voiceInput.ownerPaneId = 'pane-1';
+			voiceInput.state = 'recording';
+		} else {
+			voiceInput.ownerPaneId = null;
+			voiceInput.state = 'idle';
+			voiceInput.transcriptions = [{ id: 1, paneId: 'pane-1', recordingId: 4, state: phase, recordingSeconds: 2 }];
+		}
 		ImageDrop.handleDrop('pane-1', ['/shots/a.png']);
 		compositionBar.text = 'Keep this draft';
 		const wrapper = mountBar();
@@ -567,13 +611,19 @@ describe('composition bar cancellation (issue 736)', () => {
 		await cancelButton.trigger('pointerdown');
 		window.dispatchEvent(new Event('pointerup'));
 		await cancelButton.trigger('click');
-		await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith('voice_cancel_recording'));
-		expect(invokeMock.mock.calls.filter((call) => call[0] === 'voice_cancel_recording')).toHaveLength(1);
-		expect(invokeMock.mock.calls.some((call) => call[0] === 'voice_stop_recording')).toBe(false);
+		await vi.waitFor(() => expect(VoiceInput.paneState('pane-1')).toBe('idle'));
+		if (command === 'voice_cancel_recording') {
+			await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith('voice_cancel_recording'));
+		} else if (command === 'voice_discard_recording') {
+			await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith('voice_discard_recording', { recordingId: 4 }));
+		}
+		const voiceCommands = invokeMock.mock.calls.map((call) => call[0] as string).filter((name) => name.startsWith('voice_'));
+		expect(voiceCommands).toEqual(command === null ? [] : [command]);
 		expect(compositionBar.text).toBe('Keep this draft');
 		expect(compositionBar.paths).toEqual(['/shots/a.png']);
 		expect(compositionBar.isOpen).toBe(true);
-		expect(voiceInput.state).toBe('idle');
+		expect(voiceInput.transcriptions).toEqual([]);
+		await wrapper.vm.$nextTick();
 		expect(wrapper.find('.voice-level').exists()).toBe(false);
 		expect(insertTextMock).not.toHaveBeenCalled();
 		wrapper.unmount();
@@ -595,6 +645,9 @@ describe('composition bar cancellation (issue 736)', () => {
 		let finishFn: (text: string) => void = () => {};
 		invokeMock.mockImplementation((name: string) => {
 			if (name === 'voice_stop_recording') {
+				return Promise.resolve(1);
+			}
+			if (name === 'voice_transcribe_recording') {
 				return new Promise<string>((resolve) => {
 					finishFn = resolve;
 				});
@@ -607,7 +660,7 @@ describe('composition bar cancellation (issue 736)', () => {
 		const wrapper = mountBar();
 		await VoiceInput.press('pane-1');
 		await findButton(wrapper, 'Send').trigger('click');
-		expect(voiceInput.state).toBe('transcribing');
+		await vi.waitFor(() => expect(VoiceInput.paneState('pane-1')).toBe('transcribing'));
 		await findButton(wrapper, 'Cancel voice input').trigger('click');
 		await vi.waitFor(() => expect(findButton(wrapper, 'Send').attributes('disabled')).toBeUndefined());
 		finishFn('Discard these words');
@@ -623,11 +676,10 @@ describe('composition bar cancellation (issue 736)', () => {
 
 	it('does not show the cancel button in another pane', () => {
 		settings.voiceInput = true;
-		voiceInput.ownerPaneId = 'pane-2';
-		voiceInput.state = 'transcribing';
+		voiceInput.transcriptions = [{ id: 1, paneId: 'pane-2', recordingId: 1, state: 'transcribing', recordingSeconds: 2 }];
 		const wrapper = mountBar();
 		expect(findButton(wrapper, 'Cancel voice input').exists()).toBe(false);
-		voiceInput.state = 'idle';
+		voiceInput.transcriptions = [];
 		wrapper.unmount();
 	});
 });

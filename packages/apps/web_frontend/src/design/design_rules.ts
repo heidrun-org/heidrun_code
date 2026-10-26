@@ -36,7 +36,7 @@ export class DesignRules {
 			if (/\.btn(?:[.:\s\[]|$)/.test(selector)
 				&& /(?:--btn-(?:color|bg|hover|active|disabled)|(?:^|;)\s*(?:background(?:-color)?|color|opacity)\s*:)/
 					.test(declarations)
-				&& /\.is-(?:recording|transcribing)\b/.test(selector) === false
+				&& /\.is-(?:recording|waiting|transcribing)\b/.test(selector) === false
 				&& selector !== '.sel-bar .btn') {
 				violations.push(`${selector}: button appearance belongs to styles.css; keep only layout here (issue 749).`);
 			}

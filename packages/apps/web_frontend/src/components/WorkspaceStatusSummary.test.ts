@@ -822,3 +822,25 @@ describe("WorkspaceStatusSummary shortcuts", () => {
     expect(sourceText).toContain('if (e.code === "ArrowDown") return run(() => cycleWorkspace(1));');
   });
 });
+
+describe("WorkspaceStatusSummary recording icon (issue 762)", () => {
+  it("shows the recording icon on the row of the workspace whose pane records, in the card only", async () => {
+    const { voiceInput } = await import("../stores/voice_input");
+    const { wrapper } = await mountSection();
+    settings.voiceInput = true;
+    voiceInput.ownerPaneId = "p2";
+    voiceInput.state = "recording";
+    try {
+      await wrapper.vm.$nextTick();
+      expect(wrapper.find(".voice-recording-icon").exists()).toBe(false);
+      await wrapper.get(".workspace-status").trigger("click");
+      const rows = wrapper.findAll(".popover .workspace-row");
+      expect(rows.map((row) => row.find(".name").text())).toEqual(["heidrun", "teamwright", "scratch"]);
+      expect(rows.map((row) => row.find(".voice-recording-icon").exists())).toEqual([false, true, false]);
+    } finally {
+      voiceInput.ownerPaneId = null;
+      voiceInput.state = "idle";
+      settings.voiceInput = false;
+    }
+  });
+});

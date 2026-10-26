@@ -32,9 +32,7 @@ function focusTextInput() {
 }
 onMounted(focusTextInput);
 onBeforeUnmount(() => {
-	if (VoiceInput.ownerPaneId() === props.paneId) {
-		voiceInput.error = null;
-	}
+  VoiceInput.clearError(props.paneId);
   if (elapsedTimerId !== null) {
     clearInterval(elapsedTimerId);
     elapsedTimerId = null;
@@ -53,23 +51,27 @@ let elapsedTimerId: ReturnType<typeof setInterval> | null = null;
 function updateElapsedSeconds() {
   elapsedSeconds.value = Math.max(0, Math.floor((Date.now() - voiceInput.startedAt) / 1000));
 }
-/** The elapsed time as minutes and seconds, for example 0:07. */
-const elapsedText = computed(() => `${Math.floor(elapsedSeconds.value / 60)}:${String(elapsedSeconds.value % 60).padStart(2, "0")}`);
-
+/** What the voice input does now for this pane. */
+const paneState = computed(() => VoiceInput.paneState(props.paneId));
 /** The microphone is open: the level bars show the voice. */
-const isListening = computed(
-	() =>
-		settings.voiceInput &&
-		VoiceInput.ownerPaneId() === props.paneId &&
-		(voiceInput.state === "starting" || voiceInput.state === "recording"),
-);
-/** Recording and transcription keep the same level bars and cancel button in the owning pane. */
-const isVoiceActive = computed(
-	() => settings.voiceInput && VoiceInput.ownerPaneId() === props.paneId && voiceInput.state !== 'idle',
-);
+const isListening = computed(() => settings.voiceInput && (paneState.value === "starting" || paneState.value === "recording"));
+/** Recording, the wait for Whisper, and transcription keep the same level bars and cancel button in the owning pane. */
+const isVoiceActive = computed(() => settings.voiceInput && paneState.value !== "idle");
+/** The seconds that the composition bar shows: the time since the recording started, then the length of the stopped recording. */
+const shownSeconds = computed(() => {
+  if (isListening.value) {
+    return elapsedSeconds.value;
+  }
+  return VoiceInput.transcriptionOf(props.paneId)?.recordingSeconds ?? elapsedSeconds.value;
+});
+/** The elapsed time as minutes and seconds, for example 0:07. */
+const elapsedText = computed(() => `${Math.floor(shownSeconds.value / 60)}:${String(shownSeconds.value % 60).padStart(2, "0")}`);
 /** The text of the text input while it is empty: it tells what the voice input does now, else it asks for the text. */
 const textPlaceholder = computed(() => {
-  if (settings.voiceInput && VoiceInput.ownerPaneId() === props.paneId && voiceInput.state === "transcribing") {
+  if (settings.voiceInput && paneState.value === "waiting") {
+    return t("voiceInput.waiting");
+  }
+  if (settings.voiceInput && paneState.value === "transcribing") {
     return t("voiceInput.titleTranscribing");
   }
   return isListening.value ? t("voiceInput.listening") : t("compositionBar.textPlaceholder");
@@ -236,7 +238,11 @@ async function send() {
           >
             <Icon name="x-lg" />
           </button>
-          <VoiceLevel :levels="voiceInput.levels" :is-transcribing="voiceInput.state === 'transcribing'" />
+          <VoiceLevel
+            :levels="isListening ? voiceInput.levels : []"
+            :is-waiting="paneState === 'waiting'"
+            :is-transcribing="paneState === 'transcribing'"
+          />
           <span class="elapsed ms-1">{{ elapsedText }}</span>
         </div>
       </div>
@@ -246,11 +252,11 @@ async function send() {
       <PushToTalkButton v-if="settings.voiceInput" :pane-id="props.paneId" />
     </div>
     <div
-      v-if="settings.voiceInput && VoiceInput.ownerPaneId() === props.paneId && voiceInput.error !== null"
+      v-if="settings.voiceInput && VoiceInput.errorOf(props.paneId) !== null"
       class="form-text text-danger m-0"
       role="alert"
     >
-      {{ voiceErrorText(voiceInput.error) }}
+      {{ voiceErrorText(VoiceInput.errorOf(props.paneId) ?? "") }}
     </div>
     <div v-if="DropTarget.state.hoveredPaneId === props.paneId" class="drop-feedback"></div>
   </div>

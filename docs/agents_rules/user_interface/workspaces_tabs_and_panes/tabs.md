@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: tabs
 
 - Created: 13 October 2026
-- Last updated: 25 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Pane focus history](pane_focus_history.md)
@@ -26,4 +26,4 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 - Each tab shows a small icon between its status dot and its name: the Claude icon, the OpenAI icon for Codex, the Google icon for Antigravity, or the terminal icon. A pane with an agent always beats a terminal. Among the panes with an agent, the pane that decides the color of the status dot gives the icon (blocked, then working, then done, then idle). When two panes have the same status, the selected pane wins, then the focused pane, then the first pane.
 - The shortcut Option+Command+Left arrow or Option+Command+Right arrow selects the previous or the next tab.
 - In Zen Mode, those shortcuts keep working while the tab bar stays hidden. Zen Mode remains active and shows the pane last focused in the selected tab. It remembers that pane separately for each tab during the current Zen Mode run.
-
+- While the microphone of the voice input records for a pane of a tab, the button of the tab shows the recording icon after its name, as [voice_input_across_panes.md](voice_input_across_panes.md) says ([issue 762](https://github.com/heidrun-org/heidrun_code/issues/762)).

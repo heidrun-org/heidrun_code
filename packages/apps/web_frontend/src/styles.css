@@ -28,6 +28,7 @@
   --fail: #e58a8a;
   --ok: #7ec699;
   --voice-wave: #2cff7a;
+  --voice-wait: #ffa53a;
 
   --accent: #f2a93b;
   --line-modal: #33383e;
@@ -149,6 +150,7 @@
   --fail: #b42f2f;
   --ok: #176b3b;
   --voice-wave: #0b9d3f;
+  --voice-wait: #c46a00;
 
   --accent: #945800;
   --line-modal: #cbcbc4;
@@ -419,7 +421,7 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 .btn:is(.on, .active, [aria-pressed="true"], [aria-selected="true"], [aria-checked="true"]):not(.is-recording), .btn-check:has(input:checked) {
   background: var(--sel); color: var(--text); border-color: var(--focus);
 }
-.btn:disabled:not([aria-busy="true"]):not(.is-transcribing), .btn-check:has(input:disabled) { opacity: 0.45; cursor: default; }
+.btn:disabled:not([aria-busy="true"]):not(.is-waiting):not(.is-transcribing), .btn-check:has(input:disabled) { opacity: 0.45; cursor: default; }
 .btn kbd { font-family: var(--mono); color: inherit; font-size: var(--font-size); }
 .btn.small { height: 24px; --btn-padding-x: 8px; }
 .btn.lg { height: 40px; border-radius: 10px; font-size: var(--font-size); justify-content: center; }

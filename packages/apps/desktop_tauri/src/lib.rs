@@ -355,6 +355,8 @@ pub fn run() {
             voice_commands::voice_start_recording,
             voice_commands::voice_cancel_recording,
             voice_commands::voice_stop_recording,
+            voice_commands::voice_discard_recording,
+            voice_commands::voice_transcribe_recording,
             voice_words::voice_words_read,
             voice_words::voice_words_add,
             voice_words::voice_words_update,

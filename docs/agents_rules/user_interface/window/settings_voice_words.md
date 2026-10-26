@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: word replacement list of the voice input
 
 - Created: 23 October 2026
-- Last updated: 23 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: voice input](../../glossary/voice_input.md), [Voice input](settings_voice_input.md), [Information card of every option of the Settings window](settings_information_cards.md)
@@ -33,7 +33,7 @@ The pure function `voice_input::replace_words` takes the text of Whisper and the
 
 - The list is the file `voice_words.json` in the folder of the data of Heidrun Code (`HEIDRUN_CODE_DIR`, else `~/.config/heidrun_code`): a JSON list of entries with the fields `id`, `whisper_writes`, and `heidrun_writes`. The package `heidrun_code_ctrl` owns the format and the four orders (list, add, update, delete). The window and the command line `heidrun_code_ctrl voice_words` both use them, so the window never writes the whole list.
 - The Tauri commands `voice_words_read`, `voice_words_add`, `voice_words_update`, and `voice_words_delete` are in `packages/apps/desktop_tauri/src/voice_words.rs`. While the section is open, the web page reads the file again every second, so a change of the command line shows within about one second. Nothing reads the file while the section is closed.
-- The command `voice_stop_recording` replaces the words in the text of Whisper before it gives the text to the web page. When the file is not valid, it gives the text as Whisper wrote it, and one line in the terminal says why: a mistake in the list never loses the speech.
+- The command `voice_transcribe_recording` replaces the words in the text of Whisper before it gives the text to the web page. When the file is not valid, it gives the text as Whisper wrote it, and one line in the terminal says why: a mistake in the list never loses the speech.
 
 ## The code and the tests
 

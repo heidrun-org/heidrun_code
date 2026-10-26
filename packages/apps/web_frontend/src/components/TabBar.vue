@@ -3,11 +3,13 @@ import { computed } from "vue";
 import ConfirmButton from "./ConfirmButton.vue";
 import Icon from "./Icon.vue";
 import InlineRename from "./InlineRename.vue";
+import VoiceRecordingIcon from "./VoiceRecordingIcon.vue";
 import { allPanes, closeTab, finishRename, moveTab, selectTab, startRename, state, tabLabel, tabs } from "../stores/session";
 import { remote } from "../stores/claude";
 import { settings } from "../stores/settings";
 import { useReorder } from "../lib/reorder";
 import { tabIconName } from "../lib/tab_icon";
+import { VoiceInput } from "../lib/voice_input";
 import { NewPane } from "../stores/new_pane";
 import { PaneMoveDrag } from "../stores/pane_move";
 import { t } from "../i18n/index";
@@ -66,6 +68,7 @@ function isRemoteControlled(tabId: string): boolean {
             <span class="dot" :class="tab.agent_status === 'idle' ? '' : tab.agent_status"></span>
             <Icon :name="iconOf(tab.tab_id)" class="tab-icon" />
             <span class="tab-label">{{ tabLabel(tab.tab_id) }}</span>
+            <VoiceRecordingIcon v-if="VoiceInput.isRecordingInTab(tab.tab_id)" />
             <span v-if="isRemoteControlled(tab.tab_id)" class="rc" :title="t('tabBar.remoteControlConnected')">{{ t("tabBar.remoteControlBadge") }}</span>
           </button>
           <ConfirmButton
