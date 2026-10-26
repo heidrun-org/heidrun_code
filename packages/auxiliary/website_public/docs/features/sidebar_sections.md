@@ -15,10 +15,19 @@ The left sidebar and the right sidebar each hold several sidebar sections. The s
 The File explorer sidebar section, in the left sidebar, shows the whole folder tree of the Git repository of the selected workspace.
 
 - Click a folder to fold it or to unfold it.
-- Click a file to read it in a pane next to your terminal. The pane only shows the file: you cannot change it there.
+- Click a file to open it in a pane next to your terminal. Type in the pane to change the file, and press ⌘S to save it.
+- Select lines in that pane, then click "Explain" or "Fix these lines": the prompt goes to the coding agent of the same tab.
 - The option "Ignored files" of its menu shows or hides the files that Git ignores.
+- Press ⌘P to find a file of the project by a part of its name.
 
 ![The File explorer sidebar section with the folders and the files at the root of the repository.](/screenshots/features/file_explorer.png){width=300}
+
+## Search in files sidebar section
+
+The Search in files sidebar section, in the left sidebar, searches a text in all the files of the Git repository of the selected workspace.
+
+- Type the text, and choose "Match case" or "Regular expression" if you need them.
+- The results are grouped by file. Click a line to open the file at that line, in a pane next to your terminal.
 
 ## Source control sidebar section
 

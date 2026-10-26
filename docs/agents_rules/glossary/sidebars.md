@@ -45,7 +45,11 @@ The sidebar section of the left sidebar that shows what lives on GitHub or on Gi
 
 ### File explorer sidebar section
 
-The sidebar section of the left sidebar that shows the whole folder tree of the Git repository of the selected workspace, with the icon `folder2`. Its menu has an option "Ignored files" that shows or hides the files and the folders that Git ignores. A click on a folder folds or unfolds it. A click on a file opens the file in a file view pane, read only. A right click on a file opens a context menu that copies the path of the file. It only reads files.
+The sidebar section of the left sidebar that shows the whole folder tree of the Git repository of the selected workspace, with the icon `folder2`. Its menu has an option "Ignored files" that shows or hides the files and the folders that Git ignores. A click on a folder folds or unfolds it. A click on a file opens the file in a file view pane. A right click on a file opens a context menu that copies the path of the file. It changes no file, except the new empty file and the new empty folder that the developer asks for.
+
+### Search in files sidebar section
+
+The sidebar section of the left sidebar that searches a text in all the files of the Git repository of the selected workspace, with the icon `search`. It has the options "Match case" and "Regular expression", and groups the results by file. A click on a line opens the file at that line in a file view pane. The rules are in [file_search.md](../user_interface/sidebars/file_search.md).
 
 ### Sidebar icon bar
 

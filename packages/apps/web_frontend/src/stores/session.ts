@@ -13,6 +13,7 @@ import { allowCommand } from "./guards";
 import { ZenMode } from "./zen_mode";
 import { paneFocusHistory } from "./pane_focus_history_state";
 import { CompositionBarAtStart } from "./composition_bar_at_start";
+import { FileViewEditState } from "./file_view_edit_state";
 import { t } from "../i18n/index";
 import type {
   AgentInfo,
@@ -1172,7 +1173,11 @@ export async function openFolderAsWorkspace(cwd: string, label: string): Promise
   await newWorkspace(cwd, label);
 }
 
-export function closePane(paneId: string) {
+/** Closes a pane. A file view pane with unsaved changes asks first (issue #899). */
+export async function closePane(paneId: string) {
+  if ((await FileViewEditState.confirmDiscard([paneId])) === false) {
+    return undefined;
+  }
   ZenMode.exitForPane(paneId);
   return guard(() => api.closePane(paneId));
 }
@@ -1216,7 +1221,12 @@ async function flushSplitRatios() {
   }
 }
 
-export function closeWorkspace(workspaceId: string) {
+/** Closes a workspace. A file view pane of the workspace with unsaved changes asks first (issue #899). */
+export async function closeWorkspace(workspaceId: string) {
+  const paneIds = allPanes.value.filter((pane) => pane.workspace_id === workspaceId).map((pane) => pane.pane_id);
+  if ((await FileViewEditState.confirmDiscard(paneIds)) === false) {
+    return undefined;
+  }
   return guard(() => api.closeWorkspace(workspaceId));
 }
 
@@ -1274,6 +1284,11 @@ function isLastTabOfItsWorkspace(tabId: string): boolean {
 export async function closeTab(tabId: string) {
   if (isLastTabOfItsWorkspace(tabId)) {
     toast(t("sessionStore.error.lastTab"), "error");
+    return undefined;
+  }
+  // A file view pane of the tab with unsaved changes asks first (issue #899).
+  const paneIds = allPanes.value.filter((pane) => pane.tab_id === tabId).map((pane) => pane.pane_id);
+  if ((await FileViewEditState.confirmDiscard(paneIds)) === false) {
     return undefined;
   }
   return guard(() => api.closeTab(tabId));

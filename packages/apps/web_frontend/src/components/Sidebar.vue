@@ -4,6 +4,7 @@ import { state } from "../stores/session";
 import LaunchersPanel from "./LaunchersPanel.vue";
 import SidebarIconBar from "./SidebarIconBar.vue";
 import FilesPanel from "./FilesPanel.vue";
+import FileSearchPanel from "./FileSearchPanel.vue";
 import SourceControlPanel from "./SourceControlPanel.vue";
 import CodeHostingPanel from "./CodeHostingPanel.vue";
 import type { Forge } from "../lib/refs";
@@ -49,11 +50,12 @@ watch(
 const codeHostingIcon = computed(() => codeHostingForge.value ?? "cloud");
 
 /**
- * The buttons of the sidebar icon bar of the left sidebar: the Files, Launchers, Source control, and Code hosting sidebar
- * sections, in this order.
+ * The buttons of the sidebar icon bar of the left sidebar: the File explorer, Search in files, Launchers, Source control,
+ * and Code hosting sidebar sections, in this order.
  */
 const sidebarSections = computed((): SidebarSectionButton[] => [
   { id: "files", label: t("filesPanel.sidebarSection"), icon: "folder2", badge: 0 },
+  { id: "fileSearch", label: t("fileSearchPanel.sidebarSection"), icon: "search", badge: 0 },
   { id: "launchers", label: t("sidebar.sidebarSection.launchers"), icon: "play-circle", badge: runningLaunchers.value, isLive: true },
   {
     id: "sourceControl",
@@ -65,7 +67,7 @@ const sidebarSections = computed((): SidebarSectionButton[] => [
 ]);
 
 function selectSidebarSection(id: string) {
-  if (id === "sourceControl" || id === "files" || id === "codeHosting") {
+  if (id === "sourceControl" || id === "files" || id === "fileSearch" || id === "codeHosting") {
     clickSidebarSectionIcon(id);
     return;
   }
@@ -88,6 +90,7 @@ function selectSidebarSection(id: string) {
       <LaunchersPanel v-if="settings.leftSidebarSection === 'launchers'" />
       <SourceControlPanel v-else-if="settings.leftSidebarSection === 'sourceControl'" />
       <CodeHostingPanel v-else-if="settings.leftSidebarSection === 'codeHosting'" />
+      <FileSearchPanel v-else-if="settings.leftSidebarSection === 'fileSearch'" />
       <FilesPanel v-else />
     </div>
   </aside>

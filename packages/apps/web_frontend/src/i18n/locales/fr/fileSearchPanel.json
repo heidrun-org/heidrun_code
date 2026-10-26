@@ -1,0 +1,20 @@
+{
+  "sidebarSection": "Rechercher dans les fichiers",
+  "title": "Rechercher dans les fichiers",
+  "inputLabel": "Texte à chercher dans les fichiers du projet",
+  "matchCase": "Respecter la casse",
+  "regularExpression": "Expression régulière",
+  "searching": "Recherche…",
+  "summary": "{results} dans {files}",
+  "results_one": "{count}{more} résultat",
+  "results_other": "{count}{more} résultats",
+  "files_one": "{count} fichier",
+  "files_other": "{count} fichiers",
+  "typeMore": "Tape au moins {minimum} caractères.",
+  "noResult": "Aucun résultat.",
+  "foldTitle": "Plier ou déplier les lignes de ce fichier",
+  "openAtLine": "Ouvrir le fichier à cette ligne dans un panneau de fichier",
+  "truncated": "Plus de 2 000 résultats : précise la recherche.",
+  "selectWorkspace": "Sélectionne un espace de travail pour chercher dans ses fichiers.",
+  "notRepository": "Le dossier de cet espace de travail n’est pas un dépôt Git."
+}

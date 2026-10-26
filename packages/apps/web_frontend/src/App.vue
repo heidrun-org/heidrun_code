@@ -86,6 +86,8 @@ import { threeJsDemoModal } from "./stores/three_js_demo_modal";
 import StatisticsModal from "./components/StatisticsModal.vue";
 import { statisticsModal } from "./stores/statistics_modal";
 import SplashScreen from "./components/SplashScreen.vue";
+import QuickOpenModal from "./components/QuickOpenModal.vue";
+import { quickOpen, QuickOpen } from "./stores/quick_open";
 import { startMobile } from "./stores/mobile";
 import { claudeLink, disableClaudeLink, enableClaudeLink, loadClaudeLink, remote, startRemoteWatch } from "./stores/claude";
 import { loadAntigravityLink } from "./stores/antigravity";
@@ -249,7 +251,8 @@ function onKey(e: KeyboardEvent) {
 
   switch (e.code) {
     case "KeyP":
-      if (!e.shiftKey) return;
+      // ⌘P: the box that searches a file of the project by its name (issue #898).
+      if (!e.shiftKey) return run(() => QuickOpen.open());
       return run(() => {
         const id = activePaneId();
         const pane = allPanes.value.find((p) => p.pane_id === id) ?? selectedPane.value;
@@ -422,6 +425,7 @@ onBeforeUnmount(() => {
     <InstalledSkillModal v-if="installedSkillModal.open" />
     <FindNewSkillsModal v-if="findNewSkillsModal.open" />
     <SkillFileModal v-if="skills.view !== null" />
+    <QuickOpenModal v-if="quickOpen.isOpen" />
     <DangerModal v-if="danger.open" />
     <ConfirmModal v-if="confirmDialog.open" />
     <Transition name="toast">

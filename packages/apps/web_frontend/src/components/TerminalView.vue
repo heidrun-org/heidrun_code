@@ -419,7 +419,7 @@ function runAction(action: DetectionAction) {
       openIssue(props.cwd, action.target, action.url);
       break;
     case "openFile":
-      openFileRef(props.cwd, action.path);
+      openFileRef(props.cwd, action.path, action.line);
       break;
     case "sendPrompt":
       sendPrompt(props.paneId, action.text);

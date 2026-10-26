@@ -41,7 +41,7 @@ One terminal inside a tab. The terminal runs a shell or a coding agent, for exam
 
 ### File view pane
 
-A pane that shows one file, read only, in place of its terminal. The developer cannot change the file there. A click on a file in the File explorer sidebar section opens it. The label of the pane holds the absolute path of the file, and the terminal of the pane only waits. The rules are in [file_view_pane.md](../user_interface/workspaces_tabs_and_panes/file_view_pane.md).
+A pane that shows one file in place of its terminal. The developer reads and changes the file there, and saves it with ⌘S. A click on a file in the File explorer sidebar section, a click on a line of the Search in files sidebar section, and the box of ⌘P open it. The label of the pane holds the absolute path of the file, and the terminal of the pane only waits. The rules are in [file_view_pane.md](../user_interface/workspaces_tabs_and_panes/file_view_pane.md).
 
 ### Diff pane
 
