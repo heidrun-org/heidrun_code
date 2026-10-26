@@ -1,6 +1,7 @@
 mod app_data;
 mod application_log;
 mod application_profile;
+mod build_settings;
 mod antigravity;
 mod claude;
 mod clipboard;
