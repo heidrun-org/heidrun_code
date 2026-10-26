@@ -148,13 +148,10 @@ mod tests {
         let manifest_folder = Path::new(env!("CARGO_MANIFEST_DIR"));
         // The package `data_layer_coding_agents` reads the variables `CLAUDE_CONFIG_DIR` and `CODEX_HOME` for the application.
         // The package `mobile_server` reads the variables `HEIDRUN_CODE_DIR` and `HEIDRUN_CODE_NGROK` for the application.
-        // The package `data_layer_operation_log` reads the variables `HEIDRUN_CODE_OPERATION_LOG_FILE` and `HEIDRUN_CODE_OPERATION_LOG_CALLER` for the
-        // application and for the four data layer packages.
         let source_folders = [
             manifest_folder.join("src"),
             manifest_folder.join("../../../submodules/heidrun_data/packages/data_layer_coding_agents/src"),
             manifest_folder.join("../../auxiliary/mobile_server/src"),
-            manifest_folder.join("../../../submodules/heidrun_data/packages/data_layer_operation_log/src"),
         ];
         for file in source_folders.iter().flat_map(|folder| rust_files(folder)) {
             if file.file_name().is_some_and(|name| name == "environment_file.rs") {

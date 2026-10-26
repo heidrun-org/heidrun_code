@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: the names of the project
 
 - Created: 23 October 2026
-- Last updated: 25 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md)
@@ -51,7 +51,7 @@ A name that stays as it was, because a file, a session, or a setting of the deve
 - The folder `.heidrun` of a project and the file `.heidrun_origin.json`.
 - The label `Heidrun file view:` of a file view pane, because Herdr keeps it.
 - The text of a stash created by the Git commands of the application.
-- The name `heidrun` of the caller in the operation log, and the folder of the cache of the skills.
+- The folder of the cache of the skills.
 - The names of the image files, and the name drawn inside the images.
 - The repository key `heidrun-org/heidrun` that the data layers store in their SQLite file.
 - The name of the organization `heidrun-org`, and the goat Heiðrún.

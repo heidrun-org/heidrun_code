@@ -32,8 +32,6 @@ data_layer_source_control = { path = "../../../submodules/heidrun_data/packages/
 data_layer_code_hosting = { path = "../../../submodules/heidrun_data/packages/data_layer_code_hosting" }
 # The one lock of the SQLite file of the data layer, which the command line heidrun_data takes too
 heidrun_data = { path = "../../../submodules/heidrun_data/packages/heidrun_data" }
-# The log of the operations that the data layer packages receive: the application gives its name as the caller
-data_layer_operation_log = { path = "../../../submodules/heidrun_data/packages/data_layer_operation_log" }
 # The format of the macro files, which the command line heidrun_code_ctrl changes too: the hard-coded macros and the personal macros
 heidrun_code_ctrl = { path = "../../auxiliary/heidrun_code_ctrl" }
 # The voice input: it records the microphone, downloads a Whisper model, and changes the speech into text on the computer

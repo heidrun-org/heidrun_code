@@ -269,7 +269,6 @@ pub fn run() {
     let context = tauri::generate_context!();
     application_profile::initialize(&context.config().identifier);
     login_shell_path::apply();
-    data_layer_operation_log::set_default_caller("heidrun");
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())

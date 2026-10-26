@@ -24,6 +24,5 @@ The packages that are useful for the application Heidrun Code, but are not the a
 - The three data layer packages left this folder for `packages/data_layers` in [issue #470](https://github.com/heidrun-org/heidrun/issues/470).
 - `heidrun_code_ctrl` came with [issue #602](https://github.com/heidrun-org/heidrun/issues/602). `desktop_tauri` imports it, so the format of the macro files has one place.
 - `mobile_server` and `mobile_website` came with [issue #524](https://github.com/heidrun-org/heidrun/issues/524), and the rule about the imports of `packages/apps` changed with it. The rule was already false: `desktop_tauri` imports `coding_agent_cli`.
-- `data_layer_operation_log` left this folder for `packages/data_layers` in [issue #664](https://github.com/heidrun-org/heidrun/issues/664), because it serves only the data layer packages.
 - The folder `packages/data_layers` became the submodule `submodules/heidrun_data` in [issue 848](https://github.com/heidrun-org/heidrun_code/issues/848).
 - `voice_input` came with [issue #662](https://github.com/heidrun-org/heidrun/issues/662). The audio stays in memory, and only the download of a model file uses the network.

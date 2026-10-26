@@ -60,8 +60,4 @@ describe('RustPaths.isPackageName', () => {
 		expect(RustPaths.isPackageName('crate')).toBe(false);
 		expect(RustPaths.isPackageName('serde')).toBe(false);
 	});
-
-	it('is false for data_layer_operation_log, which gives no data', () => {
-		expect(RustPaths.isPackageName('data_layer_operation_log')).toBe(false);
-	});
 });

@@ -10,13 +10,13 @@ import { TargetPaths } from '../src/target_paths.ts';
 
 /**
  * Writes the packages `heidrun_code_ctrl` and `heidrun_data` at their real places in a checkout, a package
- * `data_layer_operation_log` that `heidrun_data` depends on through a `path`, and a package `desktop_tauri`
+ * `data_layer_source_control` that `heidrun_data` depends on through a `path`, and a package `desktop_tauri`
  * that the tools do not depend on. The packages have no dependency from the network, so `cargo metadata` needs no
  * network. The tests never compile them.
  */
 export class SampleToolPackages {
 	/** The folder of the package that `heidrun_data` depends on, relative to the root of a checkout. */
-	static readonly dependencyRelativePath = Path.join('submodules', 'heidrun_data', 'packages', 'data_layer_operation_log');
+	static readonly dependencyRelativePath = Path.join('submodules', 'heidrun_data', 'packages', 'data_layer_source_control');
 
 	/** The folder of the package that the tools do not depend on, relative to the root of a checkout. */
 	static readonly unrelatedRelativePath = Path.join('packages', 'apps', 'desktop_tauri');
@@ -31,7 +31,7 @@ export class SampleToolPackages {
 		SampleToolPackages._writePackage(
 			checkoutPath,
 			Path.join('submodules', 'heidrun_data', 'packages', 'heidrun_data'),
-			'data_layer_operation_log = { path = "../data_layer_operation_log" }\n',
+			'data_layer_source_control = { path = "../data_layer_source_control" }\n',
 		);
 		SampleToolPackages._writePackage(checkoutPath, SampleToolPackages.dependencyRelativePath, '');
 		SampleToolPackages._writePackage(checkoutPath, SampleToolPackages.unrelatedRelativePath, '');

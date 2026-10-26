@@ -12,7 +12,7 @@
     "tauri": "pnpm --filter desktop_tauri tauri",
     "test": "pnpm test:fast",
     "test:fast": "pnpm --filter web_frontend test && pnpm --filter desktop_tauri test && pnpm --filter website_public test && pnpm --filter coding_agent_cli test && pnpm --filter mobile_website test && pnpm --filter mobile_server test && pnpm test:data_layers && pnpm --filter heidrun_code_ctrl test && pnpm --filter voice_input test:fast && pnpm --filter worktree_tools test && pnpm --filter video_recorder test && pnpm --filter agents_rules_checker test && pnpm --filter data_layer_boundary_checker test && pnpm --filter install_script_tests test && pnpm --filter multi_layer_graph test",
-    "test:data_layers": "cargo test --package data_layer_operation_log --package data_layer_code_hosting --package data_layer_coding_agents --package data_layer_source_control --package data_layer_user_activity --package heidrun_data",
+    "test:data_layers": "cargo test --package data_layer_code_hosting --package data_layer_coding_agents --package data_layer_source_control --package data_layer_user_activity --package heidrun_data",
     "test:slow": "pnpm --filter voice_input test:slow && pnpm --filter change_log_generator test",
     "test:full": "pnpm test:fast && pnpm test:slow",
     "docs:shortcuts": "node scripts/shortcuts-readme.mjs",
