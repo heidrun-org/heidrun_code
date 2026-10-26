@@ -5,7 +5,6 @@ import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import CodeEditor from "./CodeEditor.vue";
 import FileViewMenu from "./FileViewMenu.vue";
-import SettingsSwitchRow from "./settings/SettingsSwitchRow.vue";
 import { FileViewLabel } from "../lib/file_view_label";
 import { FrontMatter } from "../lib/front_matter";
 import { isMarkdown, renderMarkdown } from "../lib/markdown";
@@ -49,6 +48,8 @@ const markdownMode = computed({
   },
 });
 const markdownModeName = `file-view-markdown-mode-${useId()}`;
+/** The Markdown preview uses the whole width of the pane, or a column of about 80 characters (issue 897). */
+const markdownWidthClass = computed(() => (settings.markdownWrapAt80Columns ? "wrap-at-80-columns" : "full"));
 const isCodeShown = computed(() => isLoading.value === false && error.value === "" && image.value === "" && isPreview.value === false);
 let sequence = 0;
 
@@ -147,20 +148,47 @@ function onMarkdownClick(event: MouseEvent) {
           {{ t("fileView.raw") }}
         </label>
       </div>
-      <SettingsSwitchRow v-model="settings.codeWrap" class="text-nowrap" :label="t('fileView.wrap')" />
       <FileViewMenu
         :is-search-shown="isCodeShown"
         @search="editor?.openSearch()"
         @copy-path="copyPath"
         @show-in-finder="showInFinder"
         @open-in-visual-studio-code="openInVisualStudioCode"
-      />
+      >
+        <template #options>
+          <button
+            type="button"
+            class="menu-item d-flex align-items-center gap-2"
+            role="menuitemcheckbox"
+            :aria-checked="settings.codeWrap"
+            data-action="wrap-lines"
+            @click="settings.codeWrap = !settings.codeWrap"
+          >
+            <span class="switch pe-none"><input type="checkbox" tabindex="-1" aria-hidden="true" :checked="settings.codeWrap" /></span>
+            {{ t("fileView.wrap") }}
+          </button>
+          <button
+            v-if="isMarkdownFile"
+            type="button"
+            class="menu-item d-flex align-items-center gap-2"
+            role="menuitemcheckbox"
+            :aria-checked="settings.markdownWrapAt80Columns"
+            data-action="wrap-at-80-columns"
+            @click="settings.markdownWrapAt80Columns = !settings.markdownWrapAt80Columns"
+          >
+            <span class="switch pe-none">
+              <input type="checkbox" tabindex="-1" aria-hidden="true" :checked="settings.markdownWrapAt80Columns" />
+            </span>
+            {{ t("fileView.wrapAt80Columns") }}
+          </button>
+        </template>
+      </FileViewMenu>
     </Teleport>
     <div class="code" :class="[codeThemeClass, { editing: isCodeShown }]">
       <div v-if="error !== ''" class="empty err">{{ error }}</div>
       <div v-else-if="isLoading" class="empty">{{ t("fileView.loading") }}</div>
       <div v-else-if="image !== ''" class="img"><img :src="image" :alt="absolutePath ?? ''" /></div>
-      <article v-else-if="isPreview" class="md-doc" :class="{ full: settings.mdWidth === 'full' }" @click="onMarkdownClick">
+      <article v-else-if="isPreview" class="md-doc" :class="markdownWidthClass" @click="onMarkdownClick">
         <section v-if="frontMatter !== null" class="front-matter-card" :aria-label="t('fileView.frontMatterLabel')">
           <pre>{{ frontMatter }}</pre>
         </section>

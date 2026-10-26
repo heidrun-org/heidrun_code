@@ -486,6 +486,8 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 /* ---- Rendered Markdown (issue preview) ---------------------------------------- */
 .md-doc { max-width: 860px; margin: 0 auto; font: var(--font-size)/1.7 var(--sans); color: var(--text); user-select: text; }
 .md-doc.full { max-width: none; }
+/* About 80 characters of the sans font on a line: the padding stays outside the width of the text (issue 897). */
+.md-doc.wrap-at-80-columns { box-sizing: content-box; max-width: 37em; }
 .md-doc h1, .md-doc h2 { padding-bottom: 0.3em; border-bottom: 1px solid var(--line-strong); }
 .md-doc h1 { font-size: 1.7em; margin: 0.2em 0 0.7em; }
 .md-doc h2 { font-size: 1.35em; margin: 1.5em 0 0.6em; }

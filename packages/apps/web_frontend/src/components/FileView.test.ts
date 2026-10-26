@@ -95,6 +95,16 @@ function menuEntry(action: string) {
   return new DOMWrapper(document.body).get(`[role='menuitem'][data-action='${action}']`);
 }
 
+/** The switch of the open menu that has this `data-action`. */
+function menuSwitch(action: string) {
+  return new DOMWrapper(document.body).get(`[role='menuitemcheckbox'][data-action='${action}']`);
+}
+
+/** The text of every switch of the open menu, from the first to the last. */
+function menuSwitchTexts(): string[] {
+  return Array.from(document.body.querySelectorAll("[role='menuitemcheckbox']")).map((entry) => (entry.textContent ?? "").trim());
+}
+
 /** The text of every entry of the open menu, from the first to the last. */
 function menuTexts(): string[] {
   return Array.from(document.body.querySelectorAll("[role='menuitem']")).map((entry) => (entry.textContent ?? "").trim());
@@ -116,6 +126,7 @@ beforeEach(() => {
   openSearchMock.mockClear();
   settings.filesMdRead = true;
   settings.codeWrap = false;
+  settings.markdownWrapAt80Columns = false;
 });
 
 afterEach(() => {
@@ -171,14 +182,44 @@ describe("FileView (issue #714)", () => {
     expect(controls().find(".btn-group").exists()).toBe(false);
   });
 
-  it("gives the choice of wrapping lines to the editor, with a switch", async () => {
+  it("gives the choice of wrapping lines to the editor, with a switch in the menu that leaves the menu open", async () => {
     const wrapper = mountFileView();
     await flushPromises();
     expect(wrapper.get(".code-editor-stub").attributes("data-wrap")).toBe("false");
-    expect(controls().get(".switch + label").text()).toBe("Wrap lines");
-    await controls().get("input[role='switch']").setValue(true);
+    expect(controls().find(".switch").exists()).toBe(false);
+    await openMenu();
+    expect(menuSwitch("wrap-lines").attributes("aria-checked")).toBe("false");
+    await menuSwitch("wrap-lines").trigger("click");
     expect(settings.codeWrap).toBe(true);
     expect(wrapper.get(".code-editor-stub").attributes("data-wrap")).toBe("true");
+    expect(menuSwitch("wrap-lines").attributes("aria-checked")).toBe("true");
+    expect(menuSwitch("wrap-lines").get("input").element.checked).toBe(true);
+    expect(document.body.querySelector("[role='menu']")).not.toBeNull();
+  });
+
+  it("shows the Markdown preview on the whole width of the pane by default (issue #897)", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    expect(wrapper.get(".md-doc").classes()).toContain("full");
+    expect(wrapper.get(".md-doc").classes()).not.toContain("wrap-at-80-columns");
+  });
+
+  it("gives a switch Wrap at 80 columns after Wrap lines, which keeps the preview in a narrow column (issue #897)", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    await openMenu();
+    expect(menuSwitchTexts()).toEqual(["Wrap lines", "Wrap at 80 columns"]);
+    await menuSwitch("wrap-at-80-columns").trigger("click");
+    expect(settings.markdownWrapAt80Columns).toBe(true);
+    expect(wrapper.get(".md-doc").classes()).toContain("wrap-at-80-columns");
+    expect(wrapper.get(".md-doc").classes()).not.toContain("full");
+  });
+
+  it("shows no switch Wrap at 80 columns for a file that is not Markdown (issue #897)", async () => {
+    mountFileView();
+    await flushPromises();
+    await openMenu();
+    expect(menuSwitchTexts()).toEqual(["Wrap lines"]);
   });
 
   it("opens the search panel of the editor with the entry Search of the menu, and closes the menu", async () => {
@@ -255,6 +296,22 @@ describe("FileView (issue #714)", () => {
 });
 
 describe("FileView menu (issue #784)", () => {
+  it("shows three vertical dots on the menu button, and the two switches under a divider after the actions (issue #897)", async () => {
+    mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    expect(menuButton().find(".bi-three-dots-vertical").exists()).toBe(true);
+    await openMenu();
+    const children = Array.from(document.body.querySelector("[role='menu']")!.children);
+    expect(children.map((child) => child.getAttribute("data-action") ?? child.getAttribute("role"))).toEqual([
+      "copy-path",
+      "show-in-finder",
+      "open-in-visual-studio-code",
+      "separator",
+      "wrap-lines",
+      "wrap-at-80-columns",
+    ]);
+  });
+
   it("opens with a click, moves between the entries with the arrow keys, and closes with the key Escape", async () => {
     mountFileView();
     await flushPromises();
@@ -265,11 +322,13 @@ describe("FileView menu (issue #784)", () => {
     expect(document.activeElement).toBe(menuEntry("copy-path").element);
     pressKey("ArrowUp");
     pressKey("ArrowUp");
+    expect(document.activeElement).toBe(menuSwitch("wrap-lines").element);
+    pressKey("ArrowUp");
     expect(document.activeElement).toBe(menuEntry("open-in-visual-studio-code").element);
     pressKey("Home");
     expect(document.activeElement).toBe(menuEntry("search").element);
     pressKey("End");
-    expect(document.activeElement).toBe(menuEntry("open-in-visual-studio-code").element);
+    expect(document.activeElement).toBe(menuSwitch("wrap-lines").element);
     pressKey("Escape");
     await flushPromises();
     expect(document.body.querySelector("[role='menu']")).toBeNull();

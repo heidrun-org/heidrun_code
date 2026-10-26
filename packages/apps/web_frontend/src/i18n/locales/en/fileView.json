@@ -17,5 +17,6 @@
   "loading": "Loading…",
   "markdownLabel": "Markdown display",
   "preview": "Preview",
-  "wrap": "Wrap lines"
+  "wrap": "Wrap lines",
+  "wrapAt80Columns": "Wrap at 80 columns"
 }

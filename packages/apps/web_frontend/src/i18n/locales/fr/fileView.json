@@ -17,5 +17,6 @@
   "loading": "Chargement…",
   "markdownLabel": "Affichage Markdown",
   "preview": "Aperçu",
-  "wrap": "Retour à la ligne"
+  "wrap": "Retour à la ligne",
+  "wrapAt80Columns": "Retour à 80 colonnes"
 }
