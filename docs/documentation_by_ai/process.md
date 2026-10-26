@@ -18,7 +18,7 @@ Choose a task that a person can complete in the application, such as selecting a
 
 Read the current user-interface rules and glossary, then the implementation needed to establish exact behavior and labels. Rules describe intended behavior; the implementation may expose a conflict. During an explicitly authorised learning experiment, a check in the matching running application can resolve the uncertainty. A source statement alone is not proof that a visible interaction worked.
 
-The source version matters. An older installed application, a workspace opened at the repository root instead of a subfolder, or a differently focused pane can produce misleading evidence. Use a matching application build and disposable fixtures. Restore the starting selection and settings after checks. Start Heidrun with --no-splash-screen when preparing such checks.
+The source version matters. An older installed application, a workspace opened at the repository root instead of a subfolder, or a differently focused pane can produce misleading evidence. Use a matching application build and disposable fixtures. Restore the starting selection and settings after checks. Start Heidrun Code with --no-splash-screen when preparing such checks.
 
 ## 2. Generate and preserve a candidate
 

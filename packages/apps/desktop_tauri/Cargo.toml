@@ -1,12 +1,12 @@
 [package]
-name = "heidrun"
+name = "heidrun_code"
 version = "0.3.0"
 description = "Interface graphique pour Herdr"
 license = "MIT"
 edition = "2021"
 
 [lib]
-name = "heidrun_lib"
+name = "heidrun_code_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -23,19 +23,19 @@ tokio = { version = "1", features = ["net", "io-util", "time", "sync", "process"
 # Runs the coding agent tools (codex, claude): the package of the repository that the change log generator uses too
 coding_agent_cli = { path = "../../auxiliary/coding_agent_cli" }
 # Finds the chat session files of Claude Code and of Codex, and reads what each one holds
-data_layer_coding_agents = { path = "../../data_layers/data_layer_coding_agents" }
+data_layer_coding_agents = { path = "../../../submodules/heidrun_data/packages/data_layer_coding_agents" }
 # Reads the user activity records of the developer into the SQLite file of the data layer, for the Statistics window
-data_layer_user_activity = { path = "../../data_layers/data_layer_user_activity" }
+data_layer_user_activity = { path = "../../../submodules/heidrun_data/packages/data_layer_user_activity" }
 # Reads the commits of a repository into the SQLite file of the data layer, for the Statistics window
-data_layer_source_control = { path = "../../data_layers/data_layer_source_control" }
+data_layer_source_control = { path = "../../../submodules/heidrun_data/packages/data_layer_source_control" }
 # Reads the pull requests and the issues of a repository into the SQLite file of the data layer, for the Statistics window
-data_layer_code_hosting = { path = "../../data_layers/data_layer_code_hosting" }
+data_layer_code_hosting = { path = "../../../submodules/heidrun_data/packages/data_layer_code_hosting" }
 # The one lock of the SQLite file of the data layer, which the command line heidrun_data takes too
-heidrun_data = { path = "../../data_layers/heidrun_data" }
+heidrun_data = { path = "../../../submodules/heidrun_data/packages/heidrun_data" }
 # The log of the operations that the data layer packages receive: the application gives its name as the caller
-data_layer_operation_log = { path = "../../data_layers/data_layer_operation_log" }
-# The format of the macro files, which the command line heidrun_ctrl changes too: the hard-coded macros and the personal macros
-heidrun_ctrl = { path = "../../auxiliary/heidrun_ctrl" }
+data_layer_operation_log = { path = "../../../submodules/heidrun_data/packages/data_layer_operation_log" }
+# The format of the macro files, which the command line heidrun_code_ctrl changes too: the hard-coded macros and the personal macros
+heidrun_code_ctrl = { path = "../../auxiliary/heidrun_code_ctrl" }
 # The voice input: it records the microphone, downloads a Whisper model, and changes the speech into text on the computer
 voice_input = { path = "../../auxiliary/voice_input" }
 portable-pty = "0.9"
@@ -57,24 +57,3 @@ dotenvy = "0.15"
 [dev-dependencies]
 # The tests write a compressed file of Codex, as Codex does for its old chat sessions
 zstd = "0.14"
-
-# The first read of the chat files, for the AI cost, decompresses and scans gigabytes of text. The code that does it runs at
-# full speed in a development build too: it takes about 15 seconds instead of about 3 minutes.
-[profile.dev.package.zstd-sys]
-opt-level = 3
-
-[profile.dev.package.data_layer_coding_agents]
-opt-level = 3
-
-[profile.dev.package.serde_json]
-opt-level = 3
-
-# The C++ engine of Whisper runs at full speed in a development build too: a debug build of it is about 30 times slower
-[profile.dev.package.whisper-rs-sys]
-opt-level = 3
-
-[profile.dev.package.whisper-rs]
-opt-level = 3
-
-[profile.dev.package.voice_input]
-opt-level = 3

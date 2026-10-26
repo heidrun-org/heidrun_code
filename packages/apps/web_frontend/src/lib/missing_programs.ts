@@ -10,22 +10,22 @@
 export type ProgramStatus = {
 	/** True when the program is on this computer. */
 	isInstalled: boolean;
-	/** True when the program is on this computer, but its version is older than the version that Heidrun needs. */
+	/** True when the program is on this computer, but its version is older than the version that Heidrun Code needs. */
 	isTooOld: boolean;
 };
 
 /**
- * The state of each program that Heidrun needs, as the command `required_programs_status` sends it.
+ * The state of each program that Heidrun Code needs, as the command `required_programs_status` sends it.
  */
 export type RequiredProgramsStatus = {
-	/** Herdr: required. Heidrun cannot show a terminal without it. */
+	/** Herdr: required. Heidrun Code cannot show a terminal without it. */
 	herdr: ProgramStatus;
 	/** ngrok: optional. Only the mobile access uses it. */
 	ngrok: ProgramStatus;
 };
 
 /**
- * The name of a program that Heidrun needs.
+ * The name of a program that Heidrun Code needs.
  */
 export type ProgramName = 'herdr' | 'ngrok';
 
@@ -38,12 +38,12 @@ export const INSTALL_COMMANDS: Record<ProgramName, string> = {
 };
 
 /**
- * The choice of the programs that the notice of the missing programs names, at the start of Heidrun (issue 546).
+ * The choice of the programs that the notice of the missing programs names, at the start of Heidrun Code (issue 546).
  */
 export class MissingPrograms {
 	/**
 	 * Chooses the programs that the notice names. A missing Herdr, or a Herdr older than 0.9, is named at every start,
-	 * because Heidrun cannot show a terminal without it. A missing ngrok is named only once, because it is optional: the Mobile access section of the
+	 * because Heidrun Code cannot show a terminal without it. A missing ngrok is named only once, because it is optional: the Mobile access section of the
 	 * Settings window keeps the reminder after that.
 	 *
 	 * @param status - The state of each program.

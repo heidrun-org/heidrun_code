@@ -65,7 +65,7 @@ function forgeAnswers(titles: Record<number, string>) {
   });
 }
 
-/** The store, as a new run of Heidrun sees it: the modules are loaded again, and `localStorage` keeps what was saved. */
+/** The store, as a new run of Heidrun Code sees it: the modules are loaded again, and `localStorage` keeps what was saved. */
 async function startRun() {
   vi.resetModules();
   return import("./dynamic_topics");

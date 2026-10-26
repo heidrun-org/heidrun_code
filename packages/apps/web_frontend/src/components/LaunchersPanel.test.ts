@@ -11,6 +11,12 @@ beforeEach(() => {
   vi.resetModules();
 });
 
+/** Gives the panel launchers of the user level, as the file launchers.json holds them. */
+async function setUserLaunchers(launchers: { id: string; label: string; command: string }[]) {
+  const { userLaunchers } = await import("../stores/user_launchers");
+  userLaunchers.list = launchers;
+}
+
 async function mountPanel() {
   const { state } = await import("../stores/session");
   const { project } = await import("../stores/project");
@@ -159,5 +165,41 @@ describe("LaunchersPanel", () => {
     await flushPromises();
     expect(card.find("button.label, button.desc").exists()).toBe(false);
     expect(vi.mocked(invoke).mock.calls).toHaveLength(0);
+  });
+  it("shows the launchers of the user level first, then the launchers of the workspace level", async () => {
+    await setUserLaunchers([{ id: "everywhere", label: "in every workspace", command: "make everywhere" }]);
+    const wrapper = await mountPanel();
+    expect(wrapper.findAll(".launcher .label").map((label) => label.text())).toEqual(["in every workspace", "start the server"]);
+  });
+
+  it("tells the level User on the card of a launcher of the user level only", async () => {
+    await setUserLaunchers([{ id: "everywhere", label: "in every workspace", command: "make everywhere" }]);
+    const wrapper = await mountPanel();
+    const cards = wrapper.findAll(".launcher");
+    expect(cards[0].get(".level").text()).toBe("User level");
+    expect(cards[0].get(".level").attributes("title")).toBe("This custom launcher shows in every workspace.");
+    expect(cards[1].find(".level").exists()).toBe(false);
+  });
+
+  it("does not say that there is no launcher while the user level has one and the workspace level has none", async () => {
+    await setUserLaunchers([{ id: "everywhere", label: "in every workspace", command: "make everywhere" }]);
+    const wrapper = await mountPanel();
+    const { project } = await import("../stores/project");
+    project.byWorkspace["w1"]!.config.launchers = [];
+    await flushPromises();
+    expect(wrapper.find(".empty").exists()).toBe(false);
+    expect(wrapper.findAll(".launcher")).toHaveLength(1);
+  });
+
+  it("opens the window on a launcher of the user level from the menu Edit", async () => {
+    await setUserLaunchers([{ id: "everywhere", label: "in every workspace", command: "make everywhere" }]);
+    const wrapper = await mountPanel();
+    const { newCustomLauncherModal } = await import("../stores/newCustomLauncher");
+    await wrapper.findAll(".launcher")[0].get("button.tool").trigger("click");
+    await flushPromises();
+    const edit = Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Edit");
+    edit?.click();
+    await flushPromises();
+    expect(newCustomLauncherModal.editedId).toBe("everywhere");
   });
 });

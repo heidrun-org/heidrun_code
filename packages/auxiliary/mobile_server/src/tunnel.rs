@@ -8,7 +8,7 @@ use tokio::process::{Child, Command};
 use tokio::sync::mpsc;
 
 /// The usual folders of programs that Homebrew and the system use. An application that the Finder starts does not get the
-/// variable `PATH` of the shell, so Heidrun looks in these folders, like it does for the program `herdr`.
+/// variable `PATH` of the shell, so Heidrun Code looks in these folders, like it does for the program `herdr`.
 const COMMON_FOLDERS: [&str; 3] = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"];
 
 /// The code that `ngrok` gives when the developer has no account, or no authtoken in the configuration of `ngrok`.
@@ -20,12 +20,12 @@ pub const ADDRESS_IN_USE_CODE: &str = "ERR_NGROK_334";
 /// The longest text of a problem that `read_message` returns, in characters.
 const LONGEST_PROBLEM: usize = 400;
 
-/// Finds the program `ngrok`. The variable `HEIDRUN_NGROK` gives its path. Without the variable, the usual folders are
+/// Finds the program `ngrok`. The variable `HEIDRUN_CODE_NGROK` gives its path. Without the variable, the usual folders are
 /// searched: `~/.local/bin`, then `COMMON_FOLDERS`. None when the program is not there.
 pub fn find_ngrok() -> Option<PathBuf> {
     let mut folders: Vec<PathBuf> = dirs::home_dir().map(|home| home.join(".local").join("bin")).into_iter().collect();
     folders.extend(COMMON_FOLDERS.iter().map(PathBuf::from));
-    find_with(std::env::var("HEIDRUN_NGROK").ok(), &folders)
+    find_with(std::env::var("HEIDRUN_CODE_NGROK").ok(), &folders)
 }
 
 fn find_with(override_path: Option<String>, folders: &[PathBuf]) -> Option<PathBuf> {

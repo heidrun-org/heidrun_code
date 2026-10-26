@@ -12,7 +12,7 @@
     "video_cut": "./src/video_cut_cli.ts"
   },
   "scripts": {
-    "test": "vitest run --minWorkers=1 --maxWorkers=2",
+    "test": "vitest run --minWorkers=1 --maxWorkers=4",
     "video:record": "tsx src/video_record_cli.ts",
     "video:cut": "tsx src/video_cut_cli.ts"
   },

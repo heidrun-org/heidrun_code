@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	UserActivity — tells whether the user is active in front of Heidrun, and builds one record for each active period
+//	UserActivity — tells whether the user is active in front of Heidrun Code, and builds one record for each active period
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -63,7 +63,7 @@ type OpenPeriod = {
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * The user is active when the window of Heidrun is in front, a workspace is selected, and the last keyboard action or
+ * The user is active when the window of Heidrun Code is in front, a workspace is selected, and the last keyboard action or
  * mouse action is less than the cool down ago. An action while the window is not in front does not count. Each period
  * of activity ends with one record. A period ends when the cool down is over, when the window goes behind, when the
  * selected workspace changes, or when the application closes. The class holds no timer and never reads the clock: the
@@ -73,7 +73,7 @@ export class UserActivity {
 	/** The period that runs now, or `null` when the user is not active. */
 	private _period: OpenPeriod | null = null;
 
-	/** True while the window of Heidrun is in front. */
+	/** True while the window of Heidrun Code is in front. */
 	private _isWindowInFront: boolean;
 
 	/** The folder of the selected workspace, or `null` when no workspace is selected. */
@@ -83,7 +83,7 @@ export class UserActivity {
 	private _coolDownMs: number;
 
 	/**
-	 * @param isWindowInFront - True when the window of Heidrun is in front now.
+	 * @param isWindowInFront - True when the window of Heidrun Code is in front now.
 	 * @param workspaceFolder - The folder of the selected workspace, or `null` when no workspace is selected.
 	 * @param coolDownMs - Time with no action after which the user is no longer active, in milliseconds.
 	 */
@@ -148,10 +148,10 @@ export class UserActivity {
 	}
 
 	/**
-	 * Tells the class that the window of Heidrun came to the front or went behind. When the window goes behind, the
+	 * Tells the class that the window of Heidrun Code came to the front or went behind. When the window goes behind, the
 	 * period ends at once, without waiting for the cool down.
 	 *
-	 * @param isWindowInFront - True when the window of Heidrun is in front now.
+	 * @param isWindowInFront - True when the window of Heidrun Code is in front now.
 	 * @param now - The current time, in milliseconds.
 	 * @returns The record of the period that ended, or `null` when no period ended.
 	 */

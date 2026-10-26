@@ -9,9 +9,9 @@
   "levelLabel": "Niveau de la voix",
   "titleTranscribing": "Transformation de la parole en texte…",
   "titleModelMissing": "Le modèle Whisper n’est pas sur cet ordinateur. Ouvrez Réglages, Saisie vocale, pour le télécharger.",
-  "error.microphone_denied": "macOS a refusé le microphone. Ouvrez Réglages Système, Confidentialité et sécurité, Microphone, et activez Heidrun. Puis appuyez de nouveau sur le bouton.",
-  "error.no_signal": "Heidrun n’entend rien du microphone. Si macOS vient de demander l’autorisation, appuyez de nouveau sur le bouton. Sinon ouvrez Réglages Système, Confidentialité et sécurité, Microphone, et activez Heidrun.",
-  "error.no_microphone": "Heidrun ne trouve aucun microphone sur cet ordinateur.",
+  "error.microphone_denied": "macOS a refusé le microphone. Ouvrez Réglages Système, Confidentialité et sécurité, Microphone, et activez Heidrun Code. Puis appuyez de nouveau sur le bouton.",
+  "error.no_signal": "Heidrun Code n’entend rien du microphone. Si macOS vient de demander l’autorisation, appuyez de nouveau sur le bouton. Sinon ouvrez Réglages Système, Confidentialité et sécurité, Microphone, et activez Heidrun Code.",
+  "error.no_microphone": "Heidrun Code ne trouve aucun microphone sur cet ordinateur.",
   "error.model_missing": "Le modèle Whisper n’est pas sur cet ordinateur. Ouvrez Réglages, Saisie vocale, pour le télécharger.",
   "error.model_load_failed": "Whisper n’a pas pu lire le fichier du modèle. Téléchargez de nouveau le modèle dans Réglages, Saisie vocale.",
   "error.other": "La saisie vocale a échoué. Appuyez de nouveau sur le bouton."

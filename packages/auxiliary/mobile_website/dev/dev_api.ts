@@ -26,7 +26,7 @@ export class DevApi {
 	/** The closed list of methods, the same as the list of the mobile server. */
 	private static readonly methods = ['state', 'read', 'answer', 'prompt', 'keys', 'macros', 'launchers', 'launch', 'pushKey', 'subscribe', 'unsubscribe'];
 
-	/** The command that the fake computer asks the developer to check once more, like the guards of Heidrun do. */
+	/** The command that the fake computer asks the developer to check once more, like the guards of Heidrun Code do. */
 	private static readonly dangerousCommand = 'rm -rf build';
 
 	/** The coding agents, which change when the developer answers. */
@@ -37,7 +37,7 @@ export class DevApi {
 		{
 			id: 'dev',
 			label: 'Dev server',
-			description: 'Starts Heidrun with pnpm dev',
+			description: 'Starts Heidrun Code with pnpm dev',
 			command: 'pnpm dev',
 			status: 'idle',
 		},
@@ -125,7 +125,7 @@ export class DevApi {
 		if (pairingKey === null || /^[0-9a-f]{64}$/.test(pairingKey) === false) {
 			return {
 				status: 401,
-				body: 'Pairing needed: scan the QR code in Heidrun',
+				body: 'Pairing needed: scan the QR code in Heidrun Code',
 			};
 		}
 		let request: { method?: unknown; params?: unknown };

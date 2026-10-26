@@ -1,13 +1,13 @@
-# User interface of Heidrun: source control
+# User interface of Heidrun Code: source control
 
 - Created: 13 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
 - Related issue: [issue 305](https://github.com/heidrun-org/heidrun/issues/305), [issue 446](https://github.com/heidrun-org/heidrun/issues/446), [issue 613](https://github.com/heidrun-org/heidrun/issues/613)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../glossary/index.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md).
 
 ## Source control
 

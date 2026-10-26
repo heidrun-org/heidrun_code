@@ -30,7 +30,7 @@ impl Denial {
             Denial::UnexpectedOrigin => (StatusCode::FORBIDDEN, "Origin refused"),
             Denial::Off => (StatusCode::SERVICE_UNAVAILABLE, "Mobile access is off on the computer"),
             Denial::TooManyAttempts => (StatusCode::TOO_MANY_REQUESTS, "Too many attempts: try again in one minute"),
-            Denial::Unpaired => (StatusCode::UNAUTHORIZED, "Pairing needed: scan the QR code in Heidrun"),
+            Denial::Unpaired => (StatusCode::UNAUTHORIZED, "Pairing needed: scan the QR code in Heidrun Code"),
         }
     }
 }

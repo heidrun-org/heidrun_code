@@ -11,7 +11,7 @@ pub enum VoiceError {
     MicrophoneDenied,
     /// The microphone gave only exact zeros: the permission is refused, or the microphone is off.
     NoSignal,
-    /// The recording failed for another reason. The text is for the developers of Heidrun and never reaches the window.
+    /// The recording failed for another reason. The text is for the developers of Heidrun Code and never reaches the window.
     RecordingFailed(String),
     /// A recording is already running.
     AlreadyRecording,

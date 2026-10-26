@@ -1,13 +1,13 @@
-# Glossary of Heidrun: workspaces, tabs, and panes
+# Glossary of Heidrun Code: workspaces, tabs, and panes
 
 - Created: 14 October 2026
 - Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [User interface of Heidrun: workspaces, tabs, and panes](../user_interface/workspaces_tabs_and_panes/index.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: workspaces, tabs, and panes](../user_interface/workspaces_tabs_and_panes/index.md)
 - Related issue: [issue 403](https://github.com/heidrun-org/heidrun/issues/403), [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 475](https://github.com/heidrun-org/heidrun/issues/475), [issue 637](https://github.com/heidrun-org/heidrun/issues/637), [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 685](https://github.com/heidrun-org/heidrun/issues/685), [issue 690](https://github.com/heidrun-org/heidrun/issues/690), [issue 712](https://github.com/heidrun-org/heidrun/issues/712), [issue 726](https://github.com/heidrun-org/heidrun/issues/726), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 786](https://github.com/heidrun-org/heidrun/issues/786), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 810](https://github.com/heidrun-org/heidrun/issues/810)
 
-This document gives one short definition for each word of the workspaces, the tabs, the panes, the coding agents that run in a pane, and the parts of the window that hold the panes. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the workspaces, the tabs, the panes, the coding agents that run in a pane, and the parts of the window that hold the panes. The other words of Heidrun Code are in [index.md](index.md).
 
 ## The three levels that come from Herdr
 
@@ -45,7 +45,7 @@ A pane that shows one file, read only, in place of its terminal. The developer c
 
 ### Front matter
 
-The block at the start of a Markdown file, between two lines that each hold three dashes. Heidrun shows it as written and does not parse it.
+The block at the start of a Markdown file, between two lines that each hold three dashes. Heidrun Code shows it as written and does not parse it.
 
 ### Front matter card
 
@@ -55,7 +55,7 @@ The card that a file view pane shows above the rendered text of a Markdown file 
 
 ### Coding agent
 
-One program that the developer runs in a pane to write code with a language model. The coding agents that Heidrun supports are Claude Code, Codex, and Antigravity. "Coding agent" is the official name of each one of them. Write "coding agent" in full, and write the name of the program, for example Claude Code, only when the text is about that one program. Do not write "AI agent", "AI coding agent", "agent", or "assistant" for a coding agent.
+One program that the developer runs in a pane to write code with a language model. The coding agents that Heidrun Code supports are Claude Code, Codex, and Antigravity. "Coding agent" is the official name of each one of them. Write "coding agent" in full, and write the name of the program, for example Claude Code, only when the text is about that one program. Do not write "AI agent", "AI coding agent", "agent", or "assistant" for a coding agent.
 
 ## The parts of the window that hold the panes
 

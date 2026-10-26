@@ -1,10 +1,10 @@
-# Web styling of Heidrun: Bootstrap and utility classes
+# Web styling of Heidrun Code: Bootstrap and utility classes
 
 - Created: 22 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Shared design rules](shared_design.md), [Glossary of Heidrun](../glossary/index.md)
+- Related rules: [Shared design rules](shared_design.md), [Glossary of Heidrun Code](../glossary/index.md)
 - Related issue: [issue 799](https://github.com/heidrun-org/heidrun/issues/799)
 
 This file gives the rules for the Bootstrap components, the Bootstrap utility classes, and the custom style rules of the web page.

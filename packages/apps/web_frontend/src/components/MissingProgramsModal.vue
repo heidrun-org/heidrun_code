@@ -7,7 +7,7 @@ import { t } from "../i18n/index";
 
 /** The programs that the notice names. The notice is closed when the list is empty. */
 const programNames = ref<ProgramName[]>([]);
-/** True when Herdr is installed, but older than the version that Heidrun needs: the notice asks for an update. */
+/** True when Herdr is installed, but older than the version that Heidrun Code needs: the notice asks for an update. */
 const isHerdrTooOld = ref(false);
 const continueButton = ref<HTMLButtonElement>();
 
@@ -18,7 +18,7 @@ onMounted(async () => {
     programNames.value = MissingPrograms.toShow(status, settings.ngrokMissingNoticeShown);
     isHerdrTooOld.value = status.herdr.isInstalled === true && status.herdr.isTooOld === true;
   } catch {
-    // Outside Heidrun (a plain browser), there is no program to test.
+    // Outside Heidrun Code (a plain browser), there is no program to test.
     return;
   }
   if (programNames.value.includes("ngrok")) {

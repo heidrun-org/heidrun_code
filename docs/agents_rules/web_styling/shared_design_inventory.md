@@ -1,7 +1,7 @@
-# Web styling of Heidrun: design inventory and exceptions
+# Web styling of Heidrun Code: design inventory and exceptions
 
 - Created: 21 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained shared design rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Shared design rules](shared_design.md), [Status dot](../../architecture/status_dot.md)
@@ -21,7 +21,7 @@ The following exceptions have different constraints and cannot silently become a
 - Picture captions use the shared `--illustration-*` values in the splash screen, empty tab screen, and About window. White text and dark shading belong to the picture rather than to a light application surface.
 - The floating terminal selection toolbar uses `--field` as its button background to remain distinct above terminal content. The push-to-talk button uses recording and transcription colors to communicate microphone activity, alongside its icon and accessible name. Both retain shared button focus and action handling.
 - External label colors and chart series colors are data. The chart components may pass a transparent `rgba(0, 0, 0, 0)` background to the chart renderer. Their display must remain understandable through names and legends, and their contrast against the actual background needs review.
-- Heidrun Mobile and the native macOS status item have their own rendering implementations. The existing status tests enforce their shared status colors and rotating Working appearance where applicable.
+- Heidrun Code Mobile and the native macOS status item have their own rendering implementations. The existing status tests enforce their shared status colors and rotating Working appearance where applicable.
 
 
 ## Color themes in Settings

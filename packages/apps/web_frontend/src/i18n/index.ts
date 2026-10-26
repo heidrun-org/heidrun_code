@@ -1,4 +1,5 @@
 import { computed, watch } from "vue";
+import localeMessages from "virtual:locale-messages";
 import { settings } from "../stores/settings";
 import identity from "../../../../../data/identity.json";
 
@@ -14,23 +15,13 @@ export type Language = (typeof LANGUAGES)[number]["id"];
 export type TranslationParams = Record<string, string | number>;
 
 // One JSON file per language and per namespace: locales/<language>/<namespace>.json.
-// The key of a text is "<namespace>.<key in the file>".
-const files = import.meta.glob<Record<string, string>>("./locales/*/*.json", { eager: true, import: "default" });
-
+// The key of a text is "<namespace>.<key in the file>". `vite.config.ts` merges the files into one module.
 const messages: Record<string, Record<string, string>> = {};
-for (const [path, content] of Object.entries(files)) {
-  const match = /\.\/locales\/([^/]+)\/([^/]+)\.json$/.exec(path);
-  if (match === null) {
-    continue;
-  }
-  const [, language, namespace] = match;
-  messages[language] ??= {};
-  for (const [key, text] of Object.entries(content)) {
-    messages[language][`${namespace}.${key}`] = text;
-  }
+for (const [languageId, texts] of Object.entries(localeMessages)) {
+  messages[languageId] = { ...texts };
 }
 
-// The title, the motto, and the description of Heidrun come from data/identity.json, not from a locale file.
+// The title, the motto, and the description of Heidrun Code come from data/identity.json, not from a locale file.
 for (const { id } of LANGUAGES) {
   messages[id] ??= {};
   messages[id]["identity.title"] = identity.title;

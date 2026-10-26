@@ -40,6 +40,13 @@ impl FolderAddress {
         }
     }
 
+    /// The address of the folder `name` directly below this folder.
+    pub(super) fn child(&self, name: &str) -> FolderAddress {
+        let mut parts = self.parts.clone();
+        parts.push(name.to_string());
+        FolderAddress { host: self.host, source: self.source.clone(), parts }
+    }
+
     /// The parts of the address after `tree/`, joined by slashes, as raw.githubusercontent.com reads them.
     pub(super) fn reference_and_path(&self) -> String {
         self.parts.join("/")
@@ -132,6 +139,15 @@ mod tests {
         assert_eq!(parsed.branch_lengths(), 1..3);
         assert_eq!(parsed.split(1), ("klazuka".to_string(), "doc-skills/skill-creator".to_string()));
         assert_eq!(parsed.split(2), ("klazuka/doc-skills".to_string(), "skill-creator".to_string()));
+    }
+
+    #[test]
+    fn writes_the_address_of_a_folder_below_a_folder_on_github_and_on_gitlab() {
+        let github = parse_folder_address("https://github.com/jeromeetienne/coding_agent_plugin/tree/main/skills").unwrap();
+        assert_eq!(github.child("pdf").url(), "https://github.com/jeromeetienne/coding_agent_plugin/tree/main/skills/pdf");
+        assert_eq!(github.child("pdf").skill_id(), "pdf");
+        let gitlab = parse_folder_address("https://gitlab.com/acme/team/tools/-/tree/main/skills").unwrap();
+        assert_eq!(gitlab.child("pdf").url(), "https://gitlab.com/acme/team/tools/-/tree/main/skills/pdf");
     }
 
     #[test]

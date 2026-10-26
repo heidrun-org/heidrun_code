@@ -1,10 +1,10 @@
-# User interface of Heidrun: Statistics window, the charts
+# User interface of Heidrun Code: Statistics window, the charts
 
 - Created: 15 October 2026
-- Last updated: 17 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: charts of the Statistics window](../../glossary/statistics_charts.md), [Statistics window](statistics_window.md), [Tab "User activity"](statistics_user_activity.md), [Tab "Work of one person"](statistics_person_work.md)
+- Related rules: [Glossary of Heidrun Code: charts of the Statistics window](../../glossary/statistics_charts.md), [Statistics window](statistics_window.md), [Tab "User activity"](statistics_user_activity.md), [Tab "Work of one person"](statistics_person_work.md)
 - Related issue: [issue 498](https://github.com/heidrun-org/heidrun/issues/498), [issue 629](https://github.com/heidrun-org/heidrun/issues/629)
 
 This file gives the rules that every chart of the Statistics window follows, today and in the future. Read it each time that you add a chart, or change a chart, in the Statistics window.

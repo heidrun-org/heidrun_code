@@ -6,10 +6,10 @@ hero:
   actions:
     - theme: brand
       text: Download for macOS
-      link: https://github.com/heidrun-org/heidrun/releases/latest
+      link: https://github.com/heidrun-org/heidrun_code/releases/latest
     - theme: alt
       text: Star on GitHub
-      link: https://github.com/heidrun-org/heidrun
+      link: https://github.com/heidrun-org/heidrun_code
     - theme: alt
       text: Who is Heiðrún?
       link: /about

@@ -1,10 +1,10 @@
-# Web styling of Heidrun: appearance of the viewport and the panes
+# Web styling of Heidrun Code: appearance of the viewport and the panes
 
 - Created: 22 October 2026
 - Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Shared design rules](shared_design.md), [Colors and scroll bars](colors_and_scroll_bars.md), [Glossary of Heidrun](../glossary/index.md)
+- Related rules: [Shared design rules](shared_design.md), [Colors and scroll bars](colors_and_scroll_bars.md), [Glossary of Heidrun Code](../glossary/index.md)
 - Related issue: [issue 326](https://github.com/heidrun-org/heidrun/issues/326), [issue 345](https://github.com/heidrun-org/heidrun/issues/345), [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 749](https://github.com/heidrun-org/heidrun/issues/749), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 786](https://github.com/heidrun-org/heidrun/issues/786), [issue 799](https://github.com/heidrun-org/heidrun/issues/799), [issue 810](https://github.com/heidrun-org/heidrun/issues/810)
 
 This file gives the rules about how the frames of the window, the panes, the pane header, the composition bar, and the file view pane look. What each part contains and does is in the folder `user_interface`. Each rule names its test, and the paths of the tests start at `packages/apps/web_frontend/src`.
@@ -20,6 +20,7 @@ This file gives the rules about how the frames of the window, the panes, the pan
 - The border of the panes goes 1 pixel past the frame of the viewport on its left, on its right, and at its bottom, so the frame clips it. At the top, the border of the panes is the line under the tab bar. The ring of the selected pane and the ring of a blocked pane have the color of the state. At the top, the ring is the top border of the pane, so that it joins the selected tab. On the left, on the right, and at the bottom, the ring is drawn just inside the border of the pane, so that it also shows at the edge of the viewport, where the frame hides the border ([issue #326](https://github.com/heidrun-org/heidrun/issues/326)). Test: `pane_joints.test.ts`.
 
 - The move preview, the half of the destination pane where a dragged pane goes, has the look of the layer of a drop of images: a solid border of 3 pixels in the color `--accent` and a background of the same color at 12 percent strength, over the panes. It lets the pointer through. The rules of the move are in [pane_move.md](../user_interface/workspaces_tabs_and_panes/pane_move.md) ([issue 810](https://github.com/heidrun-org/heidrun/issues/810)). Test: `components/PaneGrid.test.ts` checks the place and the pointer events of the preview; no automated test checks its colors.
+- The plus button at the end of the tab bar takes the same look while a dragged pane is over it: a solid border of 3 pixels in the color `--accent` and a background of the same color at 12 percent strength. The border stays inside the fixed height of the button, so the tab bar does not move. The Bootstrap button variables `--btn-border-width`, `--btn-border-color`, and `--btn-bg` (with their hover variables) draw it, with the class `pane-drop-target`. The rules of the drop are in [pane_move.md](../user_interface/workspaces_tabs_and_panes/pane_move.md) ([issue 825](https://github.com/heidrun-org/heidrun/issues/825)). Test: `components/TabBar.test.ts` checks the class and the variables; no automated test checks the colors.
 
 ## Pane header
 

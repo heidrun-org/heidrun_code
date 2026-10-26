@@ -17,6 +17,7 @@ import SettingsTextDetectionSection from './SettingsTextDetectionSection.vue';
 import SettingsVoiceInputSection from './SettingsVoiceInputSection.vue';
 import { DETECTION_FAMILY_IDS } from '../../lib/detection_families';
 import { DEFAULT_GUARDS } from '../../lib/guards';
+import { NOTIFICATION_KINDS } from '../../lib/notification_channels';
 import { parseProjectConfig } from '../../lib/project_config';
 import { project } from '../../stores/project';
 import { settings } from '../../stores/settings';
@@ -96,7 +97,15 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Notifications',
 			component: SettingsNotificationsSection,
-			optionList: ['notifBlockedMin', 'notifContext', 'notifQuota', 'notifEvening', 'quietHours', 'showStatusItem'],
+			optionList: [
+				'notifBlockedMin',
+				'notifContext',
+				'notifQuota',
+				'notifEvening',
+				'quietHours',
+				...NOTIFICATION_KINDS.map(() => 'notificationChannel'),
+				'showStatusItem',
+			],
 		},
 		{
 			name: 'Sidebars',
@@ -116,7 +125,7 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Voice input',
 			component: SettingsVoiceInputSection,
-			optionList: ['voiceInput', 'voiceInputLanguage', 'voiceInputModel'],
+			optionList: ['voiceInput', 'voiceInputLanguage', 'voiceInputModel', 'voiceWords'],
 		},
 	];
 

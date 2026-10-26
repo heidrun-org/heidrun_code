@@ -1,4 +1,4 @@
-//! The Heidrun icon of the status item: loads the icon of the application, a white goat on an orange rounded square,
+//! The Heidrun Code icon of the status item: loads the icon of the application, a white goat on an orange rounded square,
 //! from the folder `data/images`, cuts the empty margins away, and scales the icon to the height of the picture of the
 //! status item.
 
@@ -6,7 +6,7 @@ use crate::status_item_picture::Sprite;
 use std::sync::OnceLock;
 use tauri::image::Image;
 
-/// The icon of Heidrun, from the folder `data/images` at the root of the repository.
+/// The icon of Heidrun Code, from the folder `data/images` at the root of the repository.
 const ICON_FILE: &[u8] = include_bytes!("../../../../data/images/heidrun_icon.png");
 
 /// Height of the icon in the picture, in pixels: nearly the whole height of the picture.
@@ -23,7 +23,7 @@ pub fn frames() -> &'static [Sprite] {
     FRAMES.get_or_init(|| load(ICON_FILE))
 }
 
-/// Opacity of the faded icon, from 0 to 1: the icon shows that the user is not active in front of Heidrun.
+/// Opacity of the faded icon, from 0 to 1: the icon shows that the user is not active in front of Heidrun Code.
 const INACTIVE_OPACITY: f32 = 0.25;
 
 /// The frames of the faded icon. Made once, at the first use.

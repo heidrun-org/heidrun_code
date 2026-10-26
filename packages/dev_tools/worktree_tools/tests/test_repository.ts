@@ -17,6 +17,15 @@ export class TestRepository {
 	/** The folders that the class created and did not remove yet. */
 	private static _createdPaths: string[] = [];
 
+	/** The value of the variable PATH when this file loaded: it finds the real `pnpm`. */
+	private static readonly _realPath = process.env.PATH ?? '';
+
+	/** The folder of the fake `pnpm`, shared by the whole process, or undefined before the first use. */
+	private static _fakePnpmFolderPath: string | undefined = undefined;
+
+	/** The repository that every new repository copies, shared by the whole process, or undefined before the first use. */
+	private static _templatePath: string | undefined = undefined;
+
 	/** The text of a `pnpm-lock.yaml` for a project without dependencies. */
 	private static readonly _emptyLockfileText = [
 		'lockfileVersion: \'9.0\'',
@@ -41,15 +50,35 @@ export class TestRepository {
 		const temporaryPath = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'worktree_tools_test_'));
 		const repositoryPath = Fs.realpathSync(temporaryPath);
 		TestRepository._createdPaths.push(repositoryPath);
-		TestRepository.git(repositoryPath, ['init', '--quiet', '--initial-branch', 'main']);
-		TestRepository.git(repositoryPath, ['config', 'user.name', 'Test Author']);
-		TestRepository.git(repositoryPath, ['config', 'user.email', 'test@example.com']);
-		TestRepository.git(repositoryPath, ['config', 'commit.gpgsign', 'false']);
-		Fs.writeFileSync(Path.join(repositoryPath, 'package.json'), TestRepository._packageJsonText({}));
-		Fs.writeFileSync(Path.join(repositoryPath, 'pnpm-lock.yaml'), TestRepository._emptyLockfileText);
-		TestRepository.git(repositoryPath, ['add', 'package.json', 'pnpm-lock.yaml']);
-		TestRepository.git(repositoryPath, ['commit', '--quiet', '-m', 'Initial commit']);
+		Fs.cpSync(TestRepository._getTemplatePath(), repositoryPath, { recursive: true });
 		return repositoryPath;
+	}
+
+	/**
+	 * Gives a value of the variable PATH where a fake `pnpm` comes first. The fake `pnpm` creates the folder
+	 * `node_modules` and exits with the code 0, so a test that does not check the installation does not wait for the real
+	 * `pnpm` (about 300 milliseconds). The fake file is written once for the whole process, because macOS checks each new
+	 * executable file the first time that it runs.
+	 * @returns The value of PATH.
+	 */
+	static pathWithFakePnpm(): string {
+		if (TestRepository._fakePnpmFolderPath === undefined) {
+			const folderPath = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'worktree_tools_fake_pnpm_'));
+			Fs.writeFileSync(Path.join(folderPath, 'pnpm'), '#!/bin/sh\nmkdir -p node_modules\n', { mode: 0o755 });
+			process.once('exit', () => {
+				Fs.rmSync(folderPath, { recursive: true, force: true });
+			});
+			TestRepository._fakePnpmFolderPath = folderPath;
+		}
+		return `${TestRepository._fakePnpmFolderPath}:${TestRepository._realPath}`;
+	}
+
+	/**
+	 * Gives the value of the variable PATH that finds the real `pnpm`.
+	 * @returns The value of PATH.
+	 */
+	static pathWithRealPnpm(): string {
+		return TestRepository._realPath;
 	}
 
 	/**
@@ -100,7 +129,8 @@ export class TestRepository {
 		const repositoryPath = TestRepository.create();
 		TestRepository.writeTargetFile(repositoryPath, 'debug/heidrun', 'compiled application');
 		TestRepository.writeTargetFile(repositoryPath, 'debug/deps/libserde.rlib', 'compiled dependency');
-		TestRepository.writeTargetFile(repositoryPath, 'release/bundled_commands/heidrun_ctrl', 'heidrun_ctrl');
+		TestRepository.writeTargetFile(repositoryPath, 'release/deps/libring.rlib', 'compiled release dependency');
+		TestRepository.writeTargetFile(repositoryPath, 'release/bundled_commands/heidrun_code_ctrl', 'heidrun_code_ctrl');
 		TestRepository.writeTargetFile(repositoryPath, 'release/bundled_commands/heidrun_data', 'heidrun_data');
 		return repositoryPath;
 	}
@@ -205,6 +235,31 @@ export class TestRepository {
 		for (const repositoryPath of TestRepository._createdPaths.splice(0)) {
 			Fs.rmSync(repositoryPath, { recursive: true, force: true });
 		}
+	}
+
+	/**
+	 * Gives the repository that `create` copies. It is built once for the whole process, with the seven `git` commands
+	 * that a new repository needs, so a test copies a folder in place of starting these commands.
+	 * @returns The absolute path of the repository.
+	 */
+	private static _getTemplatePath(): string {
+		if (TestRepository._templatePath !== undefined) {
+			return TestRepository._templatePath;
+		}
+		const templatePath = Fs.realpathSync(Fs.mkdtempSync(Path.join(Os.tmpdir(), 'worktree_tools_template_')));
+		process.once('exit', () => {
+			Fs.rmSync(templatePath, { recursive: true, force: true });
+		});
+		TestRepository.git(templatePath, ['init', '--quiet', '--initial-branch', 'main']);
+		TestRepository.git(templatePath, ['config', 'user.name', 'Test Author']);
+		TestRepository.git(templatePath, ['config', 'user.email', 'test@example.com']);
+		TestRepository.git(templatePath, ['config', 'commit.gpgsign', 'false']);
+		Fs.writeFileSync(Path.join(templatePath, 'package.json'), TestRepository._packageJsonText({}));
+		Fs.writeFileSync(Path.join(templatePath, 'pnpm-lock.yaml'), TestRepository._emptyLockfileText);
+		TestRepository.git(templatePath, ['add', 'package.json', 'pnpm-lock.yaml']);
+		TestRepository.git(templatePath, ['commit', '--quiet', '-m', 'Initial commit']);
+		TestRepository._templatePath = templatePath;
+		return templatePath;
 	}
 
 	/**

@@ -4,7 +4,7 @@
 - Last updated: 23 October 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../glossary/index.md)
+- Related rules: [Glossary of Heidrun Code](../glossary/index.md)
 - Related issue: [issue 796](https://github.com/heidrun-org/heidrun/issues/796), [issue 799](https://github.com/heidrun-org/heidrun/issues/799), [issue 810](https://github.com/heidrun-org/heidrun/issues/810)
 
 This file lists the files of this folder and, for each rule, the test that enforces it; read it before a change to the colors, the buttons, the hover, the spacing, or the icons of the web page, and note that the paths of the tests start at `packages/apps/web_frontend/src`.

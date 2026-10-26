@@ -1,4 +1,4 @@
-//! Draws the picture of the status item in the macOS menu bar: the icon of Heidrun and flat discs side by side.
+//! Draws the picture of the status item in the macOS menu bar: the icon of Heidrun Code and flat discs side by side.
 //!
 //! Every function here is pure: the same slots and the same time always give the same pixels. The module
 //! `status_item` owns the timer and gives the time of each frame.
@@ -65,7 +65,7 @@ pub enum Slot {
         /// Normal color of the disc: red, green, blue.
         color: [u8; 3],
     },
-    /// A small picture with one or several frames, for example the icon of Heidrun. The slot is as wide as the frames.
+    /// A small picture with one or several frames, for example the icon of Heidrun Code. The slot is as wide as the frames.
     Sprite {
         /// The frames of the walk. All the frames have the same size.
         frames: &'static [Sprite],

@@ -9,9 +9,9 @@
   "levelLabel": "Level of the voice",
   "titleTranscribing": "Changing the speech into text…",
   "titleModelMissing": "The Whisper model is not on this computer. Open Settings, Voice input, to download it.",
-  "error.microphone_denied": "macOS refused the microphone. Open System Settings, Privacy & Security, Microphone, and turn on Heidrun. Then press the button again.",
-  "error.no_signal": "Heidrun hears nothing from the microphone. If macOS just asked for the permission, press the button again. Otherwise open System Settings, Privacy & Security, Microphone, and turn on Heidrun.",
-  "error.no_microphone": "Heidrun finds no microphone on this computer.",
+  "error.microphone_denied": "macOS refused the microphone. Open System Settings, Privacy & Security, Microphone, and turn on Heidrun Code. Then press the button again.",
+  "error.no_signal": "Heidrun Code hears nothing from the microphone. If macOS just asked for the permission, press the button again. Otherwise open System Settings, Privacy & Security, Microphone, and turn on Heidrun Code.",
+  "error.no_microphone": "Heidrun Code finds no microphone on this computer.",
   "error.model_missing": "The Whisper model is not on this computer. Open Settings, Voice input, to download it.",
   "error.model_load_failed": "Whisper could not read the model file. Download the model again in Settings, Voice input.",
   "error.other": "The voice input failed. Press the button again."

@@ -1,5 +1,5 @@
 {
-  "lead": "Before Heidrun types a command in a terminal, it checks the command against these guards. A guard asks you to confirm the command, or forbids it. The guards of this project come first. Hardcoded guards come with Heidrun: turn one off for this project only.",
+  "lead": "Before Heidrun Code types a command in a terminal, it checks the command against these guards. A guard asks you to confirm the command, or forbids it. The guards of this project come first. Hardcoded guards come with Heidrun Code: turn one off for this project only.",
   "projectLine": "Project: {root}",
   "noProject": "No project is open. Select a workspace to see the guards of its project.",
   "noProjectGuard": "This project has no guard of its own yet.",

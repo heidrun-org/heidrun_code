@@ -3,12 +3,14 @@
 // workspace. A click on a folder folds or unfolds it. A click on a file opens it in the Files window. The only
 // changes that the section makes are a new empty file and a new empty folder. It has no button to rename, move,
 // delete, or edit a file. A right click on the row of a file or of a folder opens a context menu that copies the
-// absolute path or the relative path to the clipboard. The option "Ignored files" of the menu shows the files and the
-// folders that Git ignores, in the muted color. A folder that Git ignores unfolds one level at a time.
+// absolute path or the relative path to the clipboard, and starts a chat about the file. The option "Ignored files" of
+// the menu shows the files and the folders that Git ignores, in the muted color. A folder that Git ignores unfolds one
+// level at a time.
 // - issue #349
 // - issue #383
 // - issue #430
 // - issue #443
+// - issue #854
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import Icon from "./Icon.vue";
@@ -31,6 +33,7 @@ import {
 import { FileViewPanes } from "../stores/file_view_panes";
 import { state, toast } from "../stores/session";
 import { settings } from "../stores/settings";
+import { chatAboutFile } from "../stores/chat_open";
 import { fileIconName } from "../lib/chat_files";
 import { copy } from "../lib/clipboard";
 import { t } from "../i18n/index";
@@ -391,6 +394,27 @@ async function copyPath(kind: "absolute" | "relative") {
   toast(t("filesPanel.copied", { path: text }));
 }
 
+/**
+ * Starts a coding agent in a new tab of the selected workspace, with the first message "Let's chat about <absolute path>"
+ * for the row of the context menu, and closes the menu. The new tab has the name of the file.
+ * Issue: https://github.com/heidrun-org/heidrun_code/issues/854
+ */
+async function chatAboutRow() {
+  const relativePath = fileMenu.value?.path ?? null;
+  closeFileMenu();
+  if (relativePath === null) {
+    return;
+  }
+  let absolutePath: string;
+  try {
+    absolutePath = await invoke<string>("file_full_path", { root: files.root, path: relativePath });
+  } catch (error) {
+    toast(String(error), "error");
+    return;
+  }
+  await chatAboutFile(absolutePath, relativePath.split("/").pop() ?? relativePath, files.root);
+}
+
 onBeforeUnmount(closeFileMenu);
 
 /** The icon of a row: a folder that is closed or open, or the kind of the file. */
@@ -541,6 +565,10 @@ function letterClass(letter: string): string {
         </button>
         <button type="button" class="menu-item" role="menuitem" @click="copyPath('relative')">
           {{ t("filesPanel.fileMenu.copyRelativePath") }}
+        </button>
+        <div class="menu-divider" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" @click="chatAboutRow()">
+          {{ t("filesPanel.fileMenu.chatAboutFile") }}
         </button>
       </div>
     </Teleport>

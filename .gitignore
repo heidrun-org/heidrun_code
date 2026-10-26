@@ -3,6 +3,7 @@ node_modules
 
 # Built output
 dist
+dist_staging
 
 # Compiled Rust files of the desktop application
 packages/apps/desktop_tauri/target
@@ -19,7 +20,7 @@ packages/apps/desktop_tauri/gen
 # Cache of the VitePress documentation site
 packages/auxiliary/website_public/docs/.vitepress/cache
 
-# Local Heidrun configuration of one developer
+# Local Heidrun Code configuration of one developer
 .heidrun/config.json
 
 # Environment variables of one developer, see the file .env.example

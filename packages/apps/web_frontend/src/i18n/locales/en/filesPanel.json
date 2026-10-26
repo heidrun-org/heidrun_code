@@ -27,5 +27,6 @@
   "copied": "Copied: {path}",
   "fileMenu.label": "Menu of the file or of the folder",
   "fileMenu.copyAbsolutePath": "Copy absolute path",
-  "fileMenu.copyRelativePath": "Copy relative path"
+  "fileMenu.copyRelativePath": "Copy relative path",
+  "fileMenu.chatAboutFile": "Chat about this file"
 }

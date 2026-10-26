@@ -7,7 +7,7 @@
 - Related rules: [The Guards section of the Settings window](../agents_rules/user_interface/window/settings_guards.md)
 - Related issue: [issue 589](https://github.com/heidrun-org/heidrun/issues/589), [issue 596](https://github.com/heidrun-org/heidrun/issues/596)
 
-Heidrun checks a command before it types the command in a terminal. This check is called the guards. A command that a guard stops is never sent on a single click: Heidrun opens a confirmation window that shows the command and the reason, and the developer confirms or cancels. The confirmation window also has a button "Change this guard", which opens the Guards section of the Settings window on the guard that stopped the command. See the section "The Guards section of the Settings window" below.
+Heidrun Code checks a command before it types the command in a terminal. This check is called the guards. A command that a guard stops is never sent on a single click: Heidrun Code opens a confirmation window that shows the command and the reason, and the developer confirms or cancels. The confirmation window also has a button "Change this guard", which opens the Guards section of the Settings window on the guard that stopped the command. See the section "The Guards section of the Settings window" below.
 
 ## Which commands pass the guards
 
@@ -18,9 +18,9 @@ Heidrun checks a command before it types the command in a terminal. This check i
 
 ## The built-in guards
 
-The list of the built-in guards is in the file [guards.ts](../../packages/apps/web_frontend/src/lib/guards.ts). Each built-in guard asks the developer to confirm. A built-in guard never blocks a command, and a project cannot change it, but a project can turn it off. The test [guards_document.test.ts](../../packages/apps/web_frontend/src/lib/guards_document.test.ts) fails when a built-in guard is missing from this table, or when the reason in this table is not the reason that Heidrun shows.
+The list of the built-in guards is in the file [guards.ts](../../packages/apps/web_frontend/src/lib/guards.ts). Each built-in guard asks the developer to confirm. A built-in guard never blocks a command, and a project cannot change it, but a project can turn it off. The test [guards_document.test.ts](../../packages/apps/web_frontend/src/lib/guards_document.test.ts) fails when a built-in guard is missing from this table, or when the reason in this table is not the reason that Heidrun Code shows.
 
-| Key | Reason that Heidrun shows | Commands that the guard stops |
+| Key | Reason that Heidrun Code shows | Commands that the guard stops |
 | --- | --- | --- |
 | `guards.why.deleteFiles` | deleting files (rm -r / -f) | `rm` with the option `-r`, `-R`, `-f`, `--recursive`, or `--force`. Example: `rm -rf node_modules`. |
 | `guards.why.deleteFilesAsRoot` | deleting files as root (sudo rm) | `sudo rm`, with or without an option. |
@@ -50,10 +50,10 @@ A `git` command with the option `-C <folder>` or `-c <setting>` before the subco
 
 A project adds its own guards in the file `.heidrun/config.json` at the root of the repository, under the key `guards`. The key has two lists.
 
-- `projectGuards`: the guards of the project. Each guard has a `name` (unique in the project), an optional `description` that the confirmation window shows, an `action`, and `matches`, a list of one or more lines. The `action` is `confirm` (a command that matches asks the developer to confirm) or `block` (a command that matches never runs from Heidrun, and the confirmation window has no button to confirm). Each line has a `type` and a `text`. The `type` is `contains`, `startsWith`, `endsWith`, or `regex`. A command matches the guard when it matches at least one line. The types `contains`, `startsWith`, and `endsWith` ignore the case and the number of spaces. The type `regex` is a regular expression of JavaScript that ignores the case.
+- `projectGuards`: the guards of the project. Each guard has a `name` (unique in the project), an optional `description` that the confirmation window shows, an `action`, and `matches`, a list of one or more lines. The `action` is `confirm` (a command that matches asks the developer to confirm) or `block` (a command that matches never runs from Heidrun Code, and the confirmation window has no button to confirm). Each line has a `type` and a `text`. The `type` is `contains`, `startsWith`, `endsWith`, or `regex`. A command matches the guard when it matches at least one line. The types `contains`, `startsWith`, and `endsWith` ignore the case and the number of spaces. The type `regex` is a regular expression of JavaScript that ignores the case.
 - `disabled`: the keys of the built-in guards that are turned off for this project, for example `guards.why.gitClean`. The keys are the keys of the first column of the table above. A key that is not the key of a built-in guard is ignored. When the list is absent, every built-in guard is on.
 
-The files written before the key `projectGuards` have the lists `confirm` and `block`, with one regular expression in each item. Heidrun still reads them: each item is a project guard that is named after the item, with one line of the type `regex`. The first change from the Guards section moves them to the key `projectGuards`.
+The files written before the key `projectGuards` have the lists `confirm` and `block`, with one regular expression in each item. Heidrun Code still reads them: each item is a project guard that is named after the item, with one line of the type `regex`. The first change from the Guards section moves them to the key `projectGuards`.
 
 Example:
 
@@ -89,14 +89,14 @@ Example:
 
 ### The order of the checks
 
-1. Heidrun replaces each run of spaces in the command with one space, and removes the spaces at the start and at the end.
+1. Heidrun Code replaces each run of spaces in the command with one space, and removes the spaces at the start and at the end.
 2. When the file `.heidrun/config.json` exists but is not valid JSON, or does not follow the schema, every command asks for a confirmation, because the guards that forbid cannot be read.
 3. The project guards with the action `block`. The first guard that matches blocks the command.
 4. The project guards with the action `confirm`. The first guard that matches asks for a confirmation.
 5. The built-in guards, in the order of the table above, without the guards whose key is in the list `disabled`. The first guard that matches asks for a confirmation.
 6. When nothing matches, the command is sent.
 
-So a project guard that forbids wins over a project guard that confirms, and both win over the built-in guards. A built-in guard that is turned off never stops a command, but a project guard still does. A line of the type `regex` that is not a valid regular expression matches nothing. Heidrun reads the key again at most one minute after a change of the file.
+So a project guard that forbids wins over a project guard that confirms, and both win over the built-in guards. A built-in guard that is turned off never stops a command, but a project guard still does. A line of the type `regex` that is not a valid regular expression matches nothing. Heidrun Code reads the key again at most one minute after a change of the file.
 
 ## The Guards section of the Settings window
 
@@ -105,5 +105,5 @@ The developer sees and changes the guards of one project in the section "Guards"
 - One list shows the project guards first, then the built-in guards, in the same way: the name, the action, the description, and the lines. A built-in guard also has the label "Hardcoded". Its description is the text of the third column of the table above, and its line is its regular expression.
 - A project guard has a button to edit and a button to remove. The button "Add a guard" opens the guard window. A built-in guard has a button to read, which opens the same window with every field read only, and a switch. A switch that is off adds the key of the guard to the list `disabled`. A switch that is on removes it.
 - The guard window has the fields name, description, action (two radio buttons), the lines, and "Try a command". "Try a command" tells which line matches the command that the developer types, for a project guard and for a built-in guard.
-- Each change writes the file `.heidrun/config.json` at once, and the next command reads the new guards, without the delay of one minute. Heidrun writes no empty list, and no empty key `guards`.
+- Each change writes the file `.heidrun/config.json` at once, and the next command reads the new guards, without the delay of one minute. Heidrun Code writes no empty list, and no empty key `guards`.
 - The button "Change this guard" of the confirmation window opens this section, and the row of the guard that stopped the command has a highlight. The button is absent when the file `.heidrun/config.json` is not valid, because then no single guard stopped the command.

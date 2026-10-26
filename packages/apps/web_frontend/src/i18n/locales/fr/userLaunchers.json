@@ -1,0 +1,4 @@
+{
+  "fileInvalid": "Le fichier des lanceurs du niveau utilisateur est illisible, donc rien n’est enregistré : {reason}",
+  "fileNotRead": "Heidrun Code lit encore le fichier des lanceurs du niveau utilisateur. Réessaie dans un instant."
+}

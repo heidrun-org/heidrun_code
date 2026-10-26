@@ -498,7 +498,7 @@ export function findInlineShell(text: string): { start: number; end: number; com
  * File paths cited in a terminal: "src/app.ts", "src/app.ts:42", "./lib/x.rs:10:5",
  * or a bare name with a line ("app.ts:42"). A bare name without line is too vague.
  * A path ends where the word ends: a dot ends it only when a space, the end of the line, or a closing mark follows the dot
- * (a full stop), so "~/Library/WebKit/dev.heidrun-org.heidrun.development" is one path and never stops at ".heidrun".
+ * (a full stop), so "~/Library/WebKit/dev.heidrun-org.heidrun-code.development" is one path and never stops at ".heidrun".
  * The last piece after the final dot (the extension) has 1 to 25 letters and digits.
  */
 export function findFileRefs(text: string): { start: number; end: number; path: string; line: number | null }[] {

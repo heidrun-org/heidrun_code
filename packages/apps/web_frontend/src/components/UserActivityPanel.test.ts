@@ -127,7 +127,7 @@ describe("UserActivityPanel", () => {
 
 	it("shows the file where the records are kept", () => {
 		const wrapper = mount(UserActivityPanel);
-		expect(wrapper.text()).toContain("~/.config/heidrun/user_activity.jsonl");
+		expect(wrapper.text()).toContain("~/.config/heidrun_code/user_activity.jsonl");
 	});
 
 	it("writes the time when the period started in the same way as the records do", () => {

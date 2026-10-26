@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -5,10 +6,12 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import ChatReferenceDetails from "./ChatReferenceDetails.vue";
 import type { ChatReferenceDetails as Details } from "../stores/chat_references";
 import { settings } from "../stores/settings";
+import { chatAboutReference } from "../stores/chat_open";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({ writeText: vi.fn(async () => {}) }));
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn(async () => {}) }));
+vi.mock("../stores/chat_open", () => ({ chatAboutReference: vi.fn(async () => {}) }));
 
 enableAutoUnmount(afterEach);
 
@@ -70,22 +73,23 @@ describe("ChatReferenceDetails, the repository line", () => {
     expect(openUrl).toHaveBeenCalledWith(BASE);
   });
 
-  it("puts the two buttons that open the item and the button that copies its web address at the right of the same line", () => {
+  it("puts the two buttons that open the item, the button that copies its web address, and the chat button at the right of the same line", () => {
     const wrapper = mountDetails();
     const line = wrapper.get("[data-reference-repository-line]").element.parentElement as HTMLElement;
     expect(line.querySelector(".btn-group")).not.toBeNull();
     expect(Array.from(line.querySelectorAll(".btn-group button")).map((button) => button.getAttribute("title"))).toEqual([
-      "Open in Heidrun",
+      "Open in Heidrun Code",
       "Open in GitHub",
       "Copy the GitHub web address",
+      "Let's chat about this issue",
     ]);
     expect((wrapper.element as HTMLElement).firstElementChild).toBe(line);
   });
 
-  it("shows no link, and keeps the three buttons, when the address of the repository is not known", () => {
+  it("shows no link, and keeps the four buttons, when the address of the repository is not known", () => {
     const wrapper = mountDetails({ webBase: null });
     expect(wrapper.find("[data-reference-repository-line] a").exists()).toBe(false);
-    expect(wrapper.findAll(".btn-group button")).toHaveLength(3);
+    expect(wrapper.findAll(".btn-group button")).toHaveLength(4);
   });
 
   it("shows the name of the repository alone while the forge has not given the date", () => {
@@ -210,6 +214,50 @@ describe("ChatReferenceDetails, the button that copies the web address", () => {
     await button.trigger("click");
     await flushPromises();
     expect(writeText).not.toHaveBeenCalled();
+  });
+});
+
+describe("ChatReferenceDetails, the button that starts a chat", () => {
+  const PULL_REQUEST = { kind: "pull_request" as const, number: 5, url: `${BASE}/pull/5` };
+
+  beforeEach(() => {
+    vi.mocked(chatAboutReference).mockClear();
+  });
+
+  it("shows the button after the copy button, in the same group, with an icon only, a title, and a label", () => {
+    const wrapper = mountDetails();
+    const buttons = wrapper.findAll(".btn-group > button");
+    const button = wrapper.get("[data-reference-chat]");
+    expect(buttons).toHaveLength(4);
+    expect(buttons[3].element).toBe(button.element);
+    expect(button.text()).toBe("");
+    expect(button.find(".bi-chat-dots").exists()).toBe(true);
+    expect(button.attributes("title")).toBe("Let's chat about this issue");
+    expect(button.attributes("aria-label")).toBe("Let's chat about this issue");
+  });
+
+  it("names a pull request on the button of a pull request", () => {
+    const wrapper = mountDetails({ reference: PULL_REQUEST, details: detailsOf({ headBranch: "fix-5", baseBranch: "dev" }) });
+    expect(wrapper.get("[data-reference-chat]").attributes("title")).toBe("Let's chat about this pull request");
+  });
+
+  it("shows the title in French when the language is French", () => {
+    settings.language = "fr";
+    expect(mountDetails().get("[data-reference-chat]").attributes("title")).toBe("Discutons de cette issue");
+  });
+
+  it("starts a chat about the web address of the issue, in a tab named after its number, in the folder", async () => {
+    const wrapper = mountDetails();
+    await wrapper.get("[data-reference-chat]").trigger("click");
+    expect(chatAboutReference).toHaveBeenCalledWith(`${BASE}/issues/608`, "#608", "/work/heidrun");
+  });
+
+  it("is disabled when the item has no web address", async () => {
+    const wrapper = mountDetails({ reference: { kind: "issue", number: 608, url: null } });
+    const button = wrapper.get("[data-reference-chat]");
+    expect(button.attributes("disabled")).toBeDefined();
+    await button.trigger("click");
+    expect(chatAboutReference).not.toHaveBeenCalled();
   });
 });
 

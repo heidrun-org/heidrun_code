@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { NeedsYouWorkspacesHeight } from "./needs_you_workspaces_height";
 

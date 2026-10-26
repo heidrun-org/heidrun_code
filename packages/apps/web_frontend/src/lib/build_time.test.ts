@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { formatBuildTime, versionWithBuildTime } from "./build_time";
 

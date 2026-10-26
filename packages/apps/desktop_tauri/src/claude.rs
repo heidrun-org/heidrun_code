@@ -1,4 +1,4 @@
-//! Plugs Heidrun into Claude Code's status line, without losing the user's own.
+//! Plugs Heidrun Code into Claude Code's status line, without losing the user's own.
 //!
 //! Claude Code gives its status line command the context window and the account
 //! rate limits on stdin. Our script (embedded below) reports them to Herdr as pane
@@ -73,7 +73,9 @@ fn current_command(m: &Map<String, Value>) -> Option<String> {
 fn is_ours(cmd: &str) -> bool {
     cmd == script_path().to_string_lossy()
         || (crate::application_profile::is_development() == false
-            && (cmd.contains("heidrun/claude-statusline.sh") || cmd.contains("Heidrun/scripts/claude-statusline.sh")))
+            && (cmd.contains("heidrun/claude-statusline.sh")
+                || cmd.contains("heidrun_code/claude-statusline.sh")
+                || cmd.contains("Heidrun/scripts/claude-statusline.sh")))
 }
 
 /// Moves what the former name "Herdr Desk" left in the Claude Code settings: the backup file, and the
@@ -132,7 +134,7 @@ pub fn claude_statusline_install() -> Result<StatuslineState, String> {
     let mut m = read_settings()?;
     std::fs::create_dir_all(desk_dir()).map_err(|e| e.to_string())?;
 
-    // Always (re)write the script so updates of Heidrun reach it.
+    // Always (re)write the script so updates of Heidrun Code reach it.
     std::fs::write(script_path(), SCRIPT).map_err(|e| e.to_string())?;
     #[cfg(unix)]
     {
@@ -580,5 +582,22 @@ mod text_tests {
     #[test]
     fn short_counts_characters_not_bytes() {
         assert_eq!(short("éééé", 2), "éé…");
+    }
+}
+
+#[cfg(test)]
+mod status_line_ownership_tests {
+    use super::*;
+
+    #[test]
+    fn the_status_line_script_in_the_former_or_the_new_data_folder_is_ours() {
+        assert!(is_ours("/Users/someone/.config/heidrun/claude-statusline.sh"));
+        assert!(is_ours("/Users/someone/.config/heidrun_code/claude-statusline.sh"));
+    }
+
+    #[test]
+    fn the_status_line_script_of_another_program_is_not_ours() {
+        assert!(is_ours("/Users/someone/.config/other_program/claude-statusline.sh") == false);
+        assert!(is_ours("/Users/someone/.config/heidrun_code_development/claude-statusline.sh") == false);
     }
 }

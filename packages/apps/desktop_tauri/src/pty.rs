@@ -33,7 +33,7 @@ struct ExitEvent<'a> {
     id: &'a str,
 }
 
-/// The arguments of the command that attaches to the terminal `terminal_id`, in the session that Heidrun uses.
+/// The arguments of the command that attaches to the terminal `terminal_id`, in the session that Heidrun Code uses.
 fn attach_arguments(terminal_id: &str, takeover: bool) -> Vec<String> {
     let mut arguments = vec!["terminal", "attach", terminal_id];
     if takeover {

@@ -242,7 +242,7 @@ export class DetectionCatalog {
 						'src/app.ts',
 						'./lib/x.rs:10:5',
 						'app.ts:42',
-						'~/Library/WebKit/dev.heidrun-org.heidrun.development',
+						'~/Library/WebKit/dev.heidrun-org.heidrun-code.development',
 					],
 					notFound: ['foo.ts', '1.2.3', 'db.example.com:5432'],
 					pane: 'any',

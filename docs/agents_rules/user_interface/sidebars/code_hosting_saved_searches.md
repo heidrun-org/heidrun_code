@@ -1,13 +1,13 @@
-# User interface of Heidrun: code hosting saved searches
+# User interface of Heidrun Code: code hosting saved searches
 
 - Created: 23 October 2026
 - Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md), [Glossary of Heidrun: code hosting](../../glossary/code_hosting.md), [Glossary of Heidrun: status bar](../../glossary/status_bar.md), [User interface of Heidrun: code hosting](code_hosting.md), [User interface of Heidrun: code hosting search](code_hosting_search.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Glossary of Heidrun Code: code hosting](../../glossary/code_hosting.md), [Glossary of Heidrun Code: status bar](../../glossary/status_bar.md), [User interface of Heidrun Code: code hosting](code_hosting.md), [User interface of Heidrun Code: code hosting search](code_hosting_search.md)
 - Related issue: [issue 822](https://github.com/heidrun-org/heidrun/issues/822), [issue 741](https://github.com/heidrun-org/heidrun/issues/741), [issue 374](https://github.com/heidrun-org/heidrun/issues/374), [issue 378](https://github.com/heidrun-org/heidrun/issues/378), [issue 607](https://github.com/heidrun-org/heidrun/issues/607)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../glossary/index.md). The search line, the search field, and the search language are in [code_hosting_search.md](code_hosting_search.md). The rest of the Code hosting sidebar section is in [code_hosting.md](code_hosting.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md). The search line, the search field, and the search language are in [code_hosting_search.md](code_hosting_search.md). The rest of the Code hosting sidebar section is in [code_hosting.md](code_hosting.md).
 
 ## Saved searches
 
@@ -21,7 +21,7 @@ The words are defined in [glossary/code_hosting.md](../../glossary/code_hosting.
   - "List": the title of the list: "Issues", "Pull requests", or "Merge requests".
 - The button "Edit the saved search" of a list is disabled while no saved search runs in this list (when "All" is pressed, or when the search is not saved). Otherwise it opens the window "Edit the saved search" for the saved search that runs in this list: the title of the list, the label "Level" with the buttons "User" and "Workspace" (the level of the saved search is chosen) and its sentence, a field "Name", a field "Search", and the buttons "Save", "Cancel", and "Delete". "Save" is disabled, and a message says why, while the name is empty, the search is empty, or the name is the name of another saved search of the same list at the chosen level. A change of the level moves the saved search to the end of the saved searches of the new level. After "Save", a saved search that ran still runs, with its new search. "Delete" asks for a confirmation in a dialog that names the saved search, unless the developer unchecks "Ask before deleting a saved search" in the section General of the Settings window (checked by default).
 - A saved search has one of two levels ([issue #822](https://github.com/heidrun-org/heidrun/issues/822)), and each list has its own saved searches: a saved search of one list never shows in the other list.
-  - A saved search of the user level shows in every workspace. Heidrun keeps it in the option `codeHostingSavedSearches`, with the other options.
-  - A saved search of the workspace level shows only in the workspace where the developer saved it. Heidrun keeps it in the option `codeHostingWorkspaceSavedSearches`, under the workspace folder of this workspace, because a workspace folder is the same at every run of Heidrun. A workspace that is closed keeps its saved searches, and a workspace that opens later on the same folder shows them again. A workspace with no workspace folder shows only the user level.
+  - A saved search of the user level shows in every workspace. Heidrun Code keeps it in the option `codeHostingSavedSearches`, with the other options.
+  - A saved search of the workspace level shows only in the workspace where the developer saved it. Heidrun Code keeps it in the option `codeHostingWorkspaceSavedSearches`, under the workspace folder of this workspace, because a workspace folder is the same at every run of Heidrun Code. A workspace that is closed keeps its saved searches, and a workspace that opens later on the same folder shows them again. A workspace with no workspace folder shows only the user level.
   - Each option holds two lists of saved searches, `issues` and `requests`. A saved search that was saved before the levels existed is at the user level.
   - An entry without a name or without a search as text is dropped when the options load, and a workspace folder that has no saved search is dropped too. A saved value that is one single list, from before [issue #607](https://github.com/heidrun-org/heidrun/issues/607), is copied into both lists when the options load, so that nothing is lost.

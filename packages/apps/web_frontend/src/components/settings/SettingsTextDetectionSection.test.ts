@@ -197,10 +197,10 @@ describe('the field "Try a text"', () => {
 
 	it('shows the example of the issue #793 as one whole path', async () => {
 		const wrapper = await SettingsTextDetectionTestHelper.mountPart();
-		await SettingsTextDetectionTestHelper.typeSample(wrapper, '- ~/Library/WebKit/dev.heidrun-org.heidrun.development');
+		await SettingsTextDetectionTestHelper.typeSample(wrapper, '- ~/Library/WebKit/dev.heidrun-org.heidrun-code.development');
 		const item = wrapper.get('[data-sample-item]');
-		expect(item.text()).toContain('~/Library/WebKit/dev.heidrun-org.heidrun.development');
-		expect(item.text()).toContain('Open dev.heidrun-org.heidrun.development');
+		expect(item.text()).toContain('~/Library/WebKit/dev.heidrun-org.heidrun-code.development');
+		expect(item.text()).toContain('Open dev.heidrun-org.heidrun-code.development');
 		expect(wrapper.findAll('[data-sample-item]')).toHaveLength(1);
 	});
 
@@ -329,7 +329,7 @@ describe('the rules of each family, with their real patterns and examples', () =
 		const wrapper = await SettingsTextDetectionTestHelper.mountPart();
 		const rows = wrapper.findAll('[data-family="filePaths"] [data-example="found"]');
 		const row = rows.find((example) => example.get('[data-example-text]').text().startsWith('~/Library/WebKit'));
-		expect(row?.get('[data-example-result]').text()).toBe('→ 📄 Open dev.heidrun-org.heidrun.development');
+		expect(row?.get('[data-example-result]').text()).toBe('→ 📄 Open dev.heidrun-org.heidrun-code.development');
 	});
 
 	it('shows an example on several lines in a block', async () => {

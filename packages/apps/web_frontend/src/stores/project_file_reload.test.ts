@@ -55,7 +55,7 @@ describe("reloadProjectWhenFileChanged", () => {
     expect(backend.loads).toBe(1);
   });
 
-  it("shows an added, a changed, and a deleted launcher, as the command line heidrun_ctrl makes them", async () => {
+  it("shows an added, a changed, and a deleted launcher, as the command line heidrun_code_ctrl makes them", async () => {
     const store = await loadStores();
     const commands = () => store.project.byWorkspace.w1?.config.launchers.map((launcher) => `${launcher.id}: ${launcher.command}`);
     const fileWith = (...commands: string[]) =>
@@ -75,7 +75,7 @@ describe("reloadProjectWhenFileChanged", () => {
     expect(backend.loads).toBe(3);
   });
 
-  it("reads a launcher under the old key actions, as the command line heidrun_ctrl reads it", async () => {
+  it("reads a launcher under the old key actions, as the command line heidrun_code_ctrl reads it", async () => {
     const store = await loadStores();
     await store.reloadProjectWhenFileChanged();
     backend.configText = JSON.stringify({ version: 1, actions: [{ id: "a", label: "A", command: "ls" }] });

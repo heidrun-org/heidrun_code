@@ -54,7 +54,7 @@ function callsOf(name: string): number {
   return vi.mocked(invoke).mock.calls.filter(([command]) => command === name).length;
 }
 
-/** The stores, as a new run of Heidrun sees them: the modules are loaded again. */
+/** The stores, as a new run of Heidrun Code sees them: the modules are loaded again. */
 async function startRun(isClusteredOn: boolean) {
   vi.resetModules();
   const { settings } = await import("./settings");
@@ -149,7 +149,7 @@ describe("prepareTopicClusters", () => {
     expect(callsOf("coding_agent_ask")).toBe(1);
   });
 
-  it("tries again at the next run of Heidrun after a wrong answer, and when the new raw dynamic topics are not the same", async () => {
+  it("tries again at the next run of Heidrun Code after a wrong answer, and when the new raw dynamic topics are not the same", async () => {
     const backend = installBackend({}, async () => "I cannot do that");
     const first = await startRun(true);
     await first.prepareTopicClusters(["panel"]);

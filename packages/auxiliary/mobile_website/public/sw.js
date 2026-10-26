@@ -1,4 +1,4 @@
-// The service worker of Heidrun Mobile. The page registers it so that Chrome on Android can show a notification, even
+// The service worker of Heidrun Code Mobile. The page registers it so that Chrome on Android can show a notification, even
 // when the page is in the background. It does nothing else: it has no cache and no offline page.
 
 /**
@@ -19,7 +19,7 @@ self.addEventListener('activate', (event) => {
  */
 self.addEventListener('push', (event) => {
 	event.waitUntil(
-		self.registration.showNotification('Heidrun', {
+		self.registration.showNotification('Heidrun Code', {
 			body: 'A coding agent needs you.',
 			tag: 'heidrun-needs-you',
 			renotify: true,

@@ -1,12 +1,12 @@
 # mobile_website
 
-The mobile website of [Heidrun](../../../README.md): the page that a phone opens to see the coding agents, answer them, and send them a prompt. The package `mobile_server` serves the built page from the computer, and the page talks only to that server.
+The mobile website of [Heidrun Code](../../../README.md): the page that a phone opens to see the coding agents, answer them, and send them a prompt. The package `mobile_server` serves the built page from the computer, and the page talks only to that server.
 
 ## Run the website while you work on it
 
 Run these commands from the root of the repository, or of the worktree. In both ways, the page reloads by itself when you change a file of `src`, and it stays on the same screen.
 
-### Way 1: made-up coding agents (no Heidrun needed)
+### Way 1: made-up coding agents (no Heidrun Code needed)
 
 Use this way to work on the layout, the colors, and the buttons. The development server pretends to be four coding agents with fixed sample data. Nothing real runs: a prompt only appears in the fake output.
 
@@ -16,17 +16,17 @@ pnpm --filter mobile_website dev
 
 Open the address that the command prints (`http://127.0.0.1:5183/#t=...`).
 
-### Way 2: your real coding agents (Heidrun must run)
+### Way 2: your real coding agents (Heidrun Code must run)
 
 Use this way to see your real coding agents. You need two terminals.
 
-Terminal 1: start Heidrun, and keep it running. Then open the Settings window, and turn on the section "Mobile access". The program `ngrok` must be installed and signed in. After a few seconds, the section shows the address of the tunnel, for example `https://words-of-the-tunnel.ngrok-free.dev/`. Copy its host name, which is the text between `https://` and the last `/`. Heidrun restarts only when the calls between the page and the application change.
+Terminal 1: start Heidrun Code, and keep it running. Then open the Settings window, and turn on the section "Mobile access". The program `ngrok` must be installed and signed in. After a few seconds, the section shows the address of the tunnel, for example `https://words-of-the-tunnel.ngrok-free.dev/`. Copy its host name, which is the text between `https://` and the last `/`. Heidrun Code restarts only when the calls between the page and the application change.
 
 ```bash
 pnpm dev -- -- --no-splash-screen
 ```
 
-Terminal 2: start the website, and send its calls to the mobile server inside Heidrun. The mobile server answers only the host name of its tunnel, so give that host name in `MOBILE_API_HOST`. The host name is fixed for your ngrok account, so you can keep this command.
+Terminal 2: start the website, and send its calls to the mobile server inside Heidrun Code. The mobile server answers only the host name of its tunnel, so give that host name in `MOBILE_API_HOST`. The host name is fixed for your ngrok account, so you can keep this command.
 
 ```bash
 MOBILE_API_TARGET=http://127.0.0.1:47823 MOBILE_API_HOST=words-of-the-tunnel.ngrok-free.dev pnpm --filter mobile_website dev

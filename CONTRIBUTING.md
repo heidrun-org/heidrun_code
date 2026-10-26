@@ -1,10 +1,10 @@
-# Contributing to Heidrun
+# Contributing to Heidrun Code
 
 Welcome to Valhalla. Every warrior who wants to help is welcome, and the mead is free.
 
 ## Before you start
 
-1. Search the [open issues](https://github.com/heidrun-org/heidrun/issues). Someone may already be fighting the same battle.
+1. Search the [open issues](https://github.com/heidrun-org/heidrun_code/issues). Someone may already be fighting the same battle.
 2. If no issue exists, open one and describe the problem or the idea. Do this before you write code, so nobody wastes a day of mead on a change that cannot be merged.
 
 ## Set up the project
@@ -38,7 +38,7 @@ The full rules of this repository, for people and for agents, are in [`AGENTS.md
 ## Writing style
 
 - Write in plain English. Short sentences. No slang.
-- Write the application name as "Heidrun". Write the goat as "Heiðrún", only when the text is about the mythology.
+- Write the application name as "Heidrun Code". Write the goat as "Heiðrún", only when the text is about the mythology.
 - A joke is welcome, but it never replaces an explanation. Explain first, then joke.
 
 ## Be kind

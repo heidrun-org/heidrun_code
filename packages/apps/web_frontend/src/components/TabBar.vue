@@ -9,6 +9,7 @@ import { settings } from "../stores/settings";
 import { useReorder } from "../lib/reorder";
 import { tabIconName } from "../lib/tab_icon";
 import { NewPane } from "../stores/new_pane";
+import { PaneMoveDrag } from "../stores/pane_move";
 import { t } from "../i18n/index";
 
 const tabReorder = useReorder("x", (id, at) => moveTab(id, at));
@@ -78,7 +79,9 @@ function isRemoteControlled(tabId: string): boolean {
       </li>
     </ul>
     <button
-      class="btn border-0 justify-content-center add"
+      class="btn justify-content-center add"
+      :class="PaneMoveDrag.state.isNewTabTargeted ? 'pane-drop-target' : 'border-0'"
+      data-pane-move-new-tab
       :title="t('tabBar.newTabTitle')"
       :aria-label="t('tabBar.newTabTitle')"
       @click="NewPane.onNewPaneClick"
@@ -161,5 +164,12 @@ function isRemoteControlled(tabId: string): boolean {
 .nav-link:not(.active):hover .confirm, .nav-link:not(.active):focus-within .confirm { opacity: 1; }
 .nav-link .confirm:hover { background: var(--overlay-hover); color: var(--text); }
 .add { flex-shrink: 0; width: 34px; margin-bottom: 4px; }
+/* While the developer drags a pane over the plus button, the button has the look of the layer of a drop of images on the composition
+   bar: a solid border of 3 pixels in the color --accent and a background of the same color at 12 percent strength. The border stays
+   inside the fixed height of the button, so the tab bar does not move. */
+.add.pane-drop-target {
+  --btn-border-width: 3px; --btn-border-color: var(--accent); --btn-hover-border-color: var(--accent);
+  --btn-bg: color-mix(in srgb, var(--accent) 12%, transparent); --btn-hover-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+}
 /* The application never had a pressed look or a focus background: only the mouse hover changes the colors. */
 </style>

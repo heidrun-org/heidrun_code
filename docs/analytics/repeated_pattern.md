@@ -1,7 +1,7 @@
 # Repeated patterns in the chat sessions
 
 - Created: 16 October 2026
-- Last updated: 16 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained method and first result
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Rules for a good metric](metrics_rules.md), [The four data layers](../statistics/the_four_data_layers.md)

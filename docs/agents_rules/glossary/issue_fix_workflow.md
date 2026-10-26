@@ -1,13 +1,13 @@
-# Glossary of Heidrun: the Issue Fix Workflow
+# Glossary of Heidrun Code: the Issue Fix Workflow
 
 - Created: 16 October 2026
-- Last updated: 18 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [Skill: the Issue Fix Workflow](../../../.agents/skills/issue_fix_workflow/SKILL.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [Skill: the Issue Fix Workflow](../../../.agents/skills/issue_fix_workflow/SKILL.md)
 - Related issue: [issue 610](https://github.com/heidrun-org/heidrun/issues/610), [issue 656](https://github.com/heidrun-org/heidrun/issues/656)
 
-This document gives one short definition for each word of the Issue Fix Workflow. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the Issue Fix Workflow. The other words of Heidrun Code are in [index.md](index.md).
 
 ## The parts
 

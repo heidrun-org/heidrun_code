@@ -1,13 +1,13 @@
-# Glossary of Heidrun: work of one person
+# Glossary of Heidrun Code: work of one person
 
 - Created: 15 October 2026
-- Last updated: 17 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [User activity glossary](user_activity.md), [User interface of Heidrun: Statistics window, tab "Work of one person"](../user_interface/window/statistics_person_work.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [User activity glossary](user_activity.md), [User interface of Heidrun Code: Statistics window, tab "Work of one person"](../user_interface/window/statistics_person_work.md)
 - Related issue: [issue 482](https://github.com/heidrun-org/heidrun/issues/482), [issue 523](https://github.com/heidrun-org/heidrun/issues/523), [issue 559](https://github.com/heidrun-org/heidrun/issues/559), [issue 616](https://github.com/heidrun-org/heidrun/issues/616), [issue 622](https://github.com/heidrun-org/heidrun/issues/622), [issue 629](https://github.com/heidrun-org/heidrun/issues/629)
 
-This document gives one short definition for each word of the statistic of the work of one person. The other words of Heidrun are in [index.md](index.md). The Statistics window is defined in [user_activity.md](user_activity.md).
+This document gives one short definition for each word of the statistic of the work of one person. The other words of Heidrun Code are in [index.md](index.md). The Statistics window is defined in [user_activity.md](user_activity.md).
 
 ## The work of one person
 
@@ -33,7 +33,7 @@ The source of the Work of one person tab that shows the estimated cost in US dol
 
 ### Workspace selector of the Work of one person tab
 
-The line in the Work of one person tab that chooses the workspaces that the tab reads: their repositories for the Git history, and their folders for the stored token usage of the AI cost. It has a radio button group with the buttons "All" and "None", and a button group with a checkbox button for each workspace that is open in Heidrun now. The developer can choose one workspace, several workspaces, or all of them, and the tab adds up their work. Only the selected workspace is chosen at first.
+The line in the Work of one person tab that chooses the workspaces that the tab reads: their repositories for the Git history, and their folders for the stored token usage of the AI cost. It has a radio button group with the buttons "All" and "None", and a button group with a checkbox button for each workspace that is open in Heidrun Code now. The developer can choose one workspace, several workspaces, or all of them, and the tab adds up their work. Only the selected workspace is chosen at first.
 
 ### Unit of the AI cost
 
@@ -41,7 +41,7 @@ The radio button group of the AI cost that chooses what the totals and the bar c
 
 ### Person
 
-One author of the repository. A commit knows its author by a name and an email. A pull request or an issue knows its author by a login on GitHub. Heidrun finds the same person when the name and the login are the same after they are written in lower case, with no space, no hyphen, and no accent: the name "Jérôme Étienne" and the login "jerome-etienne" are one person. The login in an email of the form `login@users.noreply.github.com` counts as the login.
+One author of the repository. A commit knows its author by a name and an email. A pull request or an issue knows its author by a login on GitHub. Heidrun Code finds the same person when the name and the login are the same after they are written in lower case, with no space, no hyphen, and no accent: the name "Jérôme Étienne" and the login "jerome-etienne" are one person. The login in an email of the form `login@users.noreply.github.com` counts as the login.
 
 ### Person chooser
 

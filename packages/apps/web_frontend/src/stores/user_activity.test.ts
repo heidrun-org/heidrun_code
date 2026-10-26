@@ -76,7 +76,7 @@ function writtenRecords(): UserActivityRecord[] {
 		.map(([, argumentsOfCall]) => (argumentsOfCall as { record: UserActivityRecord }).record);
 }
 
-describe("startUserActivity: is the user active in front of Heidrun", () => {
+describe("startUserActivity: is the user active in front of Heidrun Code", () => {
 	it("tells the status item that the user is not active at the start", async () => {
 		const { isUserActive } = await startedStore();
 		expect(isUserActive.value).toBe(false);

@@ -1,23 +1,23 @@
-# Glossary of Heidrun: user activity
+# Glossary of Heidrun Code: user activity
 
 - Created: 14 October 2026
-- Last updated: 16 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [User interface of Heidrun: User activity sidebar section](../user_interface/sidebars/user_activity.md), [User interface of Heidrun: Statistics window](../user_interface/window/statistics_window.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: User activity sidebar section](../user_interface/sidebars/user_activity.md), [User interface of Heidrun Code: Statistics window](../user_interface/window/statistics_window.md)
 - Related issue: [issue 440](https://github.com/heidrun-org/heidrun/issues/440), [issue 473](https://github.com/heidrun-org/heidrun/issues/473), [issue 486](https://github.com/heidrun-org/heidrun/issues/486), [issue 494](https://github.com/heidrun-org/heidrun/issues/494), [issue 498](https://github.com/heidrun-org/heidrun/issues/498), [issue 552](https://github.com/heidrun-org/heidrun/issues/552)
 
-This document gives one short definition for each word of the activity of the developer in front of Heidrun. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the activity of the developer in front of Heidrun Code. The other words of Heidrun Code are in [index.md](index.md).
 
 ## The activity of the developer
 
 ### User activity time
 
-The time that the developer is active in front of Heidrun, counted for one workspace. It is not the agent time: the agent time is the time that a coding agent works on a request ([issue 438](https://github.com/heidrun-org/heidrun/issues/438)).
+The time that the developer is active in front of Heidrun Code, counted for one workspace. It is not the agent time: the agent time is the time that a coding agent works on a request ([issue 438](https://github.com/heidrun-org/heidrun/issues/438)).
 
 ### Action
 
-One keyboard action or one mouse action that reaches the Heidrun window: a key press, a mouse button press, a turn of the mouse wheel, or a move of the mouse pointer over the window. An action that happens while the Heidrun window is not in front does not count.
+One keyboard action or one mouse action that reaches the Heidrun Code window: a key press, a mouse button press, a turn of the mouse wheel, or a move of the mouse pointer over the window. An action that happens while the Heidrun Code window is not in front does not count.
 
 ### Cool down
 
@@ -25,11 +25,11 @@ The time with no action after which the developer is no longer active. It is 5 s
 
 ### Active period
 
-The time from the first action to the end of the cool down, in one workspace. An active period also ends when the Heidrun window goes behind another window, when the selected workspace changes, and when Heidrun closes.
+The time from the first action to the end of the cool down, in one workspace. An active period also ends when the Heidrun Code window goes behind another window, when the selected workspace changes, and when Heidrun Code closes.
 
 ### User activity record
 
-One line of the file `~/.config/heidrun/user_activity.jsonl`: the description of one active period. It holds the folder of the workspace, three times, the number of keyboard actions, the number of mouse actions, and the reason why the active period ended. It never holds a key that the developer typed, and never a text of the screen.
+One line of the file `~/.config/heidrun_code/user_activity.jsonl`: the description of one active period. It holds the folder of the workspace, three times, the number of keyboard actions, the number of mouse actions, and the reason why the active period ended. It never holds a key that the developer typed, and never a text of the screen.
 
 ### User activity sidebar section
 

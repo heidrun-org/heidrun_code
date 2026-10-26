@@ -1,0 +1,10 @@
+{
+  "name": "heidrun_code_ctrl",
+  "private": true,
+  "license": "MIT",
+  "version": "0.3.0",
+  "scripts": {
+    "cli": "cargo run --quiet --",
+    "test": "cargo test"
+  }
+}

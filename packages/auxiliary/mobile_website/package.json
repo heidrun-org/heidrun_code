@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "vitest run --minWorkers=1 --maxWorkers=2"
+    "test": "vitest run --minWorkers=1 --maxWorkers=4"
   },
   "devDependencies": {
     "bootstrap-icons": "^1.13.2",

@@ -16,12 +16,13 @@ pub struct MobileConfig {
     pub port: u16,
 }
 
-/// The folder of the configuration of Heidrun: the variable `HEIDRUN_DIR`, or `~/.config/heidrun`.
+/// The folder of the configuration of Heidrun Code: the variable `HEIDRUN_CODE_DIR`, or `~/.config/heidrun_code`.
 pub(crate) fn config_folder() -> PathBuf {
-    std::env::var("HEIDRUN_DIR")
+    std::env::var("HEIDRUN_CODE_DIR")
         .ok().filter(|value| value.is_empty() == false)
+        .or_else(|| std::env::var("HEIDRUN_DIR").ok().filter(|value| value.is_empty() == false))
         .map(PathBuf::from)
-        .unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join(".config").join("heidrun"))
+        .unwrap_or_else(|| default_data_folder(&dirs::home_dir().unwrap_or_default()))
 }
 
 fn config_path() -> PathBuf {
@@ -40,7 +41,7 @@ pub fn save_config(config: &MobileConfig) -> Result<(), String> {
 
 fn load_from(path: &Path) -> MobileConfig {
     let mut config: MobileConfig = std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
-    config.port = selected_port(config.port, std::env::var("HEIDRUN_MOBILE_PORT").ok().as_deref());
+    config.port = selected_port(config.port, std::env::var("HEIDRUN_CODE_MOBILE_PORT").ok().as_deref());
     config
 }
 
@@ -90,6 +91,16 @@ pub(crate) fn random_bytes() -> Result<[u8; 32], String> {
 /// A new pairing key: 32 random bytes as hex.
 pub fn new_token() -> Result<String, String> {
     Ok(random_bytes()?.iter().map(|b| format!("{b:02x}")).collect())
+}
+
+/// `~/.config/heidrun_code`, or the former folder `~/.config/heidrun` when it exists and the new folder does not.
+fn default_data_folder(home: &std::path::Path) -> PathBuf {
+    let current = home.join(".config").join("heidrun_code");
+    let former = home.join(".config").join("heidrun");
+    if current.is_dir() == false && former.is_dir() {
+        return former;
+    }
+    current
 }
 
 #[cfg(test)]

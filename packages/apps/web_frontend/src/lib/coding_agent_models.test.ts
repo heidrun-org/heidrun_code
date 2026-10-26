@@ -1,9 +1,10 @@
+// @vitest-environment node
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { effortsOf, readAntigravityModels, readCodexModels, type CodingAgentModel } from "./coding_agent_models";
 
-/** The output of `codex debug models` (codex-cli 0.162.1), without the fields that Heidrun does not read. */
+/** The output of `codex debug models` (codex-cli 0.162.1), without the fields that Heidrun Code does not read. */
 const codexOutput = readFileSync(resolve(import.meta.dirname, "codex_debug_models.fixture.json"), "utf8");
 
 describe("readCodexModels", () => {

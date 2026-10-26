@@ -1,6 +1,6 @@
 # documentation_by_ai
 
-Generate Heidrun user documentation once, build the website once, then stop for human review. The [process guide](../../../docs/documentation_by_ai/README.md) explains the learning method. This package is independent of the parked experiment and does not execute its historical runners.
+Generate Heidrun Code user documentation once, build the website once, then stop for human review. The [process guide](../../../docs/documentation_by_ai/README.md) explains the learning method. This package is independent of the parked experiment and does not execute its historical runners.
 
 ## Commands
 

@@ -6,7 +6,7 @@ import type { AgentInfo, AgentStatus, SessionSnapshot } from './types';
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** Applies Heidrun acknowledgements without changing Herdr focus or lifecycle reports. */
+/** Applies Heidrun Code acknowledgements without changing Herdr focus or lifecycle reports. */
 export class FinishedStatus {
 	/**
 	 * Identifies one status of one terminal, including completions missed between snapshots.

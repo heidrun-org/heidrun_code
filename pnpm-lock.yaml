@@ -171,6 +171,9 @@ importers:
       '@vue/test-utils':
         specifier: ^2.5.1
         version: 2.5.1(@vue/compiler-dom@3.5.43)(@vue/server-renderer@3.5.43)(vue@3.5.43(typescript@5.9.3))
+      happy-dom:
+        specifier: 20.14.5
+        version: 20.14.5
       jsdom:
         specifier: ^25.0.1
         version: 25.0.1
@@ -185,14 +188,14 @@ importers:
         version: 5.4.21(@types/node@26.6.5)(sass@1.105.1)
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
       vue-tsc:
         specifier: ^2.1.0
         version: 2.2.12(typescript@5.9.3)
 
   packages/auxiliary/coding_agent_cli: {}
 
-  packages/auxiliary/heidrun_ctrl: {}
+  packages/auxiliary/heidrun_code_ctrl: {}
 
   packages/auxiliary/mobile_server: {}
 
@@ -212,7 +215,7 @@ importers:
         version: 5.4.21(@types/node@26.6.5)(sass@1.105.1)
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/auxiliary/voice_input: {}
 
@@ -235,22 +238,10 @@ importers:
         version: 1.6.4(@algolia/client-search@5.59.0)(@types/node@26.6.5)(postcss@8.5.29)(qrcode@1.5.4)(sass@1.105.1)(search-insights@2.17.3)(typescript@5.9.3)
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
       vue:
         specifier: ^3.5.43
         version: 3.5.43(typescript@5.9.3)
-
-  packages/data_layers/data_layer_code_hosting: {}
-
-  packages/data_layers/data_layer_coding_agents: {}
-
-  packages/data_layers/data_layer_operation_log: {}
-
-  packages/data_layers/data_layer_source_control: {}
-
-  packages/data_layers/data_layer_user_activity: {}
-
-  packages/data_layers/heidrun_data: {}
 
   packages/dev_tools/agents_rules_checker:
     devDependencies:
@@ -259,7 +250,7 @@ importers:
         version: 26.6.5
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/dev_tools/change_log_generator:
     dependencies:
@@ -275,7 +266,7 @@ importers:
         version: 26.6.5
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/dev_tools/data_layer_boundary_checker:
     devDependencies:
@@ -284,7 +275,7 @@ importers:
         version: 26.6.5
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/dev_tools/documentation_by_ai:
     dependencies:
@@ -306,7 +297,7 @@ importers:
         version: 26.6.5
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/dev_tools/video_recorder:
     dependencies:
@@ -322,7 +313,7 @@ importers:
         version: 26.6.5
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/dev_tools/worktree_tools:
     dependencies:
@@ -338,7 +329,7 @@ importers:
         version: 26.6.5
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/experiments/localai_decisions_candle: {}
 
@@ -393,7 +384,7 @@ importers:
         version: 5.4.21(@types/node@26.6.5)(sass@1.105.1)
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/experiments/parallax_dino_runner:
     dependencies:
@@ -418,7 +409,7 @@ importers:
         version: 5.4.21(@types/node@26.6.5)(sass@1.105.1)
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/experiments/promotional_videos:
     dependencies:
@@ -446,7 +437,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1)
+        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
   packages/experiments/work_by_folder_over_time:
     devDependencies:
@@ -1457,6 +1448,12 @@ packages:
   '@types/webxr@0.5.24':
     resolution: {integrity: sha512-h8fgEd/DpoS9CBrjEQXR+dIDraopAEfu4wYVNY2tEPwk60stPWhvZMf4Foo5FakuQ7HFZoa8WceaWFervK2Ovg==}
 
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
+
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
+
   '@ungap/structured-clone@1.4.0':
     resolution: {integrity: sha512-1mEZtMKPM09vDmQt5y7YvmN2+DFTP7Tg0EWXdic8/C6VRnpb33e4ghisCIE3WZjsE2N8mf+QV1Zqh7ZFYLWInQ==}
 
@@ -1700,6 +1697,10 @@ packages:
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
+
+  buffer-image-size@0.6.4:
+    resolution: {integrity: sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ==}
+    engines: {node: '>=4.0'}
 
   cac@6.7.14:
     resolution: {integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==}
@@ -2077,6 +2078,10 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  happy-dom@20.14.5:
+    resolution: {integrity: sha512-x/RzkpWO40bTjIoT30iQtt64FLLmH/iRcUCN2X//bLx7H3ifkdfPXyqsro/OYtqzIAhiLMMA7mmiOR9C3NOKjQ==}
+    engines: {node: '>=20.0.0'}
 
   has-symbols@1.1.0:
     resolution: {integrity: sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==}
@@ -2755,6 +2760,10 @@ packages:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
     deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
@@ -3723,6 +3732,12 @@ snapshots:
 
   '@types/webxr@0.5.24': {}
 
+  '@types/whatwg-mimetype@3.0.2': {}
+
+  '@types/ws@8.18.2':
+    dependencies:
+      '@types/node': 26.6.5
+
   '@ungap/structured-clone@1.4.0': {}
 
   '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@26.6.5)(sass@1.105.1))(vue@3.5.43(typescript@5.9.3))':
@@ -3987,6 +4002,10 @@ snapshots:
   braces@3.0.3:
     dependencies:
       fill-range: 7.1.1
+
+  buffer-image-size@0.6.4:
+    dependencies:
+      '@types/node': 26.6.5
 
   cac@6.7.14: {}
 
@@ -4404,6 +4423,19 @@ snapshots:
   gopd@1.2.0: {}
 
   graceful-fs@4.2.11: {}
+
+  happy-dom@20.14.5:
+    dependencies:
+      '@types/node': 26.6.5
+      '@types/whatwg-mimetype': 3.0.2
+      '@types/ws': 8.18.2
+      buffer-image-size: 0.6.4
+      entities: 7.0.1
+      whatwg-mimetype: 3.0.0
+      ws: 8.22.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   has-symbols@1.1.0: {}
 
@@ -5054,7 +5086,7 @@ snapshots:
       - typescript
       - universal-cookie
 
-  vitest@2.1.9(@types/node@26.6.5)(jsdom@25.0.1)(sass@1.105.1):
+  vitest@2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1):
     dependencies:
       '@vitest/expect': 2.1.9
       '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@26.6.5)(sass@1.105.1))
@@ -5078,6 +5110,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.6.5
+      happy-dom: 20.14.5
       jsdom: 25.0.1
     transitivePeerDependencies:
       - less
@@ -5121,6 +5154,8 @@ snapshots:
   whatwg-encoding@3.1.1:
     dependencies:
       iconv-lite: 0.6.3
+
+  whatwg-mimetype@3.0.0: {}
 
   whatwg-mimetype@4.0.0: {}
 

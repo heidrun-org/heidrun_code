@@ -1,18 +1,17 @@
-// The history of the focus between panes: Heidrun records each pane that gets the focus, and the "Back" button and the
-// "Forward" button of the top bar move through the history. The history lives in memory, until Heidrun quits.
+// The history of the focus between panes: Heidrun Code records each pane that gets the focus, and the "Back" button and the
+// "Forward" button of the top bar move through the history. The history lives in memory, until Heidrun Code quits.
 // - issue #380
-import { reactive, watch } from "vue";
+import { watch } from "vue";
 import { allPanes, selectPane, state } from "./session";
 import { activePaneId, isPinned, pinnedPaneState } from "./pinned_panes";
-import { PaneFocusHistory } from "../lib/pane_focus_history";
 import { trailingDebounce } from "../lib/trailing_debounce";
+import { paneFocusHistory } from "./pane_focus_history_state";
 import { ZenMode } from "./zen_mode";
+
+export { paneFocusHistory };
 
 /** A pane must keep the focus this long, in milliseconds, before the history records it. A quick pass is noise. */
 export const PANE_FOCUS_STAY_MS = 500;
-
-/** The history of the panes that had the focus, in every workspace and every tab. */
-export const paneFocusHistory = reactive(new PaneFocusHistory());
 
 /** Records the pane that has the focus now. */
 function recordActivePane() {

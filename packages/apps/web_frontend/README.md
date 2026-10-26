@@ -1,6 +1,6 @@
 # web_frontend
 
-The user interface of [Heidrun](../../../README.md), written with Vue 3, TypeScript, and Vite. The window of [`desktop_tauri`](../desktop_tauri) displays it.
+The user interface of [Heidrun Code](../../../README.md), written with Vue 3, TypeScript, and Vite. The window of [`desktop_tauri`](../desktop_tauri) displays it.
 
 ## What it contains
 

@@ -9,7 +9,7 @@ import CodeHostingPanel from "./CodeHostingPanel.vue";
 import type { Forge } from "../lib/refs";
 import { readCodeHostingForge } from "../stores/code_hosting";
 import { currentGit } from "../stores/git";
-import { launcherStatus, currentProject } from "../stores/project";
+import { launcherStatus, launchersOf, currentProject } from "../stores/project";
 import { settings } from "../stores/settings";
 import { clickSidebarSectionIcon, COLLAPSED_SIDEBAR_WIDTH, type SidebarSectionButton } from "../stores/sidebar_sections";
 import { t } from "../i18n/index";
@@ -21,7 +21,7 @@ const runningLaunchers = computed(() => {
   if (workspaceId === null || !project) {
     return 0;
   }
-  return project.config.launchers.filter((launcher) => launcherStatus(workspaceId, launcher) === "running").length;
+  return launchersOf(workspaceId).filter((launcher) => launcherStatus(workspaceId, launcher) === "running").length;
 });
 
 /**

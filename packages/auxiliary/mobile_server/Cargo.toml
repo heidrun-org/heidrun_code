@@ -1,7 +1,7 @@
 [package]
 name = "mobile_server"
 version = "0.3.0"
-description = "The mobile server of Heidrun: serves the mobile website on the loopback address behind an ngrok tunnel, checks the host name and the pairing key, and hands each call of the phone to the desktop application"
+description = "The mobile server of Heidrun Code: serves the mobile website on the loopback address behind an ngrok tunnel, checks the host name and the pairing key, and hands each call of the phone to the desktop application"
 license = "MIT"
 edition = "2021"
 publish = false

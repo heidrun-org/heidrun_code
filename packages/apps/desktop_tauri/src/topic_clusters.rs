@@ -1,12 +1,12 @@
 //! Clustered dynamic topics: the translation table kept on the disk, and the call to a coding agent that fills it.
 //!
 //! The translation table maps each raw dynamic topic to the name of a cluster. It is kept in `topic_clusters.json`, in
-//! the folder of the data of Heidrun. The web frontend decides which raw dynamic topics are new, writes the prompt, and
+//! the folder of the data of Heidrun Code. The web frontend decides which raw dynamic topics are new, writes the prompt, and
 //! checks the answer. This file does only the two things that the web frontend cannot do: it reads and writes the file,
 //! and it runs `codex` or `claude` on this computer.
 //!
 //! The call is the function `ask` of the package `coding_agent_cli`, which holds the rules of the two commands. The call
-//! goes through the login shell, so the commands that the developer installed are found, and Heidrun never reads or stores
+//! goes through the login shell, so the commands that the developer installed are found, and Heidrun Code never reads or stores
 //! the login.
 
 use coding_agent_cli::{ask, AgentShell};
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-/// The name of the file of the translation table, in the folder of the data of Heidrun.
+/// The name of the file of the translation table, in the folder of the data of Heidrun Code.
 const TABLE_FILE: &str = "topic_clusters.json";
 
 /// The version of the content of the file. A file with another version is thrown away: the table starts empty.

@@ -1,0 +1,45 @@
+# The Cargo workspace of Heidrun Code. Inside one workspace, Cargo names each crate of the repository by its path
+# relative to this folder, so a worktree at another path reuses the compiled files that it clones from the main
+# checkout, instead of compiling the crates of the repository again (issue 864).
+[workspace]
+resolver = "2"
+members = [
+    "packages/apps/desktop_tauri",
+    "packages/auxiliary/coding_agent_cli",
+    "packages/auxiliary/heidrun_code_ctrl",
+    "packages/auxiliary/mobile_server",
+    "packages/auxiliary/voice_input",
+    "submodules/heidrun_data/packages/data_layer_code_hosting",
+    "submodules/heidrun_data/packages/data_layer_coding_agents",
+    "submodules/heidrun_data/packages/data_layer_operation_log",
+    "submodules/heidrun_data/packages/data_layer_source_control",
+    "submodules/heidrun_data/packages/data_layer_user_activity",
+    "submodules/heidrun_data/packages/heidrun_data",
+]
+# The experiments keep their own Cargo.lock and their own large dependencies
+exclude = [
+    "packages/experiments",
+    "submodules/coding_agent_plugin",
+    "tmp",
+]
+
+# The first read of the chat files, for the AI cost, decompresses and scans gigabytes of text. The code that does it runs at
+# full speed in a development build too: it takes about 15 seconds instead of about 3 minutes.
+[profile.dev.package.zstd-sys]
+opt-level = 3
+
+[profile.dev.package.data_layer_coding_agents]
+opt-level = 3
+
+[profile.dev.package.serde_json]
+opt-level = 3
+
+# The C++ engine of Whisper runs at full speed in a development build too: a debug build of it is about 30 times slower
+[profile.dev.package.whisper-rs-sys]
+opt-level = 3
+
+[profile.dev.package.whisper-rs]
+opt-level = 3
+
+[profile.dev.package.voice_input]
+opt-level = 3

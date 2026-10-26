@@ -329,18 +329,18 @@ describe('the guard window', () => {
 			const wrapper = mount(GuardModal);
 			expect(wrapper.find('[data-field="try-message"]').exists()).toBe(false);
 			await wrapper.get('#guard-try').setValue('make all --prod');
-			expect(wrapper.get('[data-field="try-message"]').text()).toBe('This command matches line 2. Heidrun forbids it.');
+			expect(wrapper.get('[data-field="try-message"]').text()).toBe('This command matches line 2. Heidrun Code forbids it.');
 			expect(wrapper.findAll('[data-field="line-match"]')).toHaveLength(1);
 			expect(wrapper.findAll('[data-field="line"]')[1].find('[data-field="line-match"]').exists()).toBe(true);
 		});
 
-		it('uses the action that is chosen in the window to tell what Heidrun does', async () => {
+		it('uses the action that is chosen in the window to tell what Heidrun Code does', async () => {
 			GuardModalTestHelper.installProject({ version: 1, launchers: [] });
 			openNewGuardWindow();
 			const wrapper = mount(GuardModal);
 			await wrapper.get('[data-field="line"] input').setValue('publish');
 			await wrapper.get('#guard-try').setValue('npm PUBLISH');
-			expect(wrapper.get('[data-field="try-message"]').text()).toBe('This command matches line 1. Heidrun asks you to confirm it.');
+			expect(wrapper.get('[data-field="try-message"]').text()).toBe('This command matches line 1. Heidrun Code asks you to confirm it.');
 		});
 
 		it('says that no line matches', async () => {
@@ -393,7 +393,7 @@ describe('the guard window', () => {
 			openViewGuardWindow(SQL_DROP_KEY);
 			const wrapper = mount(GuardModal);
 			await wrapper.get('#guard-try').setValue('drop table users');
-			expect(wrapper.get('[data-field="try-message"]').text()).toBe('This command matches line 1. Heidrun asks you to confirm it.');
+			expect(wrapper.get('[data-field="try-message"]').text()).toBe('This command matches line 1. Heidrun Code asks you to confirm it.');
 			await wrapper.get('#guard-try').setValue('select 1');
 			expect(wrapper.get('[data-field="try-message"]').text()).toBe('This command matches no line, so this guard does not stop it.');
 		});

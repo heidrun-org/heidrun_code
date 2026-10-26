@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { PaneMove, type PaneMovePlanInput } from './pane_move';
 import type { Box } from './reorder';
@@ -119,5 +120,13 @@ describe('PaneMove.plan', () => {
 			const kinds = PaneMove.plan({ ...ACROSS_TABS, side }).map((step) => step.kind);
 			expect(kinds).not.toContain('move-to-new-tab');
 		}
+	});
+});
+
+describe('PaneMove.planNewTab', () => {
+	it('moves a pane into a new tab with one step, and starts no other step', () => {
+		expect(PaneMove.planNewTab({ paneId: 'w1:p3', workspaceId: 'w1' })).toEqual([
+			{ kind: 'move-to-new-tab', paneId: 'w1:p3', workspaceId: 'w1' },
+		]);
 	});
 });

@@ -1,10 +1,10 @@
 # Work of one person statistics
 
 - Created: 15 October 2026
-- Last updated: 17 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained description of the statistic of the tab "Work of one person"
 - Related framing: [Project instructions](../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: work of one person](../agents_rules/glossary/person_work.md), [Tab "Work of one person"](../agents_rules/user_interface/window/statistics_person_work.md), [Slot length](../agents_rules/user_interface/window/statistics_person_work_slots.md), [Source "AI cost"](../agents_rules/user_interface/window/statistics_ai_cost.md), [Rule for GitHub and GitLab support](../agents_rules/github_and_gitlab_support.md)
+- Related rules: [Glossary of Heidrun Code: work of one person](../agents_rules/glossary/person_work.md), [Tab "Work of one person"](../agents_rules/user_interface/window/statistics_person_work.md), [Slot length](../agents_rules/user_interface/window/statistics_person_work_slots.md), [Source "AI cost"](../agents_rules/user_interface/window/statistics_ai_cost.md), [Rule for GitHub and GitLab support](../agents_rules/github_and_gitlab_support.md)
 - Related issue: [issue 489](https://github.com/heidrun-org/heidrun/issues/489), [issue 482](https://github.com/heidrun-org/heidrun/issues/482), [issue 558](https://github.com/heidrun-org/heidrun/issues/558), [issue 616](https://github.com/heidrun-org/heidrun/issues/616)
 
 This file describes the statistic of the tab "Work of one person" of the Statistics window, and the data layers that it reads. The words are defined in the [glossary of the work of one person](../agents_rules/glossary/person_work.md). The rules of the tab are in [statistics_person_work.md](../agents_rules/user_interface/window/statistics_person_work.md). The data layers are explained in [the_four_data_layers.md](the_four_data_layers.md).
@@ -66,10 +66,10 @@ The tab runs these two steps again each time that the source or the chosen works
 
 | Part | Place |
 | --- | --- |
-| The data layers | `packages/data_layers/data_layer_source_control`, `data_layer_code_hosting`, and `data_layer_coding_agents` |
+| The data layers | `submodules/heidrun_data/packages/data_layer_source_control`, `data_layer_code_hosting`, and `data_layer_coding_agents` |
 | The commands `person_work_synchronize` and `person_work_in_range` | `packages/apps/desktop_tauri/src/statistics/person_work.rs` |
 | The commands `ai_cost_synchronize` and `ai_cost_in_range` | `packages/apps/desktop_tauri/src/statistics/ai_cost.rs` |
-| The lock of the SQLite file | `packages/data_layers/heidrun_data/src/database_lock.rs` |
+| The lock of the SQLite file | `submodules/heidrun_data/packages/heidrun_data/src/database_lock.rs` |
 | The tab and the chart | `packages/apps/web_frontend/src/components/PersonWorkTab.vue` and `StackedBarChart.vue` |
 | The calculations | `packages/apps/web_frontend/src/lib/person_work.ts`, `ai_cost.ts`, `calendar_days.ts`, `calendar_slots.ts`, and `slot_text.ts` |
 

@@ -13,5 +13,16 @@
   "downloading": "Téléchargement du modèle… {percent} %",
   "downloadingLabel": "Téléchargement du modèle",
   "downloadFailed": "Le téléchargement a échoué. Vérifiez le réseau.",
-  "tryAgain": "Réessayer"
+  "tryAgain": "Réessayer",
+  "wordsTitle": "Liste de remplacement de mots",
+  "wordsAdd": "Ajouter un mot",
+  "wordsCancel": "Annuler",
+  "wordsWhisperWrites": "Whisper écrit",
+  "wordsHeidrunWrites": "Heidrun Code écrit à la place",
+  "wordsAddThisWord": "Ajouter ce mot",
+  "wordsDelete": "Supprimer le mot {text}",
+  "wordsNone": "Aucun mot dans la liste.",
+  "wordsFileInvalid": "La liste de remplacement de mots est inutilisable. {reason}",
+  "wordsChangeFailed": "Le changement n’a pas été enregistré. {reason}",
+  "wordsWhisperWritesEmpty": "Le texte que Whisper écrit ne peut pas être vide."
 }

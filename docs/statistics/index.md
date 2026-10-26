@@ -1,7 +1,7 @@
 # Statistics documentation index
 
 - Created: 15 October 2026
-- Last updated: 18 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related issue: [issue 489](https://github.com/heidrun-org/heidrun/issues/489), [issue 617](https://github.com/heidrun-org/heidrun/issues/617), [issue 618](https://github.com/heidrun-org/heidrun/issues/618)

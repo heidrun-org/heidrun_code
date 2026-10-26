@@ -4,16 +4,24 @@
 //! Two commands, never mixed:
 //!
 //! - `person_work_synchronize` copies the new commits into the SQLite file of the data layer with the package
-//!   `data_layer_source_control`, and the new pull requests and issues with the package `data_layer_code_hosting`.
+//!   `data_layer_source_control`, and the new pull requests and issues with the package `data_layer_code_hosting`. It sends the
+//!   progress of each stage of the update to the web page, which shows the stages while it waits.
 //! - `person_work_in_range` reads the SQLite file only. It runs no `git` command and no `gh` command, and it makes no network
 //!   request. A merge commit does not count: it brings in commits that count already.
 
 #[cfg(test)]
-use data_layer_code_hosting::{refresh_code_hosting_with_runner, GraphqlRunner};
-use data_layer_code_hosting::{find_issues_opened_between, find_pull_requests_opened_between, refresh_code_hosting};
-use data_layer_source_control::{default_database_path, find_commits, find_repository, refresh_source_control};
+use data_layer_code_hosting::{refresh_code_hosting_with_runner_and_progress, GraphqlRunner};
+use data_layer_code_hosting::{
+    find_issues_opened_between, find_pull_requests_opened_between, refresh_code_hosting_with_progress, CodeHostingProgress,
+    CodeHostingStage,
+};
+use data_layer_source_control::{
+    default_database_path, find_commits, find_repository, refresh_source_control_with_progress, SourceControlProgress,
+    SourceControlStage,
+};
 use serde::Serialize;
 use std::path::Path;
+use tauri::ipc::Channel;
 
 /// One commit of the work of a person.
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -66,15 +74,42 @@ pub struct PersonWorkSynchronization {
     pub code_hosting_error: Option<String>,
 }
 
+/// One report of the progress of `person_work_synchronize`, sent to the web page at the start of each stage, after each batch of
+/// commits or each page of GitHub, and at the end of each stage.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PersonWorkProgress {
+    /// The repository, in the format `owner/name`.
+    pub repository: String,
+    /// The stage, in the order where the stages run: `readCommits`, `writeCommits`, `readIssues`, `writeIssues`,
+    /// `readPullRequests`, or `writePullRequests`.
+    pub stage: &'static str,
+    /// The number of items that the stage handled.
+    pub done_count: usize,
+    /// The number of items that the stage handles in all, or `None` when it is not known.
+    pub total_count: Option<usize>,
+    /// True when the stage is done.
+    pub is_finished: bool,
+}
+
 /// Called by the tab "Work of one person" to copy the new commits of the Git repository of `folder`, and the new pull requests
 /// and issues of its GitHub repository, into the SQLite file.
+/// `on_progress` receives each `PersonWorkProgress`.
 #[tauri::command]
-pub async fn person_work_synchronize(folder: String) -> Result<PersonWorkSynchronization, String> {
+pub async fn person_work_synchronize(
+    folder: String,
+    on_progress: Channel<PersonWorkProgress>,
+) -> Result<PersonWorkSynchronization, String> {
     // Off the main thread: it starts a Git process and a request to GitHub.
     tauri::async_runtime::spawn_blocking(move || {
-        synchronize(Path::new(&folder), &default_database_path(), &|database_path, repository| {
-            refresh_code_hosting(database_path, repository).map(|_| ())
-        })
+        let refresh_hosting = |database_path: &Path, repository: &str, progress: &dyn Fn(&CodeHostingProgress)| {
+            refresh_code_hosting_with_progress(database_path, repository, progress).map(|_| ())
+        };
+        // A web page that is closed does not receive the report, and the update goes on.
+        let progress = |report: PersonWorkProgress| {
+            let _ = on_progress.send(report);
+        };
+        synchronize(Path::new(&folder), &default_database_path(), &refresh_hosting, &progress)
     })
     .await
     .map_err(|error| error.to_string())?
@@ -90,19 +125,52 @@ pub async fn person_work_in_range(repository: String, since: String, until: Stri
         .map_err(|error| error.to_string())?
 }
 
-/// The refresh of the code hosting rows. A function with this shape is what `synchronize` calls, so a test gives another.
-type RefreshFn = dyn Fn(&Path, &str) -> Result<(), String>;
+/// The refresh of the code hosting rows, with the function that receives its progress. A function with this shape is what
+/// `synchronize` calls, so a test gives another.
+type RefreshFn = dyn Fn(&Path, &str, &dyn Fn(&CodeHostingProgress)) -> Result<(), String>;
 
 /// Finds the repository of `folder`, copies its new commits, then refreshes its pull requests and issues with `refresh_hosting`.
-/// A failure of GitHub does not fail the call: the stored rows are still read, and the message is in the answer.
-fn synchronize(folder: &Path, database_path: &Path, refresh_hosting: &RefreshFn) -> Result<PersonWorkSynchronization, String> {
+/// A failure of GitHub does not fail the call: the stored rows are still read, and the message is in the answer. `progress`
+/// receives the progress of the six stages, in order.
+fn synchronize(
+    folder: &Path,
+    database_path: &Path,
+    refresh_hosting: &RefreshFn,
+    progress: &dyn Fn(PersonWorkProgress),
+) -> Result<PersonWorkSynchronization, String> {
     let repository = find_repository(folder)?;
     // Two commands that write the SQLite file at the same time would fail with "database is locked". The command line
     // heidrun_data takes the same lock.
     let _guard = heidrun_data::lock_database(database_path)?;
-    refresh_source_control(database_path, folder, &repository)?;
-    let code_hosting_error = refresh_hosting(database_path, &repository).err();
+    let send = |stage: &'static str, done_count: usize, total_count: Option<usize>, is_finished: bool| {
+        progress(PersonWorkProgress { repository: repository.clone(), stage, done_count, total_count, is_finished })
+    };
+    refresh_source_control_with_progress(database_path, folder, &repository, &|report: &SourceControlProgress| {
+        send(source_control_stage_name(report.stage), report.done_count, report.total_count, report.is_finished)
+    })?;
+    let code_hosting_error = refresh_hosting(database_path, &repository, &|report: &CodeHostingProgress| {
+        send(code_hosting_stage_name(report.stage), report.done_count, report.total_count, report.is_finished)
+    })
+    .err();
     Ok(PersonWorkSynchronization { repository, code_hosting_error })
+}
+
+/// The name of a stage of the package `data_layer_source_control`, as the web page reads it.
+fn source_control_stage_name(stage: SourceControlStage) -> &'static str {
+    match stage {
+        SourceControlStage::ReadCommits => "readCommits",
+        SourceControlStage::WriteCommits => "writeCommits",
+    }
+}
+
+/// The name of a stage of the package `data_layer_code_hosting`, as the web page reads it.
+fn code_hosting_stage_name(stage: CodeHostingStage) -> &'static str {
+    match stage {
+        CodeHostingStage::ReadIssues => "readIssues",
+        CodeHostingStage::WriteIssues => "writeIssues",
+        CodeHostingStage::ReadPullRequests => "readPullRequests",
+        CodeHostingStage::WritePullRequests => "writePullRequests",
+    }
 }
 
 /// Reads the three kinds of items of `repository` from the SQLite file at `database_path`.
@@ -190,9 +258,15 @@ mod tests {
         }
     }
 
-    fn working_hosting(database_path: &Path, repository: &str) -> Result<(), String> {
-        refresh_code_hosting_with_runner(&FakeGithub, database_path, repository).map(|_| ())
+    fn working_hosting(
+        database_path: &Path,
+        repository: &str,
+        progress: &dyn Fn(&CodeHostingProgress),
+    ) -> Result<(), String> {
+        refresh_code_hosting_with_runner_and_progress(&FakeGithub, database_path, repository, progress).map(|_| ())
     }
+
+    fn no_progress(_: PersonWorkProgress) {}
 
     /// Runs `git` in `folder`, with a fixed author and no configuration file of the developer. `date` is the date of the
     /// author and of the committer.
@@ -239,7 +313,7 @@ mod tests {
     fn a_synchronization_then_a_read_gives_the_work_even_when_git_and_github_are_unavailable() {
         let temporary = TemporaryFolder::new("sources_gone");
         let folder = two_commits(&temporary);
-        let answer = synchronize(&folder, &temporary.database(), &working_hosting).unwrap();
+        let answer = synchronize(&folder, &temporary.database(), &working_hosting, &no_progress).unwrap();
         assert_eq!(answer.repository, REPOSITORY);
         assert_eq!(answer.code_hosting_error, None);
         std::fs::remove_dir_all(folder.join(".git")).unwrap();
@@ -257,7 +331,7 @@ mod tests {
     fn the_commits_of_the_time_range_are_read_with_their_author_and_their_date_in_utc() {
         let temporary = TemporaryFolder::new("range");
         let folder = two_commits(&temporary);
-        synchronize(&folder, &temporary.database(), &working_hosting).unwrap();
+        synchronize(&folder, &temporary.database(), &working_hosting, &no_progress).unwrap();
         let work = read(&temporary.database(), REPOSITORY, "2026-10-11T00:00:00.000Z", "2026-10-13T00:00:00.000Z").unwrap();
         assert_eq!(work.commits.len(), 1);
         assert_eq!(work.commits[0].author_name, "Bob Builder");
@@ -270,7 +344,7 @@ mod tests {
     fn the_time_range_keeps_the_start_and_drops_the_end() {
         let temporary = TemporaryFolder::new("edges");
         let folder = two_commits(&temporary);
-        synchronize(&folder, &temporary.database(), &working_hosting).unwrap();
+        synchronize(&folder, &temporary.database(), &working_hosting, &no_progress).unwrap();
         let work = read(&temporary.database(), REPOSITORY, "2026-10-10T10:00:00Z", "2026-10-12T10:00:00Z").unwrap();
         assert_eq!(work.commits.iter().map(|commit| commit.author_name.as_str()).collect::<Vec<_>>(), vec!["Ada Author"]);
     }
@@ -288,7 +362,7 @@ mod tests {
         git(&folder, &["add", "main.txt"], ADA, "2026-10-12T10:00:00+00:00");
         git(&folder, &["commit", "--quiet", "-m", "Main"], ADA, "2026-10-12T10:00:00+00:00");
         git(&folder, &["merge", "--quiet", "--no-ff", "feature", "-m", "Merge"], ADA, "2026-10-13T10:00:00+00:00");
-        synchronize(&folder, &temporary.database(), &working_hosting).unwrap();
+        synchronize(&folder, &temporary.database(), &working_hosting, &no_progress).unwrap();
         let work = read(&temporary.database(), REPOSITORY, "2026-10-01T00:00:00Z", "2026-11-01T00:00:00Z").unwrap();
         assert_eq!(work.commits.len(), 3);
     }
@@ -297,12 +371,50 @@ mod tests {
     fn a_failure_of_github_is_in_the_answer_and_the_commits_are_still_stored() {
         let temporary = TemporaryFolder::new("github_failure");
         let folder = two_commits(&temporary);
-        let failing = |_: &Path, _: &str| Err("no network".to_string());
-        let answer = synchronize(&folder, &temporary.database(), &failing).unwrap();
+        let failing = |_: &Path, _: &str, _: &dyn Fn(&CodeHostingProgress)| Err("no network".to_string());
+        let answer = synchronize(&folder, &temporary.database(), &failing, &no_progress).unwrap();
         assert_eq!(answer.code_hosting_error.as_deref(), Some("no network"));
         let work = read(&temporary.database(), REPOSITORY, "2026-10-01T00:00:00Z", "2026-11-01T00:00:00Z").unwrap();
         assert_eq!(work.commits.len(), 2);
         assert!(work.issues.is_empty() && work.pull_requests.is_empty());
+    }
+
+    #[test]
+    fn sends_the_six_stages_in_order_with_the_repository_and_the_counts() {
+        let temporary = TemporaryFolder::new("progress");
+        let folder = two_commits(&temporary);
+        let reports = std::cell::RefCell::new(Vec::new());
+        let progress = |report: PersonWorkProgress| reports.borrow_mut().push(report);
+        synchronize(&folder, &temporary.database(), &working_hosting, &progress).unwrap();
+        let reports = reports.into_inner();
+        assert!(reports.iter().all(|report| report.repository == REPOSITORY));
+        let mut stages: Vec<&str> = reports.iter().map(|report| report.stage).collect();
+        stages.dedup();
+        assert_eq!(
+            stages,
+            vec!["readCommits", "writeCommits", "readIssues", "writeIssues", "readPullRequests", "writePullRequests"]
+        );
+        let finished: Vec<_> = reports
+            .iter()
+            .filter(|report| report.is_finished)
+            .map(|report| (report.stage, report.done_count, report.total_count))
+            .collect();
+        assert_eq!(
+            finished,
+            vec![
+                ("readCommits", 2, Some(2)),
+                ("writeCommits", 2, Some(2)),
+                ("readIssues", 1, Some(1)),
+                ("writeIssues", 1, Some(1)),
+                ("readPullRequests", 1, Some(1)),
+                ("writePullRequests", 1, Some(1)),
+            ]
+        );
+        let json = serde_json::to_value(&reports[1]).unwrap();
+        assert_eq!(
+            json,
+            json!({ "repository": REPOSITORY, "stage": "readCommits", "doneCount": 0, "totalCount": 2, "isFinished": false })
+        );
     }
 
     #[test]
@@ -322,15 +434,15 @@ mod tests {
     #[test]
     fn a_folder_that_is_not_in_a_repository_is_an_error() {
         let temporary = TemporaryFolder::new("no_repository");
-        let none = |_: &Path, _: &str| Ok(());
-        assert!(synchronize(&temporary.0, &temporary.database(), &none).is_err());
+        let none = |_: &Path, _: &str, _: &dyn Fn(&CodeHostingProgress)| Ok(());
+        assert!(synchronize(&temporary.0, &temporary.database(), &none, &no_progress).is_err());
     }
 
     #[test]
     fn sends_the_work_to_the_web_page_with_the_names_of_the_fields_it_reads() {
         let temporary = TemporaryFolder::new("json");
         let folder = two_commits(&temporary);
-        synchronize(&folder, &temporary.database(), &working_hosting).unwrap();
+        synchronize(&folder, &temporary.database(), &working_hosting, &no_progress).unwrap();
         let work = read(&temporary.database(), REPOSITORY, "2026-10-01T00:00:00Z", "2026-11-01T00:00:00Z").unwrap();
         let json = serde_json::to_value(&work).unwrap();
         assert_eq!(json["commits"][0]["authorName"], "Ada Author");

@@ -4,6 +4,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { CUSTOM_LAUNCHER_CODING_AGENT_IDS } from "../lib/coding_agents";
 import { AGENTS } from "../lib/agents";
 import { DetectionFamilies } from "../lib/detection_families";
+import { NotificationChannels } from "../lib/notification_channels";
 import { PERSON_WORK_PERIODS, type PersonWorkPeriodId, type PersonWorkSlotHours } from "../lib/person_work";
 import {
   USER_ACTIVITY_RANGE_IDS,
@@ -80,7 +81,7 @@ export type SavedSearchLevel = "user" | "workspace";
 
 /**
  * The choice of the workspace selector of the tab "User activity" of the Statistics window (issue 707). The choice is saved by the
- * folder of each workspace, because a folder is the same at every run of Heidrun.
+ * folder of each workspace, because a folder is the same at every run of Heidrun Code.
  */
 export type StatisticsUserActivityWorkspaces = {
   /** True when every workspace was chosen: a workspace that opens later is then chosen too. `folders` is then not read. */
@@ -110,7 +111,7 @@ const defaults = {
    */
   mouseMode: "select" as "select" | "app",
   /**
-   * Settings window, section Terminal: the automatic detection in the text of the terminals is on (issue #638). Off: Heidrun
+   * Settings window, section Terminal: the automatic detection in the text of the terminals is on (issue #638). Off: Heidrun Code
    * colors nothing, adds no hover button, and gives no action to the text of any terminal.
    */
   terminalTextDetection: true,
@@ -134,7 +135,7 @@ const defaults = {
   chatsRefreshSeconds: 10,
   /**
    * Settings window, section Dynamic topics: the dynamic topics are on. Off: the Past chats sidebar section shows no dynamic
-   * topic bar and no dynamic topic label, and Heidrun computes no dynamic topic and calls no coding agent for them (issue #422).
+   * topic bar and no dynamic topic label, and Heidrun Code computes no dynamic topic and calls no coding agent for them (issue #422).
    */
   dynamicTopics: true,
   /** Settings window, section Dynamic topics: the method that computes the dynamic topics of each chat, "keyword" or "languageModel". */
@@ -153,7 +154,7 @@ const defaults = {
   autoStartHerdr: true,
   /** True when the notice of the missing programs already named the missing ngrok once: it does not name it again (issue 546). */
   ngrokMissingNoticeShown: false,
-  /** Quitting Heidrun does not stop the Herdr session of Heidrun: the agents continue to run. Off: quitting stops it. */
+  /** Quitting Heidrun Code does not stop the Herdr session of Heidrun Code: the agents continue to run. Off: quitting stops it. */
   keepAgentsRunningAfterQuit: true,
   /** A click on the cross of a workspace in the information card of the Workspace status bar section opens the confirmation dialog "Close the workspace". Off: the workspace closes at once. */
   confirmWorkspaceClose: true,
@@ -164,7 +165,7 @@ const defaults = {
   /** Window "Edit the saved search": the button "Delete" opens the confirmation dialog "Delete the saved search". Off: the saved search is deleted at once. */
   confirmSavedSearchDelete: true,
   /**
-   * Settings window, section General: how often Heidrun runs `git fetch` in the background for the repository of the
+   * Settings window, section General: how often Heidrun Code runs `git fetch` in the background for the repository of the
    * selected workspace, in minutes. 0 is off (issue #432).
    */
   gitFetchMinutes: 5,
@@ -190,7 +191,7 @@ const defaults = {
   /** Settings window, section Mobile access: the phone may type a command in a plain terminal. Off: the phone only reads the terminals. */
   mobileTerminalTyping: false,
   /**
-   * Settings window, section Voice input: the voice input is on (issue 662). Off: Heidrun shows no push-to-talk button, downloads
+   * Settings window, section Voice input: the voice input is on (issue 662). Off: Heidrun Code shows no push-to-talk button, downloads
    * no model, and never opens the microphone.
    */
   voiceInput: false,
@@ -213,6 +214,8 @@ const defaults = {
   notifEvening: "", // "18:30": summary of the day's finished work ("" = off)
   quietFrom: "", // "20:00" … "08:00": no notification in between ("" = never quiet)
   quietTo: "",
+  /** Notifications: for each kind of notification, the system notification, the sound, and the name of the sound (issue #857). */
+  notificationChannels: NotificationChannels.createDefaults(),
   /** The status item (the dots) is shown in the macOS menu bar. */
   showStatusItem: true,
   /** Git viewer: "unified" | "split" diff, the whole "file", or the "preview" of a Markdown file. */
@@ -298,7 +301,7 @@ const defaults = {
   codeHostingSavedSearches: { issues: [], requests: [] } as SavedSearches,
   /**
    * Sidebar section Code hosting: the saved searches of the workspace level (issue #822). The key is the workspace folder,
-   * because a folder is the same at every run of Heidrun. Each value has the saved searches of each list, in the order of
+   * because a folder is the same at every run of Heidrun Code. Each value has the saved searches of each list, in the order of
    * their buttons.
    */
   codeHostingWorkspaceSavedSearches: {} as Record<string, SavedSearches>,
@@ -569,6 +572,7 @@ function load(): typeof defaults {
     saved.statisticsUserActivityWorkspaces = keepUserActivityWorkspaces(saved.statisticsUserActivityWorkspaces);
     saved.statisticsPersonWorkWorkspaces = keepPersonWorkWorkspaces(saved.statisticsPersonWorkWorkspaces);
     saved.disabledDetectionFamilies = DetectionFamilies.keepKnownIds(saved.disabledDetectionFamilies);
+    saved.notificationChannels = NotificationChannels.keep(saved.notificationChannels);
     return saved;
   } catch {
     return { ...defaults };
@@ -625,18 +629,18 @@ export async function applyWindowZoom() {
   try {
     await getCurrentWebview().setZoom(zoomFactor());
   } catch {
-    /* outside the Heidrun window (a test, a plain browser) there is no web view to zoom */
+    /* outside the Heidrun Code window (a test, a plain browser) there is no web view to zoom */
   }
 }
 
 watch(() => settings.fontSize, applyWindowZoom, { immediate: true });
 
-/** Tells the Rust side whether quitting Heidrun leaves the Herdr session of Heidrun running. */
+/** Tells the Rust side whether quitting Heidrun Code leaves the Herdr session of Heidrun Code running. */
 export async function applyKeepAgentsRunning() {
   try {
     await invoke("set_keep_agents_running", { isKeeping: settings.keepAgentsRunningAfterQuit });
   } catch {
-    /* outside the Heidrun window (a test, a plain browser) there is no Rust side to tell */
+    /* outside the Heidrun Code window (a test, a plain browser) there is no Rust side to tell */
   }
 }
 

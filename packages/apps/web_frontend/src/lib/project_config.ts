@@ -44,7 +44,7 @@ export const referencesSchema = z.strictObject({
 /** How a line of a project guard compares itself with a command. */
 export const guardMatchTypeSchema = z.enum(["contains", "startsWith", "endsWith", "regex"]);
 
-/** What Heidrun does with a command that a project guard matches: ask the developer to confirm, or forbid the command. */
+/** What Heidrun Code does with a command that a project guard matches: ask the developer to confirm, or forbid the command. */
 export const guardActionSchema = z.enum(["confirm", "block"]);
 
 /** One line of a project guard: a type, and the text that the type compares with the command. */
@@ -68,7 +68,7 @@ export const projectGuardSchema = z.strictObject({
  * The `guards` section: the guards of the project, and the built-in guards that are turned off for the project. Each
  * item of `disabled` is the key of a built-in guard, for example `guards.why.gitClean`. The lists `confirm` and
  * `block` are the lists of the files written before the key `projectGuards`: each item is a regular expression, and
- * Heidrun reads it as a project guard named after the item.
+ * Heidrun Code reads it as a project guard named after the item.
  */
 export const guardsSchema = z.strictObject({
   projectGuards: z.array(projectGuardSchema).optional(),
@@ -137,6 +137,18 @@ function describeIssues(error: z.ZodError): string {
  */
 export function parseProjectConfig(value: unknown): ProjectConfig {
   const result = projectConfigSchema.safeParse(moveLegacyLaunchersKey(value));
+  if (result.success === false) {
+    throw new Error(describeIssues(result.error));
+  }
+  return result.data;
+}
+
+/**
+ * Validates the list of the user level launchers, read from the file `launchers.json`. Each launcher has the fields of a
+ * launcher of the key `launchers`. Throws an Error that names the fields.
+ */
+export function parseLauncherList(value: unknown): Launcher[] {
+  const result = z.array(launcherSchema).safeParse(value);
   if (result.success === false) {
     throw new Error(describeIssues(result.error));
   }

@@ -1,13 +1,13 @@
-# Glossary of Heidrun: chats
+# Glossary of Heidrun Code: chats
 
 - Created: 14 October 2026
-- Last updated: 16 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [User interface of Heidrun: chats](../user_interface/sidebars/chats/index.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: chats](../user_interface/sidebars/chats/index.md)
 - Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405)
 
-This document gives one short definition for each word of the chats, the chat sessions, and the Past chats sidebar section. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the chats, the chat sessions, and the Past chats sidebar section. The other words of Heidrun Code are in [index.md](index.md).
 
 ## The chats
 

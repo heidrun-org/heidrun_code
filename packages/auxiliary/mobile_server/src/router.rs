@@ -146,7 +146,7 @@ mod tests {
             self.calls.fetch_add(1, Ordering::Relaxed);
             Box::pin(async move {
                 if method == "read" {
-                    return Err("Heidrun does not answer on the computer".to_string());
+                    return Err("Heidrun Code does not answer on the computer".to_string());
                 }
                 Ok(json!({ "method": method, "params": params }))
             })
@@ -198,7 +198,7 @@ mod tests {
         let response = router.oneshot(api_request(HOST, None, Some(TOKEN), call_body("read"))).await.unwrap();
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
         let bytes = axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
-        assert_eq!(String::from_utf8(bytes.to_vec()).unwrap(), "Heidrun does not answer on the computer");
+        assert_eq!(String::from_utf8(bytes.to_vec()).unwrap(), "Heidrun Code does not answer on the computer");
     }
 
     #[tokio::test]
@@ -226,7 +226,7 @@ mod tests {
     #[tokio::test]
     async fn the_push_methods_are_answered_by_the_server_and_never_reach_the_handler() {
         let folder = std::env::temp_dir().join(format!("mobile_server_router_push_{}", std::process::id()));
-        std::env::set_var("HEIDRUN_DIR", &folder);
+        std::env::set_var("HEIDRUN_CODE_DIR", &folder);
         let (router, handler) = setup(Some(TOKEN));
         let ask = |method: &str, endpoint: &str| {
             let body = serde_json::to_vec(&json!({ "method": method, "params": { "endpoint": endpoint } })).unwrap();
@@ -345,7 +345,7 @@ mod tests {
         assert!(!policy.contains("unsafe-inline"));
         assert!(!policy.contains("unsafe-eval"));
         let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
-        assert!(String::from_utf8(bytes.to_vec()).unwrap().contains("<title>Heidrun Mobile</title>"));
+        assert!(String::from_utf8(bytes.to_vec()).unwrap().contains("<title>Heidrun Code Mobile</title>"));
     }
 
     #[tokio::test]
@@ -381,7 +381,7 @@ mod tests {
         assert_eq!(response.headers()[header::CONTENT_TYPE], "application/manifest+json");
         let bytes = axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
         let manifest: Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(manifest["name"], "Heidrun");
+        assert_eq!(manifest["name"], "Heidrun Code");
     }
 
     #[tokio::test]

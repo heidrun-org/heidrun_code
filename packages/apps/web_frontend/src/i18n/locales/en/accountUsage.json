@@ -4,7 +4,7 @@
   "antigravityAccount": "Antigravity account",
   "percent": "{value}%",
   "resetsAt": "resets at {time}",
-  "waitingClaude": "Quota status unspecified. Heidrun has not received quota figures from Claude Code's status line yet. This does not mean your usage is zero.",
+  "waitingClaude": "Quota status unspecified. Heidrun Code has not received quota figures from Claude Code's status line yet. This does not mean your usage is zero.",
   "waitingCodex": "No data yet: Codex writes it after its first answer.",
   "antigravityNotLinked": "Turn on Antigravity quota tracking in Settings, under Coding agents. Quota data appears after Antigravity's next answer.",
   "waitingAntigravity": "Waiting for the next answer of Antigravity.",

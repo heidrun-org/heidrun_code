@@ -1,15 +1,21 @@
 // The Code hosting sidebar section: the open issues, and the open pull requests (GitHub) or merge requests (GitLab), of
 // the repository of the selected workspace. They are read with `gh` or `glab` through the Tauri command
-// `forge_cli_cached`, which keeps each answer on the disk for ten minutes. A refresh asks the hosting service again.
+// `forge_cli_cached`, which keeps each answer on the disk until a refresh: only a refresh asks the hosting service again,
+// because each call takes points of the GitHub rate limit.
 // Each list has its own search, its own status, and its own failure: `gh` takes a search as it is, and for GitLab it is
 // translated into filters.
 // - issue #370
 // - issue #374
 // - issue #378
 // - issue #607
+// - issue #869
+// - issue #870
+// - issue #890
 import { reactive } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { runForgeCli, runForgeCliWithSource } from "../lib/forge_cli";
 import { t } from "../i18n/index";
+import { clockTime } from "../lib/format";
 import {
   githubSearchArguments,
   githubState,
@@ -78,6 +84,11 @@ export const codeHosting = reactive({
   error: "",
   /** The first line of the failure of `gh` or `glab` for each list, or an empty text. */
   listError: { issues: "", requests: "" } as Record<CodeHostingGroup, string>,
+  /**
+   * For each list, the message that says that the refresh failed and that the list is the kept answer, with its time,
+   * or an empty text.
+   */
+  listNotice: { issues: "", requests: "" } as Record<CodeHostingGroup, string>,
   /** The lists that are folded. */
   folded: { issues: false, requests: false } as Record<CodeHostingGroup, boolean>,
 });
@@ -123,6 +134,14 @@ const lastListLoad: Record<CodeHostingGroup, number> = { issues: 0, requests: 0 
 
 /** The failure of a search that GitLab cannot do. Its message is shown as it is, and says the word. */
 class CodeHostingSearchError extends Error {}
+
+/** A kept answer that replaced a failure of `gh` or `glab` during a refresh. */
+type KeptAfterFailure = {
+  /** The failure of the call. */
+  failure: string;
+  /** When the hosting service gave the kept answer, in milliseconds since 1970. */
+  keptAt: number;
+};
 
 /** What `gh issue list` and `gh pr list` print for one item. */
 type GithubItem = {
@@ -217,15 +236,32 @@ function itemOfGitlab(item: GitlabItem): CodeHostingItem {
 }
 
 /**
- * Runs `gh` or `glab` in a folder of the repository, through the cache of the answers.
+ * Runs `gh` or `glab` in a folder of the repository, through the cache of the answers. The kept answer is used whatever
+ * its age, until a refresh. When a refresh fails and the kept answer replaces the failure, the failure and the time of
+ * the kept answer go into `keptFailures`.
  * @param folder - the folder of the repository
  * @param tool - the command line tool of the hosting service
  * @param args - the arguments of the tool
- * @param isRefresh - true to ask the hosting service again even when a fresh answer is kept
- * @returns what the tool printed
+ * @param isRefresh - true to ask the hosting service again even when an answer is kept
+ * @param keptFailures - receives each kept answer that replaced a failure
+ * @returns what the tool printed, or the kept answer
  */
-function runForge(folder: string, tool: "gh" | "glab", args: string[], isRefresh: boolean): Promise<string> {
-  return invoke<string>("forge_cli_cached", { cwd: folder, tool, args, refresh: isRefresh });
+async function runForge(
+  folder: string,
+  tool: "gh" | "glab",
+  args: string[],
+  isRefresh: boolean,
+  keptFailures: KeptAfterFailure[],
+): Promise<string> {
+  const options = { isRefresh, isKeptUntilRefresh: true };
+  if (isRefresh === false) {
+    return runForgeCli("code_hosting_list", folder, tool, args, options);
+  }
+  const answer = await runForgeCliWithSource("code_hosting_list", folder, tool, args, options);
+  if (answer.failure !== null && answer.keptAt !== null) {
+    keptFailures.push({ failure: answer.failure, keptAt: answer.keptAt });
+  }
+  return answer.output;
 }
 
 /**
@@ -234,6 +270,7 @@ function runForge(folder: string, tool: "gh" | "glab", args: string[], isRefresh
  * @param group - the list to read
  * @param isRefresh - true to ask GitHub again even when a fresh answer is kept
  * @param search - the search of this list, or an empty text for no search
+ * @param keptFailures - receives each kept answer that replaced a failure
  * @returns the items of the list
  */
 async function readGithubList(
@@ -241,6 +278,7 @@ async function readGithubList(
   group: CodeHostingGroup,
   isRefresh: boolean,
   search: string,
+  keptFailures: KeptAfterFailure[],
 ): Promise<CodeHostingItem[]> {
   const common = [
     "--state",
@@ -254,17 +292,19 @@ async function readGithubList(
     group === "issues"
       ? ["issue", "list", ...common, GITHUB_ISSUE_FIELDS]
       : ["pr", "list", ...common, GITHUB_PULL_REQUEST_FIELDS];
-  return (JSON.parse(await runForge(folder, "gh", args, isRefresh)) as GithubItem[]).map(itemOfGithub);
+  return (JSON.parse(await runForge(folder, "gh", args, isRefresh, keptFailures)) as GithubItem[]).map(itemOfGithub);
 }
 
 /**
  * Reads the login of the person who is signed in to `glab`.
  * @param folder - the folder of the repository
  * @param isRefresh - true to ask GitLab again even when a fresh answer is kept
+ * @param keptFailures - receives each kept answer that replaced a failure
  * @returns the login
  */
-async function readGitlabLogin(folder: string, isRefresh: boolean): Promise<string> {
-  const user = JSON.parse(await runForge(folder, "glab", ["api", "user"], isRefresh)) as { username?: string };
+async function readGitlabLogin(folder: string, isRefresh: boolean, keptFailures: KeptAfterFailure[]): Promise<string> {
+  const answer = await runForge(folder, "glab", ["api", "user"], isRefresh, keptFailures);
+  const user = JSON.parse(answer) as { username?: string };
   if (user.username === undefined) {
     throw new Error("glab api user: no username");
   }
@@ -277,6 +317,7 @@ async function readGitlabLogin(folder: string, isRefresh: boolean): Promise<stri
  * @param isRefresh - true to ask GitLab again even when a fresh answer is kept
  * @param path - the part of the address after the project: "issues" or "merge_requests"
  * @param translation - the filters of the search for this list
+ * @param keptFailures - receives each kept answer that replaced a failure
  * @returns the items, none when the search leaves nothing in this list
  */
 async function readGitlabList(
@@ -284,6 +325,7 @@ async function readGitlabList(
   isRefresh: boolean,
   path: "issues" | "merge_requests",
   translation: GitlabTranslation,
+  keptFailures: KeptAfterFailure[],
 ): Promise<CodeHostingItem[]> {
   if (translation.kind !== "filters") {
     return [];
@@ -292,7 +334,8 @@ async function readGitlabList(
   if (path === "issues") {
     parameters.push("with_labels_details=true");
   }
-  const answer = await runForge(folder, "glab", ["api", `projects/:fullpath/${path}?${parameters.join("&")}`], isRefresh);
+  const address = `projects/:fullpath/${path}?${parameters.join("&")}`;
+  const answer = await runForge(folder, "glab", ["api", address], isRefresh, keptFailures);
   return (JSON.parse(answer) as GitlabItem[]).map(itemOfGitlab);
 }
 
@@ -303,6 +346,7 @@ async function readGitlabList(
  * @param group - the list to read
  * @param isRefresh - true to ask GitLab again even when a fresh answer is kept
  * @param search - the search of this list, or an empty text for no search
+ * @param keptFailures - receives each kept answer that replaced a failure
  * @returns the items of the list
  */
 async function readGitlabGroup(
@@ -310,15 +354,50 @@ async function readGitlabGroup(
   group: CodeHostingGroup,
   isRefresh: boolean,
   search: string,
+  keptFailures: KeptAfterFailure[],
 ): Promise<CodeHostingItem[]> {
   // A first translation with a made-up login finds a word that GitLab cannot do before `glab` is asked for the login.
   const firstTranslation = translateForGitlab(group, search, "login");
   if (firstTranslation.kind === "cannot") {
     throw new CodeHostingSearchError(t("codeHostingPanel.gitlabCannot", { word: firstTranslation.word }));
   }
-  const login = usesCurrentUser(search) ? await readGitlabLogin(folder, isRefresh) : null;
+  const login = usesCurrentUser(search) ? await readGitlabLogin(folder, isRefresh, keptFailures) : null;
   const translation = translateForGitlab(group, search, login);
-  return readGitlabList(folder, isRefresh, group === "issues" ? "issues" : "merge_requests", translation);
+  const path = group === "issues" ? "issues" : "merge_requests";
+  return readGitlabList(folder, isRefresh, path, translation, keptFailures);
+}
+
+/**
+ * The message of a failure of `gh` that says the GitHub rate limit is exceeded, with the local time of the reset.
+ * @param folder - the folder of the repository
+ * @param message - the first line of the failure
+ * @returns the message with the reset time, or null when the failure is not a rate limit or the reset time is unknown
+ */
+async function githubRateLimitMessage(folder: string, message: string): Promise<string | null> {
+  if (/rate limit/i.test(message) === false) {
+    return null;
+  }
+  try {
+    const reset = await invoke<number | null>("forge_rate_limit_reset", { cwd: folder });
+    return reset === null ? null : t("codeHostingPanel.rateLimit", { time: clockTime(reset) });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The message that says that a refresh failed and that the list shows the kept answer, with the time of the oldest
+ * kept answer and the first line of the first failure.
+ * @param folder - the folder of the repository
+ * @param forge - the hosting service of the repository
+ * @param keptFailures - the kept answers that replaced a failure, at least one
+ * @returns the message
+ */
+async function keptAfterFailureNotice(folder: string, forge: Forge, keptFailures: KeptAfterFailure[]): Promise<string> {
+  const message = keptFailures[0].failure.split("\n")[0].slice(0, 300);
+  const rateLimitMessage = forge === "github" ? await githubRateLimitMessage(folder, message) : null;
+  const keptAt = Math.min(...keptFailures.map((kept) => kept.keptAt));
+  return t("codeHostingPanel.keptAfterFailure", { time: clockTime(keptAt / 1000), error: rateLimitMessage ?? message });
 }
 
 /**
@@ -333,6 +412,7 @@ async function loadCodeHostingList(folder: string, group: CodeHostingGroup, isRe
   const thisLoad = ++lastListLoad[group];
   codeHosting[group] = [];
   codeHosting.listError[group] = "";
+  codeHosting.listNotice[group] = "";
   const forge = codeHosting.forge;
   if (forge === null) {
     codeHosting.listStatus[group] = "idle";
@@ -341,21 +421,29 @@ async function loadCodeHostingList(folder: string, group: CodeHostingGroup, isRe
   codeHosting.listStatus[group] = "loading";
   try {
     const search = codeHosting.search[group];
+    const keptFailures: KeptAfterFailure[] = [];
     const items =
       forge === "github"
-        ? await readGithubList(folder, group, isRefresh, search)
-        : await readGitlabGroup(folder, group, isRefresh, search);
+        ? await readGithubList(folder, group, isRefresh, search, keptFailures)
+        : await readGitlabGroup(folder, group, isRefresh, search, keptFailures);
+    const notice = keptFailures.length === 0 ? "" : await keptAfterFailureNotice(folder, forge, keptFailures);
     if (thisLoad !== lastListLoad[group]) {
       return;
     }
     codeHosting[group] = items;
+    codeHosting.listNotice[group] = notice;
     codeHosting.listStatus[group] = "ready";
   } catch (failure) {
     if (thisLoad !== lastListLoad[group]) {
       return;
     }
-    codeHosting.listError[group] =
+    const message =
       failure instanceof CodeHostingSearchError ? failure.message : String(failure).split("\n")[0].slice(0, 300);
+    const rateLimitMessage = forge === "github" ? await githubRateLimitMessage(folder, message) : null;
+    if (thisLoad !== lastListLoad[group]) {
+      return;
+    }
+    codeHosting.listError[group] = rateLimitMessage ?? message;
     codeHosting.listStatus[group] = "failed";
   }
 }
@@ -374,6 +462,7 @@ export async function loadCodeHosting(folder: string | null, isRefresh = false):
     codeHosting[group] = [];
     codeHosting.listStatus[group] = "idle";
     codeHosting.listError[group] = "";
+    codeHosting.listNotice[group] = "";
   }
   codeHosting.error = "";
   if (folder === null) {

@@ -1,13 +1,13 @@
-# User interface of Heidrun: the references in the text of the terminals
+# User interface of Heidrun Code: the references in the text of the terminals
 
 - Created: 22 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [The detection in the text of the terminals](terminal_text_detection.md), [Glossary of Heidrun: terminal text detection](../../glossary/terminal_text_detection.md)
+- Related rules: [The detection in the text of the terminals](terminal_text_detection.md), [Glossary of Heidrun Code: terminal text detection](../../glossary/terminal_text_detection.md)
 - Related issue: [issue 793](https://github.com/heidrun-org/heidrun/issues/793), [issue 638](https://github.com/heidrun-org/heidrun/issues/638)
 
-This file gives, for the four reference families, the forms that Heidrun accepts, the forms that it refuses, and the destination. The code is `findRefs` in `lib/refs.ts`.
+This file gives, for the four reference families, the forms that Heidrun Code accepts, the forms that it refuses, and the destination. The code is `findRefs` in `lib/refs.ts`.
 
 ## One reference, many forms
 

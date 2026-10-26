@@ -1,18 +1,18 @@
 # Rule: the Past chats sidebar section and the Statistics window get all their data through the data layer
 
 - Created: 17 October 2026
-- Last updated: 17 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
-- Related rules: [Chats list](user_interface/sidebars/chats/chats_list.md), [Statistics window](user_interface/window/statistics_window.md), [Glossary of Heidrun](glossary/index.md)
+- Related rules: [Chats list](user_interface/sidebars/chats/chats_list.md), [Statistics window](user_interface/window/statistics_window.md), [Glossary of Heidrun Code](glossary/index.md)
 - Related issue: [issue 617](https://github.com/heidrun-org/heidrun/issues/617)
 
-This file gives the rule for every agent that changes the Past chats sidebar section, the Statistics window, or a package of the folder `packages/data_layers`. The description of the four packages is in [the_four_data_layers.md](../statistics/the_four_data_layers.md).
+This file gives the rule for every agent that changes the Past chats sidebar section, the Statistics window, or a package of the folder `submodules/heidrun_data/packages`. The description of the four packages is in [the_four_data_layers.md](../statistics/the_four_data_layers.md).
 
 ## The rule
 
 - The Past chats sidebar section and the Statistics window get all their data from the packages `data_layer_coding_agents`, `data_layer_source_control`, `data_layer_code_hosting`, and `data_layer_user_activity`.
-- "Data" is everything that these two parts show about the world outside Heidrun: the list of chats, the information cards, the summaries, the counts, the details of an issue or of a pull request, the status of a referenced file or of a worktree, the totals of tokens and of dollars, and the data of the dynamic topics.
+- "Data" is everything that these two parts show about the world outside Heidrun Code: the list of chats, the information cards, the summaries, the counts, the details of an issue or of a pull request, the status of a referenced file or of a worktree, the totals of tokens and of dollars, and the data of the dynamic topics.
 - The desktop application (`packages/apps/desktop_tauri`) and the web page never read a chat session file, never start `git`, `gh`, or `glab`, never make a network request, and never run SQL for this data. Only a package of the data layer does these things.
 - An action is not data. To resume a chat, to open a worktree in VS Code, and to open a file are actions. They stay in the desktop application, and they show no data.
 
@@ -37,9 +37,9 @@ The commands of the Past chats sidebar section are in the folder `packages/apps/
 
 Each exception has a reason, and is written in `boundary_rules.ts` of the package `data_layer_boundary_checker`. Add a new exception there, with its reason, and add it here.
 
-- The three commands for files and worktrees ask a typed function of `data_layer_source_control` whether a file or a folder exists on the disk, and which branch a worktree holds. This status changes outside Heidrun, so it is not stored.
+- The three commands for files and worktrees ask a typed function of `data_layer_source_control` whether a file or a folder exists on the disk, and which branch a worktree holds. This status changes outside Heidrun Code, so it is not stored.
 - GitLab: `data_layer_code_hosting` reads GitHub only ([issue 455](https://github.com/heidrun-org/heidrun/issues/455)). The details of an issue or of a merge request of GitLab stay live in `stores/forge_reference_details.ts`, read through `stores/chat_references.ts`. The Code hosting sidebar section is not part of this rule: it stays live.
-- The translation table of the clustered dynamic topics is a file that Heidrun writes itself, and the language model call is an action. The data of the dynamic topics comes from the stored chats.
+- The translation table of the clustered dynamic topics is a file that Heidrun Code writes itself, and the language model call is an action. The data of the dynamic topics comes from the stored chats.
 - The files `claude.rs` and `usage.rs` take the folder names `claude_dir` and `codex_home` from `data_layer_coding_agents`. A folder name is not data.
 - `ChatsPanel.vue` asks `project_refs` (`refContext`) for the forge and the address of the repository. They come from the configuration of the project and from the remote `origin`, they choose GitHub or GitLab and build web links, and they are not data of a chat. A later issue can move them to `data_layer_source_control`.
 - `project::find_root` walks up from a folder to the folder that holds `.git` or `.heidrun`. It names the root of a workspace and reads no data.

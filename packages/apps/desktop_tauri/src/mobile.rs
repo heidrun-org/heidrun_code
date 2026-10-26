@@ -52,7 +52,7 @@ async fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Str
         Ok(Ok(v)) => Ok(v),
         _ => {
             state.pending.lock().unwrap().remove(&id);
-            Err("Heidrun does not answer on the computer".into())
+            Err("Heidrun Code does not answer on the computer".into())
         }
     }
 }
@@ -62,7 +62,7 @@ fn start(app: &AppHandle, state: &MobileState, config: &mobile_server::MobileCon
     tauri::async_runtime::spawn(state.server.start(bridge, config));
 }
 
-/// Called when Heidrun quits: the server stops and the program `ngrok` is killed, so no tunnel stays open.
+/// Called when Heidrun Code quits: the server stops and the program `ngrok` is killed, so no tunnel stays open.
 pub fn stop_on_quit(app: &AppHandle) {
     app.state::<MobileState>().server.stop();
 }
@@ -135,7 +135,7 @@ pub fn mobile_revoke(state: State<'_, MobileState>) -> Result<MobileStatus, Stri
 }
 
 /// The button "Stop the old ngrok" of the error `ngrokAddressInUse`: kills the program `ngrok` that an earlier or another
-/// Heidrun started, never the program of this Heidrun (issue 583). True when a program was killed.
+/// Heidrun Code started, never the program of this Heidrun Code (issue 583). True when a program was killed.
 #[tauri::command]
 pub async fn mobile_stop_leftover_ngrok(app: AppHandle) -> bool {
     if crate::application_profile::is_development() {

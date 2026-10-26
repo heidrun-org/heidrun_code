@@ -29,7 +29,7 @@ export class VideoRecordCli {
 					+ 'The recording stops with Ctrl-C or SIGTERM. Then run `pnpm --filter video_recorder video:cut`.',
 			)
 			.requiredOption('--output-dir <folder>', 'The folder that receives the raw video and the clicks log.')
-			.option('--owner <name>', 'The name of the application whose window is recorded.', 'Heidrun')
+			.option('--owner <name>', 'The name of the application whose window is recorded.', 'Heidrun Code')
 			.option('--seconds <number>', 'Stop after this number of seconds.', VideoRecordCli._parseSeconds)
 			.parse(argv);
 		const options = program.opts<{ outputDir: string; owner: string; seconds?: number }>();

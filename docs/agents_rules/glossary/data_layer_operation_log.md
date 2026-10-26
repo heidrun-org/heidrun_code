@@ -1,13 +1,13 @@
-# Glossary of Heidrun: the operation log of the data layer
+# Glossary of Heidrun Code: the operation log of the data layer
 
 - Created: 17 October 2026
-- Last updated: 18 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [Rule: every operation of the data layer is recorded in the operation log](../data_layer_operation_log.md), [The operation log of the data layer](../../statistics/data_layer_operation_log.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [Rule: every operation of the data layer is recorded in the operation log](../data_layer_operation_log.md), [The operation log of the data layer](../../statistics/data_layer_operation_log.md)
 - Related issue: [issue 618](https://github.com/heidrun-org/heidrun/issues/618), [issue 664](https://github.com/heidrun-org/heidrun/issues/664)
 
-This document gives one short definition for each word of the operation log of the data layer. The other words of Heidrun are in [index.md](index.md). The word "request" does not name an operation: it keeps its other meanings (a request to the mobile server, a network request, a pull request, and a merge request).
+This document gives one short definition for each word of the operation log of the data layer. The other words of Heidrun Code are in [index.md](index.md). The word "request" does not name an operation: it keeps its other meanings (a request to the mobile server, a network request, a pull request, and a merge request).
 
 ### Operation
 
@@ -27,7 +27,7 @@ The two lines of an operation. The start event is written before the function wo
 
 ### Caller
 
-The program that made the operation: `heidrun` for the desktop application, `heidrun_data` for the command line. The variable `HEIDRUN_OPERATION_LOG_CALLER` replaces it.
+The program that made the operation: `heidrun` for the desktop application, `heidrun_data` for the command line. The variable `HEIDRUN_CODE_OPERATION_LOG_CALLER` replaces it.
 
 ### Kind
 

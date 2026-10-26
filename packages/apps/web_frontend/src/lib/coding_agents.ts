@@ -48,7 +48,7 @@ export type CodingAgentDefinition = {
   buildArguments: (model: string, effort: string, quote: (text: string) => string, prompt: string) => string[];
 };
 
-/** The coding agents that Heidrun supports. Each one lists its own models and efforts: they differ. */
+/** The coding agents that Heidrun Code supports. Each one lists its own models and efforts: they differ. */
 export const CODING_AGENTS: CodingAgentDefinition[] = [
   {
     id: "claude",

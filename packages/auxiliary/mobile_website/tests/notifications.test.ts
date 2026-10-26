@@ -146,7 +146,7 @@ describe('Notifications in the settings window of the Dashboard', () => {
 		const harness = await AppHarness.start(computerWithPushKey(), true, '#/dashboard');
 		await harness.tap('[data-action="open-settings"]');
 		await harness.tap('[data-action="notifications-test"]');
-		expect(showNotification).toHaveBeenCalledWith('Heidrun', {
+		expect(showNotification).toHaveBeenCalledWith('Heidrun Code', {
 			body: 'Test notification: a coding agent needs you.',
 			tag: 'heidrun-test',
 			data: {

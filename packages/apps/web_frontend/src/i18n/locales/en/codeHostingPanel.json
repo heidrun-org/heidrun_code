@@ -35,6 +35,8 @@
   "savedCard.levelUser": "User: the saved search shows in every workspace.",
   "savedCard.levelWorkspace": "Workspace {name}: the saved search shows only in this workspace.",
   "gitlabCannot": "GitLab cannot do this search: {word}",
+  "rateLimit": "GitHub rate limit exceeded. Resets at {time}.",
+  "keptAfterFailure": "The refresh failed. This list is from {time}. {error}",
   "emptySearch.issues": "No issue matches the search.",
   "emptySearch.pullRequests": "No pull request matches the search.",
   "emptySearch.mergeRequests": "No merge request matches the search.",
@@ -43,9 +45,9 @@
   "help.gitlab.title": "GitLab search — {name}",
   "help.run": "Combine filters with spaces. Press Enter in the search field to search only {name}. Without a state filter, the list shows open items.",
   "help.github.documentation": "GitHub Docs",
-  "help.gitlab.supportedTitle": "Supported in Heidrun for GitLab",
+  "help.gitlab.supportedTitle": "Supported in Heidrun Code for GitLab",
   "help.gitlab.supported": "Use author:, assignee:, milestone:, label: (one label per filter), no:label, no:assignee, no:milestone, is:open or is:closed. Put - before author:, assignee:, milestone: or label: to exclude a value. @me means your signed-in GitLab account. Plain words and AND are also supported.",
   "help.gitlab.reviews": "For merge requests, is:merged and review-requested:@me are also supported.",
   "help.gitlab.limitsTitle": "Limitations",
-  "help.gitlab.limits": "Heidrun translates these expressions into GitLab filters. The full GitHub search language does not work here. Unsupported expressions show an error: mentions:, involves:, OR, NOT, parentheses, commas in labels, sort:, date filters, quoted free phrases and excluded plain words."
+  "help.gitlab.limits": "Heidrun Code translates these expressions into GitLab filters. The full GitHub search language does not work here. Unsupported expressions show an error: mentions:, involves:, OR, NOT, parentheses, commas in labels, sort:, date filters, quoted free phrases and excluded plain words."
 }

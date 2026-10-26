@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
 	PERSON_WORK_LONGEST_DAY_COUNT,

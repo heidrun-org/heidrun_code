@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { singularOf, topicWordsOf } from "./dynamic_topic_words";
 

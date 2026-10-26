@@ -18,7 +18,7 @@ export type VoiceOptions = {
 	models: VoiceModel[];
 	/** The two-letter codes of the languages, without the automatic choice. */
 	languages: string[];
-	/** The identifier of the model that Heidrun proposes first. */
+	/** The identifier of the model that Heidrun Code proposes first. */
 	defaultModelId: string;
 };
 

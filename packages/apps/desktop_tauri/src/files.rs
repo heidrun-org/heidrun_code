@@ -644,7 +644,7 @@ pub fn file_create(root: String, path: String, dir: bool) -> Result<(), String> 
 }
 
 /// The paths, among `paths`, that are folders of the project today (not symlinks). The sidebar section File explorer asks it
-/// to drop the new empty folders that the developer removed outside Heidrun, because Git does not list empty folders.
+/// to drop the new empty folders that the developer removed outside Heidrun Code, because Git does not list empty folders.
 #[tauri::command(async)]
 pub fn dirs_existing(root: String, paths: Vec<String>) -> Result<Vec<String>, String> {
     known_root(&root)?;

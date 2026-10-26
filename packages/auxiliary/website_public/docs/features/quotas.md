@@ -29,7 +29,7 @@ The status bar, at the bottom of the window, shows the usage of Claude and the u
 
 - The percent of the quota that you used, for 5 hours and for the week.
 - The time of the next reset.
-- The pace: your usage, compared with the usage that is expected at this time. Heidrun tells you the usage at the reset if you keep this pace, or how much to reduce your usage when the quota will run out early.
+- The pace: your usage, compared with the usage that is expected at this time. Heidrun Code tells you the usage at the reset if you keep this pace, or how much to reduce your usage when the quota will run out early.
 
 ![A Claude Code pane in the light theme, with its usage wheel in the header, and under it the status bar with the Claude quota at 62% and the Codex quota at 3%.](/screenshots/quotas.png){width=400}
 

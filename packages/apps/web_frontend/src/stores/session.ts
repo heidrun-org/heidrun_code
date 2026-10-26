@@ -11,6 +11,8 @@ import { DetectionFamilies } from "../lib/detection_families";
 import { findChoices, findQuestion, type ChoiceMenu } from "../lib/refs";
 import { allowCommand } from "./guards";
 import { ZenMode } from "./zen_mode";
+import { paneFocusHistory } from "./pane_focus_history_state";
+import { CompositionBarAtStart } from "./composition_bar_at_start";
 import { t } from "../i18n/index";
 import type {
   AgentInfo,
@@ -209,7 +211,7 @@ export function attentionKey(p: AgentInfo): string {
 }
 
 /**
- * Hides the current card and changes an acknowledged Finished completion to Idle in Heidrun.
+ * Hides the current card and changes an acknowledged Finished completion to Idle in Heidrun Code.
  * @param p - The status represented by the card being removed.
  * @returns Nothing.
  */
@@ -779,11 +781,11 @@ async function checkQuestion(
     // Shown again even if an earlier "terminé" card was closed.
     delete state.dismissed[paneId];
     if (pushToPhone) void notifyPhone();
-    if (notifyQuestion) notify(t("sessionStore.notify.question", { name }), `${ws ? `${ws} · ` : ""}${question}`);
+    if (notifyQuestion) notify("question", t("sessionStore.notify.question", { name }), `${ws ? `${ws} · ` : ""}${question}`);
   } else {
     delete state.questions[paneId];
     if (pushToPhone) void notifyPhone();
-    if (notifyDone) notify(t("sessionStore.notify.done", { name }), ws);
+    if (notifyDone) notify("done", t("sessionStore.notify.done", { name }), ws);
   }
 }
 
@@ -864,7 +866,7 @@ function applySnapshot(snap: SessionSnapshot) {
     if (after === "blocked") {
       void notifyPhone();
       if (!document.hasFocus() || state.selectedPaneId !== pane.pane_id) {
-        notify(t("sessionStore.notify.blocked", { name: paneName(view) }), ws);
+        notify("blocked", t("sessionStore.notify.blocked", { name: paneName(view) }), ws);
       }
     } else if ((after === "done" || after === "idle") && (before === "working" || before === "blocked")) {
       // Finished: look at how the answer ends before notifying ("a terminé" or the question).
@@ -884,6 +886,7 @@ function applySnapshot(snap: SessionSnapshot) {
     }
   }
 	if (state.snapshot === null) {
+		CompositionBarAtStart.openForRunningCodingAgents(snap.panes);
 		for (const workspace of snap.workspaces) {
 			const request = workspace.tokens?.heidrun_focus_request;
 			if (request !== undefined) {
@@ -916,6 +919,30 @@ function applySnapshot(snap: SessionSnapshot) {
   }
 }
 
+/**
+ * Finds the pane to select when the selected tab does not exist any more, because the developer closed it. It is the
+ * pane that had the focus most recently in the pane focus history, among the panes of the selected workspace. The panes
+ * of the closed tab are not in the snapshot, so the search skips all their entries.
+ * @param snap - the snapshot that Herdr just sent
+ * @returns the pane to select, or `null` when the selected tab still exists or the history has no such pane
+ */
+function findPaneAfterTabClose(snap: SessionSnapshot): PaneInfo | null {
+  const closedTabId = state.selectedTabId;
+  if (closedTabId === null || snap.tabs.some((tab) => tab.tab_id === closedTabId)) {
+    return null;
+  }
+  const workspacePanes = new Map(
+    snap.panes
+      .filter((pane) => pane.workspace_id === state.selectedWorkspaceId)
+      .map((pane) => [pane.pane_id, pane] as const),
+  );
+  const paneId = paneFocusHistory.findMostRecentPaneId((candidateId) => workspacePanes.has(candidateId));
+  if (paneId === null) {
+    return null;
+  }
+  return workspacePanes.get(paneId) ?? null;
+}
+
 function fixSelection(snap: SessionSnapshot) {
   ZenMode.exitIfPaneIsMissing(snap.panes.map((pane) => pane.pane_id));
   const ws = snap.workspaces;
@@ -933,7 +960,13 @@ function fixSelection(snap: SessionSnapshot) {
   const wsInfo = ws.find((w) => w.workspace_id === state.selectedWorkspaceId);
   const wsTabs = snap.tabs.filter((t) => t.workspace_id === state.selectedWorkspaceId);
   if (!wsTabs.some((t) => t.tab_id === state.selectedTabId)) {
-    state.selectedTabId = wsInfo?.active_tab_id ?? wsTabs[0]?.tab_id ?? null;
+    const paneAfterTabClose = findPaneAfterTabClose(snap);
+    if (paneAfterTabClose !== null) {
+      state.selectedTabId = paneAfterTabClose.tab_id;
+      state.selectedPaneId = paneAfterTabClose.pane_id;
+    } else {
+      state.selectedTabId = wsInfo?.active_tab_id ?? wsTabs[0]?.tab_id ?? null;
+    }
   }
   const panes = snap.panes.filter((p) => p.tab_id === state.selectedTabId);
   if (!panes.some((p) => p.pane_id === state.selectedPaneId)) {
@@ -1327,7 +1360,7 @@ export function addWatch(paneId: string, regex: string) {
     .waitForOutput(paneId, regex)
     .then((line) => {
       const pane = allPanes.value.find((p) => p.pane_id === paneId);
-      notify(t("sessionStore.notify.patternFound", { name: pane ? paneName(pane) : paneId }), line ?? regex);
+      notify("patternFound", t("sessionStore.notify.patternFound", { name: pane ? paneName(pane) : paneId }), line ?? regex);
     })
     .catch(() => {})
     .finally(() => {
@@ -1428,6 +1461,6 @@ export async function start() {
   }
   // No timer reads the snapshot of Herdr: it gives the page a new list of workspaces each time, so everything that
   // watches this list runs again. A lost event is covered by the refresh after "herdr://connected" and "herdr://resync".
-  // Codex writes its usage outside Heidrun and no event announces it, so the usage of Codex keeps a timer.
+  // Codex writes its usage outside Heidrun Code and no event announces it, so the usage of Codex keeps a timer.
   window.setInterval(refreshCodex, 10_000);
 }

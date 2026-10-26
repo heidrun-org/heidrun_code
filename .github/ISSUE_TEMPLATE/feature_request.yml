@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest an idea for Heidrun. The goat listens to every einherjar.
+description: Suggest an idea for Heidrun Code. The goat listens to every einherjar.
 labels: ["enhancement"]
 body:
   - type: textarea

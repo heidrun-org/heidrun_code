@@ -1,6 +1,6 @@
 # video_recorder
 
-Two command line tools for [Heidrun](../../../README.md) that record a marketing video of the Heidrun window, and cut it around its mouse clicks. The method, the format of `clicks.json`, and the steps are in [docs/marketing/recording_videos.md](../../../docs/marketing/recording_videos.md).
+Two command line tools for [Heidrun Code](../../../README.md) that record a marketing video of the Heidrun Code window, and cut it around its mouse clicks. The method, the format of `clicks.json`, and the steps are in [docs/marketing/recording_videos.md](../../../docs/marketing/recording_videos.md).
 
 ## What it contains
 

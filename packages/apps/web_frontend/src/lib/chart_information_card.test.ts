@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { CHART_BAR_GAP, CHART_LEGEND, CHART_MARGIN, ChartInformationCard } from "./chart_information_card";
 

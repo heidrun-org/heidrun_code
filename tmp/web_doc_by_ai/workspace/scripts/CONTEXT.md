@@ -6,7 +6,7 @@ The scripts that the maintainers run from the root of the repository: the releas
 ## Key Exports & Entry Points
 - `release_dmg.ts`: builds the macOS disk image and uploads it to the GitHub release. Command: `pnpm release:dmg`.
 - `shortcuts-readme.mjs`: writes the page of shortcuts of the website. Command: `pnpm docs:shortcuts`.
-- `identity-texts.mjs`: writes the title, the motto, and the description of Heidrun from `data/identity.json` into `README.md`, and the description into `AGENTS.md` and `docs/release_notes/prefix.md`. Command: `pnpm docs:identity`.
+- `identity-texts.mjs`: writes the title, the motto, and the description of Heidrun Code from `data/identity.json` into `README.md`, and the description into `AGENTS.md` and `docs/release_notes/prefix.md`. Command: `pnpm docs:identity`.
 - `claude-statusline.sh`: the status line of Claude Code for this repository.
 
 ## Rules

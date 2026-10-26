@@ -3,9 +3,9 @@ import Icon from "./Icon.vue";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { addLauncher, updateLauncher } from "../stores/project";
+import { addLauncher, launcherLevel, launchersOf, updateLauncher, type LauncherLevel } from "../stores/project";
 import { closeNewCustomLauncherModal, newCustomLauncherModal } from "../stores/newCustomLauncher";
-import { state, toast } from "../stores/session";
+import { selectedWorkspace, state, toast } from "../stores/session";
 import { project } from "../stores/project";
 import { effortsOf } from "../lib/coding_agent_models";
 import { CUSTOM_LAUNCHER_CODING_AGENTS, findCodingAgent } from "../lib/coding_agents";
@@ -32,9 +32,22 @@ const editedLauncher = (() => {
   if (id === null || workspaceId === null || workspaceId === undefined) {
     return undefined;
   }
-  return project.byWorkspace[workspaceId]?.config.launchers.find((launcher) => launcher.id === id);
+  return launchersOf(workspaceId).find((launcher) => launcher.id === id);
 })();
 const isEditing = editedLauncher !== undefined;
+
+/** The level that the two buttons "User" and "Workspace" choose. A new custom launcher starts at the workspace level. */
+const level = ref<LauncherLevel>(isEditing ? launcherLevel(editedLauncher) : "workspace");
+
+/** The name of the workspace that was selected when the window opened. */
+const workspaceName = selectedWorkspace.value?.label ?? "";
+
+/** The sentence that tells where the custom launcher shows, for the chosen level. */
+const levelHint = computed(() => {
+  return level.value === "user"
+    ? t("newCustomLauncherModal.levelUserHint")
+    : t("newCustomLauncherModal.levelWorkspaceHint", { name: workspaceName });
+});
 
 const kind = ref<Kind>(isEditing ? (editedLauncher.agent === undefined ? "commandLine" : "codingAgent") : settings.customLauncherKind);
 const name = ref(editedLauncher?.label ?? "");
@@ -265,9 +278,9 @@ async function create() {
         command: command.value.trim(),
         ...(description.value.trim() !== "" ? { description: description.value.trim() } : {}),
         ...(cwd !== "" ? { cwd } : {}),
-      });
+      }, level.value);
     } else {
-      await addLauncher(workspaceId, name.value, command.value, undefined, cwd, description.value);
+      await addLauncher(workspaceId, name.value, command.value, undefined, cwd, description.value, level.value);
     }
   } else {
     const agent = {
@@ -283,9 +296,9 @@ async function create() {
         agent,
         ...(description.value.trim() !== "" ? { description: description.value.trim() } : {}),
         ...(cwd !== "" ? { cwd } : {}),
-      });
+      }, level.value);
     } else {
-      await addLauncher(workspaceId, name.value, launcherAgentCommand(agent), agent, cwd, description.value);
+      await addLauncher(workspaceId, name.value, launcherAgentCommand(agent), agent, cwd, description.value, level.value);
     }
   }
   closeNewCustomLauncherModal();
@@ -322,6 +335,21 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
               {{ t(choice.labelKey) }}
             </label>
           </div>
+        </div>
+
+        <div>
+          <div class="form-label">{{ t("newCustomLauncherModal.level") }}</div>
+          <div class="btn-group d-flex" role="group" :aria-label="t('newCustomLauncherModal.level')">
+            <label class="btn btn-check btn-outline theme-secondary choice justify-content-center">
+              <input v-model="level" type="radio" name="new-launcher-level" autocomplete="off" value="user" data-launcher-level="user" />
+              {{ t("newCustomLauncherModal.levelUser") }}
+            </label>
+            <label class="btn btn-check btn-outline theme-secondary choice justify-content-center">
+              <input v-model="level" type="radio" name="new-launcher-level" autocomplete="off" value="workspace" data-launcher-level="workspace" />
+              {{ t("newCustomLauncherModal.levelWorkspace") }}
+            </label>
+          </div>
+          <div class="form-text" data-launcher-level-hint>{{ levelHint }}</div>
         </div>
 
         <div>

@@ -1,5 +1,5 @@
 {
-  "lead": "Avant de taper une commande dans un terminal, Heidrun la compare à ces garde-fous. Un garde-fou demande de confirmer la commande, ou l’interdit. Les garde-fous de ce projet viennent en premier. Les garde-fous intégrés viennent avec Heidrun : désactive-en un pour ce projet seulement.",
+  "lead": "Avant de taper une commande dans un terminal, Heidrun Code la compare à ces garde-fous. Un garde-fou demande de confirmer la commande, ou l’interdit. Les garde-fous de ce projet viennent en premier. Les garde-fous intégrés viennent avec Heidrun Code : désactive-en un pour ce projet seulement.",
   "projectLine": "Projet : {root}",
   "noProject": "Aucun projet n’est ouvert. Sélectionne un espace de travail pour voir les garde-fous de son projet.",
   "noProjectGuard": "Ce projet n’a pas encore de garde-fou à lui.",

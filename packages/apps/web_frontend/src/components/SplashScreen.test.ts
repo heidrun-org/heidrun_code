@@ -18,7 +18,7 @@ vi.mock("@tauri-apps/api/webview", () => ({ getCurrentWebview: () => ({ setZoom:
 
 /**
  * Mounts the splash screen, with the browser function `decode` of the image replaced by a function that records its call,
- * and waits until Heidrun has told if the command line option `--no-splash-screen` is present.
+ * and waits until Heidrun Code has told if the command line option `--no-splash-screen` is present.
  */
 async function mountSplashScreen() {
   const decode = vi.fn(async () => {});
@@ -177,7 +177,7 @@ describe("SplashScreen", () => {
     expect(playNextGoatBleat).not.toHaveBeenCalled();
   });
 
-  it("shows no splash screen, and no splash image, when Heidrun starts with the option --no-splash-screen", async () => {
+  it("shows no splash screen, and no splash image, when Heidrun Code starts with the option --no-splash-screen", async () => {
     isSplashScreenDisabled.mockResolvedValue(true);
     const { wrapper } = await mountSplashScreen();
     expect(wrapper.find(".splash").exists()).toBe(false);
@@ -207,7 +207,7 @@ describe("SplashScreen", () => {
     expect(showMainWindow).not.toHaveBeenCalled();
   });
 
-  it("shows the splash screen when Heidrun cannot tell if the option is present, as in a plain browser", async () => {
+  it("shows the splash screen when Heidrun Code cannot tell if the option is present, as in a plain browser", async () => {
     isSplashScreenDisabled.mockRejectedValue(new Error("no Tauri"));
     const { wrapper } = await mountSplashScreen();
     expect(wrapper.find(".splash").exists()).toBe(true);

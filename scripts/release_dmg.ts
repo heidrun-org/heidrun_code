@@ -1,4 +1,4 @@
-// Builds the macOS disk image (.dmg) of Heidrun and uploads it to the GitHub release of the current version.
+// Builds the macOS disk image (.dmg) of Heidrun Code and uploads it to the GitHub release of the current version.
 // pnpm release:dmg
 import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
@@ -17,15 +17,15 @@ const __dirname = import.meta.dirname;
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Builds the macOS disk image of Heidrun and uploads it to the GitHub release of the current version.
+ * Builds the macOS disk image of Heidrun Code and uploads it to the GitHub release of the current version.
  */
 class ReleaseDmg {
 	/**
 	 * The name of the second copy of the disk image for Apple silicon. This name never changes, so the web address
-	 * https://github.com/heidrun-org/heidrun/releases/latest/download/Heidrun_aarch64.dmg is always the latest disk
+	 * https://github.com/heidrun-org/heidrun_code/releases/latest/download/Heidrun_Code_aarch64.dmg is always the latest disk
 	 * image, and the script scripts/install.sh downloads it.
 	 */
-	private static readonly LATEST_DMG_FILE_NAME = 'Heidrun_aarch64.dmg';
+	private static readonly LATEST_DMG_FILE_NAME = 'Heidrun_Code_aarch64.dmg';
 
 	/**
 	 * Builds the disk image, then creates the GitHub release if it does not exist, uploads the disk image,
@@ -38,12 +38,12 @@ class ReleaseDmg {
 		program
 			.name('pnpm release:dmg')
 			.description(
-				'Builds the macOS disk image of Heidrun and uploads it to the GitHub release of the version in the root '
+				'Builds the macOS disk image of Heidrun Code and uploads it to the GitHub release of the version in the root '
 					+ 'package.json. The release is created when it does not exist, and its text is rewritten when it '
 					+ 'exists. The text of the release is the file '
 					+ 'docs/release_notes/prefix.md, then the file of the option --notes-file, then the list of changes '
 					+ 'that GitHub generates. The disk image is uploaded twice: with its version in its name, and as a '
-					+ 'copy named Heidrun_aarch64.dmg for the script scripts/install.sh.',
+					+ 'copy named Heidrun_Code_aarch64.dmg for the script scripts/install.sh.',
 			)
 			.option(
 				'--notes-file <path>',
@@ -149,7 +149,7 @@ class ReleaseDmg {
 					'--target',
 					commitSha,
 					'--title',
-					`Heidrun ${version}`,
+					`Heidrun Code ${version}`,
 					'--notes-file',
 					bodyPath,
 					'--generate-notes',

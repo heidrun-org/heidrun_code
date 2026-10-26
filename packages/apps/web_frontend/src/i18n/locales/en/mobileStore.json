@@ -12,5 +12,5 @@
   "error.launcherNotFound": "Launcher not found (removed?): refresh",
   "launcherStarted": "Launcher started from the phone: {name}",
   "error.terminalReadOnly": "This pane is a terminal: the phone can only read it, or type a command in it",
-  "error.terminalTypingOff": "Typing in terminals from the phone is off: turn it on in the Settings window of Heidrun, in Mobile access"
+  "error.terminalTypingOff": "Typing in terminals from the phone is off: turn it on in the Settings window of Heidrun Code, in Mobile access"
 }

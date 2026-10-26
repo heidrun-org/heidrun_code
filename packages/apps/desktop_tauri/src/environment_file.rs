@@ -1,4 +1,4 @@
-//! The file `.env` of the developer: its variables go into the environment of the application, in Heidrun Development
+//! The file `.env` of the developer: its variables go into the environment of the application, in Heidrun Code Development
 //! only. The file `.env.example` at the root of the repository lists and explains every variable.
 
 use std::path::PathBuf;
@@ -14,7 +14,7 @@ pub fn load(is_development: bool) -> Option<PathBuf> {
     }
     let loaded = keep_loaded_path(dotenvy::dotenv());
     if let Some(path) = &loaded {
-        eprintln!("Heidrun: the variables of the file {} are loaded.", path.display());
+        eprintln!("Heidrun Code: the variables of the file {} are loaded.", path.display());
     }
     loaded
 }
@@ -26,7 +26,7 @@ fn keep_loaded_path(result: Result<PathBuf, dotenvy::Error>) -> Option<PathBuf> 
         Ok(path) => Some(path),
         Err(error) if error.not_found() => None,
         Err(error) => {
-            eprintln!("Heidrun: the file .env cannot be read, so it is ignored: {error}");
+            eprintln!("Heidrun Code: the file .env cannot be read, so it is ignored: {error}");
             None
         }
     }
@@ -57,19 +57,19 @@ mod tests {
     fn loads_the_variables_of_a_file_and_ignores_the_commented_lines() {
         let path = write_file(
             "loads",
-            "# a comment\nHEIDRUN_TEST_ENVIRONMENT_FILE_LOADED=yes\n# HEIDRUN_TEST_ENVIRONMENT_FILE_COMMENTED=yes\n",
+            "# a comment\nHEIDRUN_CODE_TEST_ENVIRONMENT_FILE_LOADED=yes\n# HEIDRUN_CODE_TEST_ENVIRONMENT_FILE_COMMENTED=yes\n",
         );
         assert_eq!(load_file(&path), Some(path));
-        assert_eq!(std::env::var("HEIDRUN_TEST_ENVIRONMENT_FILE_LOADED").as_deref(), Ok("yes"));
-        assert!(std::env::var("HEIDRUN_TEST_ENVIRONMENT_FILE_COMMENTED").is_err());
+        assert_eq!(std::env::var("HEIDRUN_CODE_TEST_ENVIRONMENT_FILE_LOADED").as_deref(), Ok("yes"));
+        assert!(std::env::var("HEIDRUN_CODE_TEST_ENVIRONMENT_FILE_COMMENTED").is_err());
     }
 
     #[test]
     fn keeps_the_value_of_a_variable_that_is_already_set() {
-        let path = write_file("kept", "HEIDRUN_TEST_ENVIRONMENT_FILE_KEPT=from the file\n");
-        std::env::set_var("HEIDRUN_TEST_ENVIRONMENT_FILE_KEPT", "from the shell");
+        let path = write_file("kept", "HEIDRUN_CODE_TEST_ENVIRONMENT_FILE_KEPT=from the file\n");
+        std::env::set_var("HEIDRUN_CODE_TEST_ENVIRONMENT_FILE_KEPT", "from the shell");
         load_file(&path);
-        assert_eq!(std::env::var("HEIDRUN_TEST_ENVIRONMENT_FILE_KEPT").as_deref(), Ok("from the shell"));
+        assert_eq!(std::env::var("HEIDRUN_CODE_TEST_ENVIRONMENT_FILE_KEPT").as_deref(), Ok("from the shell"));
     }
 
     #[test]
@@ -80,9 +80,9 @@ mod tests {
 
     #[test]
     fn ignores_a_file_that_cannot_be_read() {
-        let path = write_file("broken", "HEIDRUN_TEST_ENVIRONMENT_FILE_BROKEN=\"never closed\n");
+        let path = write_file("broken", "HEIDRUN_CODE_TEST_ENVIRONMENT_FILE_BROKEN=\"never closed\n");
         assert_eq!(load_file(&path), None);
-        assert!(std::env::var("HEIDRUN_TEST_ENVIRONMENT_FILE_BROKEN").is_err());
+        assert!(std::env::var("HEIDRUN_CODE_TEST_ENVIRONMENT_FILE_BROKEN").is_err());
     }
 
     /// The variables that the tests read and the application does not.
@@ -111,10 +111,10 @@ mod tests {
     }
 
     /// The names of the environment variables that a source text reads: the name in `env::var("NAME")`,
-    /// `var_os("NAME")`, and `non_empty_variable("NAME")`, and every text between quotes that starts with `HEIDRUN_`.
+    /// `var_os("NAME")`, and `non_empty_variable("NAME")`, and every text between quotes that starts with `HEIDRUN_CODE_`.
     fn read_variable_names(source: &str) -> BTreeSet<String> {
         let mut names = BTreeSet::new();
-        let prefixes = [("env::var(\"", 10), ("var_os(\"", 8), ("non_empty_variable(\"", 20), ("\"HEIDRUN_", 1)];
+        let prefixes = [("env::var(\"", 10), ("var_os(\"", 8), ("non_empty_variable(\"", 20), ("\"HEIDRUN_CODE_", 1)];
         for (prefix, name_offset) in prefixes {
             for (position, _) in source.match_indices(prefix) {
                 let name: String = source[position + name_offset..].chars().take_while(is_name_character).collect();
@@ -147,14 +147,14 @@ mod tests {
         let mut read = BTreeSet::new();
         let manifest_folder = Path::new(env!("CARGO_MANIFEST_DIR"));
         // The package `data_layer_coding_agents` reads the variables `CLAUDE_CONFIG_DIR` and `CODEX_HOME` for the application.
-        // The package `mobile_server` reads the variables `HEIDRUN_DIR` and `HEIDRUN_NGROK` for the application.
-        // The package `data_layer_operation_log` reads the variables `HEIDRUN_OPERATION_LOG_FILE` and `HEIDRUN_OPERATION_LOG_CALLER` for the
+        // The package `mobile_server` reads the variables `HEIDRUN_CODE_DIR` and `HEIDRUN_CODE_NGROK` for the application.
+        // The package `data_layer_operation_log` reads the variables `HEIDRUN_CODE_OPERATION_LOG_FILE` and `HEIDRUN_CODE_OPERATION_LOG_CALLER` for the
         // application and for the four data layer packages.
         let source_folders = [
             manifest_folder.join("src"),
-            manifest_folder.join("../../data_layers/data_layer_coding_agents/src"),
+            manifest_folder.join("../../../submodules/heidrun_data/packages/data_layer_coding_agents/src"),
             manifest_folder.join("../../auxiliary/mobile_server/src"),
-            manifest_folder.join("../../data_layers/data_layer_operation_log/src"),
+            manifest_folder.join("../../../submodules/heidrun_data/packages/data_layer_operation_log/src"),
         ];
         for file in source_folders.iter().flat_map(|folder| rust_files(folder)) {
             if file.file_name().is_some_and(|name| name == "environment_file.rs") {

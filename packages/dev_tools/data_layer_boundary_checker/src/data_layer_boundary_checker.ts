@@ -17,7 +17,7 @@ import { SourceFiles } from './source_files.ts';
 
 /**
  * Checks the whole repository. The Past chats sidebar section and the Statistics window get all their data through the packages
- * of the folder `packages/data_layers`. The desktop application and the web page may not read a conversation file, run Git or a
+ * of the folder `submodules/heidrun_data/packages`. The desktop application and the web page may not read a conversation file, run Git or a
  * hosting tool, make a network request, or run SQL for these two parts.
  */
 export class DataLayerBoundaryChecker {

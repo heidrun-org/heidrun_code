@@ -8,7 +8,7 @@ use tokio::process::Command;
 /// Gives every call its own PNG file, so that two drops at the same time do not overwrite each other.
 static CALL_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-/// File extensions that Heidrun accepts as images. `sips` converts all of them to PNG.
+/// File extensions that Heidrun Code accepts as images. `sips` converts all of them to PNG.
 const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "heic", "tif", "tiff", "bmp"];
 
 pub(crate) fn is_image_path(path: &str) -> bool {

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import type { Terminal } from '@xterm/xterm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { request } from './api';

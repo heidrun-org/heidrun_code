@@ -68,8 +68,8 @@ describe('home page', () => {
 	});
 
 	it('has a call to action to the latest release, one to the repository, and one to the about page', () => {
-		expect(home).toContain('link: https://github.com/heidrun-org/heidrun/releases/latest');
-		expect(home).toContain('link: https://github.com/heidrun-org/heidrun\n');
+		expect(home).toContain('link: https://github.com/heidrun-org/heidrun_code/releases/latest');
+		expect(home).toContain('link: https://github.com/heidrun-org/heidrun_code\n');
 		expect(home).toContain('link: /about');
 	});
 

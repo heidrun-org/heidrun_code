@@ -97,7 +97,7 @@ struct Inner {
     tunnel_host: Option<String>,
     /// The program `ngrok`. It is here, and not in the task, so that `stop` kills it at once, with no async runtime.
     tunnel: Option<Child>,
-    /// The file that holds the process id of the program `ngrok`, so that the next Heidrun kills it after a hard stop.
+    /// The file that holds the process id of the program `ngrok`, so that the next Heidrun Code kills it after a hard stop.
     /// None in the tests of the server, which must not touch the file of the developer.
     record: Option<Arc<TunnelRecord>>,
     error: Option<MobileError>,
@@ -125,7 +125,7 @@ impl MobileServer {
     }
 
     /// For the button "Stop the old ngrok" of the error `ngrokAddressInUse`: kills the recorded program `ngrok` of every
-    /// earlier or other Heidrun, but never the program of this Heidrun. True when a program was killed. The tunnel starts
+    /// earlier or other Heidrun Code, but never the program of this Heidrun Code. True when a program was killed. The tunnel starts
     /// again at the next try.
     pub fn stop_leftover_tunnel(&self) -> bool {
         TunnelRecord::new(record_folder(), std::process::id()).kill_recorded()
@@ -200,7 +200,7 @@ fn pairing_qr(host: &str, token: &str) -> Option<String> {
     )
 }
 
-/// The folder of the records of the program `ngrok` of each Heidrun, next to the file `mobile.json`.
+/// The folder of the records of the program `ngrok` of each Heidrun Code, next to the file `mobile.json`.
 fn record_folder() -> PathBuf {
     crate::config::config_folder().join("mobile_ngrok")
 }
@@ -373,7 +373,7 @@ async fn run_tunnel(inner: &Mutex<Inner>, guard: &Mutex<AccessGuard>, run: u64, 
     }
 }
 
-/// The kind of end that a text of `ngrok` tells, when the text holds the code of a problem that Heidrun knows.
+/// The kind of end that a text of `ngrok` tells, when the text holds the code of a problem that Heidrun Code knows.
 fn kind_of_problem(text: &str) -> Option<MobileErrorKind> {
     if text.contains(tunnel::NOT_SIGNED_IN_CODE) {
         Some(MobileErrorKind::NgrokNotSignedIn)

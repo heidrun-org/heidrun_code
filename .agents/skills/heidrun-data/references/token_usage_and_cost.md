@@ -3,11 +3,11 @@
 - Created: 17 October 2026
 - Last updated: 17 October 2026
 - Status: Maintained description of the stored token usage and of the estimated cost
-- Related framing: [Project instructions](https://github.com/heidrun-org/heidrun/blob/dev_jerome/AGENTS.md)
-- Related rules: [Source "AI cost"](https://github.com/heidrun-org/heidrun/blob/dev_jerome/docs/agents_rules/user_interface/window/statistics_ai_cost.md), [Workspace selector](https://github.com/heidrun-org/heidrun/blob/dev_jerome/docs/agents_rules/user_interface/window/statistics_person_work_workspace.md), [Glossary of Heidrun: work of one person](https://github.com/heidrun-org/heidrun/blob/dev_jerome/docs/agents_rules/glossary/person_work.md)
+- Related framing: [Project instructions](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/AGENTS.md)
+- Related rules: [Source "AI cost"](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/agents_rules/user_interface/window/statistics_ai_cost.md), [Workspace selector](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/agents_rules/user_interface/window/statistics_person_work_workspace.md), [Glossary of Heidrun Code: work of one person](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/agents_rules/glossary/person_work.md)
 - Related issue: [issue 616](https://github.com/heidrun-org/heidrun/issues/616), [issue 482](https://github.com/heidrun-org/heidrun/issues/482), [issue 559](https://github.com/heidrun-org/heidrun/issues/559)
 
-This file says how Heidrun stores the tokens that the coding agents used, how it turns them into an estimated cost in US dollars, and how to ask for them. The package [`data_layer_coding_agents`](https://github.com/heidrun-org/heidrun/blob/dev_jerome/packages/data_layers/data_layer_coding_agents/README.md) owns the tables. The command `usage` of [`heidrun_data`](https://github.com/heidrun-org/heidrun/blob/dev_jerome/packages/data_layers/heidrun_data/README.md) and the source "AI cost" of the Statistics window read them. The general rules of the data layers are in [the four data layers](https://github.com/heidrun-org/heidrun/blob/dev_jerome/docs/statistics/the_four_data_layers.md).
+This file says how Heidrun Code stores the tokens that the coding agents used, how it turns them into an estimated cost in US dollars, and how to ask for them. The package [`data_layer_coding_agents`](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/packages/data_layer_coding_agents/README.md) owns the tables. The command `usage` of [`heidrun_data`](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/packages/heidrun_data/README.md) and the source "AI cost" of the Statistics window read them. The general rules of the data layers are in [the four data layers](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/statistics/the_four_data_layers.md).
 
 ## What is stored
 
@@ -64,7 +64,7 @@ The plan is `SEARCH token_usage_minutes USING INDEX token_usage_minutes_by_minut
 ## The prices and the cost
 
 - The prices come from the public price list of the project LiteLLM (the providers `anthropic` and `openai`). The unit is US dollars for one million tokens. The tables keep the source, the unit, the retrieval time, and the version of each price list.
-- Heidrun fetches the price list when the latest version was checked one day ago or more. A new version is made only when the content of the price list changed. A price list that did not change only updates the date `checkedAt`.
+- Heidrun Code fetches the price list when the latest version was checked one day ago or more. A new version is made only when the content of the price list changed. A price list that did not change only updates the date `checkedAt`.
 - A fetch that fails is a warning, not an error. The latest known prices stay in use and no row changes. The command line prints the warning on the standard error output and the exit code stays 0. The Statistics window shows the warning.
 - The view `token_usage_with_cost` uses the latest version for the whole history. It does not keep the price of the day when the tokens were used. When a price changes, the cost of the old tokens changes with it.
 - A model is matched by its exact name, then by its name without a date `-YYYYMMDD` at the end.
@@ -83,7 +83,7 @@ The plan is `SEARCH token_usage_minutes USING INDEX token_usage_minutes_by_minut
 
 ## Examples for the Teamwright history
 
-The repository is `jeromeetienne/teamwright`, and its folder is `/Users/jetienne/webwork/teamwright`. The values below are those of the history of 17 October 2026. They grow as the history grows. Run the commands from the root of the repository of Heidrun. Read the history once before the first question. Later, the mode `update` reads only what changed:
+The repository is `jeromeetienne/teamwright`, and its folder is `/Users/jetienne/webwork/teamwright`. The values below are those of the history of 17 October 2026. They grow as the history grows. Run the commands from the root of the repository of Heidrun Code. Read the history once before the first question. Later, the mode `update` reads only what changed:
 
 ```sh
 pnpm --silent data_layer:heidrun_data initialize coding_agents --repository jeromeetienne/teamwright --folder /Users/jetienne/webwork/teamwright
@@ -161,7 +161,7 @@ Run a SQL example with `pnpm --silent data_layer:heidrun_data query --format tab
 
 ## The Statistics window
 
-The source "AI cost" of the tab "Work of one person" reads these tables ([the AI cost rules](https://github.com/heidrun-org/heidrun/blob/dev_jerome/docs/agents_rules/user_interface/window/statistics_ai_cost.md)).
+The source "AI cost" of the tab "Work of one person" reads these tables ([the AI cost rules](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/agents_rules/user_interface/window/statistics_ai_cost.md)).
 
 - It never opens a chat session file by itself. The first import of a workspace opens every chat session file of the workspace once, and it only starts when the developer clicks the button "Import the history". Until then the tab says that the history is not imported, and the chart does not hold the workspace.
 - A workspace that was imported is brought up to date each time that the tab reads it: the command `ai_cost_synchronize` calls the function `refresh_ai_cost`, with the scan cache next to the SQLite file. This opens only the files that changed.
@@ -199,13 +199,13 @@ The totals are not the same as those of the old path for two reasons. The old pa
 
 | Part | Place |
 | --- | --- |
-| The tables, the index, and the views | `packages/data_layers/data_layer_coding_agents/src/storage/token_usage_schema.rs` |
-| The rows and the queries | `packages/data_layers/data_layer_coding_agents/src/storage/token_usage_database.rs` and `usage_grouping.rs` |
-| The reading of the chat session files | `packages/data_layers/data_layer_coding_agents/src/coding_agents/token_usage_reader.rs` |
-| The prices | `packages/data_layers/data_layer_coding_agents/src/pricing/` and `src/storage/model_price_database.rs` |
-| The command `usage` | `packages/data_layers/heidrun_data/src/usage.rs` |
-| The commands of the application | `packages/apps/desktop_tauri/src/statistics/ai_cost.rs`, and `past_chats/chats.rs` for the refresh of the prices in the background |
-| The tab | `packages/apps/web_frontend/src/components/PersonWorkTab.vue` and `lib/ai_cost.ts` |
+| The tables, the index, and the views | `packages/data_layer_coding_agents/src/storage/token_usage_schema.rs` |
+| The rows and the queries | `packages/data_layer_coding_agents/src/storage/token_usage_database.rs` and `usage_grouping.rs` |
+| The reading of the chat session files | `packages/data_layer_coding_agents/src/coding_agents/token_usage_reader.rs` |
+| The prices | `packages/data_layer_coding_agents/src/pricing/` and `src/storage/model_price_database.rs` |
+| The command `usage` | `packages/heidrun_data/src/usage.rs` |
+| The commands of the application | In Heidrun Code: `packages/apps/desktop_tauri/src/statistics/ai_cost.rs`, and `past_chats/chats.rs` for the refresh of the prices in the background |
+| The tab | In Heidrun Code: `packages/apps/web_frontend/src/components/PersonWorkTab.vue` and `lib/ai_cost.ts` |
 
 ## Open points
 

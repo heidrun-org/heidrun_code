@@ -1,4 +1,4 @@
-//! Connects Antigravity's custom status line to quota tracking in Heidrun.
+//! Connects Antigravity's custom status line to quota tracking in Heidrun Code.
 
 use serde::Serialize;
 use serde_json::{json, Map, Value};

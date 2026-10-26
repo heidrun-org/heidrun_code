@@ -21,12 +21,12 @@
   "quitTitle": "Quitter",
   "keepAgentsRunning": "Garder les agents actifs après avoir quitté",
   "keepAgentsRunningHelpLabel": "Que fait ce réglage ?",
-  "keepAgentsRunningHelp": "Désactivé : quand vous quittez Heidrun, Heidrun arrête sa session Herdr, et les agents s’arrêtent. Activé : les agents continuent de tourner, et Heidrun se reconnecte à la même session au prochain démarrage. La session Herdr par défaut de votre terminal n’est jamais arrêtée.",
+  "keepAgentsRunningHelp": "Désactivé : quand vous quittez Heidrun Code, Heidrun Code arrête sa session Herdr, et les agents s’arrêtent. Activé : les agents continuent de tourner, et Heidrun Code se reconnecte à la même session au prochain démarrage. La session Herdr par défaut de votre terminal n’est jamais arrêtée.",
   "gitFetchLabel": "Récupérer le dépôt distant en arrière-plan",
   "gitFetchOff": "Désactivé",
   "gitFetch1": "1 minute",
   "gitFetch5": "5 minutes",
   "gitFetch10": "10 minutes",
   "gitFetch30": "30 minutes",
-  "gitFetchHelp": "Heidrun lance git fetch pour le dépôt de l’espace de travail sélectionné, afin que les deux nombres de la section Git de la barre d’état restent justes. Un fetch qui échoue n’affiche rien."
+  "gitFetchHelp": "Heidrun Code lance git fetch pour le dépôt de l’espace de travail sélectionné, afin que les deux nombres de la section Git de la barre d’état restent justes. Un fetch qui échoue n’affiche rien."
 }

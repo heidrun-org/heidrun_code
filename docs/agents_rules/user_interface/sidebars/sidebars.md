@@ -1,13 +1,13 @@
-# User interface of Heidrun: sidebars and the clipboard
+# User interface of Heidrun Code: sidebars and the clipboard
 
 - Created: 13 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
 - Related issue: [issue 315](https://github.com/heidrun-org/heidrun/issues/315), [issue 371](https://github.com/heidrun-org/heidrun/issues/371), [issue 428](https://github.com/heidrun-org/heidrun/issues/428), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 440](https://github.com/heidrun-org/heidrun/issues/440), [issue 690](https://github.com/heidrun-org/heidrun/issues/690)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../glossary/index.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md).
 
 ## Sidebars
 

@@ -112,6 +112,13 @@ export class TauriMock {
 			case 'project_save':
 				TauriMockFixture.setProjectConfig((payload as { config: unknown }).config);
 				return null;
+			case 'launchers_user_read':
+				return TauriMockFixture.buildUserLaunchersFile();
+			case 'launchers_user_write':
+				TauriMockFixture.setUserLaunchers((payload as { launchers: unknown[] }).launchers);
+				return null;
+			case 'launcher_folder_exists':
+				return true;
 			case 'chat_references_synchronize':
 				return { repository: 'heidrun-org/heidrun', codeHostingError: null };
 			case 'chat_references_find':
@@ -122,6 +129,15 @@ export class TauriMock {
 			case 'forge_cli_cached': {
 				const args = (payload as { args: string[] }).args;
 				return args[1] === 'list' ? TauriMockFixture.buildForgeListAnswer(args) : TauriMockFixture.buildForgeAnswer(args);
+			}
+			case 'forge_cli_cached_with_source': {
+				const args = (payload as { args: string[] }).args;
+				const output = args[1] === 'list' ? TauriMockFixture.buildForgeListAnswer(args) : TauriMockFixture.buildForgeAnswer(args);
+				return {
+					output,
+					failure: null,
+					keptAt: null,
+				};
 			}
 			case 'topic_clusters_read':
 				return TauriMockFixture.getTopicClusterRows();

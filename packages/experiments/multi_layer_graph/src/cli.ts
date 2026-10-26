@@ -39,7 +39,7 @@ export class Cli {
 	static readonly DEFAULT_REPOSITORY = 'heidrun-org/heidrun';
 
 	/** The SQLite file that the command line reads when the option `--database` is not given. */
-	static readonly DEFAULT_DATABASE_PATH = Path.join(Os.homedir(), '.config', 'heidrun', 'data_layer.sqlite');
+	static readonly DEFAULT_DATABASE_PATH = Path.join(Cli._defaultDataFolder(), 'data_layer.sqlite');
 
 	/** The file that the command line writes when the option `--output` is not given. The page reads this file. */
 	static readonly DEFAULT_OUTPUT_PATH = Path.join(__dirname, '..', 'public', 'graph.json');
@@ -156,6 +156,19 @@ export class Cli {
 		const commands = [...new Set(tableNames.map((tableName) => Cli._FILL_COMMANDS[tableName]))];
 		const commandLines = commands.map((command) => `  ${command}`).join('\n');
 		return commandLines;
+	}
+
+	/**
+	 * Gives `~/.config/heidrun_code`, or the former folder `~/.config/heidrun` when it exists and the new folder does not.
+	 * @returns The folder that holds the SQLite file of the data layer packages.
+	 */
+	private static _defaultDataFolder(): string {
+		const current = Path.join(Os.homedir(), '.config', 'heidrun_code');
+		const former = Path.join(Os.homedir(), '.config', 'heidrun');
+		if (Fs.existsSync(current) === false && Fs.existsSync(former)) {
+			return former;
+		}
+		return current;
 	}
 }
 

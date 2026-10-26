@@ -1,4 +1,4 @@
-// Keeps a copy of the `localStorage` entries of Heidrun in the data folder of Heidrun, and restores the entries that are missing.
+// Keeps a copy of the `localStorage` entries of Heidrun Code in the data folder of Heidrun Code, and restores the entries that are missing.
 // The web view keeps `localStorage` in a folder named after the application identifier, so a change of the identifier
 // shows an empty `localStorage` and every option returns to its default value (issue 772). main.ts restores before the
 // stores read their keys, then starts the copy.
@@ -22,7 +22,7 @@ export class DurableStorage {
   };
 
   /**
-   * Fills each entry of Heidrun that `localStorage` lacks. The entries come from the copy in the data folder. When the copy does
+   * Fills each entry of Heidrun Code that `localStorage` lacks. The entries come from the copy in the data folder. When the copy does
    * not exist yet, they come from the web view storage of the former application identifier, once, at the first start after
    * the update. An entry that `localStorage` holds is never replaced.
    * @returns A promise that resolves when the entries are restored. It never rejects: without a copy, nothing is restored.

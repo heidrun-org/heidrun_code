@@ -20,7 +20,7 @@ export class MacroSheet {
 	static render(macros: MacroView[]): string {
 		const listHtmlContent =
 			macros.length === 0
-				? /* html */`<p>No macro. Add a macro in Heidrun on the computer.</p>`
+				? /* html */`<p>No macro. Add a macro in Heidrun Code on the computer.</p>`
 				: macros.map((macro, index) => MacroSheet.renderMacro(macro, index)).join('');
 		const sheetHtmlContent = /* html */`
 			<div class="sheet macro-sheet" data-action="macro-sheet-close">

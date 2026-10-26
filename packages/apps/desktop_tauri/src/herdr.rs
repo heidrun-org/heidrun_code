@@ -50,10 +50,10 @@ pub fn config_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_default().join(".config").join("herdr")
 }
 
-/// The name of the Herdr session that Heidrun uses, unless the environment variable `HERDR_SOCKET_PATH` or
-/// `HERDR_SESSION` chooses another one. Heidrun never uses the default session: that session belongs to the terminal.
+/// The name of the Herdr session that Heidrun Code uses, unless the environment variable `HERDR_SOCKET_PATH` or
+/// `HERDR_SESSION` chooses another one. Heidrun Code never uses the default session: that session belongs to the terminal.
 /// A development build that runs from a worktree adds the name of the worktree, see `session_name`.
-pub const HEIDRUN_SESSION: &str = "heidrun";
+pub const HEIDRUN_CODE_SESSION: &str = "heidrun";
 
 /// The part of a path that comes before the name of a worktree. The tool `pnpm worktree:create` makes every worktree
 /// inside this folder of the main checkout.
@@ -64,13 +64,13 @@ const WORKTREES_FOLDER: &str = "/.claude/worktrees/";
 const WORKTREE_PART_MAX_LENGTH: usize = 32;
 
 /// The name of the Herdr session for the build whose package folder is `manifest_dir`. Herdr allows one attach client
-/// for each terminal, so two Heidrun applications in one session refuse each other's terminals. A development build
+/// for each terminal, so two Heidrun Code applications in one session refuse each other's terminals. A development build
 /// that comes from a worktree therefore gets its own session, `heidrun_` followed by the name of the worktree. The installed
 /// application uses `heidrun`; development in the main checkout uses `heidrun_development`.
 /// The application identity selects development, including an optimised development bundle.
 fn session_name_for(manifest_dir: &str, is_development_build: bool) -> String {
     if is_development_build == false {
-        return HEIDRUN_SESSION.to_string();
+        return HEIDRUN_CODE_SESSION.to_string();
     }
     let Some((_, after_worktrees_folder)) = manifest_dir.split_once(WORKTREES_FOLDER) else {
         return "heidrun_development".to_string();
@@ -86,10 +86,10 @@ fn session_name_for(manifest_dir: &str, is_development_build: bool) -> String {
     if worktree_part.is_empty() {
         return "heidrun_development".to_string();
     }
-    format!("{HEIDRUN_SESSION}_{worktree_part}")
+    format!("{HEIDRUN_CODE_SESSION}_{worktree_part}")
 }
 
-/// The name of the Herdr session that this build of Heidrun uses when no environment variable chooses one.
+/// The name of the Herdr session that this build of Heidrun Code uses when no environment variable chooses one.
 pub fn session_name() -> String {
     session_name_for(env!("CARGO_MANIFEST_DIR"), crate::application_profile::is_development())
 }
@@ -100,12 +100,12 @@ fn non_empty_variable(name: &str) -> Option<String> {
 }
 
 /// True when the environment variable `HERDR_SOCKET_PATH` or `HERDR_SESSION` chooses the session. Every Herdr command
-/// line that Heidrun runs reads the same variables, so Heidrun adds no `--session` argument in this case.
+/// line that Heidrun Code runs reads the same variables, so Heidrun Code adds no `--session` argument in this case.
 fn is_session_chosen_by_environment() -> bool {
     non_empty_variable("HERDR_SOCKET_PATH").is_some() || non_empty_variable("HERDR_SESSION").is_some()
 }
 
-/// The socket of the session that Heidrun uses: the path in `HERDR_SOCKET_PATH`, else the socket of the session named
+/// The socket of the session that Heidrun Code uses: the path in `HERDR_SOCKET_PATH`, else the socket of the session named
 /// in `HERDR_SESSION`, else the socket of the session that `session_name` gives.
 pub fn socket_path() -> PathBuf {
     if let Some(path) = non_empty_variable("HERDR_SOCKET_PATH") {
@@ -133,7 +133,7 @@ pub fn command_arguments_from(arguments: &[String]) -> Vec<String> {
     command_arguments(&borrowed)
 }
 
-/// The shell command that starts the Herdr server of the session that Heidrun uses, for `shell -lc`.
+/// The shell command that starts the Herdr server of the session that Heidrun Code uses, for `shell -lc`.
 pub fn server_shell_command(bin: &std::path::Path) -> String {
     let quoted_bin = bin.display().to_string().replace('\'', "'\\''");
     format!("exec '{quoted_bin}' {}", command_arguments(&["server"]).join(" "))
@@ -151,7 +151,7 @@ pub fn is_editor_variable(name: &str) -> bool {
 }
 
 /// Removes the editor variables from the environment of `command`. Every pane inherits the environment of the Herdr
-/// server, so the server must not receive these variables when the developer starts Heidrun from the terminal of
+/// server, so the server must not receive these variables when the developer starts Heidrun Code from the terminal of
 /// Visual Studio Code.
 pub fn remove_editor_variables(command: &mut std::process::Command) {
     for (name, _) in std::env::vars_os() {
@@ -164,9 +164,9 @@ pub fn remove_editor_variables(command: &mut std::process::Command) {
     }
 }
 
-/// The arguments of the command that stops the session of Heidrun, the name that `session_name` gives, when the user
-/// quits Heidrun. `None` when the session stays running: the user chose "Keep agents running after quit", or the
-/// environment chooses a session that is not the session of Heidrun.
+/// The arguments of the command that stops the session of Heidrun Code, the name that `session_name` gives, when the user
+/// quits Heidrun Code. `None` when the session stays running: the user chose "Keep agents running after quit", or the
+/// environment chooses a session that is not the session of Heidrun Code.
 pub fn stop_session_arguments(is_keeping_agents_running: bool) -> Option<Vec<String>> {
     if is_keeping_agents_running || is_session_chosen_by_environment() {
         return None;
@@ -174,7 +174,7 @@ pub fn stop_session_arguments(is_keeping_agents_running: bool) -> Option<Vec<Str
     Some(vec!["session".to_string(), "stop".to_string(), session_name()])
 }
 
-/// Stops the session of Heidrun, and waits for the end of the command. Does nothing when `stop_session_arguments` gives
+/// Stops the session of Heidrun Code, and waits for the end of the command. Does nothing when `stop_session_arguments` gives
 /// `None`. The error of the command is ignored: the application quits anyway.
 pub fn stop_session_on_quit(is_keeping_agents_running: bool) {
     let Some(arguments) = stop_session_arguments(is_keeping_agents_running) else {

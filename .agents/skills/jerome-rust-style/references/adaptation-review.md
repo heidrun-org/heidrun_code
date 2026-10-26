@@ -2,7 +2,7 @@
 
 Source: [the TypeScript and JavaScript style at the revision used for this draft](https://github.com/jeromeetienne/coding_agent_plugin/blob/9a3398bffd2de22b859ccbaa374c29661d17bd21/skills/jerome-typescript-javascript-style/references/typescript-javascript-style.md).
 
-Tracking issue: [Heidrun issue #760](https://github.com/heidrun-org/heidrun/issues/760).
+Tracking issue: [Heidrun Code issue #760](https://github.com/heidrun-org/heidrun/issues/760).
 
 “Keep” means the rule is in [the Rust draft](rust-style.md). “Remove” means the source instruction depends on the source language or its tools. “Ask Jérôme” means the rule is excluded from the draft until Jérôme decides. The review itself is not a set of coding instructions.
 

@@ -65,7 +65,7 @@ fn list(folder: &str, limit: usize, sorting: Sorting, database_path: &Path) -> R
 }
 
 /// Asks the package for a refresh of the prices of the models, without waiting for the answer: the package fetches the price
-/// list at most once an hour, and only when the latest version is a day old. A refresh that fails changes nothing, so Heidrun
+/// list at most once an hour, and only when the latest version is a day old. A refresh that fails changes nothing, so Heidrun Code
 /// never loses its prices.
 fn refresh_prices_in_background(database_path: std::path::PathBuf) {
     tauri::async_runtime::spawn_blocking(move || {

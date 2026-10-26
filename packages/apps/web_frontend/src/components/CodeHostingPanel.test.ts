@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { invoke } from "@tauri-apps/api/core";
@@ -267,7 +268,7 @@ describe("CodeHostingPanel on GitHub", () => {
     expect(card).toContain("jeromeetienne opened this issue");
   });
 
-  it("shows in the card the repository line with the three buttons, then the whole title with its number, then the state", async () => {
+  it("shows in the card the repository line with the four buttons, then the whole title with its number, then the state", async () => {
     answerGithub();
     const wrapper = await mountPanel();
     await wrapper.findAll(".row-card")[0].trigger("click");
@@ -276,7 +277,7 @@ describe("CodeHostingPanel on GitHub", () => {
     const line = card.get("[data-reference-repository-line]");
     expect(line.text()).toBe("team/app on Oct 13");
     expect(line.get("a").attributes("href")).toBe("https://example.com/team/app");
-    expect(line.element.parentElement?.querySelectorAll(".btn-group button")).toHaveLength(3);
+    expect(line.element.parentElement?.querySelectorAll(".btn-group button")).toHaveLength(4);
     expect(card.get("[data-reference-title]").text()).toBe("Add the Code hosting sidebar section #370");
     expect(card.get(".badge.state").classes()).toContain("state-open");
     await line.get("a").trigger("click");
@@ -415,6 +416,34 @@ describe("CodeHostingPanel on GitHub", () => {
     await flushPromises();
     expect(invoke).toHaveBeenCalledTimes(4);
     expect(vi.mocked(invoke).mock.calls.slice(2).map(([, payload]) => (payload as { refresh: boolean }).refresh)).toEqual([true, true]);
+  });
+
+  it("shows the old rows under a message after a refresh that failed, and removes the message after a good refresh (issue #890)", async () => {
+    answerGithub();
+    const wrapper = await mountPanel();
+    const answerAll = vi.mocked(invoke).getMockImplementation();
+    vi.mocked(invoke).mockImplementation(async (command, payload) => {
+      const output = (await answerAll?.(command, payload)) as string;
+      return {
+        output,
+        failure: "gh: no network",
+        keptAt: Date.now() - 60_000,
+      };
+    });
+    await wrapper.get("button[aria-label=Refresh]").trigger("click");
+    await flushPromises();
+    const notice = groupOf(wrapper, "issues").get("[data-code-hosting-notice]");
+    expect(notice.text()).toMatch(/^The refresh failed\. This list is from .+\. gh: no network$/);
+    expect(notice.classes()).toContain("failure");
+    expect(groupOf(wrapper, "issues").findAll(".item")).toHaveLength(2);
+    vi.mocked(invoke).mockImplementation(async (command, payload) => ({
+      output: (await answerAll?.(command, payload)) as string,
+      failure: null,
+      keptAt: null,
+    }));
+    await wrapper.get("button[aria-label=Refresh]").trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[data-code-hosting-notice]").exists()).toBe(false);
   });
 
   it("says that a list is empty, and shows no row for it", async () => {
@@ -802,7 +831,11 @@ describe("CodeHostingPanel searches", () => {
     await search(wrapper, "issues", "");
     expect(wrapper.findAll(".empty").map((line) => line.text())).toEqual(["No pull request matches the search."]);
     await search(wrapper, "requests", "");
-    vi.mocked(invoke).mockResolvedValue("[]");
+    vi.mocked(invoke).mockResolvedValue({
+      output: "[]",
+      failure: null,
+      keptAt: null,
+    });
     await wrapper.get("button[aria-label='Refresh']").trigger("click");
     await flushPromises();
     expect(wrapper.findAll(".empty").map((line) => line.text())).toEqual(["No open issue.", "No open pull request."]);

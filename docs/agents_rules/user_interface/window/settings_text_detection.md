@@ -1,10 +1,10 @@
-# User interface of Heidrun: the text detection in the Settings window
+# User interface of Heidrun Code: the text detection in the Settings window
 
 - Created: 22 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [The detection in the text of the terminals](terminal_text_detection.md), [Information card of every option of the Settings window](settings_information_cards.md), [Glossary of Heidrun: terminal text detection](../../glossary/terminal_text_detection.md)
+- Related rules: [The detection in the text of the terminals](terminal_text_detection.md), [Information card of every option of the Settings window](settings_information_cards.md), [Glossary of Heidrun Code: terminal text detection](../../glossary/terminal_text_detection.md)
 - Related issue: [issue 793](https://github.com/heidrun-org/heidrun/issues/793), [issue 638](https://github.com/heidrun-org/heidrun/issues/638)
 
 This file gives the rules of the section "Text detection" of the Settings window. It is a section of its own, after the section Terminal, with the icon `regex`. The components are in the folder `components/settings`: `SettingsTextDetectionSection.vue` (the section), `SettingsTextDetectionFamily.vue` (the card of one detection family), and `SettingsTextDetectionSample.vue` (the field "Try a text").

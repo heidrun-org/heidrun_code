@@ -1,13 +1,13 @@
 #!/bin/sh
-# Heidrun — status line for Claude Code.
+# Heidrun Code — status line for Claude Code.
 #
 # 1. Prints a compact line at the bottom of Claude Code (model · context · quotas).
 # 2. When Claude runs inside a Herdr pane, reports the same numbers to Herdr as
-#    pane tokens, which Heidrun (and Herdr's own sidebar) can display.
+#    pane tokens, which Heidrun Code (and Herdr's own sidebar) can display.
 #
-# Installed by Heidrun (Panneau → « Activer le suivi Claude ») as
-# ~/.config/heidrun/claude-statusline.sh. If you already had a status line, its
-# command is saved in ~/.config/heidrun/claude-statusline-next and still drives
+# Installed by Heidrun Code (Panneau → « Activer le suivi Claude ») as
+# ~/.config/heidrun_code/claude-statusline.sh. If you already had a status line, its
+# command is saved in ~/.config/heidrun_code/claude-statusline-next and still drives
 # what Claude Code displays: this script only adds the report to Herdr.
 # Requires jq (shipped with macOS 15+, otherwise `brew install jq`).
 
@@ -56,8 +56,14 @@ if [ -n "$HERDR_PANE_ID" ]; then
 fi
 
 # ---- The line shown in Claude Code -----------------------------------------
-desk_dir="${HEIDRUN_DIR:-$HOME/.config/heidrun}"
-# "Masquer dans le terminal" in Heidrun: print nothing, the app shows the numbers.
+desk_dir="${HEIDRUN_CODE_DIR:-${HEIDRUN_DIR:-}}"
+if [ -z "$desk_dir" ]; then
+	desk_dir="$HOME/.config/heidrun_code"
+	if [ ! -d "$desk_dir" ] && [ -d "$HOME/.config/heidrun" ]; then
+		desk_dir="$HOME/.config/heidrun"
+	fi
+fi
+# "Masquer dans le terminal" in Heidrun Code: print nothing, the app shows the numbers.
 if [ -e "$desk_dir/claude-statusline-hidden" ]; then
   exit 0
 fi

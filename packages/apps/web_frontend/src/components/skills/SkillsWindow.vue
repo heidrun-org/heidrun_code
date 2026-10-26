@@ -64,7 +64,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
 :where(button:not(.btn)) { background: transparent; border: 0; }
 .overlay { position: fixed; inset: 0; z-index: 60; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: 24px; }
 .window-box {
-  width: min(640px, 100%); height: min(560px, calc(100vh - 48px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 14px;
+  width: min(900px, 100%); height: min(760px, calc(100vh - 48px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 14px;
   background: var(--panel); border: 1px solid var(--line-strong); box-shadow: 0 24px 64px var(--shadow);
 }
 header { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px 0; }

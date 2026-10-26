@@ -10,7 +10,7 @@
   "scripts": {
     "graph:build": "tsx --disable-warning=ExperimentalWarning src/cli.ts",
     "dev": "pnpm graph:build && vite --open",
-    "test": "vitest run --minWorkers=1 --maxWorkers=2"
+    "test": "vitest run --minWorkers=1 --maxWorkers=4"
   },
   "dependencies": {
     "3d-force-graph": "1.80.1",

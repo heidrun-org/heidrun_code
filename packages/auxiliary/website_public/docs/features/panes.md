@@ -1,5 +1,5 @@
 ---
-description: "Each pane of Heidrun shows a real terminal, so Claude Code, Codex, and Antigravity look and work exactly as you know them."
+description: "Each pane of Heidrun Code shows a real terminal, so Claude Code, Codex, and Antigravity look and work exactly as you know them."
 ---
 
 # The panes
@@ -8,11 +8,11 @@ A coding agent is a program that runs in a terminal. Many tools put the coding a
 
 ## Real terminals
 
-Each pane of Heidrun shows the real terminal of Herdr, the terminal multiplexer that Heidrun needs. Claude Code, Codex, and Antigravity look and work exactly as in Herdr: the same colors, the same keys, and the same menus. Heidrun wraps nothing and rewrites nothing.
+Each pane of Heidrun Code shows the real terminal of Herdr, the terminal multiplexer that Heidrun Code needs. Claude Code, Codex, and Antigravity look and work exactly as in Herdr: the same colors, the same keys, and the same menus. Heidrun Code wraps nothing and rewrites nothing.
 
 A workspace is one project folder. A workspace has tabs, and a tab has one or more panes.
 
-![The Heidrun window with three panes in one tab: Claude Code on the left, Codex at the top right, and a second Claude Code under Codex. The Needs you sidebar section is on the right.](/screenshots/features/panes.png)
+![The Heidrun Code window with three panes in one tab: Claude Code on the left, Codex at the top right, and a second Claude Code under Codex. The Needs you sidebar section is on the right.](/screenshots/features/panes.png)
 
 ## Split a pane
 
@@ -27,11 +27,11 @@ Click the pin button in the header of a pane. The pane goes into the column of p
 
 ## Drop an image
 
-Drop an image file on a terminal. Heidrun pastes the image into the terminal, so the coding agent of the pane receives it, as when you paste an image yourself.
+Drop an image file on a terminal. Heidrun Code pastes the image into the terminal, so the coding agent of the pane receives it, as when you paste an image yourself.
 
 ## Go back and go forward
 
-Heidrun remembers the panes that had the focus, in every workspace and every tab. This list is the pane focus history.
+Heidrun Code remembers the panes that had the focus, in every workspace and every tab. This list is the pane focus history.
 
 - The Back button and the Forward button, at the top of the window, move through the pane focus history, as in a web browser.
 - The keys ⌘[ and ⌘] do the same as the two buttons.

@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Heidrun records your voice only while you hold the push-to-talk button, and changes it into text on this computer. The sound never leaves this computer and is never saved.</string>
+	<string>Heidrun Code records your voice only while you hold the push-to-talk button, and changes it into text on this computer. The sound never leaves this computer and is never saved.</string>
 </dict>
 </plist>

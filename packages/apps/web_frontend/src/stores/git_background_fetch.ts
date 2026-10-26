@@ -1,4 +1,4 @@
-// The fetch of the remote repository in the background: Heidrun runs `git fetch --prune` for the repository of the
+// The fetch of the remote repository in the background: Heidrun Code runs `git fetch --prune` for the repository of the
 // selected workspace each time the delay of the option "Fetch the remote repository in the background" passes, so that
 // the two counts of the Git branch section of the status bar stay true. The Git status is read again after each fetch.
 // - issue #432

@@ -72,7 +72,7 @@ describe("settings", () => {
 });
 
 describe("keep agents running after quit", () => {
-  it("is on by default, so quitting Heidrun keeps its Herdr session running", () => {
+  it("is on by default, so quitting Heidrun Code keeps its Herdr session running", () => {
     expect(settings.keepAgentsRunningAfterQuit).toBe(true);
   });
 
@@ -125,7 +125,7 @@ describe("ask before deleting a saved search", () => {
 });
 
 describe("saved searches of the Code hosting sidebar section", () => {
-  /** The settings, as a new run of Heidrun reads them from what `localStorage` holds. */
+  /** The settings, as a new run of Heidrun Code reads them from what `localStorage` holds. */
   async function settingsFrom(saved: unknown) {
     localStorage.setItem("heidrun.settings", JSON.stringify(saved));
     vi.resetModules();
@@ -252,7 +252,7 @@ describe("saved searches of the Code hosting sidebar section", () => {
 });
 
 describe("goat sound", () => {
-  /** The settings, as a new run of Heidrun reads them from what `localStorage` holds. */
+  /** The settings, as a new run of Heidrun Code reads them from what `localStorage` holds. */
   async function settingsFrom(savedText: string) {
     localStorage.setItem("heidrun.settings", savedText);
     vi.resetModules();
@@ -281,7 +281,7 @@ describe("goat sound", () => {
 });
 
 describe("terminal text detection", () => {
-  /** The settings, as a new run of Heidrun reads them from what `localStorage` holds. */
+  /** The settings, as a new run of Heidrun Code reads them from what `localStorage` holds. */
   async function settingsFrom(savedText: string) {
     localStorage.setItem("heidrun.settings", savedText);
     vi.resetModules();
@@ -750,7 +750,7 @@ describe("code theme", () => {
 });
 
 describe("legend filters of the bar charts of the Statistics window", () => {
-  /** The settings, as a new run of Heidrun reads them from what `localStorage` holds. */
+  /** The settings, as a new run of Heidrun Code reads them from what `localStorage` holds. */
   async function settingsFrom(saved: unknown) {
     localStorage.setItem("heidrun.settings", JSON.stringify(saved));
     vi.resetModules();
@@ -779,7 +779,7 @@ describe("legend filters of the bar charts of the Statistics window", () => {
 });
 
 describe("selections of the tabs of the Statistics window (issue 707)", () => {
-  /** The settings, as a new run of Heidrun reads them from what `localStorage` holds. */
+  /** The settings, as a new run of Heidrun Code reads them from what `localStorage` holds. */
   async function settingsFrom(saved: unknown) {
     localStorage.setItem("heidrun.settings", JSON.stringify(saved));
     vi.resetModules();
@@ -868,5 +868,34 @@ describe("selections of the tabs of the Statistics window (issue 707)", () => {
     });
     expect(reloaded.statisticsUserActivityWorkspaces).toEqual({ isEveryWorkspaceChosen: true, folders: [] });
     expect(reloaded.statisticsPersonWorkWorkspaces).toEqual({ isSaved: false, workspaceIds: [] });
+  });
+});
+
+describe("channels of the notifications (issue #857)", () => {
+  /** The settings, as a new run of Heidrun Code reads them from what `localStorage` holds. */
+  async function settingsFrom(savedText: string) {
+    localStorage.setItem("heidrun.settings", savedText);
+    vi.resetModules();
+    return (await import("./settings")).settings;
+  }
+
+  it("turns the system notification on and the sound off for every kind in an existing installation", async () => {
+    const reloaded = await settingsFrom(JSON.stringify({ language: "fr" }));
+    for (const channel of Object.values(reloaded.notificationChannels)) {
+      expect(channel).toEqual({ isSystemEnabled: true, isSoundEnabled: false, soundName: "Ping" });
+    }
+  });
+
+  it("keeps a saved channel after a restart", async () => {
+    const reloaded = await settingsFrom(
+      JSON.stringify({ notificationChannels: { blocked: { isSystemEnabled: true, isSoundEnabled: true, soundName: "Funk" } } }),
+    );
+    expect(reloaded.notificationChannels.blocked).toEqual({ isSystemEnabled: true, isSoundEnabled: true, soundName: "Funk" });
+    expect(reloaded.notificationChannels.done.isSoundEnabled).toBe(false);
+  });
+
+  it("gives the defaults back when the saved value is corrupted", async () => {
+    const reloaded = await settingsFrom(JSON.stringify({ notificationChannels: "loud" }));
+    expect(reloaded.notificationChannels.blocked.isSoundEnabled).toBe(false);
   });
 });

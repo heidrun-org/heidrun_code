@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { copy, writeToClipboard } from "./clipboard";

@@ -8,7 +8,7 @@ import { t } from "../i18n/index";
 const props = defineProps<{ paneId: string }>();
 
 // The push-to-talk button (issue 662). A long press is push to talk: the developer holds the button, speaks, and releases it.
-// A short press is a click: the recording goes on until the next click. Heidrun changes the speech into text and writes the
+// A short press is a click: the recording goes on until the next click. Heidrun Code changes the speech into text and writes the
 // text in the composition bar. The window hears the pointer release, so a release outside of the button ends a long press too.
 
 // The options tell whether the model is on the disk. They are read once, the first time that a button appears.

@@ -1,0 +1,19 @@
+{
+  "channelsTitle": "Notification système et son pour chaque type",
+  "kind.blocked": "Un panneau est bloqué",
+  "kind.question": "Un panneau pose une question",
+  "kind.done": "Un panneau a terminé",
+  "kind.stillBlocked": "Un panneau reste bloqué trop longtemps",
+  "kind.context": "Le contexte d’un agent est presque plein",
+  "kind.quota": "Le quota de Claude est presque utilisé",
+  "kind.budget": "Le budget mensuel d’un workspace est presque utilisé",
+  "kind.patternFound": "Un motif surveillé est trouvé",
+  "kind.evening": "Le résumé de la journée",
+  "systemLabel": "Notification système",
+  "soundLabel": "Son",
+  "soundListLabel": "Son pour : {kind}",
+  "testLabel": "Tester",
+  "testTitle": "Afficher une notification de test de ce type, avec les réglages de cette ligne",
+  "testNotificationTitle": "Test : {kind}",
+  "testNotificationBody": "Ceci est un test de la notification système de Heidrun Code."
+}

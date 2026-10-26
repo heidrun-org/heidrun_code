@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { PaneLayoutWithoutPanes } from './pane_layout_without_panes';
 import { PaneSeparators } from './pane_separators';

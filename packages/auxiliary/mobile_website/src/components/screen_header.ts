@@ -30,7 +30,7 @@ export class ScreenHeader {
 		const connectionText = isOnline === true ? 'Connected' : 'Not connected';
 		const headerHtmlContent = /* html */`
 			<header class="top">
-				<span class="branding-icon" role="img" aria-label="Heidrun">
+				<span class="branding-icon" role="img" aria-label="Heidrun Code">
 					${Icon.render('heidrun-goat-only', 24)}
 				</span>
 				<h1>${HtmlEscape.escape(title)}</h1>

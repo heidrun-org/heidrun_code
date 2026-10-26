@@ -1,13 +1,13 @@
-# User interface of Heidrun: drop of image files on a composition bar
+# User interface of Heidrun Code: drop of image files on a composition bar
 
 - Created: 21 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md), [User interface of Heidrun: composition bar](composition_bar.md), [Shared design rules](../../web_styling/shared_design.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [User interface of Heidrun Code: composition bar](composition_bar.md), [Shared design rules](../../web_styling/shared_design.md)
 - Related issue: [issue 785](https://github.com/heidrun-org/heidrun/issues/785)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../glossary/index.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md).
 
 ## Where a drop goes
 
@@ -28,7 +28,7 @@ This file is a part of the rules of the user interface of Heidrun. The words are
 ## The cursor of the system
 
 - The page cannot change the cursor during a drag of files: the CSS property `cursor` has no effect, and the web view of the window answers every drag with the operation "copy", so the system shows the green plus badge on the whole window, over a closed composition bar and over a terminal too. The layer above is the only sign that a drop is accepted. A drop outside an open composition bar does nothing.
-- Heidrun does not replace the cursor: a test in the real window showed that the replacement of the drag messages of the web view changed the cursor for a very short time only, so it was removed.
+- Heidrun Code does not replace the cursor: a test in the real window showed that the replacement of the drag messages of the web view changed the cursor for a very short time only, so it was removed.
 
 ## Tests
 

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { tabIconName, type PaneForTabIcon } from "./tab_icon";
 
@@ -19,7 +20,7 @@ describe("tabIconName", () => {
     expect(tabIconName([makePane("p1", { agent: "antigravity" })], null)).toBe("google");
   });
 
-  it("gives the terminal icon to an agent that Heidrun does not know", () => {
+  it("gives the terminal icon to an agent that Heidrun Code does not know", () => {
     expect(tabIconName([makePane("p1", { agent: "gemini" })], null)).toBe("terminal");
   });
 

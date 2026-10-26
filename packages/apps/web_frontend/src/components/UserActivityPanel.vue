@@ -15,7 +15,7 @@ import { t } from "../i18n/index";
 import ScrollingLine from "./ScrollingLine.vue";
 
 /** The file where the records are kept, as the sidebar section shows it. */
-const RECORDS_FILE = "~/.config/heidrun/user_activity.jsonl";
+const RECORDS_FILE = "~/.config/heidrun_code/user_activity.jsonl";
 
 /** The time of the day when the running period started, or an empty text when no period runs. */
 const activeSinceTime = computed(() =>

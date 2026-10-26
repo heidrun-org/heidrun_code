@@ -1,6 +1,6 @@
 {
   "title": "Choose the workspace folder for {name}",
-  "explanation": "The original workspace folder was not saved. Choose the original folder once. New terminals and coding agents will start in this folder, and Heidrun will remember the folder after a restart.",
+  "explanation": "The original workspace folder was not saved. Choose the original folder once. New terminals and coding agents will start in this folder, and Heidrun Code will remember the folder after a restart.",
   "choose": "Choose workspace folder",
   "required": "Choose the workspace folder before creating a terminal or a coding agent."
 }

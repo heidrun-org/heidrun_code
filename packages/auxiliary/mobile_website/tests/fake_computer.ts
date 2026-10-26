@@ -30,7 +30,7 @@ export class FakeComputer {
 	/** The answer of the method `read`. */
 	outputText = 'first line\nlast line\n';
 
-	/** True when the fake computer lets the phone type in a plain terminal, like the setting of Heidrun. */
+	/** True when the fake computer lets the phone type in a plain terminal, like the setting of Heidrun Code. */
 	terminalTypingAllowed = true;
 
 	/** The answer of the method `macros`. */

@@ -60,7 +60,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(timer);
 });
 
-// The button "Stop the old ngrok" (issue 583). When no ngrok of Heidrun was killed, the other ngrok runs somewhere else, and
+// The button "Stop the old ngrok" (issue 583). When no ngrok of Heidrun Code was killed, the other ngrok runs somewhere else, and
 // the developer closes it by hand.
 const isLeftoverNotFound = ref(false);
 /** The command that stops every ngrok of this computer, the same in every language. */

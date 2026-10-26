@@ -22,7 +22,7 @@ import {
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	TerminalDetection — decides what Heidrun finds in one line of terminal text, and which rule wins
+//	TerminalDetection — decides what Heidrun Code finds in one line of terminal text, and which rule wins
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -210,7 +210,7 @@ const FAMILY_OF_KIND: Record<RefKind, DetectionFamilyId> = {
 	commit: 'commits',
 };
 
-/** Decides what Heidrun finds in the text of a terminal, line by line, and which rule wins when two rules find the same text. */
+/** Decides what Heidrun Code finds in the text of a terminal, line by line, and which rule wins when two rules find the same text. */
 export class TerminalDetection {
 	/**
 	 * Gives the detection family of a kind of reference.
@@ -382,8 +382,8 @@ export class TerminalDetection {
 	}
 
 	/**
-	 * Reads a sample text the way Heidrun reads a screen of a terminal. Nothing is opened, sent, or run: the result only
-	 * describes what Heidrun would propose.
+	 * Reads a sample text the way Heidrun Code reads a screen of a terminal. Nothing is opened, sent, or run: the result only
+	 * describes what Heidrun Code would propose.
 	 *
 	 * @param sample - The sample text. Each line of it is a line of the screen.
 	 * @param options - The context of the pane: the repository, the slash commands, the coding agent, and the switches.

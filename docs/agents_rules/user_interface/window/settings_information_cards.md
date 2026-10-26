@@ -1,13 +1,13 @@
-# User interface of Heidrun: the information card of every option of the Settings window
+# User interface of Heidrun Code: the information card of every option of the Settings window
 
 - Created: 17 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md), [Abbreviated times](abbreviated_times.md), [Guards section](settings_guards.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Abbreviated times](abbreviated_times.md), [Guards section](settings_guards.md)
 - Related issue: [issue 608](https://github.com/heidrun-org/heidrun/issues/608), [issue 266](https://github.com/heidrun-org/heidrun/issues/266), [issue 556](https://github.com/heidrun-org/heidrun/issues/556), [issue 596](https://github.com/heidrun-org/heidrun/issues/596), [issue 629](https://github.com/heidrun-org/heidrun/issues/629), [issue 646](https://github.com/heidrun-org/heidrun/issues/646), [issue 662](https://github.com/heidrun-org/heidrun/issues/662)
 
-This file is a part of the rules of the user interface of Heidrun. It gives the rule of the help text of the Settings window.
+This file is a part of the rules of the user interface of Heidrun Code. It gives the rule of the help text of the Settings window.
 
 ## The rule
 

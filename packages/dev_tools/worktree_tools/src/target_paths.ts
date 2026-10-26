@@ -24,7 +24,16 @@ export class TargetPaths {
 	static readonly bundledCommandsFolderName = 'bundled_commands';
 
 	/** The command line tools that Tauri requires in the bundled command line tools folder. */
-	static readonly bundledCommandFileNames = ['heidrun_ctrl', 'heidrun_data'] as const;
+	static readonly bundledCommandFileNames = ['heidrun_code_ctrl', 'heidrun_data'] as const;
+
+	/**
+	 * Gives the path of the folder of the package that owns the Cargo target folder: the folder where `cargo build` runs.
+	 * @param checkoutPath The absolute path of the root of the main checkout or of a worktree.
+	 * @returns The absolute path of the package folder, the parent of the Cargo target folder.
+	 */
+	static packagePath(checkoutPath: string): string {
+		return Path.dirname(TargetPaths.targetPath(checkoutPath));
+	}
 
 	/**
 	 * Gives the path of the Cargo target folder of a checkout.
@@ -45,15 +54,20 @@ export class TargetPaths {
 	}
 
 	/**
+	 * Gives the path of the release build folder of a checkout.
+	 * @param checkoutPath The absolute path of the root of the main checkout or of a worktree.
+	 * @returns The absolute path of the `release` folder inside the Cargo target folder.
+	 */
+	static releasePath(checkoutPath: string): string {
+		return Path.join(TargetPaths.targetPath(checkoutPath), TargetPaths.releaseFolderName);
+	}
+
+	/**
 	 * Gives the path of the bundled command line tools required by Tauri.
 	 * @param checkoutPath The absolute path of the root of the main checkout or of a worktree.
 	 * @returns The absolute path of the bundled command line tools folder.
 	 */
 	static bundledCommandsPath(checkoutPath: string): string {
-		return Path.join(
-			TargetPaths.targetPath(checkoutPath),
-			TargetPaths.releaseFolderName,
-			TargetPaths.bundledCommandsFolderName,
-		);
+		return Path.join(TargetPaths.releasePath(checkoutPath), TargetPaths.bundledCommandsFolderName);
 	}
 }

@@ -1,17 +1,17 @@
-# User interface of Heidrun: Statistics window, tab "User activity"
+# User interface of Heidrun Code: Statistics window, tab "User activity"
 
 - Created: 15 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: user activity](../../glossary/user_activity.md), [Statistics window](statistics_window.md), [User activity sidebar section](../sidebars/user_activity.md), [layout.md](layout.md), [Stacked bars](statistics_user_activity_stacked_bars.md)
+- Related rules: [Glossary of Heidrun Code: user activity](../../glossary/user_activity.md), [Statistics window](statistics_window.md), [User activity sidebar section](../sidebars/user_activity.md), [layout.md](layout.md), [Stacked bars](statistics_user_activity_stacked_bars.md)
 - Related issue: [issue 473](https://github.com/heidrun-org/heidrun/issues/473), [issue 486](https://github.com/heidrun-org/heidrun/issues/486), [issue 498](https://github.com/heidrun-org/heidrun/issues/498), [issue 552](https://github.com/heidrun-org/heidrun/issues/552), [issue 629](https://github.com/heidrun-org/heidrun/issues/629), [issue 680](https://github.com/heidrun-org/heidrun/issues/680), [issue 707](https://github.com/heidrun-org/heidrun/issues/707), [issue 683](https://github.com/heidrun-org/heidrun/issues/683)
 
 This file is a part of the rules of the Statistics window. The words are defined in [glossary/user_activity.md](../../glossary/user_activity.md). The tab has no person, because the user activity is the activity of the person in front of the computer.
 
 ## The three choices
 
-- The tab "User activity" holds one histogram, and above it the choices. Heidrun remembers each choice ([statistics_remembered_selections.md](statistics_remembered_selections.md)): the next opening of the window starts with the saved choices, and at first with the last day, its default slot length, and all the workspaces. Each choice draws the histogram again at once, from the records that the window already read, and never reads the data layer again.
+- The tab "User activity" holds one histogram, and above it the choices. Heidrun Code remembers each choice ([statistics_remembered_selections.md](statistics_remembered_selections.md)): the next opening of the window starts with the saved choices, and at first with the last day, its default slot length, and all the workspaces. Each choice draws the histogram again at once, from the records that the window already read, and never reads the data layer again.
 - The time range: a Bootstrap radio button group (`btn-group` with `btn-check btn-outline theme-secondary` labels, as in the section "General" of the Settings window, for example the time format) with three buttons that have a text and a title (the tooltip), in this order: "Last day", "Last week", and "Last month". "Last day" is chosen when the window opens. The time range "Last hour" does not exist.
 - The slot length: a radio button group of the same form, after the label "Slot length". The time range gives the buttons, from the shortest to the longest, and the slot length that is chosen when the time range changes:
   - Last day: 15 minutes, 30 minutes, 1 hour (chosen).
@@ -19,7 +19,7 @@ This file is a part of the rules of the Statistics window. The words are defined
   - Last month: 6 hours, 1 day (chosen).
 - Each change of the time range goes back to the slot length that this time range starts with. A change of the slot length never changes the time range.
 - The workspaces: after the label "Workspaces", two groups of small Bootstrap buttons (`btn-group btn-group-sm`, with `btn-check btn-outline theme-secondary` labels), the same as the workspace selector of the tab "Work of one person" ([statistics_person_work_workspace.md](statistics_person_work_workspace.md)). The first group is a radio button group with two buttons, "All" and "None". "All" checks every workspace, and "None" unchecks them all. "All" is shown as chosen when every workspace is checked, and "None" when no workspace is checked; when only some are checked, neither is shown as chosen. The second group has one checkbox button for each workspace, sorted by name, all checked when the window opens, and a click on one shows or hides this workspace. The second group wraps on a narrow window.
-- The workspace choices show only workspaces currently open in Heidrun, including workspaces with no user activity record in the longest time range. A button has the label of the workspace in the left sidebar. When two workspaces have the same name, the folder follows the name in parentheses. The title of each button is the folder of the workspace. Opening or closing a workspace updates the choices and the histogram while the Statistics window stays open.
+- The workspace choices show only workspaces currently open in Heidrun Code, including workspaces with no user activity record in the longest time range. A button has the label of the workspace in the left sidebar. When two workspaces have the same name, the folder follows the name in parentheses. The title of each button is the folder of the workspace. Opening or closing a workspace updates the choices and the histogram while the Statistics window stays open.
 - A workspace that has activity records but is closed is not listed, and its records do not contribute to the histogram. When no workspace is open, the tab shows no workspace button and still shows the histogram. When the developer unchecks every workspace, the tab shows the text "No workspace is chosen…" in place of the histogram.
 - The choice of the workspaces stays when the time range or the slot length changes.
 

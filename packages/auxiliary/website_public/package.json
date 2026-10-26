@@ -7,7 +7,7 @@
     "dev": "vitepress dev docs",
     "build": "vitepress build docs",
     "preview": "vitepress preview docs",
-    "test": "vitest run --minWorkers=1 --maxWorkers=2",
+    "test": "vitest run --minWorkers=1 --maxWorkers=4",
     "ghpage:deploy": "pnpm build && gh-pages --dist docs/.vitepress/dist --dotfiles"
   },
   "devDependencies": {

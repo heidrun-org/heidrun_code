@@ -114,7 +114,7 @@ export class ChangeLogGit {
 	/**
 	 * Finds the web address of the GitHub repository, from the Git remote named `origin`.
 	 * @param repositoryPath The root folder of the Git repository.
-	 * @returns The address, for example `https://github.com/heidrun-org/heidrun`, or null when the remote is missing
+	 * @returns The address, for example `https://github.com/heidrun-org/heidrun_code`, or null when the remote is missing
 	 * or is not a GitHub remote.
 	 */
 	static findRepositoryUrl(repositoryPath: string): string | null {

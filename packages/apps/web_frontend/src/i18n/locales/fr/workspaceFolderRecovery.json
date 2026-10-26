@@ -1,6 +1,6 @@
 {
   "title": "Choisir le dossier de l’espace de travail {name}",
-  "explanation": "Le dossier d’origine de cet espace de travail n’a pas été enregistré. Choisissez le dossier d’origine une fois. Les nouveaux terminaux et agents de programmation démarreront dans ce dossier, et Heidrun conservera ce dossier après un redémarrage.",
+  "explanation": "Le dossier d’origine de cet espace de travail n’a pas été enregistré. Choisissez le dossier d’origine une fois. Les nouveaux terminaux et agents de programmation démarreront dans ce dossier, et Heidrun Code conservera ce dossier après un redémarrage.",
   "choose": "Choisir le dossier",
   "required": "Choisissez le dossier de l’espace de travail avant de créer un terminal ou un agent de programmation."
 }

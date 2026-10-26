@@ -64,7 +64,7 @@ function calls(): number {
   return vi.mocked(invoke).mock.calls.filter(([command]) => command === "coding_agent_ask").length;
 }
 
-/** The stores, as a new run of Heidrun sees them: the modules are loaded again. */
+/** The stores, as a new run of Heidrun Code sees them: the modules are loaded again. */
 async function startRun(method: "keyword" | "languageModel") {
   vi.resetModules();
   const { settings } = await import("./settings");
@@ -149,7 +149,7 @@ describe("prepareLanguageModelTopics", () => {
     }
   });
 
-  it("saves the topics, so the next run of Heidrun makes no call for the same chats", async () => {
+  it("saves the topics, so the next run of Heidrun Code makes no call for the same chats", async () => {
     installBackend(answerWith(() => ["cache"]));
     const first = await startRun("languageModel");
     await first.prepareLanguageModelTopics([chatOf("a", "Fix the cache")]);

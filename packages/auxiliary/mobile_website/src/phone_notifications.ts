@@ -154,7 +154,7 @@ export class PhoneNotifications {
 			return 'The service worker is not registered';
 		}
 		try {
-			await this.registration.showNotification('Heidrun', {
+			await this.registration.showNotification('Heidrun Code', {
 				body: 'Test notification: a coding agent needs you.',
 				tag: 'heidrun-test',
 				data: {

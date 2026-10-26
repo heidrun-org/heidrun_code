@@ -33,6 +33,7 @@ function checkBlocked(now: number) {
     if (!since || now - since < limit || remindedBlocked.has(key)) continue;
     remindedBlocked.add(key);
     notify(
+      "stillBlocked",
       t("alertsStore.stillBlocked.title", { name: paneFullName(p) }),
       t("alertsStore.stillBlocked.body", { minutes: Math.round((now - since) / 60_000) }),
     );
@@ -49,6 +50,7 @@ function checkContext() {
     if (ctx.percent >= 80 && !contextWarned.has(key)) {
       contextWarned.add(key);
       notify(
+        "context",
         t("alertsStore.context.title", { name: paneFullName(p), percent: Math.round(ctx.percent) }),
         t("alertsStore.context.body"),
       );
@@ -77,6 +79,7 @@ function checkQuota() {
         ? new Date(w.resetsAt * 1000).toLocaleTimeString(locale.value, timeOptions())
         : "";
       notify(
+        "quota",
         t("alertsStore.quota.title", { name: w.name, percent: Math.round(w.percent) }),
         w.resetsAt ? t("alertsStore.quota.body", { time: resetTime }) : "",
       );
@@ -115,6 +118,7 @@ function checkBudget() {
       /* ignore */
     }
     notify(
+      "budget",
       level === 100 ? t("alertsStore.budget.exceeded", { workspace: ws }) : t("alertsStore.budget.nearly", { workspace: ws }),
       t("alertsStore.budget.body", { spent: spent.toFixed(2), budget: budget.toFixed(0) }),
     );
@@ -183,6 +187,7 @@ function checkEvening(d: Date) {
   const parts = Object.entries(day.done).sort((a, b) => b[1] - a[1]);
   const total = parts.reduce((n, [, c]) => n + c, 0);
   notify(
+    "evening",
     total ? t("alertsStore.evening.title", { count: total }) : t("alertsStore.evening.none"),
     parts.map(([w, c]) => `${w} : ${c}`).join(" · "),
   );

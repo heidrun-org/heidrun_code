@@ -2,6 +2,8 @@
 //! into text. The package `voice_input` does the work. This file holds the state of the application and talks with the web page.
 
 use crate::app_data;
+use crate::application_log;
+use crate::voice_words::replace_spoken_words;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -41,7 +43,7 @@ pub struct VoiceOptions {
     models: Vec<ModelInfo>,
     /// The codes of the languages, without the automatic choice.
     languages: Vec<&'static str>,
-    /// The model that Heidrun proposes first.
+    /// The model that Heidrun Code proposes first.
     default_model_id: &'static str,
 }
 
@@ -57,12 +59,12 @@ struct DownloadProgressEvent {
     total_bytes: u64,
 }
 
-/// The folder of the model files: `models` in the folder of the data of Heidrun.
+/// The folder of the model files: `models` in the folder of the data of Heidrun Code.
 fn models_folder() -> PathBuf {
     app_data::data_dir().join("models")
 }
 
-/// The file where the logs of Whisper go: `logs/whisper.log` in the folder of the data of Heidrun.
+/// The file where the logs of Whisper go: `logs/whisper.log` in the folder of the data of Heidrun Code.
 fn whisper_log_path() -> PathBuf {
     app_data::data_dir().join("logs").join("whisper.log")
 }
@@ -131,6 +133,8 @@ pub fn voice_start_recording(app: AppHandle, state: State<'_, VoiceState>) -> Re
     let started = Recorder::start_with_levels(move |level| {
         let _ = app.emit(LEVEL_EVENT, level);
     });
+    let error = started.as_ref().err().map(|error| error.category().to_string());
+    application_log::write("voice_recording_start", serde_json::json!({ "error": error }));
     *recorder = Some(started.map_err(report)?);
     Ok(())
 }
@@ -139,12 +143,15 @@ pub fn voice_start_recording(app: AppHandle, state: State<'_, VoiceState>) -> Re
 #[tauri::command]
 pub fn voice_cancel_recording(state: State<'_, VoiceState>) {
     if let Ok(mut recorder) = state.recorder.lock() {
-        *recorder = None;
+        if recorder.take().is_some() {
+            application_log::write("voice_recording_cancel", serde_json::json!({}));
+        }
     }
 }
 
-/// Stops the recording and changes the speech into text with the model and the language. A recording with no speech gives an empty
-/// text. The change runs on a background thread, so the window stays fast.
+/// Stops the recording and changes the speech into text with the model and the language, then replaces the listed texts of the
+/// word replacement list. A recording with no speech gives an empty text. The change runs on a background thread, so the window
+/// stays fast.
 #[tauri::command]
 pub async fn voice_stop_recording(state: State<'_, VoiceState>, model_id: String, language: String) -> Result<String, String> {
     let recorder = state
@@ -155,9 +162,31 @@ pub async fn voice_stop_recording(state: State<'_, VoiceState>, model_id: String
         .ok_or_else(|| report(VoiceError::NotRecording))?;
     let transcriber = state.transcriber.clone();
     let work = move || -> Result<String, VoiceError> {
-        let recording = recorder.stop()?;
+        let recording = recorder.stop();
+        let recording_seconds = recording.as_ref().map(|recording| recording.seconds()).ok();
+        let error = recording.as_ref().err().map(|error| error.category().to_string());
+        application_log::write(
+            "voice_recording_stop",
+            serde_json::json!({ "recording_seconds": recording_seconds, "error": error }),
+        );
+        let recording = recording?;
         let model = find_model(&model_id).ok_or_else(|| VoiceError::UnknownModel(model_id.clone()))?;
-        transcriber.transcribe(&model_path(&models_folder(), model), model, &language, &recording.samples)
+        application_log::write(
+            "voice_transcription_start",
+            serde_json::json!({ "model": model_id, "language": language, "recording_seconds": recording_seconds }),
+        );
+        let started = Instant::now();
+        let text = transcriber.transcribe(&model_path(&models_folder(), model), model, &language, &recording.samples);
+        let text = text.map(|text| replace_spoken_words(&text));
+        application_log::write(
+            "voice_transcription_end",
+            serde_json::json!({
+                "duration_ms": started.elapsed().as_millis() as u64,
+                "characters": text.as_ref().map(|text| text.chars().count()).ok(),
+                "error": text.as_ref().err().map(|error| error.category().to_string()),
+            }),
+        );
+        text
     };
     match tauri::async_runtime::spawn_blocking(work).await {
         Ok(result) => result.map_err(report),

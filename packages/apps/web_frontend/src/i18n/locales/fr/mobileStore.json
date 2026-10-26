@@ -12,5 +12,5 @@
   "error.launcherNotFound": "Lanceur introuvable (supprimé ?) : rafraîchis",
   "launcherStarted": "Lanceur démarré depuis le téléphone : {name}",
   "error.terminalReadOnly": "Ce panneau est un terminal : le téléphone peut seulement le lire, ou y taper une commande",
-  "error.terminalTypingOff": "La saisie dans les terminaux depuis le téléphone est désactivée : active-la dans la fenêtre Réglages de Heidrun, dans Accès mobile"
+  "error.terminalTypingOff": "La saisie dans les terminaux depuis le téléphone est désactivée : active-la dans la fenêtre Réglages de Heidrun Code, dans Accès mobile"
 }

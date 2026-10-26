@@ -17,7 +17,7 @@ const MAX_ENDPOINT_BYTES: usize = 2048;
 /// The token of one request is valid for 12 hours (the push services accept 24 hours at most).
 const TOKEN_SECONDS: u64 = 12 * 60 * 60;
 /// Who runs the server, as the push services ask.
-const SUBJECT: &str = "https://github.com/heidrun-org/heidrun";
+const SUBJECT: &str = "https://github.com/heidrun-org/heidrun_code";
 
 /// The content of the file `mobile_push.json`.
 #[derive(Serialize, Deserialize, Default)]

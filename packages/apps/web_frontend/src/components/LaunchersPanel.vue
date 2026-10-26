@@ -3,7 +3,9 @@ import Icon from "./Icon.vue";
 import { computed, watch } from "vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
 import {
+  launcherLevel,
   launcherStatus,
+  launchersOf,
   currentProject,
   loadProject,
   project,
@@ -21,6 +23,9 @@ import { t } from "../i18n/index";
 const ws = computed(() => state.selectedWorkspaceId);
 const p = currentProject;
 const error = computed(() => (ws.value ? project.errors[ws.value] : undefined));
+
+/** The launchers of the selected workspace: the user level first, then the workspace level. */
+const launchers = computed(() => (ws.value ? launchersOf(ws.value) : []));
 
 // Load (or reload) the project file whenever the workspace changes.
 watch(ws, (id) => id && loadProject(id), { immediate: true });
@@ -71,11 +76,11 @@ function status(a: Launcher) {
         </button>
       </header>
 
-      <div v-if="p.config.launchers.length === 0" class="empty">
+      <div v-if="launchers.length === 0" class="empty">
         {{ t("launchersPanel.empty") }}
       </div>
 
-      <div v-for="a in p.config.launchers" :key="a.id" class="launcher" :class="status(a)">
+      <div v-for="a in launchers" :key="a.id" class="launcher" :class="status(a)">
         <div class="top">
           <span class="dot" :class="status(a) === 'running' ? 'working' : status(a) === 'finished' ? 'done' : ''"></span>
           <span class="label">{{ a.label }}</span>
@@ -89,7 +94,10 @@ function status(a: Launcher) {
         </div>
         <span class="desc" :class="{ mono: a.description === undefined }" :title="a.description ?? a.command">{{ describe(a) }}</span>
         <div class="bottom">
-          <span class="state" :class="status(a)">{{ t(`launchersPanel.state.${status(a)}`) }}</span>
+          <div class="state-line">
+            <span class="state" :class="status(a)">{{ t(`launchersPanel.state.${status(a)}`) }}</span>
+            <span v-if="launcherLevel(a) === 'user'" class="level" :title="t('launchersPanel.levelUserTitle')">{{ t("launchersPanel.levelUser") }}</span>
+          </div>
           <button v-if="status(a) === 'running'" class="btn" :title="t('launchersPanel.stop')" @click="stopLauncher(ws, a)"><Icon name="stop-fill" /> {{ t("launchersPanel.stopLabel") }}</button>
           <button v-else class="btn" :title="t('launchersPanel.runInTab')" @click="runLauncher(ws, a, true)"><Icon name="play-fill" /> {{ t("launchersPanel.run") }}</button>
         </div>
@@ -119,6 +127,8 @@ function status(a: Launcher) {
 }
 .bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .state { font-size: var(--font-size); color: var(--muted); white-space: nowrap; }
+.state-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.level { font-size: var(--font-size); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .state.running { color: var(--working-text); }
 .state.finished { color: var(--done-text); }
 .top :deep(.tool) {

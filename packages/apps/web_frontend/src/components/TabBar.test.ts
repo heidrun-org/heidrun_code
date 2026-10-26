@@ -214,6 +214,33 @@ describe("TabBar plus button", () => {
     await wrapper.get("button.add").trigger("click");
     expect(NewPane.onNewPaneClick).toHaveBeenCalledTimes(1);
   });
+
+  it("is marked as the place where a dragged pane goes into a new tab, so that a pane dragged over it can be dropped", async () => {
+    const { wrapper } = await mountTabBar();
+    expect(wrapper.get("button.add").attributes("data-pane-move-new-tab")).toBeDefined();
+  });
+
+  it("shows the look of the layer of a drop of images only while a dragged pane is over it", async () => {
+    const { wrapper } = await mountTabBar();
+    const { PaneMoveDrag } = await import("../stores/pane_move");
+    const plus = wrapper.get("button.add");
+    expect(plus.classes()).toContain("border-0");
+    expect(plus.classes()).not.toContain("pane-drop-target");
+    PaneMoveDrag.state.isNewTabTargeted = true;
+    await flushPromises();
+    expect(plus.classes()).toContain("pane-drop-target");
+    expect(plus.classes()).not.toContain("border-0");
+    PaneMoveDrag.state.isNewTabTargeted = false;
+    await flushPromises();
+    expect(plus.classes()).toContain("border-0");
+    expect(plus.classes()).not.toContain("pane-drop-target");
+  });
+
+  it("draws the drop look with a border of 3 pixels in the color --accent and a background of the same color at 12 percent", () => {
+    const sourceText = Fs.readFileSync(Path.resolve(import.meta.dirname, "TabBar.vue"), "utf8");
+    expect(sourceText).toContain("--btn-border-width: 3px; --btn-border-color: var(--accent);");
+    expect(sourceText).toContain("--btn-bg: color-mix(in srgb, var(--accent) 12%, transparent);");
+  });
 });
 
 describe("TabBar rename in place", () => {

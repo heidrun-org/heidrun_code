@@ -1,7 +1,7 @@
 # Directory Context: `/packages/experiments/promotional_videos`
 
 ## Purpose
-The working folder to try promotional marketing videos of Heidrun that a coding agent makes. The first video shows the dinosaur game: the real splash screen of the application, a crossfade to the game, the dinosaur that shoots and then runs into a boulder, and an outro with the baby goat, the motto, and the address of the website.
+The working folder to try promotional marketing videos of Heidrun Code that a coding agent makes. The first video shows the dinosaur game: the real splash screen of the application, a crossfade to the game, the dinosaur that shoots and then runs into a boulder, and an outro with the baby goat, the motto, and the address of the website.
 
 ## Key Exports & Entry Points
 - `src/index.ts`: the public interface. It exports the scenario, the checker, the recorder, the pictures, and the composer.
@@ -36,4 +36,4 @@ The working folder to try promotional marketing videos of Heidrun that a coding 
 
 ## Background
 - The package comes from [issue #548](https://github.com/heidrun-org/heidrun/issues/548) and its parent, [issue #547](https://github.com/heidrun-org/heidrun/issues/547).
-- The method to record the window of Heidrun itself is in [recording_videos.md](../../../docs/marketing/recording_videos.md).
+- The method to record the window of Heidrun Code itself is in [recording_videos.md](../../../docs/marketing/recording_videos.md).

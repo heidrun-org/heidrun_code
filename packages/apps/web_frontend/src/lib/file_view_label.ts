@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** The text that starts the label of every file view pane. Herdr keeps the label, so it survives a restart of Heidrun. */
+/** The text that starts the label of every file view pane. Herdr keeps the label, so it survives a restart of Heidrun Code. */
 const LABEL_PREFIX = 'Heidrun file view: ';
 
 /** Writes and reads the label of a file view pane: the marker followed by the absolute path of the file. */

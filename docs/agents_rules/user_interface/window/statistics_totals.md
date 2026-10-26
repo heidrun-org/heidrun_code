@@ -1,10 +1,10 @@
-# User interface of Heidrun: Statistics window, tab "Work of one person", totals
+# User interface of Heidrun Code: Statistics window, tab "Work of one person", totals
 
 - Created: 15 October 2026
-- Last updated: 17 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Source "AI cost"](statistics_ai_cost.md)
+- Related rules: [Glossary of Heidrun Code: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Source "AI cost"](statistics_ai_cost.md)
 - Related issue: [issue 523](https://github.com/heidrun-org/heidrun/issues/523), [issue 559](https://github.com/heidrun-org/heidrun/issues/559), [issue 622](https://github.com/heidrun-org/heidrun/issues/622), [issue 629](https://github.com/heidrun-org/heidrun/issues/629)
 
 This file is a part of the rules of the tab "Work of one person". The words are defined in [glossary/person_work.md](../../glossary/person_work.md). The layout of the tab, and the list of the totals, are in [statistics_person_work.md](statistics_person_work.md).

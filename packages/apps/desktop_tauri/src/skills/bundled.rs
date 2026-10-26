@@ -1,22 +1,22 @@
-//! Installs the command lines and skills that are included with the Heidrun application.
+//! Installs the command lines and skills that are included with the Heidrun Code application.
 
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
-const COMMANDS: [&str; 2] = ["heidrun_ctrl", "heidrun_data"];
-const SKILLS: [&str; 2] = ["heidrun-ctrl", "heidrun-data"];
+const COMMANDS: [&str; 2] = ["heidrun_code_ctrl", "heidrun_data"];
+const SKILLS: [&str; 2] = ["heidrun-code-ctrl", "heidrun-data"];
 
 /// Makes the included command lines available to the coding agents and installs the included skills once per version.
 pub(crate) fn install(app: &AppHandle) {
     let Ok(resource_folder) = app.path().resource_dir() else {
-        eprintln!("Heidrun: cannot find the application resource folder.");
+        eprintln!("Heidrun Code: cannot find the application resource folder.");
         return;
     };
     if let Err(error) = install_commands(&resource_folder) {
-        eprintln!("Heidrun: cannot install the command lines: {error}");
+        eprintln!("Heidrun Code: cannot install the command lines: {error}");
     }
     if let Err(error) = install_skills(&resource_folder) {
-        eprintln!("Heidrun: cannot install the included skills: {error}");
+        eprintln!("Heidrun Code: cannot install the included skills: {error}");
     }
 }
 
@@ -45,7 +45,7 @@ fn install_link(source: &Path, link: &Path) -> Result<(), String> {
             }
             return Err(format!("{} already points to another program", link.display()));
         }
-        return Err(format!("{} already exists and is not a Heidrun link", link.display()));
+        return Err(format!("{} already exists and is not a Heidrun Code link", link.display()));
     }
     #[cfg(unix)]
     std::os::unix::fs::symlink(source, link).map_err(|error| error.to_string())?;
@@ -55,10 +55,7 @@ fn install_link(source: &Path, link: &Path) -> Result<(), String> {
 }
 
 fn install_skills(resource_folder: &Path) -> Result<(), String> {
-    let Some(home_folder) = dirs::home_dir() else {
-        return Err("the home folder is not available".into());
-    };
-    let state_folder = home_folder.join(".config/heidrun");
+    let state_folder = crate::app_data::data_dir();
     let state_file = state_folder.join("bundled-skills-version");
     let version = env!("CARGO_PKG_VERSION");
     if std::fs::read_to_string(&state_file).is_ok_and(|installed| installed.trim() == version) {
@@ -79,7 +76,7 @@ fn install_skills(resource_folder: &Path) -> Result<(), String> {
     std::fs::write(state_file, version).map_err(|error| error.to_string())
 }
 
-/// Returns the user bin folder for adding it to the path of programs started by Heidrun.
+/// Returns the user bin folder for adding it to the path of programs started by Heidrun Code.
 pub(crate) fn user_bin_folder() -> Option<PathBuf> {
     dirs::home_dir().map(|home_folder| home_folder.join(".local/bin"))
 }

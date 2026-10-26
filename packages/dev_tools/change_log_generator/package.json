@@ -12,7 +12,7 @@
   },
   "scripts": {
     "cli": "tsx src/cli.ts",
-    "test": "vitest run --minWorkers=1 --maxWorkers=2"
+    "test": "vitest run --minWorkers=1 --maxWorkers=4"
   },
   "dependencies": {
     "commander": "^15.0.0",

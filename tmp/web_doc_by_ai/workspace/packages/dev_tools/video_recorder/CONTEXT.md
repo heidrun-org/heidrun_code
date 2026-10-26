@@ -1,7 +1,7 @@
 # Directory Context: `/tmp/web_doc_by_ai/workspace/packages/dev_tools/video_recorder`
 
 ## Purpose
-A full npm package with two command line tools that record a marketing video of the Heidrun window and cut it around its mouse clicks. The recording tool also logs each click. The cutting tool writes `clicks.json`, which Remotion can use later to add titles and zooms.
+A full npm package with two command line tools that record a marketing video of the Heidrun Code window and cut it around its mouse clicks. The recording tool also logs each click. The cutting tool writes `clicks.json`, which Remotion can use later to add titles and zooms.
 
 ## Key Exports & Entry Points
 - `src/index.ts`: the public interface for another package. It exports the classes `ClicksBuilder`, `VideoCutter`, and `VideoRecorder` and their types.

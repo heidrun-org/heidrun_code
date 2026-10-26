@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { chatWorktrees, listedWorktrees, worktreeOfPath, worktreesText } from "./chat_worktrees";
 

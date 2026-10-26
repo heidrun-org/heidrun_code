@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DOMWrapper, enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 

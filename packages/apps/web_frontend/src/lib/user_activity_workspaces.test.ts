@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { UserActivitySlots } from "./user_activity_slots";
 import { USER_ACTIVITY_WORKSPACE_COLOR_TOKENS, UserActivityWorkspaces } from "./user_activity_workspaces";

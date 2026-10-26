@@ -1,4 +1,4 @@
-/** A coding agent that Heidrun knows. */
+/** A coding agent that Heidrun Code knows. */
 export interface AgentDefinition {
   /** The identifier saved in the settings. */
   id: "claude" | "codex" | "antigravity";
@@ -6,7 +6,7 @@ export interface AgentDefinition {
   name: string;
 }
 
-/** The coding agents that Heidrun knows. To add an agent, add one line here. */
+/** The coding agents that Heidrun Code knows. To add an agent, add one line here. */
 export const AGENTS: AgentDefinition[] = [
   { id: "claude", name: "Claude Code" },
   { id: "codex", name: "Codex" },

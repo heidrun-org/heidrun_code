@@ -90,7 +90,7 @@ describe('the document of the guards', () => {
 		}
 	});
 
-	it('writes the reason that Heidrun shows for each built-in guard', () => {
+	it('writes the reason that Heidrun Code shows for each built-in guard', () => {
 		const textMap = GUARDS_TEXTS as Record<string, string>;
 		for (const guard of DEFAULT_GUARDS) {
 			const textKey = guard.whyKey.replace(/^guards\./, '');

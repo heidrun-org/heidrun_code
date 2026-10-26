@@ -1,13 +1,13 @@
-# Glossary of Heidrun: status bar
+# Glossary of Heidrun Code: status bar
 
 - Created: 14 October 2026
-- Last updated: 19 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [User interface of Heidrun: status bar](../user_interface/window/status_bar.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: status bar](../user_interface/window/status_bar.md)
 - Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 475](https://github.com/heidrun-org/heidrun/issues/475), [issue 494](https://github.com/heidrun-org/heidrun/issues/494), [issue 629](https://github.com/heidrun-org/heidrun/issues/629), [issue 688](https://github.com/heidrun-org/heidrun/issues/688), [issue 694](https://github.com/heidrun-org/heidrun/issues/694)
 
-This document gives one short definition for each word of the status bar, the information card, and the information card tooltip. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the status bar, the information card, and the information card tooltip. The other words of Heidrun Code are in [index.md](index.md).
 
 ## The status bar
 
@@ -21,7 +21,7 @@ One part of the status bar. It shows one piece of information, for example the u
 
 ### Unspecified Claude quota
 
-The status bar text "Claude quota: unspecified" appears when quota monitoring and Claude are on in the Settings window, but Heidrun has received no Claude quota figures from the Claude Code status line. It means the quota is unknown to Heidrun, not that usage is zero.
+The status bar text "Claude quota: unspecified" appears when quota monitoring and Claude are on in the Settings window, but Heidrun Code has received no Claude quota figures from the Claude Code status line. It means the quota is unknown to Heidrun Code, not that usage is zero.
 
 ### Information card
 

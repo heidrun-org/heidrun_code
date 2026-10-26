@@ -1,11 +1,11 @@
-# Marketing of Heidrun
+# Marketing of Heidrun Code
 
 - Created: 9 October 2026
 - Last updated: 13 October 2026
 - Status: Maintained overview for people
 - Related framing: [Project instructions](../../AGENTS.md)
 
-These rules apply to the public website (`packages/auxiliary/website_public`), to the README, to release notes, and to every text that presents Heidrun to the public.
+These rules apply to the public website (`packages/auxiliary/website_public`), to the README, to release notes, and to every text that presents Heidrun Code to the public.
 
 This folder also holds the method to record marketing videos. Read the file that matches your question:
 

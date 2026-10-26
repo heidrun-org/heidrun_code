@@ -5,7 +5,7 @@ The commands that the Statistics window calls: the records of the activity of th
 
 ## Key Exports & Entry Points
 - `user_activity_records.rs`: `user_activity_synchronize` and `user_activity_records_in_range`, with the package `data_layer_user_activity`.
-- `person_work.rs`: `person_work_synchronize` and `person_work_in_range`, with the packages `data_layer_source_control` and `data_layer_code_hosting`.
+- `person_work.rs`: `person_work_synchronize` and `person_work_in_range`, with the packages `data_layer_source_control` and `data_layer_code_hosting`. `person_work_synchronize` sends a `PersonWorkProgress` for each stage of the update through its Tauri channel `onProgress` ([rule](../../../../../docs/agents_rules/user_interface/window/statistics_update_stages.md)).
 - `ai_cost.rs`: `ai_cost_synchronize` and `ai_cost_in_range`, with the package `data_layer_coding_agents`.
 
 ## Rules

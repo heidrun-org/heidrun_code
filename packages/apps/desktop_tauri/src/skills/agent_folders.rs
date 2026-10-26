@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 use super::types::is_valid_name;
 
-/// The ids of the coding agents that Heidrun knows: the ids of `lib/agents.ts` of the frontend.
+/// The ids of the coding agents that Heidrun Code knows: the ids of `lib/agents.ts` of the frontend.
 pub(super) const AGENTS: [&str; 3] = ["claude", "codex", "antigravity"];
 /// The agent whose skills folder holds the real files. Every other agent gets a link to them.
 pub(super) const REAL_FILES_AGENT: &str = "codex";

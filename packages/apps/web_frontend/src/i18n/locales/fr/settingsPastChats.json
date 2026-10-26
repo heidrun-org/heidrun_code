@@ -4,5 +4,5 @@
   "refresh10": "10 secondes",
   "refresh30": "30 secondes",
   "refresh60": "1 minute",
-  "refreshHelp": "Tant que la section Conversations passées de la barre latérale est à l’écran, Heidrun relit les fichiers des conversations après ce délai, pour que les nombres d’une conversation encore en cours restent vrais. Un délai plus court montre les changements plus tôt."
+  "refreshHelp": "Tant que la section Conversations passées de la barre latérale est à l’écran, Heidrun Code relit les fichiers des conversations après ce délai, pour que les nombres d’une conversation encore en cours restent vrais. Un délai plus court montre les changements plus tôt."
 }

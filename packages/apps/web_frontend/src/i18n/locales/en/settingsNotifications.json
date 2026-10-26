@@ -1,0 +1,19 @@
+{
+  "channelsTitle": "System notification and sound for each kind",
+  "kind.blocked": "A pane is blocked",
+  "kind.question": "A pane asks a question",
+  "kind.done": "A pane finishes",
+  "kind.stillBlocked": "A pane stays blocked for too long",
+  "kind.context": "The context of an agent is almost full",
+  "kind.quota": "The quota of Claude is almost used",
+  "kind.budget": "The monthly budget of a workspace is almost used",
+  "kind.patternFound": "A watched pattern is found",
+  "kind.evening": "The summary of the day",
+  "systemLabel": "System notification",
+  "soundLabel": "Sound",
+  "soundListLabel": "Sound for: {kind}",
+  "testLabel": "Test",
+  "testTitle": "Show a test notification of this kind, with the settings of this row",
+  "testNotificationTitle": "Test: {kind}",
+  "testNotificationBody": "This is a test of the system notification of Heidrun Code."
+}

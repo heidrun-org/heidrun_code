@@ -1,10 +1,10 @@
 # The operation log of the data layer
 
 - Created: 17 October 2026
-- Last updated: 18 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained description of the operation log of the data layer
 - Related framing: [Project instructions](../../AGENTS.md)
-- Related rules: [Rule: every operation of the data layer is recorded in the operation log](../agents_rules/data_layer_operation_log.md), [Glossary of Heidrun: the operation log of the data layer](../agents_rules/glossary/data_layer_operation_log.md)
+- Related rules: [Rule: every operation of the data layer is recorded in the operation log](../agents_rules/data_layer_operation_log.md), [Glossary of Heidrun Code: the operation log of the data layer](../agents_rules/glossary/data_layer_operation_log.md)
 - Related issue: [issue 618](https://github.com/heidrun-org/heidrun/issues/618), [issue 616](https://github.com/heidrun-org/heidrun/issues/616), [issue 617](https://github.com/heidrun-org/heidrun/issues/617), [issue 664](https://github.com/heidrun-org/heidrun/issues/664)
 
 This file describes the log of the operations that the data layer receives: what it records, what its durations mean, how to read it, how to run a recorded operation again, what it costs, and a measurement on the Teamwright history. The data layers themselves are in [the_four_data_layers.md](the_four_data_layers.md).
@@ -18,16 +18,16 @@ This file describes the log of the operations that the data layer receives: what
 
 ## What is recorded
 
-Every call of a public function of the four data layer packages and of `heidrun_data` is an operation. The library [`data_layer_operation_log`](../../packages/data_layers/data_layer_operation_log/README.md) writes two lines in the file `data_layer_operations.jsonl`, in the folder of the variable `HEIDRUN_DIR` (default `~/.config/heidrun`): a start line before the operation, and a completion line after it. The lines are JSON, one object on each line, and the field `v` holds the version of the format (now 2).
+Every call of a public function of the four data layer packages and of `heidrun_data` is an operation. The library [`data_layer_operation_log`](../../submodules/heidrun_data/packages/data_layer_operation_log/README.md) writes two lines in the file `data_layer_operations.jsonl`, in the folder of the variable `HEIDRUN_CODE_DIR` (default `~/.config/heidrun_code`): a start line before the operation, and a completion line after it. The lines are JSON, one object on each line, and the field `v` holds the version of the format (now 2).
 
 | Start event field | Meaning |
 | --- | --- |
 | `operationId`, `parentOperationId` | The identifier of the operation, and the identifier of the operation that was running on the same thread. An operation with a parent is a nested operation. |
-| `caller` | `heidrun` for the desktop application, `heidrun_data` for the command line, or the value of `HEIDRUN_OPERATION_LOG_CALLER`. |
+| `caller` | `heidrun` for the desktop application, `heidrun_data` for the command line, or the value of `HEIDRUN_CODE_OPERATION_LOG_CALLER`. |
 | `origin`, `replayOf` | `application`, or `replay` with the identifier of the original operation. |
 | `package`, `operationName`, `kind` | The package without the prefix `data_layer_`, the stable name of the public function that the operation calls, and `query`, `collection`, `synchronization`, `write`, or `lock`. |
 | `parameters`, `pattern` | The values that decide the workload (the repository, the dates, the grouping, the mode, the SQL statement, the path of the SQLite file), and the text that groups the operations that ask for the same thing: the SQL statement without its values, then the choices. |
-| `startedAt`, `processId`, `softwareVersion` | The time in UTC, the operating system process, and the version of Heidrun. |
+| `startedAt`, `processId`, `softwareVersion` | The time in UTC, the operating system process, and the version of Heidrun Code. |
 | `concurrentOperations` | How many operations were running in the same process. |
 | `state` | The state of the data at the start: the size of the SQLite file, its time of last change, and whether it exists. |
 
@@ -85,7 +85,7 @@ An operation that is dropped without an end, or that panics, writes a failure wi
 
 - At 8 MiB the file becomes `data_layer_operations.jsonl.1`, a new file starts, and the previous `.1` is removed. The log never holds more than about 16 MiB. A reader reads the two files.
 - A line is one write on a file open for append, so the desktop application and the command line can write together without mixing their lines. A test starts six programs together.
-- The variable `HEIDRUN_OPERATION_LOG_FILE` gives another file, and the value `off` turns the log off. The test programs of Cargo write no log unless the variable gives a file.
+- The variable `HEIDRUN_CODE_OPERATION_LOG_FILE` gives another file, and the value `off` turns the log off. The test programs of Cargo write no log unless the variable gives a file.
 
 ## What the log costs
 
@@ -134,10 +134,10 @@ The limits: a replay times the operation on the data of today, so the number of 
 
 ## Measurement on the Teamwright history
 
-The data: the repository `jeromeetienne/teamwright` on the computer of the developer on 17 October 2026, with a release build of `heidrun_data`, a new SQLite file, and a new folder `HEIDRUN_DIR` (so no cache of the scan existed). The commands:
+The data: the repository `jeromeetienne/teamwright` on the computer of the developer on 17 October 2026, with a release build of `heidrun_data`, a new SQLite file, and a new folder `HEIDRUN_CODE_DIR` (so no cache of the scan existed). The commands:
 
 ```bash
-export HEIDRUN_DIR=/tmp/demo/heidrun_dir HEIDRUN_OPERATION_LOG_FILE=/tmp/demo/operations.jsonl
+export HEIDRUN_CODE_DIR=/tmp/demo/heidrun_dir HEIDRUN_CODE_OPERATION_LOG_FILE=/tmp/demo/operations.jsonl
 cd ~/webwork/teamwright
 heidrun_data initialize --database /tmp/demo/teamwright.sqlite --repository jeromeetienne/teamwright --folder .
 heidrun_data update --database /tmp/demo/teamwright.sqlite --repository jeromeetienne/teamwright --folder .
@@ -183,4 +183,4 @@ The original of `update` holds 3337 ms of `code_hosting`, and the original of `i
 
 The field `v` holds the version of the format. A change that renames or removes a field, or that changes its meaning, adds one to the version. A new optional field does not. A reader skips the lines of a version that it does not know and counts them (`unsupportedVersionLines` in `info`). The operation names, the kinds, and the names of the parameters are the interface that the summaries and the replay read, so a rename is a change of the format.
 
-The version 2 renamed four fields of the version 1: `requestId` became `operationId`, `parentRequestId` became `parentOperationId`, `operation` became `operationName`, and `concurrentRequests` became `concurrentOperations`. The log file also changed its name, from `data_layer_requests.jsonl` to `data_layer_operations.jsonl`, so the new file never holds a line of the version 1. Heidrun does not read, move, or delete the old file: a developer who wants it removes it by hand.
+The version 2 renamed four fields of the version 1: `requestId` became `operationId`, `parentRequestId` became `parentOperationId`, `operation` became `operationName`, and `concurrentRequests` became `concurrentOperations`. The log file also changed its name, from `data_layer_requests.jsonl` to `data_layer_operations.jsonl`, so the new file never holds a line of the version 1. Heidrun Code does not read, move, or delete the old file: a developer who wants it removes it by hand.

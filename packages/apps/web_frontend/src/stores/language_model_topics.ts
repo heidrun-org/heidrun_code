@@ -99,7 +99,7 @@ let isBusy = false;
 /** True when a run was asked while another run was busy: the busy run starts again when it ends. */
 let isRunAgain = false;
 
-/** The chats, with the date of their last message, whose call failed in this run of Heidrun, so a failure does not call again at once. */
+/** The chats, with the date of their last message, whose call failed in this run of Heidrun Code, so a failure does not call again at once. */
 const failedAttempts = new Set<string>();
 
 /** Saves the cache. The chats with the oldest last message leave when the cache holds more than `MOST_ENTRIES` chats. */

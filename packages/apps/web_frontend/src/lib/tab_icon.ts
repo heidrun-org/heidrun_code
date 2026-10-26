@@ -15,7 +15,7 @@ const STATUS_RANK: Record<AgentStatus, number> = {
   unknown: 4,
 };
 
-/** The icon of a pane that runs an agent, or null for a pane without an agent that Heidrun knows. Bootstrap Icons has no icon of its own for Codex, and OpenAI makes Codex. */
+/** The icon of a pane that runs an agent, or null for a pane without an agent that Heidrun Code knows. Bootstrap Icons has no icon of its own for Codex, and OpenAI makes Codex. */
 function agentIconName(pane: PaneForTabIcon): TabIconName | null {
   const agent = (pane.agent ?? "").toLowerCase();
   if (agent.includes("claude")) {

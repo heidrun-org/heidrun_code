@@ -10,7 +10,7 @@ export type CodingAgentModel = {
   efforts: string[];
 };
 
-/** The part of the output of the command `codex debug models` that Heidrun reads. The other fields are dropped. */
+/** The part of the output of the command `codex debug models` that Heidrun Code reads. The other fields are dropped. */
 const codexModelCatalogSchema = z.object({
   models: z.array(
     z.object({

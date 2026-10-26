@@ -14,11 +14,11 @@ import viewStacked from 'bootstrap-icons/icons/view-stacked.svg?raw';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	Icon — the page icons and the Heidrun branding icon, drawn as inline SVG
+//	Icon — the page icons and the Heidrun Code branding icon, drawn as inline SVG
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** The name of a Bootstrap icon or the shared Heidrun branding icon. */
+/** The name of a Bootstrap icon or the shared Heidrun Code branding icon. */
 export type IconName =
 	| 'arrow-clockwise'
 	| 'bell'
@@ -35,11 +35,11 @@ export type IconName =
 	| 'view-stacked';
 
 /**
- * Draws the Bootstrap icons and the shared Heidrun branding icon. Vite puts the SVG in the built page, so the
+ * Draws the Bootstrap icons and the shared Heidrun Code branding icon. Vite puts the SVG in the built page, so the
  * page loads no icon font and no file from another address.
  */
 export class Icon {
-	/** The SVG text from Bootstrap Icons or the shared Heidrun branding image. */
+	/** The SVG text from Bootstrap Icons or the shared Heidrun Code branding image. */
 	private static readonly svgByName: Record<IconName, string> = {
 		'arrow-clockwise': arrowClockwise,
 		'bell': bell,
@@ -58,7 +58,7 @@ export class Icon {
 
 	/**
 	 * Draws one icon. The icon takes the color of the text around it.
-	 * @param name The name of the Bootstrap icon or the Heidrun branding icon.
+	 * @param name The name of the Bootstrap icon or the Heidrun Code branding icon.
 	 * @param size The width and the height of the icon, in pixels.
 	 * @returns The HTML of the icon: an SVG element, hidden from screen readers.
 	 */

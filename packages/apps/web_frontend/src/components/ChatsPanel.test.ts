@@ -450,7 +450,7 @@ describe("ChatsPanel", () => {
     expect(wrapper.get("li").classes()).toEqual(expect.arrayContaining(["list-group-item", "list-group-item-action"]));
   });
 
-  it("gives each chat two buttons at the right of its title: open in the application of the coding agent, and open in Heidrun", async () => {
+  it("gives each chat two buttons at the right of its title: open in the application of the coding agent, and open in Heidrun Code", async () => {
     answer(["Fix the tab bar", "Add the Chats sidebar section"], []);
     const wrapper = mount(ChatsPanel);
     await flushPromises();
@@ -458,7 +458,7 @@ describe("ChatsPanel", () => {
     expect(groups).toHaveLength(2);
     expect(groups[0].classes()).toContain("btn-group");
     const buttons = groups[0].findAll("button");
-    expect(buttons.map((button) => button.attributes("title"))).toEqual(["Open in the Claude app", "Open in Heidrun"]);
+    expect(buttons.map((button) => button.attributes("title"))).toEqual(["Open in the Claude app", "Open in Heidrun Code"]);
     expect(buttons.map((button) => button.find(".bi").classes()[1])).toEqual(["bi-claude", "bi-heidrun-goat-only"]);
     expect(wrapper.get("li").get(".chat-title").text()).toBe("Fix the tab bar");
   });
@@ -482,7 +482,7 @@ describe("ChatsPanel", () => {
     vi.mocked(launchAgent).mockClear();
     const wrapper = mount(ChatsPanel);
     await flushPromises();
-    await wrapper.get('li .chat-actions button[title="Open in Heidrun"]').trigger("click");
+    await wrapper.get('li .chat-actions button[title="Open in Heidrun Code"]').trigger("click");
     expect(launchAgent).toHaveBeenLastCalledWith({
       workspaceId: "w1",
       cwd: "/work/app",
@@ -494,7 +494,7 @@ describe("ChatsPanel", () => {
       resumeId: "c0",
     });
     await wrapper.get("#chats-agent-codex").setValue();
-    await wrapper.get('li .chat-actions button[title="Open in Heidrun"]').trigger("click");
+    await wrapper.get('li .chat-actions button[title="Open in Heidrun Code"]').trigger("click");
     expect(launchAgent).toHaveBeenLastCalledWith(expect.objectContaining({ tool: "codex", label: "Describe image", resumeId: "x0" }));
   });
 

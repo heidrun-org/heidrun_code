@@ -43,7 +43,7 @@ function buildSnapshot(workspaceIds: string[]) {
   };
 }
 
-/** Starts the stores again, as a new run of Heidrun does, and reads the given snapshot. */
+/** Starts the stores again, as a new run of Heidrun Code does, and reads the given snapshot. */
 async function startHeidrun(workspaceIds: string[]) {
   vi.resetModules();
   mocks.snapshot.mockResolvedValue(buildSnapshot(workspaceIds));

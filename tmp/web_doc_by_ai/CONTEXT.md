@@ -1,7 +1,7 @@
 # Directory Context: `/tmp/web_doc_by_ai`
 
 ## Purpose
-The isolated experiment for generating and evaluating Heidrun user documentation.
+The isolated experiment for generating and evaluating Heidrun Code user documentation.
 
 ## Key Exports & Entry Points
 - `workspace/`: a source snapshot with its own package manifests, writer, judge and website; see its CONTEXT.md.

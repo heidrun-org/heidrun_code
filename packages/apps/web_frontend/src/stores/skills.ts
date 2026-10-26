@@ -11,11 +11,12 @@ import { askConfirm } from "./confirm";
 import { hasText, t } from "../i18n/index";
 import { clockTime } from "../lib/format";
 import { parseSkillFolderAddress, type CodeHost } from "../lib/skill_folder_address";
+import { isSameSkillText } from "../lib/skill_difference";
 
 /** Where a skill is installed: the folder of the workspace, or the user. */
 export type SkillLevel = "workspace" | "user";
 
-/** Where an installed skill comes from, written by Heidrun at the installation. */
+/** Where an installed skill comes from, written by Heidrun Code at the installation. */
 export interface SkillOrigin {
   /** The repository, as `owner/repository` on GitHub or `group/project` on GitLab. Empty for a skill installed from a local folder. */
   source: string;
@@ -31,7 +32,7 @@ export interface InstalledSkill {
   name: string;
   description: string;
   level: SkillLevel;
-  /** `null` for a skill that Heidrun did not install. */
+  /** `null` for a skill that Heidrun Code did not install. */
   origin: SkillOrigin | null;
   /** The folder with the real files of the skill. */
   path: string;
@@ -39,7 +40,7 @@ export interface InstalledSkill {
   agents: string[];
 }
 
-/** A result of the search on skills.sh, or the one result for a local folder, or for a web address of a skill folder. */
+/** A result of the search on skills.sh, or of a skill folder found in a local folder, or at a web address. */
 export interface SearchResult {
   /** The repository: `owner/repository` on GitHub, `group/project` on GitLab. Empty for a local folder. */
   source: string;
@@ -70,7 +71,15 @@ export interface SkillView {
   originLabel: string;
   text: string;
   loading: boolean;
+  /** The SKILL.md text of the skill with the same name installed at the chosen level. Absent when no such skill is installed. */
+  installedText?: string;
 }
+
+/**
+ * How the SKILL.md file of a result compares with the SKILL.md file of the skill with the same name installed at the chosen
+ * level: being read, the same, different, or not known because one of the two files could not be read.
+ */
+export type SkillComparison = "checking" | "same" | "different" | "unknown";
 
 export const skills = reactive({
   installed: [] as InstalledSkill[],
@@ -91,6 +100,8 @@ export const skills = reactive({
   /** The key of the skill being installed or deleted ("" for none). */
   busyKey: "",
   view: null as SkillView | null,
+  /** The comparison of each result that is installed at its level, by `comparisonKey`. */
+  comparisons: {} as Record<string, SkillComparison>,
 });
 
 /** State of the window Installed skill: not saved, the window starts closed. */
@@ -239,7 +250,7 @@ export async function loadSkills(): Promise<void> {
   }
 }
 
-/** The one result of a web address of a skill folder. It has no installs, because no search gave it. */
+/** The result of the web address of one skill folder. It has no installs, because no search gave it. */
 function addressResult(text: string): SearchResult | null {
   const folder = parseSkillFolderAddress(text);
   if (folder === null) {
@@ -248,7 +259,7 @@ function addressResult(text: string): SearchResult | null {
   return { source: folder.source, skillId: folder.skillId, name: folder.skillId, installs: 0, folderUrl: folder.url, host: folder.host };
 }
 
-/** The one result of a folder on this computer: its name is the last part of the path. */
+/** The result of one skill folder on this computer: its name is the last part of the path. */
 function localFolderResult(path: string): SearchResult {
   const name = path.replace(/\/+$/, "").split("/").pop() ?? path;
   return { source: "", skillId: name, name, installs: 0, folderPath: path };
@@ -293,7 +304,7 @@ export async function searchSkills(query: string): Promise<void> {
 
 /**
  * Shows the result of a full path of a folder on this computer: the one row of the folder when it holds a SKILL.md file,
- * and the error of the backend otherwise.
+ * otherwise one row for each subfolder that holds one, and the error of the backend when there is none.
  */
 export async function findLocalFolder(path: string): Promise<void> {
   skills.localPath = path;
@@ -305,9 +316,9 @@ export async function findLocalFolder(path: string): Promise<void> {
   skills.searching = true;
   const isCurrent = () => skills.source === "localFolder" && skills.localPath === path;
   try {
-    await invoke<string>("skills_preview_local_folder", { path });
+    const folders = await invoke<string[]>("skills_find_local_folders", { path });
     if (isCurrent()) {
-      skills.results = [localFolderResult(path.trim())];
+      skills.results = folders.map(localFolderResult);
       skills.searched = true;
     }
   } catch (error) {
@@ -336,25 +347,42 @@ export async function chooseLocalFolder(): Promise<void> {
 }
 
 /**
- * Shows the result of a web address of a skill folder: the one row of the folder, or the error for a text that is not such
- * an address. GitHub or GitLab is asked only when the developer inspects or installs the folder.
+ * Shows the result of a web address of a folder on GitHub or GitLab: the one row of the folder when it holds a SKILL.md
+ * file, otherwise one row for each subfolder that holds one. A text that is not such an address gives its error with no
+ * call. For an address, GitHub or GitLab is asked for the list of the files below the folder.
  */
-export function showAddress(text: string): void {
+export async function findAddress(text: string): Promise<void> {
   skills.address = text;
-  skills.searched = false;
-  skills.searching = false;
   skills.searchError = "";
-  skills.results = [];
   if (text.trim() === "") {
+    clearResults();
     return;
   }
-  const result = addressResult(text);
-  if (result === null) {
+  if (parseSkillFolderAddress(text) === null) {
+    skills.results = [];
+    skills.searched = false;
+    skills.searching = false;
     skills.searchError = errorText(`skills_invalid_address: ${text.trim()}`);
     return;
   }
-  skills.results = [result];
-  skills.searched = true;
+  skills.searching = true;
+  const isCurrent = () => skills.source === "codeHosting" && skills.address === text;
+  try {
+    const urls = await invoke<string[]>("skills_find_folders", { url: text });
+    if (isCurrent()) {
+      skills.results = urls.map(addressResult).filter((result): result is SearchResult => result !== null);
+      skills.searched = true;
+    }
+  } catch (error) {
+    if (isCurrent()) {
+      skills.results = [];
+      skills.searchError = errorText(error);
+    }
+  } finally {
+    if (isCurrent()) {
+      skills.searching = false;
+    }
+  }
 }
 
 /** Chooses the source of the window Find new skills, and shows the result of the field of that source. */
@@ -365,7 +393,7 @@ export async function setSkillSource(source: SkillSource): Promise<void> {
   } else if (source === "localFolder") {
     await findLocalFolder(skills.localPath);
   } else {
-    showAddress(skills.address);
+    await findAddress(skills.address);
   }
 }
 
@@ -381,21 +409,71 @@ export async function inspectInstalled(skill: InstalledSkill): Promise<void> {
   }
 }
 
-/** Shows the SKILL.md file of a result of the search, of a local folder, or of a web address, before the installation. */
+/** The text of the SKILL.md file of a result of the search, of a local folder, or of a web address. */
+export async function readResultText(result: SearchResult): Promise<string> {
+  const origin = resultOrigin(result);
+  if (origin === "localFolder") {
+    return await invoke<string>("skills_preview_local_folder", { path: result.folderPath });
+  }
+  if (origin === "skillsSh") {
+    return await invoke<string>("skills_preview", { source: result.source, skillId: result.skillId });
+  }
+  return await invoke<string>("skills_preview_folder", { url: result.folderUrl });
+}
+
+/** The text of the SKILL.md file of the skill with the same name installed at the chosen level. */
+async function readInstalledResultText(result: SearchResult): Promise<string> {
+  return await invoke<string>("skills_read", { level: settings.skillsLevel, cwd: currentCwd(), name: result.skillId });
+}
+
+/** The key of a result in `skills.comparisons`: the chosen level, then the key of the result. */
+export function comparisonKey(result: SearchResult): string {
+  return `${settings.skillsLevel}:${resultKey(result)}`;
+}
+
+/** How the result compares with the installed skill of the same name. `null` when no such skill is installed. */
+export function comparisonOf(result: SearchResult): SkillComparison | null {
+  return isInstalledAtLevel(result) ? (skills.comparisons[comparisonKey(result)] ?? null) : null;
+}
+
+/**
+ * Compares the SKILL.md file of a result with the SKILL.md file of the skill with the same name installed at the chosen
+ * level, and keeps the answer in `skills.comparisons`. Does nothing for a result that is not installed, or that is being
+ * compared. The comparison reads only the two SKILL.md files, not the other files of the skill.
+ */
+export async function compareWithInstalled(result: SearchResult): Promise<void> {
+  if (isInstalledAtLevel(result) === false) {
+    return;
+  }
+  const key = comparisonKey(result);
+  if (skills.comparisons[key] === "checking") {
+    return;
+  }
+  skills.comparisons[key] = "checking";
+  try {
+    const [installedText, resultText] = await Promise.all([readInstalledResultText(result), readResultText(result)]);
+    skills.comparisons[key] = isSameSkillText(installedText, resultText) ? "same" : "different";
+  } catch {
+    skills.comparisons[key] = "unknown";
+  }
+}
+
+/**
+ * Shows the SKILL.md file of a result of the search, of a local folder, or of a web address, before the installation. When
+ * a skill with the same name is installed at the chosen level, the view also holds its text, so that the window can show
+ * what differs.
+ */
 export async function inspectResult(result: SearchResult): Promise<void> {
   const origin = resultOrigin(result);
   const label = `${originName(origin)} · ${result.folderPath ?? result.source}`;
   skills.view = { name: result.name, originLabel: label, text: "", loading: true };
   try {
-    let text: string;
-    if (origin === "localFolder") {
-      text = await invoke<string>("skills_preview_local_folder", { path: result.folderPath });
-    } else if (origin === "skillsSh") {
-      text = await invoke<string>("skills_preview", { source: result.source, skillId: result.skillId });
-    } else {
-      text = await invoke<string>("skills_preview_folder", { url: result.folderUrl });
+    const text = await readResultText(result);
+    let installedText: string | undefined;
+    if (isInstalledAtLevel(result)) {
+      installedText = await readInstalledResultText(result).catch(() => undefined);
     }
-    skills.view = { name: result.name, originLabel: label, text, loading: false };
+    skills.view = { name: result.name, originLabel: label, text, loading: false, installedText };
   } catch (error) {
     skills.view = null;
     toast(errorText(error), "error");
@@ -406,7 +484,11 @@ export function closeSkillView(): void {
   skills.view = null;
 }
 
-/** Installs a result of the search, a local folder, or the skill folder of a web address, at the chosen level. */
+/**
+ * Installs a result of the search, a local folder, or the skill folder of a web address, at the chosen level. A result that
+ * is already installed at this level (its SKILL.md file differs, or the button would not be there) replaces the installed
+ * skill: after the confirmation of the developer, the installed skill goes to the Trash, then the result is installed.
+ */
 export async function installSkill(result: SearchResult): Promise<void> {
   const level = settings.skillsLevel;
   const cwd = currentCwd();
@@ -419,8 +501,20 @@ export async function installSkill(result: SearchResult): Promise<void> {
     toast(t("skillsStore.error_skills_no_workspace_folder"), "error");
     return;
   }
+  const isReplacement = isInstalledAtLevel(result);
+  if (isReplacement) {
+    const confirmed = await askConfirm(t("skillsStore.confirmReplace", { name: result.name }), t("skillsStore.confirmReplaceButton"));
+    if (confirmed === false) {
+      return;
+    }
+  }
   skills.busyKey = resultKey(result);
+  let isInstalledSkillInTrash = false;
   try {
+    if (isReplacement) {
+      await invoke("skills_delete", { level, cwd, name: result.skillId });
+      isInstalledSkillInTrash = true;
+    }
     const origin = resultOrigin(result);
     if (origin === "localFolder") {
       await invoke<InstalledSkill>("skills_install_local_folder", { level, cwd, path: result.folderPath, agents });
@@ -430,9 +524,16 @@ export async function installSkill(result: SearchResult): Promise<void> {
       await invoke<InstalledSkill>("skills_install_folder", { level, cwd, url: result.folderUrl, agents });
     }
     await loadSkills();
-    toast(t("skillsStore.installed", { name: result.name }));
+    if (isReplacement) {
+      await compareWithInstalled(result);
+    }
+    toast(t(isReplacement ? "skillsStore.replaced" : "skillsStore.installed", { name: result.name }));
   } catch (error) {
-    toast(errorText(error), "error");
+    const hint = isInstalledSkillInTrash ? ` ${t("skillsStore.replaceFailedHint")}` : "";
+    toast(`${errorText(error)}${hint}`, "error");
+    if (isInstalledSkillInTrash) {
+      await loadSkills();
+    }
   } finally {
     skills.busyKey = "";
   }

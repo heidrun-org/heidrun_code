@@ -6,7 +6,7 @@
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related issue: [Issue 548](https://github.com/heidrun-org/heidrun/issues/548)
 
-This package is the working folder for promotional marketing videos that an agent makes. It records the web pages of Heidrun with a headless browser (a browser with no window), and it puts an intro, comic words, sound, music, and an outro around the recording with the program `ffmpeg`.
+This package is the working folder for promotional marketing videos that an agent makes. It records the web pages of Heidrun Code with a headless browser (a browser with no window), and it puts an intro, comic words, sound, music, and an outro around the recording with the program `ffmpeg`.
 
 ## The first video
 

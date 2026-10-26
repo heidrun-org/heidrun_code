@@ -1,6 +1,6 @@
-# How to release Heidrun
+# How to release Heidrun Code
 
-This file lists every step of a release of Heidrun, in order, so that no step is forgotten. The file `README_DEV.md` describes each command in detail. The steps come from the release 0.2.5, where several steps were forgotten. The source of this list is the issue [#245](https://github.com/heidrun-org/heidrun/issues/245).
+This file lists every step of a release of Heidrun Code, in order, so that no step is forgotten. The file `README_DEV.md` describes each command in detail. The steps come from the release 0.2.5, where several steps were forgotten. The source of this list is the issue [#245](https://github.com/heidrun-org/heidrun/issues/245).
 
 Replace `<version>` with the new version in every command and file name, for example `0.3.0`.
 
@@ -24,7 +24,7 @@ Part 1 changes files. The changes reach `main` through `dev`, in Step 5.
 
 ### Step 1: Run the tests
 
-Run `pnpm test`. The repository has no workflow files in the folder `.github`, so nothing on GitHub runs the tests.
+Run `pnpm test:full`. The command runs the fast tests, then the slow tests. The command `pnpm test` runs only the fast tests, so it is not enough before a release. The repository has no workflow files in the folder `.github`, so nothing on GitHub runs the tests.
 
 ### Step 2: Set the version in the four main files
 
@@ -46,7 +46,7 @@ git grep -l '^version = "<previous version>"' -- '*Cargo.toml'
 
 Set the new version in every file that the two commands print. Do not change a package that the commands do not print: a package can keep its own version, as `packages/dev_tools/agents_rules_checker` and `packages/dev_tools/data_layer_boundary_checker` keep `0.2.0`.
 
-The files `Cargo.lock` hold the version of their own package. Update them without a build, then commit them:
+The file `Cargo.lock` at the root holds the versions of the packages of the Cargo workspace, and each experiment keeps its own `Cargo.lock`. Update them without a build, then commit them:
 
 ```bash
 for lockFile in $(git ls-files '*Cargo.lock' ':!tmp'); do (cd "$(dirname "$lockFile")" && cargo update --workspace --offline); done
@@ -56,7 +56,31 @@ Run `git diff` on the files `Cargo.lock`. The only changed lines must be lines `
 
 ### Step 4: Write the release notes
 
-Write the file `docs/release_notes/v<version>.md`. Add one line that says that the disk image is not signed, not notarized, and built only for the architecture of the machine that builds it. Step 7 gives this file to the command with `--notes-file`.
+No tool writes this file. The person who makes the release, or a coding agent, writes it by hand.
+
+First, list the pull requests of the release. This command prints the number and the title of each pull request that is in the new release and is not in the last one. It reads only Git, with the range from the last tag:
+
+```bash
+git log v<last version>..HEAD --merges --pretty='%s | %b' | grep '^Merge pull request' | sed -E 's/^Merge pull request (#[0-9]+) from [^ ]+ \| /\1 /'
+```
+
+Do not make this list with `gh pr list --search "merged:>=<date>"`: a search by date also shows pull requests that were already in the last release.
+
+Then write the file `docs/release_notes/v<version>.md`, with these rules:
+
+1. Group the features by topic, with one heading for each topic.
+2. Write one sentence for each feature, from the point of view of the user: what the user sees or can do. Do not copy the title of a pull request, and do not write a number.
+3. Skip the internal pull requests: tests, documents, agent rules, and release scripts. Also skip the pull requests whose title starts with "Merge" or "Release".
+4. Run the command above again on `main` just before the tag, as Step 6 says, and add each feature that is missing.
+
+The file has this form:
+
+- The first line is the heading `## What is new in <version>`.
+- Each topic has its own heading `### <topic>`, for example `### Voice input`.
+- Under each heading, each feature is one short bullet with one sentence.
+- After the topics, one line says that the complete list of changes is in the file `CHANGELOG.md`, and one line says that the disk image is not signed, not notarized, and built only for the architecture of the machine that builds it.
+
+Do not write a section about the message "Heidrun Code is damaged": the text of the release gives the installation command, and macOS opens Heidrun Code with no message after this command. The file [docs/release_notes/v0.3.0.md](docs/release_notes/v0.3.0.md) is an example. Step 7 gives this file to the command with `--notes-file`.
 
 ### Step 5: Move the work to `main`
 
@@ -80,6 +104,8 @@ git status
 ```
 
 The command `git status` must say that the branch `main` is up to date with `origin/main` and that the working tree is clean. The last commit must be the merge of the pull request of Step 5.
+
+Then run the command of Step 4 again. On `main`, `HEAD` is the commit that the tag will hold. A pull request can land between Step 4 and Step 5, for example while the tests run. For each pull request that the notes do not cover, add one bullet to the file `docs/release_notes/v<version>.md`. Then commit and push on `main`, before Step 7.
 
 ### Step 7: Build the disk image and publish the release
 
@@ -107,19 +133,21 @@ For the release 0.2.5, the section `[Unreleased]` was out of date: it stopped at
 
 The text of the GitHub release page does not come from `CHANGELOG.md`. The text is the file `docs/release_notes/prefix.md`, then the notes file of Step 4, then the list of pull requests that GitHub generates. To publish the change log, push `CHANGELOG.md`.
 
+To fix only the text of a release that exists, do not run `pnpm release:dmg` again: the command builds a new disk image from the current commit, and the disk image no longer matches the git tag. Write the three parts in this order in one file, then run `gh release edit v<version> --notes-file <file>`.
+
 ## Part 3: Check the release
 
 ### Step 10: Open the release page and the disk image
 
 1. Open the release page on GitHub. Check that the disk image is attached and that the release is marked Latest.
-2. Download the disk image with a web browser, drag Heidrun to the Applications folder, and open it once.
-3. macOS shows the message "“Heidrun” is damaged and can't be opened", because the disk image is not notarized. Run this command in a terminal, then open Heidrun again:
+2. Download the disk image with a web browser, drag Heidrun Code to the Applications folder, and open it once.
+3. macOS shows the message "“Heidrun Code” is damaged and can't be opened", because the disk image is not notarized. Run this command in a terminal, then open Heidrun Code again:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Heidrun.app
+xattr -dr com.apple.quarantine "/Applications/Heidrun Code.app"
 ```
 
-The file `docs/release_notes/prefix.md` gives the same command to the people who download the disk image.
+The text of the release does not give this command, because the installation command in the text avoids the message.
 
 ## Part 4: Bring `main` back into `dev`
 

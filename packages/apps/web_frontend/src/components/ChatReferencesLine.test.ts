@@ -218,12 +218,12 @@ describe("ChatReferencesLine", () => {
     expect(wrapper.find("[data-reference-details]").exists()).toBe(false);
   });
 
-  it("opens the web page on the forge, and the description in Heidrun, from the two buttons of the details", async () => {
+  it("opens the web page on the forge, and the description in Heidrun Code, from the two buttons of the details", async () => {
     const wrapper = mountLine();
     await openCard(wrapper);
     await wrapper.findAll("[data-reference]")[0].trigger("click");
     const [heidrun, forge] = wrapper.get("[data-reference-details]").findAll("button");
-    expect(heidrun.attributes("title")).toBe("Open in Heidrun");
+    expect(heidrun.attributes("title")).toBe("Open in Heidrun Code");
     expect(heidrun.find(".bi-heidrun-goat-only").exists()).toBe(true);
     expect(forge.attributes("title")).toBe("Open in GitHub");
     await forge.trigger("click");

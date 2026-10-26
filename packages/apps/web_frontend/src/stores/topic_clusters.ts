@@ -52,7 +52,7 @@ let isRunAgain = false;
 /** The number of rebuilds. A call that started before a rebuild does not save its answer. */
 let generation = 0;
 
-/** The sets of new raw dynamic topics whose call failed in this run of Heidrun, so a failure does not call again at once. */
+/** The sets of new raw dynamic topics whose call failed in this run of Heidrun Code, so a failure does not call again at once. */
 const failedAttempts = new Set<string>();
 
 /** Reads the translation table from the disk, once. A table that cannot be read is empty. */
@@ -117,7 +117,7 @@ async function clusterOnce(): Promise<void> {
   try {
     await invoke("topic_clusters_write", { rows: Object.fromEntries(table) });
   } catch {
-    /* the table stays in memory: the next run of Heidrun asks again */
+    /* the table stays in memory: the next run of Heidrun Code asks again */
   }
   topicClusterTable.value = table;
   topicClusterStatus.error = null;
@@ -169,7 +169,7 @@ export async function rebuildTopicClusters(): Promise<void> {
   try {
     await invoke("topic_clusters_write", { rows: {} });
   } catch {
-    /* an old table on the disk is read again at the next run of Heidrun */
+    /* an old table on the disk is read again at the next run of Heidrun Code */
   }
   await run();
 }

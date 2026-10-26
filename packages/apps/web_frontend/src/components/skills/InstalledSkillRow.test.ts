@@ -33,7 +33,7 @@ describe("InstalledSkillRow: display", () => {
     expect(wrapper.get(".place").text()).toBe("User");
   });
 
-  it("shows Local for a skill that Heidrun did not install", async () => {
+  it("shows Local for a skill that Heidrun Code did not install", async () => {
     const { wrapper } = await mountRow(1);
     expect(wrapper.get(".sub").text()).toBe("Local · Codex");
     expect(wrapper.get(".place").text()).toBe("Workspace");

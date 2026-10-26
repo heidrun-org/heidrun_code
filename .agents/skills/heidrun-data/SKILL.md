@@ -1,20 +1,20 @@
 ---
 name: heidrun-data
-description: Answer a question about the history of a repository from the data layers of Heidrun, its past chats with Claude Code and Codex, the memory files, subagents, and skills of the coding agent, its commits, its issues, its pull requests, and the activity of the developer, with the command line heidrun_data. Use it for a post-mortem of a commit, of an issue, or of a pull request, to find what the developer typed or ran many times, or to find what failed many times in the past chats.
+description: Answer a question about the history of a repository from the data layers of Heidrun Code, its past chats with Claude Code and Codex, the memory files, subagents, and skills of the coding agent, its commits, its issues, its pull requests, and the activity of the developer, with the command line heidrun_data. Use it for a post-mortem of a commit, of an issue, or of a pull request, to find what the developer typed or ran many times, or to find what failed many times in the past chats.
 ---
 
 # heidrun_data
 
-This skill uses the `heidrun_data` command line. Installing the skill does not install that command. To get the command, install the Heidrun application, which places `heidrun_data` in `~/.local/bin` when it starts, or run the command through the Heidrun repository's `pnpm --silent data_layer:heidrun_data` script.
+This skill uses the `heidrun_data` command line. Installing the skill does not install that command. To get the command, install the Heidrun Code application, which places `heidrun_data` in `~/.local/bin` when it starts, or run the command through the Heidrun Code repository's `pnpm --silent data_layer:heidrun_data` script.
 
-`heidrun_data` is one command line that reads the four data layers of Heidrun. The four data layers write the facts of four sources in one SQLite file, `data_layer.sqlite` in `HEIDRUN_DIR`, or `~/.config/heidrun/data_layer.sqlite` when the variable is unset or empty:
+`heidrun_data` is one command line that reads the four data layers of Heidrun Code. The four data layers write the facts of four sources in one SQLite file, `data_layer.sqlite` in `HEIDRUN_CODE_DIR`, or `~/.config/heidrun_code/data_layer.sqlite` when the variable is unset or empty:
 
 | Source | What it holds | Tables |
 | --- | --- | --- |
 | `coding_agents` | The chat sessions that Claude Code and Codex saved for the repository, with their tokens, and what each one is linked to. The configuration of the coding agent: the memory files of Claude Code, the subagents, and the skills. The tokens of each minute, with their estimated cost in US dollars, and the model prices. | `chat_sessions`, `chat_session_folders`, `chat_session_issues`, `chat_session_pull_requests`, `chat_session_files`, `memory_files`, `subagents`, `skills`, `token_usage_minutes`, `token_usage_synchronizations`, `model_price_versions`, `model_prices`, and the views `latest_model_prices` and `token_usage_with_cost` |
 | `source_control` | Every commit of the Git repository, merges included. | `commits` |
 | `code_hosting` | Every issue and every pull request of the GitHub repository. | `issues`, `pull_requests` |
-| `user_activity` | The active periods of the developer in front of Heidrun, one per workspace. | `user_activity_records` |
+| `user_activity` | The active periods of the developer in front of Heidrun Code, one per workspace. | `user_activity_records` |
 
 The tables hold facts. The words of a chat, the diff of a commit, and the comments of an issue are not in the tables: the command `read` gives them from the source.
 
@@ -36,7 +36,7 @@ Always give `--format jsonl`, so the output is one JSON object per line and neve
    ```bash
    heidrun_data update --format jsonl
    ```
-   `heidrun_data update coding_agents` updates one source only. The command writes only what is new, so it is safe to run again and again. A source that fails does not stop the others: read the errors on the standard error output. The command waits while the desktop application Heidrun writes the SQLite file. Give `--verbose` to see the line `waiting for the lock file <path>` on the standard error output: a command that prints this line and then nothing for a minute is waiting for the lock, not broken.
+   `heidrun_data update coding_agents` updates one source only. The command writes only what is new, so it is safe to run again and again. A source that fails does not stop the others: read the errors on the standard error output. The command waits while the desktop application Heidrun Code writes the SQLite file. Give `--verbose` to see the line `waiting for the lock file <path>` on the standard error output: a command that prints this line and then nothing for a minute is waiting for the lock, not broken.
 3. **Read the shape once.**
    ```bash
    heidrun_data schema --format jsonl
@@ -165,7 +165,7 @@ With `--format jsonl`, each line has these fields:
 
 ## The command `operations`
 
-Every public function of the four data layers and of `heidrun_data` writes a start line and an end line in the operation log, `~/.config/heidrun/data_layer_operations.jsonl` (the variable `HEIDRUN_OPERATION_LOG_FILE` gives another file). `operations` reads it. Use it to answer: who asks the data layer for what, how often, how long it takes, what fails, what never ended, and what asks the same thing again and again.
+Every public function of the four data layers and of `heidrun_data` writes a start line and an end line in the operation log, `~/.config/heidrun_code/data_layer_operations.jsonl` (the variable `HEIDRUN_CODE_OPERATION_LOG_FILE` gives another file). `operations` reads it. Use it to answer: who asks the data layer for what, how often, how long it takes, what fails, what never ended, and what asks the same thing again and again.
 
 | Command | What it prints |
 | --- | --- |
@@ -251,7 +251,7 @@ The tables keep only the last state of a memory file. Its changes, with the text
 
 ## Example: what the developer typed, ran, or hit many times
 
-The method, the counts found on the repository of Heidrun, and the limits are in [references/repeated_pattern.md](references/repeated_pattern.md). In short: list the chat sessions of the period, read each one, keep the lines of one role, normalize the texts, count the equal ones, then group the near-equal ones.
+The method, the counts found on the repository of Heidrun Code, and the limits are in [references/repeated_pattern.md](references/repeated_pattern.md). In short: list the chat sessions of the period, read each one, keep the lines of one role, normalize the texts, count the equal ones, then group the near-equal ones.
 
 ```bash
 heidrun_data query --format jsonl "
@@ -262,8 +262,8 @@ WHERE repository = 'heidrun-org/heidrun'
 
 Dates are text, so `date('now', '-10 day')` can replace the fixed date. Then `heidrun_data read chat_session <id> --format jsonl` on each one.
 
-- **What the developer typed**: the lines with `role` equal to `developer`. Not all of them are typed: skip the chat sessions whose `title` is `Guardian review` (approval reviews of Codex), and the texts that start with `<` (`<turn_aborted>`, `<command-name>`, `<local-command-stdout>`), with `[Operation interrupted`, with `>>>`, or with `[N] user:` where `N` is a number. A text typed many times is a candidate for a macro of Heidrun.
-- **What the developer ran**: the lines with `role` equal to `tool` whose text starts with `Bash:` (Claude Code) or `shell:` (Codex). A command run many times is a candidate for a launcher of Heidrun.
+- **What the developer typed**: the lines with `role` equal to `developer`. Not all of them are typed: skip the chat sessions whose `title` is `Guardian review` (approval reviews of Codex), and the texts that start with `<` (`<turn_aborted>`, `<command-name>`, `<local-command-stdout>`), with `[Operation interrupted`, with `>>>`, or with `[N] user:` where `N` is a number. A text typed many times is a candidate for a macro of Heidrun Code.
+- **What the developer ran**: the lines with `role` equal to `tool` whose text starts with `Bash:` (Claude Code) or `shell:` (Codex). A command run many times is a candidate for a launcher of Heidrun Code.
 - **What failed**: the lines with `role` equal to `tool` whose text starts with `result:`. For Claude Code, count the lines with `isError` equal to `true`: the mark comes from Claude Code, so it is exact. For Codex, `isError` is `null`, so look in the text: `Exit code N` where `N` is not 0, `<tool_use_error>`, or a shell error such as `command not found`. Codex wraps its results in a JSON text, so read the text inside it. Do not count `test result: ok. 0 failed`, which is a success, and do not count `The user doesn't want to proceed with this tool use`, which is a choice of the developer. A failure that appears in many chat sessions is a candidate for one sentence in `AGENTS.md`, with the chat sessions as proof.
 
 ## References

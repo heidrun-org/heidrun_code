@@ -1,18 +1,18 @@
 ---
-description: "The Statistics window shows when you work in front of Heidrun, and the work and the AI cost of each person, with one bar for each day."
+description: "The Statistics window shows when you work in front of Heidrun Code, and the work and the AI cost of each person, with one bar for each day."
 ---
 
 # The Statistics window
 
 You feel that you worked all day, and that the coding agents did most of the work. Without numbers, you cannot know how long you really worked, what each person changed, or what the coding agents cost.
 
-## What Heidrun does
+## What Heidrun Code does
 
 The item "Statistics" of the More menu opens the Statistics window. The Statistics window has two tabs: "User activity" and "Work of one person". Each chart has a legend. Move the pointer over a bar to see the numbers of the bar in an information card.
 
 ## The tab "User activity"
 
-The tab "User activity" shows when and where you work in front of Heidrun.
+The tab "User activity" shows when and where you work in front of Heidrun Code.
 
 - The histogram of the user activity time has one bar for each slot of time. Each bar has one color for each workspace, so you see where your time went.
 - Choose the time range: the last day, the last week, or the last month.
@@ -21,9 +21,9 @@ The tab "User activity" shows when and where you work in front of Heidrun.
 
 ![The tab "User activity" of the Statistics window: the histogram of the last day with one bar for each hour, and the information card of one bar with the time of each workspace.](/screenshots/features/statistics_user_activity.png)
 
-You are active when you press a key, click, or move the mouse in the Heidrun window. After 5 seconds without an action, you are no longer active. Heidrun counts the time of the workspace that you selected, only while the Heidrun window is in front.
+You are active when you press a key, click, or move the mouse in the Heidrun Code window. After 5 seconds without an action, you are no longer active. Heidrun Code counts the time of the workspace that you selected, only while the Heidrun Code window is in front.
 
-Heidrun keeps each active period in the file `~/.config/heidrun/user_activity.jsonl` on your computer. A record holds the folder of the workspace, the times, and the number of keyboard actions and of mouse actions. It never holds a key that you typed, and never a text of the screen.
+Heidrun Code keeps each active period in the file `~/.config/heidrun_code/user_activity.jsonl` on your computer. A record holds the folder of the workspace, the times, and the number of keyboard actions and of mouse actions. It never holds a key that you typed, and never a text of the screen.
 
 ## The tab "Work of one person"
 

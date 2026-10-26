@@ -26,7 +26,7 @@ export type TerminalWriter = (data: string) => Promise<void>;
 /** The Control+V key, as the byte that a terminal sends. */
 const CONTROL_V = "\x16";
 
-/** The file extensions that Heidrun accepts as images. The same list is in `clipboard.rs`. */
+/** The file extensions that Heidrun Code accepts as images. The same list is in `clipboard.rs`. */
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp", "heic", "tif", "tiff", "bmp"];
 
 /** The wait between two pastes, in milliseconds: a coding agent reads one clipboard image at a time. */

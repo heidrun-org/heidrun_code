@@ -9,10 +9,12 @@
   },
   "bin": {
     "worktree_create": "./src/worktree_create_cli.ts",
-    "target_clean": "./src/target_clean_cli.ts"
+    "target_clean": "./src/target_clean_cli.ts",
+    "target_prune": "./src/target_prune_cli.ts",
+    "bundled_commands_build": "./src/bundled_commands_build_cli.ts"
   },
   "scripts": {
-    "test": "vitest run --minWorkers=1 --maxWorkers=2"
+    "test": "vitest run --minWorkers=1 --maxWorkers=4"
   },
   "dependencies": {
     "commander": "^15.0.0",

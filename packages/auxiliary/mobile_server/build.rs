@@ -1,5 +1,7 @@
-//! Puts the built mobile website, the folder `../mobile_website/dist`, inside the program. The script writes a table
-//! of every file of the folder, and the file `src/embedded.rs` reads the table.
+//! Puts the built mobile website, the folder `../mobile_website/dist`, inside the program. The script copies the
+//! folder into `OUT_DIR`, writes a table of every file of the copy, and the file `src/embedded.rs` reads the table.
+//! Every path that Cargo records is relative to this package or inside the target folder, so a worktree that clones
+//! the target folder of the main checkout does not compile this crate again (issue 864).
 
 use std::env;
 use std::fs;
@@ -9,7 +11,7 @@ fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("Cargo sets CARGO_MANIFEST_DIR"));
     let dist = manifest_dir.join("..").join("mobile_website").join("dist");
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed={}", dist.display());
+    println!("cargo:rerun-if-changed=../mobile_website/dist");
 
     if !dist.join("index.html").is_file() {
         panic!(
@@ -23,14 +25,27 @@ fn main() {
     collect_files(&dist, &dist, &mut files);
     files.sort();
 
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("Cargo sets OUT_DIR"));
+    let copy = out_dir.join("dist");
+    if copy.exists() {
+        fs::remove_dir_all(&copy).expect("the old copy of the mobile website can be deleted");
+    }
+
     let mut table = String::from("/// Every file of the mobile website: its path in the folder `dist`, and its bytes.\n");
     table.push_str("pub const EMBEDDED_FILES: &[(&str, &[u8])] = &[\n");
     for (relative_path, absolute_path) in &files {
-        table.push_str(&format!("    ({:?}, include_bytes!({:?})),\n", relative_path, absolute_path.display().to_string()));
+        let copy_path = copy.join(relative_path);
+        fs::create_dir_all(copy_path.parent().expect("a file of the copy has a folder"))
+            .expect("a folder of the copy of the mobile website can be created");
+        fs::copy(absolute_path, &copy_path).expect("a file of the mobile website can be copied");
+        table.push_str(&format!(
+            "    ({:?}, include_bytes!(concat!(env!(\"OUT_DIR\"), {:?}))),\n",
+            relative_path,
+            format!("/dist/{}", relative_path)
+        ));
     }
     table.push_str("];\n");
 
-    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("Cargo sets OUT_DIR"));
     fs::write(out_dir.join("embedded_files.rs"), table).expect("the table of the embedded files can be written");
 }
 

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DurableStorage } from "./durable_storage";
 
@@ -78,7 +79,7 @@ describe("DurableStorage.restore", () => {
     expect(localStorage.getItem("heidrun.settings")).toBeNull();
   });
 
-  it("restores only the entries of Heidrun, and only text values", async () => {
+  it("restores only the entries of Heidrun Code, and only text values", async () => {
     answer({ copy: { "other.key": "x", "heidrun.number": 4 as unknown as string, "heidrun.ok": "1" } });
     await DurableStorage.restore();
     expect(localStorage.getItem("other.key")).toBeNull();
@@ -101,7 +102,7 @@ describe("DurableStorage.restore", () => {
 });
 
 describe("DurableStorage.startMirroring", () => {
-  it("writes the first copy with the entries of Heidrun only", async () => {
+  it("writes the first copy with the entries of Heidrun Code only", async () => {
     const writes = answer({});
     localStorage.setItem("heidrun.settings", "a");
     localStorage.setItem("other.key", "b");

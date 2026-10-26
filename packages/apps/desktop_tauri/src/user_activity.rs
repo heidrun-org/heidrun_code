@@ -1,5 +1,5 @@
-//! The file of the records of the activity of the user in front of Heidrun: one JSON line for each active period, in
-//! ~/.config/heidrun/user_activity.jsonl (on this Mac, never in a repository). Every time in a record is an ISO 8601
+//! The file of the records of the activity of the user in front of Heidrun Code: one JSON line for each active period, in
+//! ~/.config/heidrun_code/user_activity.jsonl (on this Mac, never in a repository). Every time in a record is an ISO 8601
 //! text with the offset of the time zone. A record never holds a key that the user typed or a text of the screen.
 //!
 //! This file owns the file of the records: it appends a record, and it reads the file back for the User activity sidebar section.
@@ -17,7 +17,7 @@ const KEEP_DAYS: i64 = 400;
 /// Name of the field of a record that holds the end of the period.
 const ENDED_AT_FIELD: &str = "endedAt";
 
-/// The file of the records, in the folder of the data of Heidrun.
+/// The file of the records, in the folder of the data of Heidrun Code.
 fn path() -> std::path::PathBuf {
     crate::app_data::user_activity_file_path()
 }

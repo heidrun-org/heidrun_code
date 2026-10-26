@@ -5,11 +5,16 @@ import path from "node:path";
 
 const invokeMock = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const copyMock = vi.hoisted(() => vi.fn(async () => {}));
+const chatAboutFileMock = vi.hoisted(() => vi.fn(async (_absolutePath: string, _label: string, _folder: string | null) => {}));
 // False means that no pane could show the file: the Files window then opens it.
 const openFileViewMock = vi.hoisted(() => vi.fn(async (_absolutePath: string) => false));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
 vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
 vi.mock("../lib/clipboard", () => ({ copy: copyMock }));
+vi.mock("../stores/chat_open", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../stores/chat_open")>()),
+  chatAboutFile: chatAboutFileMock,
+}));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 
 import FilesPanel from "./FilesPanel.vue";
@@ -46,6 +51,7 @@ async function mountPanel() {
 
 beforeEach(() => {
   openFileViewMock.mockClear();
+  chatAboutFileMock.mockClear();
   openFileViewMock.mockResolvedValue(false);
   invokeMock.mockImplementation(async (command: string, args: { paths: string[]; path: string }) => {
     if (command === "file_full_path") {
@@ -457,12 +463,18 @@ describe("FilesPanel", () => {
     wrapper.unmount();
   });
 
-  it("opens a context menu with two items after a right click on the row of a file", async () => {
+  it("opens a context menu with two copy items, a separator, and the item Chat about this file after a right click on the row of a file", async () => {
     const wrapper = await mountPanel();
     expect(document.body.querySelector("[role=menu]")).toBeNull();
     await wrapper.findAll(".row")[1].trigger("contextmenu", { clientX: 40, clientY: 60 });
+    const children = Array.from(document.body.querySelector("[role=menu]")?.children ?? []);
+    expect(children.map((child) => child.getAttribute("role"))).toEqual(["menuitem", "menuitem", "separator", "menuitem"]);
     const items = Array.from(document.body.querySelectorAll<HTMLButtonElement>("[role=menu] [role=menuitem]"));
-    expect(items.map((item) => item.textContent?.trim())).toEqual(["Copy absolute path", "Copy relative path"]);
+    expect(items.map((item) => item.textContent?.trim())).toEqual([
+      "Copy absolute path",
+      "Copy relative path",
+      "Chat about this file",
+    ]);
     expect(git.modal.open).toBe(false);
     wrapper.unmount();
   });
@@ -476,7 +488,11 @@ describe("FilesPanel", () => {
     await wrapper.vm.$nextTick();
     expect(event.defaultPrevented).toBe(true);
     const items = Array.from(document.body.querySelectorAll<HTMLButtonElement>("[role=menu] [role=menuitem]"));
-    expect(items.map((item) => item.textContent?.trim())).toEqual(["Copy absolute path", "Copy relative path"]);
+    expect(items.map((item) => item.textContent?.trim())).toEqual([
+      "Copy absolute path",
+      "Copy relative path",
+      "Chat about this file",
+    ]);
     wrapper.unmount();
   });
 
@@ -514,6 +530,31 @@ describe("FilesPanel", () => {
     await vi.waitFor(() => expect(copyMock).toHaveBeenCalledWith("src/main.ts"));
     expect(state.toast).toBe("Copied: src/main.ts");
     expect(document.body.querySelector("[role=menu]")).toBeNull();
+    wrapper.unmount();
+  });
+
+  it("starts a chat about the file with the item Chat about this file, and closes the context menu", async () => {
+    const wrapper = await mountPanel();
+    await wrapper.findAll(".row")[0].trigger("click");
+    await wrapper.findAll(".row")[2].trigger("contextmenu");
+    document.body.querySelectorAll<HTMLButtonElement>("[role=menuitem]")[2].click();
+    await vi.waitFor(() => expect(chatAboutFileMock).toHaveBeenCalledWith("/work/heidrun/src/main.ts", "main.ts", "/work/heidrun"));
+    expect(invokeMock).toHaveBeenCalledWith("file_full_path", { root: "/work/heidrun", path: "src/main.ts" });
+    expect(document.body.querySelector("[role=menu]")).toBeNull();
+    expect(copyMock).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("starts a chat about nothing and shows the error when the absolute path cannot be read", async () => {
+    const wrapper = await mountPanel();
+    await wrapper.findAll(".row")[0].trigger("click");
+    await wrapper.findAll(".row")[2].trigger("contextmenu");
+    invokeMock.mockImplementationOnce(async () => {
+      throw new Error("no such file");
+    });
+    document.body.querySelectorAll<HTMLButtonElement>("[role=menuitem]")[2].click();
+    await vi.waitFor(() => expect(state.toast).toContain("no such file"));
+    expect(chatAboutFileMock).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 

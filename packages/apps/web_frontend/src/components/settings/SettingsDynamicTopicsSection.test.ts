@@ -188,7 +188,7 @@ describe("SettingsDynamicTopicsSection, the method Language model", () => {
     expect(status.element.previousElementSibling).toBe(wrapper.get(".btn-group").element);
     languageModelStatus.error = "wrongAnswer";
     await wrapper.vm.$nextTick();
-    expect(wrapper.get("[role=status]").text()).toContain("answer that Heidrun cannot use");
+    expect(wrapper.get("[role=status]").text()).toContain("answer that Heidrun Code cannot use");
     languageModelStatus.error = "failed";
     await wrapper.vm.$nextTick();
     expect(wrapper.get("[role=status]").text()).toContain("did not answer");
@@ -238,7 +238,7 @@ describe("SettingsDynamicTopicsSection, clustered dynamic topics", () => {
     expect(wrapper.findAll(".form-text")).toHaveLength(0);
   });
 
-  it("opens an information card with three blocks: what it is, what Heidrun sends, and what happens when the option is off", async () => {
+  it("opens an information card with three blocks: what it is, what Heidrun Code sends, and what happens when the option is off", async () => {
     const { wrapper } = await mountSection();
     await findMark(wrapper, "About the clustered dynamic topics").trigger("click");
     const card = wrapper.get(".popover");
@@ -247,7 +247,7 @@ describe("SettingsDynamicTopicsSection, clustered dynamic topics", () => {
     expect(blocks).toHaveLength(3);
     expect(blocks[0]).toContain("What it is");
     expect(blocks[0]).toContain("the name of a group of dynamic topics that have a close meaning");
-    expect(blocks[1]).toContain("What Heidrun sends");
+    expect(blocks[1]).toContain("What Heidrun Code sends");
     expect(blocks[1]).toContain("only the short labels of the raw dynamic topics");
     expect(blocks[1]).toContain("never the text of a chat");
     expect(blocks[1]).toContain("codex or claude");
@@ -308,7 +308,7 @@ describe("SettingsDynamicTopicsSection, clustered dynamic topics", () => {
     expect(wrapper.get("[role=status]").text()).toContain("Neither codex nor claude is installed");
     topicClusterStatus.error = "wrongAnswer";
     await wrapper.vm.$nextTick();
-    expect(wrapper.get("[role=status]").text()).toContain("answer that Heidrun cannot use");
+    expect(wrapper.get("[role=status]").text()).toContain("answer that Heidrun Code cannot use");
     topicClusterStatus.error = "failed";
     await wrapper.vm.$nextTick();
     expect(wrapper.get("[role=status]").text()).toContain("did not answer");

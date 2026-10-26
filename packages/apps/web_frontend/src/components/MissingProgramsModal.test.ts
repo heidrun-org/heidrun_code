@@ -9,7 +9,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(async (command: string) => {
     if (command === "required_programs_status") {
       if (fake.isFailing) {
-        throw new Error("not in Heidrun");
+        throw new Error("not in Heidrun Code");
       }
       return fake.programs;
     }
@@ -19,7 +19,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const openWrappers: VueWrapper[] = [];
 
-/** Mounts the notice with a fake state of the two programs, as at the start of Heidrun. */
+/** Mounts the notice with a fake state of the two programs, as at the start of Heidrun Code. */
 async function mountNotice(isHerdrInstalled: boolean, isNgrokInstalled: boolean, language: "en" | "fr" = "en", isHerdrTooOld = false) {
   fake.programs = {
     herdr: { isInstalled: isHerdrInstalled, isTooOld: isHerdrTooOld },
@@ -52,7 +52,7 @@ describe("MissingProgramsModal", () => {
     expect(wrapper.find(".window-box").exists()).toBe(false);
   });
 
-  it("shows nothing outside Heidrun, where the test of the programs fails", async () => {
+  it("shows nothing outside Heidrun Code, where the test of the programs fails", async () => {
     fake.isFailing = true;
     const { wrapper } = await mountNotice(false, false);
     expect(wrapper.find(".window-box").exists()).toBe(false);
@@ -69,8 +69,8 @@ describe("MissingProgramsModal", () => {
   it("asks for an update of a Herdr older than 0.9, with the install command", async () => {
     const { wrapper } = await mountNotice(true, true, "en", true);
     const herdr = wrapper.get('[data-program="herdr"]');
-    expect(herdr.text()).toContain("Heidrun needs Herdr 0.9 or later, and the Herdr on this computer is older.");
-    expect(herdr.text()).toContain("After the update, quit Heidrun and open it again.");
+    expect(herdr.text()).toContain("Heidrun Code needs Herdr 0.9 or later, and the Herdr on this computer is older.");
+    expect(herdr.text()).toContain("After the update, quit Heidrun Code and open it again.");
     expect(herdr.get(".command").text()).toBe("curl -fsSL https://herdr.dev/install.sh | sh");
   });
 
@@ -112,7 +112,7 @@ describe("MissingProgramsModal", () => {
 
   it("says the same thing in French", async () => {
     const { wrapper } = await mountNotice(false, false, "fr");
-    expect(wrapper.get("h2").text()).toBe("Heidrun a besoin de programmes qui ne sont pas installés");
+    expect(wrapper.get("h2").text()).toBe("Heidrun Code a besoin de programmes qui ne sont pas installés");
     expect(wrapper.get('[data-program="herdr"]').text()).toContain("Obligatoire");
     expect(wrapper.get('[data-program="ngrok"]').text()).toContain("Facultatif");
   });

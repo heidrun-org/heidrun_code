@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DETECTION_FAMILY_IDS } from './detection_families';
 import { DetectionCatalog } from './detection_catalog';

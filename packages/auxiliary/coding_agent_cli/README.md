@@ -1,6 +1,6 @@
 # coding_agent_cli
 
-A Rust library and a command line tool for [Heidrun](../../../README.md). Both send one prompt to a coding agent command line tool (`codex`, `claude`, or `agy`), wait for the answer, and return the answer as text. The desktop application uses the library, and the change log generator runs the command line tool. The name `coding_agent_cli` is the name of the package and the name of the executable.
+A Rust library and a command line tool for [Heidrun Code](../../../README.md). Both send one prompt to a coding agent command line tool (`codex`, `claude`, or `agy`), wait for the answer, and return the answer as text. The desktop application uses the library, and the change log generator runs the command line tool. The name `coding_agent_cli` is the name of the package and the name of the executable.
 
 ## What it contains
 

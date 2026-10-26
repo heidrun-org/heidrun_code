@@ -1,10 +1,10 @@
-# User interface of Heidrun: Statistics window, tab "Work of one person", legend filter
+# User interface of Heidrun Code: Statistics window, tab "Work of one person", legend filter
 
 - Created: 17 October 2026
-- Last updated: 19 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: statistics charts](../../glossary/statistics_charts.md), [Tab "Work of one person"](statistics_person_work.md), [Statistics charts](statistics_charts.md), [Last state of each option](window_state_and_start.md)
+- Related rules: [Glossary of Heidrun Code: statistics charts](../../glossary/statistics_charts.md), [Tab "Work of one person"](statistics_person_work.md), [Statistics charts](statistics_charts.md), [Last state of each option](window_state_and_start.md)
 - Related issue: [issue 629](https://github.com/heidrun-org/heidrun/issues/629), [issue 707](https://github.com/heidrun-org/heidrun/issues/707)
 
 This file is a part of the rules of the tab "Work of one person". The component is `components/StackedBarChart.vue`, and the tests are in `components/PersonWorkTab.test.ts` and `stores/settings.test.ts`.
@@ -15,7 +15,7 @@ This file is a part of the rules of the tab "Work of one person". The component 
 
 ## The memory of the filter
 
-- Heidrun remembers the filter of each chart between two runs: the next run draws each chart with the same filter. The rule "Last state of each option" in [window_state_and_start.md](window_state_and_start.md) applies.
+- Heidrun Code remembers the filter of each chart between two runs: the next run draws each chart with the same filter. The rule "Last state of each option" in [window_state_and_start.md](window_state_and_start.md) applies.
 - The option `statisticsLegendFilters` of the store `stores/settings.ts` saves the filter. It is an object: the name of a chart points to the identifier of the only color that shows. A chart with no entry shows every color. A second click on the name of the only color that shows removes the entry.
 - The names of the charts are `git_history_commits_and_pull_requests`, `git_history_lines`, and `ai_cost`. The chart of the AI cost has one filter for both units, US dollars and tokens, because both units have the same colors.
 - The identifiers of the colors are `commits`, `pull_requests`, `lines_added`, `lines_deleted`, `claude`, and `codex`. The store keeps the identifier, and not the name of the color, so that a change of the language keeps the filter.

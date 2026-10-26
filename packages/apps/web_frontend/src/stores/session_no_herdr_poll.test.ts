@@ -108,7 +108,7 @@ describe("the snapshot of Herdr is read after an event, never after a timer", ()
 });
 
 describe("the usage of Codex", () => {
-  it("is read again every 10 seconds, because Codex writes it outside Heidrun and no event announces it", async () => {
+  it("is read again every 10 seconds, because Codex writes it outside Heidrun Code and no event announces it", async () => {
     await startTheSessionStore();
     mocks.codexUsage.mockClear();
 

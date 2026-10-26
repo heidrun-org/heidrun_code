@@ -44,5 +44,10 @@
   "editTitle": "Edit a custom launcher",
   "saveTitle": "Save the changes of the custom launcher",
   "save": "Save",
-  "cancelEditTitle": "Cancel: the launcher keeps its values"
+  "cancelEditTitle": "Cancel: the launcher keeps its values",
+  "level": "Level",
+  "levelUser": "User",
+  "levelWorkspace": "Workspace",
+  "levelUserHint": "The custom launcher shows in every workspace. A current work directory that is not empty is read from the root of each workspace.",
+  "levelWorkspaceHint": "The custom launcher shows only in the workspace {name}."
 }
