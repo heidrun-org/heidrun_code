@@ -8,7 +8,7 @@ The backend of the windows Installed skill and Find new skills: it finds, reads,
 - `install.rs`: the commands `skills_preview` and `skills_install` (a skill of skills.sh), `skills_preview_folder` and `skills_install_folder` (the web address of a skill folder in a public GitHub or GitLab repository), and `skills_preview_local_folder` and `skills_install_local_folder` (a folder on this computer).
 - `search.rs`: the command `skills_search` (skills.sh), and the commands `skills_find_local_folders` and `skills_find_folders`, which give the skill folders at a full path or at a web address: the folder itself when it holds a `SKILL.md` file, otherwise each direct subfolder that holds one.
 - `agent_folders.rs`: the command `skills_link_agent`, and the skills folders and the links of each coding agent.
-- `bundled.rs`: installs the bundled skills and links the bundled command lines in `~/.local/bin`.
+- `bundled.rs`: installs the bundled skills and links the bundled command lines in `~/.local/bin`. It removes the links and the skills of the former names, and replaces a link to a former application folder, only when Heidrun made them ([issue 850](https://github.com/heidrun-org/heidrun_code/issues/850)).
 - `github.rs`: the lookup of a skill in a GitHub repository, and of the files below a skill folder, with the rate limit of GitHub.
 - `gitlab.rs`: the same for a public GitLab project, with the REST API of `gitlab.com` and its paginated tree.
 - `local_folder.rs`: reads and copies a skill folder of this computer, and skips links, the folder `.git`, and files that are too large.
