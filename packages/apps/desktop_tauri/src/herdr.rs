@@ -255,7 +255,15 @@ pub async fn request(method: &str, params: Value) -> Result<Value, String> {
     Ok(result)
 }
 
+/// One request on a fresh connection, written in the application log with its duration and its failure.
 async fn raw_request(method: &str, params: Value) -> Result<Value, String> {
+    let started = std::time::Instant::now();
+    let result = unlogged_request(method, params).await;
+    crate::application_log::record_herdr_request(method, started, result.as_ref().err().map(String::as_str));
+    result
+}
+
+async fn unlogged_request(method: &str, params: Value) -> Result<Value, String> {
     let mut stream = connect().await?;
     let id = next_id();
     let mut line = serde_json::to_string(&json!({ "id": id, "method": method, "params": params }))
@@ -284,8 +292,16 @@ async fn raw_request(method: &str, params: Value) -> Result<Value, String> {
 }
 
 /// Opens a subscription and forwards every pushed line to the frontend as `herdr://event`.
-/// Returns when the server closes the stream or reports an error such as `events_lost`.
+/// Returns when the server closes the stream or reports an error such as `events_lost`. The application log receives the
+/// subscription as one request `events.subscribe`, whose duration is the life of the subscription.
 async fn run_subscription(app: &AppHandle, subscriptions: Value, alive: Option<&AtomicBool>) -> Result<(), String> {
+    let started = std::time::Instant::now();
+    let result = unlogged_subscription(app, subscriptions, alive).await;
+    crate::application_log::record_herdr_request("events.subscribe", started, result.as_ref().err().map(String::as_str));
+    result
+}
+
+async fn unlogged_subscription(app: &AppHandle, subscriptions: Value, alive: Option<&AtomicBool>) -> Result<(), String> {
     let mut stream = connect().await?;
     let id = next_id();
     let mut line = serde_json::to_string(&json!({

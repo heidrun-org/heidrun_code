@@ -11,8 +11,8 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, State};
 use voice_input::{
-    download_model, find_model, list_models, model_path, ModelInfo, Recorder, Transcriber, VoiceError, DEFAULT_MODEL_ID, LANGUAGES,
-    MODELS_BASE_URL,
+    download_model, find_model, list_models, model_path, DownloadProgress, ModelInfo, Recorder, Transcriber, VoiceError,
+    DEFAULT_MODEL_ID, LANGUAGES, MODELS_BASE_URL,
 };
 
 /// The name of the event that tells the web page how far a download went.
@@ -100,7 +100,11 @@ pub async fn voice_download_model(app: AppHandle, state: State<'_, VoiceState>, 
         }
     }
     let mut last_sent: Option<Instant> = None;
+    let mut last_progress: Option<DownloadProgress> = None;
+    application_log::write("voice_download_start", serde_json::json!({ "model": model_id }));
+    let started = Instant::now();
     let result = download_model(MODELS_BASE_URL, model, &models_folder(), |progress| {
+        last_progress = Some(progress);
         let is_last = progress.received_bytes >= progress.total_bytes;
         let is_due = last_sent.map(|moment| moment.elapsed() >= PROGRESS_INTERVAL).unwrap_or(true);
         if is_last || is_due {
@@ -116,6 +120,16 @@ pub async fn voice_download_model(app: AppHandle, state: State<'_, VoiceState>, 
         }
     })
     .await;
+    application_log::write(
+        "voice_download_end",
+        serde_json::json!({
+            "model": model_id,
+            "received_bytes": last_progress.map(|progress| progress.received_bytes),
+            "total_bytes": last_progress.map(|progress| progress.total_bytes),
+            "duration_ms": started.elapsed().as_millis() as u64,
+            "error": result.as_ref().err().map(|error| application_log::first_line(&error.to_string())),
+        }),
+    );
     if let Ok(mut downloading) = state.downloading.lock() {
         downloading.remove(&model_id);
     }
