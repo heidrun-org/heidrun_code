@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: file view pane
 
 - Created: 21 October 2026
-- Last updated: 23 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Panes](panes.md), [Pane headers](pane_headers.md), [Files](../sidebars/files.md)
@@ -60,7 +60,7 @@ A pane of Heidrun Code is a pane of Herdr, and Herdr sets the layout of the pane
 ## Where the code is
 
 - `FileViewLabel` in `lib/file_view_label.ts` writes and reads the label.
-- `FileViewPanes` in `stores/file_view_panes.ts` opens a file in a file view pane.
+- `FileViewPanes` in `stores/file_view_panes.ts` opens a file in a file view pane, with `ViewPanes` in `stores/view_panes.ts`, which the diff pane also uses ([diff_pane.md](diff_pane.md)).
 - `FrontMatter` in `lib/front_matter.ts` splits the front matter block from the body of a Markdown file.
 - `FileView.vue` is the body of the pane, and `PaneCard.vue` shows it in place of the terminal. `PaneCard.vue` gives the file view an element of its header, and `FileView.vue` teleports the controls of the file into that element. `FileViewMenu.vue` is the dropdown menu.
 - `CodeEditor.vue` and `lib/editor.ts` have the read only option.

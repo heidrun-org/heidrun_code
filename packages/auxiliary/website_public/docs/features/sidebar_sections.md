@@ -27,6 +27,7 @@ The Source control sidebar section, in the left sidebar, shows the Git changes o
 - Stage the files, write the commit message, and press ⌘Enter to commit.
 - The menu of the commit button also gives "Commit and push", and "Commit (amend the last commit)".
 - The sparkle button asks a coding agent to write the commit message from the diff. See [The use of AI](/features/ai).
+- A click on a changed file shows its diff in a pane next to your terminal, read only, as a diff or side by side.
 - The large Git window shows the diff of every change, with the open pull requests in a side list.
 
 ![The Source control sidebar section with the commit message box, the commit button, and the list of the changed files.](/screenshots/features/source_control.png){width=300}

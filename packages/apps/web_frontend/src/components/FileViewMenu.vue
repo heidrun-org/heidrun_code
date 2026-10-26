@@ -5,8 +5,9 @@ import { t } from "../i18n/index";
 
 // The dropdown menu of the header of a file view pane: the actions on the file that the header has no room for as buttons.
 // The menu opens with a click or with the keys Enter and Space on the button. The arrow keys move between the entries, and the
-// key Escape closes the menu and gives the keyboard back to the button.
-// Issue: https://github.com/heidrun-org/heidrun/issues/784
+// key Escape closes the menu and gives the keyboard back to the button. The diff pane puts its own entries first, in the slot:
+// each entry calls `choose` with its action, so that the menu closes first.
+// Issues: https://github.com/heidrun-org/heidrun/issues/784 and https://github.com/heidrun-org/heidrun_code/issues/885
 defineProps<{
   /** True while the file is shown as code: only then the menu has the entry "Search". */
   isSearchShown: boolean;
@@ -134,6 +135,7 @@ onBeforeUnmount(close);
       :aria-label="t('fileView.menuLabel')"
       :style="{ top: `${position.top}px`, right: `${position.right}px` }"
     >
+      <slot :choose="choose"></slot>
       <button
         v-if="isSearchShown"
         type="button"

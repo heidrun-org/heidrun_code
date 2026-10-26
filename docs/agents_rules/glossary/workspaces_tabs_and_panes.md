@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: workspaces, tabs, and panes
 
 - Created: 14 October 2026
-- Last updated: 23 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: workspaces, tabs, and panes](../user_interface/workspaces_tabs_and_panes/index.md)
@@ -42,6 +42,10 @@ One terminal inside a tab. The terminal runs a shell or a coding agent, for exam
 ### File view pane
 
 A pane that shows one file, read only, in place of its terminal. The developer cannot change the file there. A click on a file in the File explorer sidebar section opens it. The label of the pane holds the absolute path of the file, and the terminal of the pane only waits. The rules are in [file_view_pane.md](../user_interface/workspaces_tabs_and_panes/file_view_pane.md).
+
+### Diff pane
+
+A pane that shows the changes of one file, compared to the last commit, read only, in place of its terminal. A click on a file line of the Source control sidebar section opens it. The label of the pane holds the absolute path of the file, and the terminal of the pane only waits. The rules are in [diff_pane.md](../user_interface/workspaces_tabs_and_panes/diff_pane.md).
 
 ### Front matter
 

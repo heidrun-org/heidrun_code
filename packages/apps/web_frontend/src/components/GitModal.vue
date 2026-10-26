@@ -7,7 +7,8 @@ import { currentForge, currentGit, git, refreshGit } from "../stores/git";
 import { settings } from "../stores/settings";
 import { codeThemeClass } from "../stores/theme";
 import AbbreviatedTime from "./AbbreviatedTime.vue";
-import { diffStats, parseDiff, splitDiff, type DiffLine } from "../lib/diff";
+import { diffStats, parseDiff, type DiffLine } from "../lib/diff";
+import DiffLines from "./DiffLines.vue";
 import { highlightFile, highlightLine, languageFor } from "../lib/highlight";
 import { isMarkdown, renderMarkdown } from "../lib/markdown";
 import Resizer from "./Resizer.vue";
@@ -134,9 +135,6 @@ watch(
 );
 
 const stats = computed(() => diffStats(diff.value));
-const htmlOf = computed(() => new Map(diff.value.map((l, i) => [l, diffHtml.value[i] ?? ""])));
-const split = computed(() => splitDiff(diff.value));
-const hl = (l?: DiffLine) => (l ? htmlOf.value.get(l) ?? "" : "");
 // Lines added or changed, for the gutter of the file view.
 const changedNew = computed(() => new Set(diff.value.filter((l) => l.kind === "add").map((l) => l.new!)));
 
@@ -154,29 +152,6 @@ function move(delta: number) {
 }
 const modalEl = ref<HTMLElement>();
 
-// Divider of the side-by-side view.
-const splitEl = ref<HTMLElement>();
-function startSplit(e: PointerEvent) {
-  const el = splitEl.value;
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const bar = e.target as HTMLElement;
-  bar.setPointerCapture(e.pointerId);
-  const move = (ev: PointerEvent) => {
-    settings.splitRatio = Math.min(0.85, Math.max(0.15, (ev.clientX - rect.left) / rect.width));
-  };
-  const end = () => {
-    bar.removeEventListener("pointermove", move);
-    bar.removeEventListener("pointerup", end);
-    bar.removeEventListener("pointercancel", end);
-    bar.removeEventListener("lostpointercapture", end);
-  };
-  bar.addEventListener("pointermove", move);
-  bar.addEventListener("pointerup", end);
-  bar.addEventListener("pointercancel", end);
-  bar.addEventListener("lostpointercapture", end);
-  e.preventDefault();
-}
 function onKey(e: KeyboardEvent) {
   if (e.altKey || e.metaKey || e.ctrlKey) return;
   const target = e.target as HTMLElement | null;
@@ -304,76 +279,13 @@ const open = (url?: string | null) => url && openUrl(url).catch(() => {});
             <!-- Markdown, rendered -->
             <article v-else-if="mode === 'preview'" class="md" :class="{ full: settings.mdWidth === 'full' }" @click="onMdClick" v-html="rendered"></article>
 
-            <!-- Unified diff -->
-            <table v-else-if="mode === 'unified'" class="tbl">
-              <tbody>
-                <tr v-for="(l, i) in diff" :key="i" :class="l.kind">
-                  <template v-if="l.kind === 'hunk'"><td colspan="4" class="hunk mono">{{ l.text }}</td></template>
-                  <template v-else>
-                    <td class="no">{{ l.old ?? "" }}</td>
-                    <td class="no">{{ l.new ?? "" }}</td>
-                    <td class="sign">{{ l.kind === "add" ? "+" : l.kind === "del" ? "−" : "" }}</td>
-                    <td class="src" v-html="diffHtml[i]"></td>
-                  </template>
-                </tr>
-              </tbody>
-            </table>
-
-            <!-- Side by side: two columns split where you want (drag the bar, double-click = middle).
-                 Without wrapping each side scrolls sideways on its own; rows stay aligned. -->
-            <div
-              v-else-if="mode === 'split' && !settings.codeWrap"
-              ref="splitEl"
-              class="split2"
-              :style="{ gridTemplateColumns: `minmax(0, ${settings.splitRatio}fr) 6px minmax(0, ${1 - settings.splitRatio}fr)` }"
-            >
-              <div class="side">
-                <table class="tbl">
-                  <tbody>
-                    <tr v-for="(r, i) in split" :key="i">
-                      <td v-if="r.hunk" colspan="2" class="hunk mono">{{ r.hunk }}</td>
-                      <template v-else>
-                        <td class="no" :class="r.left?.kind">{{ r.left?.old ?? "" }}</td>
-                        <td class="src" :class="r.left ? r.left.kind : 'none'" v-html="hl(r.left) || '&#8203;'"></td>
-                      </template>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="split-bar" :title="t('gitModal.splitBarTitle')" @pointerdown="startSplit" @dblclick="settings.splitRatio = 0.5"></div>
-              <div class="side">
-                <table class="tbl">
-                  <tbody>
-                    <tr v-for="(r, i) in split" :key="i">
-                      <td v-if="r.hunk" colspan="2" class="hunk mono">&#8203;</td>
-                      <template v-else>
-                        <td class="no" :class="r.right?.kind">{{ r.right?.new ?? "" }}</td>
-                        <td class="src" :class="r.right ? r.right.kind : 'none'" v-html="hl(r.right) || '&#8203;'"></td>
-                      </template>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <table v-else-if="mode === 'split'" class="tbl split fixed">
-              <colgroup>
-                <col class="c-no" />
-                <col :style="{ width: `${settings.splitRatio * 100}%` }" />
-                <col class="c-no" />
-                <col :style="{ width: `${(1 - settings.splitRatio) * 100}%` }" />
-              </colgroup>
-              <tbody>
-                <tr v-for="(r, i) in split" :key="i">
-                  <template v-if="r.hunk"><td colspan="4" class="hunk mono">{{ r.hunk }}</td></template>
-                  <template v-else>
-                    <td class="no" :class="r.left?.kind">{{ r.left?.old ?? "" }}</td>
-                    <td class="src" :class="r.left ? r.left.kind : 'none'" v-html="hl(r.left)"></td>
-                    <td class="no sepl" :class="r.right?.kind">{{ r.right?.new ?? "" }}</td>
-                    <td class="src" :class="r.right ? r.right.kind : 'none'" v-html="hl(r.right)"></td>
-                  </template>
-                </tr>
-              </tbody>
-            </table>
+            <DiffLines
+              v-else-if="mode === 'unified' || mode === 'split'"
+              :lines="diff"
+              :html="diffHtml"
+              :mode="mode"
+              :is-wrap="settings.codeWrap"
+            />
 
             <!-- Whole file, changed lines marked -->
             <table v-else class="tbl">
@@ -470,24 +382,11 @@ const open = (url?: string | null) => url && openUrl(url).catch(() => {});
 .tbl { border-collapse: collapse; width: 100%; }
 .tbl td { padding: 0 10px; vertical-align: top; }
 .no { width: 1%; min-width: 40px; text-align: right; color: var(--c-gutter); user-select: none; white-space: nowrap; }
-.sign, .mark { width: 1%; padding: 0 4px !important; color: var(--c-gutter); user-select: none; }
+.mark { width: 1%; padding: 0 4px !important; color: var(--c-gutter); user-select: none; }
 .mark { color: var(--ok); }
 .src { white-space: pre; user-select: text; }
 .code.wrap .src { white-space: pre-wrap; word-break: break-all; }
-.split2 { display: grid; min-width: 0; align-items: start; }
-.side { min-width: 0; overflow-x: auto; }
-.side .tbl { width: max-content; min-width: 100%; }
-.split-bar { align-self: stretch; cursor: col-resize; background: rgba(var(--wash), 0.06); }
-.split-bar:hover { background: var(--resize-hover); }
-.tbl.fixed { table-layout: fixed; }
-.c-no { width: 52px; }
-.sepl { border-left: 1px solid rgba(var(--wash), 0.06); }
-tr.add > td, td.add { background: var(--c-add); }
-tr.del > td, td.del { background: var(--c-del); }
-tr.add .sign, td.add.no { color: var(--ok); }
-tr.del .sign, td.del.no { color: var(--blocked-text); }
-td.none { background: rgba(var(--wash), 0.02); }
-.hunk { background: var(--c-hunk); color: var(--c-hunk-fg); padding: 2px 10px !important; }
+tr.add > td { background: var(--c-add); }
 .empty { padding: 24px; color: var(--c-gutter); font-family: var(--sans); font-size: var(--font-size); }
 .err { color: var(--fail); }
 .foot { flex-shrink: 0; padding: 6px 12px; border-top: 1px solid var(--line); font-size: var(--font-size); }

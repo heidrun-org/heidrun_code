@@ -1,0 +1,20 @@
+{
+  "refresh": "Actualiser",
+  "refreshTitle": "Relire les modifications du fichier",
+  "openFile": "Ouvrir le fichier",
+  "openFileTitle": "Ouvrir le fichier dans un panneau de vue de fichier",
+  "noChange": "Aucune modification de texte par rapport au dernier commit (HEAD). Le fichier peut être commité, binaire ou renommé.",
+  "noRepository": "L’espace de travail de ce panneau n’est pas un dépôt Git.",
+  "outsideRepository": "{path} n’est pas dans le dépôt Git de l’espace de travail de ce panneau.",
+  "card.title": "À propos de ces modifications",
+  "card.buttonTitle": "À propos de ces modifications : l’état, les lignes et le dernier commit",
+  "card.file": "Fichier",
+  "card.staged": "Indexé",
+  "card.notStaged": "Non indexé",
+  "card.no": "Non",
+  "card.added": "Lignes ajoutées",
+  "card.removed": "Lignes supprimées",
+  "card.lastCommit": "Comparé au dernier commit",
+  "card.lastCommitDate": "Date du dernier commit",
+  "card.noCommit": "Aucun commit"
+}

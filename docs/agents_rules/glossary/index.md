@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code index
 
 - Created: 14 October 2026
-- Last updated: 25 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related issue: [issue 405](https://github.com/heidrun-org/heidrun/issues/405), [issue 435](https://github.com/heidrun-org/heidrun/issues/435), [issue 440](https://github.com/heidrun-org/heidrun/issues/440), [issue 473](https://github.com/heidrun-org/heidrun/issues/473), [issue 482](https://github.com/heidrun-org/heidrun/issues/482), [issue 569](https://github.com/heidrun-org/heidrun/issues/569), [issue 581](https://github.com/heidrun-org/heidrun/issues/581), [issue 596](https://github.com/heidrun-org/heidrun/issues/596), [issue 602](https://github.com/heidrun-org/heidrun/issues/602), [issue 610](https://github.com/heidrun-org/heidrun/issues/610), [issue 618](https://github.com/heidrun-org/heidrun/issues/618), [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 694](https://github.com/heidrun-org/heidrun/issues/694), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 638](https://github.com/heidrun-org/heidrun/issues/638), [issue 793](https://github.com/heidrun-org/heidrun/issues/793), [issue 810](https://github.com/heidrun-org/heidrun/issues/810), [issue 826](https://github.com/heidrun-org/heidrun/issues/826), [issue 837](https://github.com/heidrun-org/heidrun_code/issues/837), [issue 843](https://github.com/heidrun-org/heidrun_code/issues/843)
@@ -10,7 +10,7 @@ This file lists the files of this folder, for agents and tools.
 
 - [README.md](README.md): the overview of this folder, for people.
 - [heidrun_names.md](heidrun_names.md): Heidrun Organization, Heidrun Code, Heidrun Notebook, the official name, the identifier, the former name, and the persisted name. Read it each time that you write the name of an application, a package, or a tool.
-- [workspaces_tabs_and_panes.md](workspaces_tabs_and_panes.md): the workspace, the workspace folder, the tab, the pane, the file view pane, the front matter, the front matter card, the coding agent, the tab bar, the viewport, the pinned pane, the column of pinned panes, the usage wheel, the dragged pane, the destination pane, the drop triangle, and the move preview.
+- [workspaces_tabs_and_panes.md](workspaces_tabs_and_panes.md): the workspace, the workspace folder, the tab, the pane, the file view pane, the diff pane, the front matter, the front matter card, the coding agent, the tab bar, the viewport, the pinned pane, the column of pinned panes, the usage wheel, the dragged pane, the destination pane, the drop triangle, and the move preview.
 - [sidebars.md](sidebars.md): the left sidebar, the right sidebar, the sidebar section, the Clipboard, Launchers, Source control, Code hosting, and File explorer sidebar sections, the launcher, the sidebar icon bar, the Files window, the large Git window, and the Left sidebar enable disable button.
 - [chats.md](chats.md): the chat, the chat session, the Past chats sidebar section, and the Chats sort dropdown menu.
 - [coding_agent_configuration.md](coding_agent_configuration.md): the coding agent configuration, the memory file, the subagent, the skill, and the removed configuration item. Read it when you change the tables `memory_files`, `subagents`, or `skills` of the package `data_layer_coding_agents`.
