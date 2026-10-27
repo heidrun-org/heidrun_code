@@ -149,7 +149,9 @@ export const ALLOWED_FRONTEND_COMMANDS: Record<string, string> = {
 	user_activity_synchronize: 'copies the records of the activity of the user, with the package data_layer_user_activity',
 	user_activity_records_in_range: 'reads the stored records of the activity of the user',
 	chat_images_find:
-		'reads the images of one chat of Claude Code with the package data_layer_coding_agents, which reads the chat session file at each call (issue #790)',
+		'reads the images of one chat of Claude Code or of Codex with the package data_layer_coding_agents, which reads the chat session file at each call (issues #790 and #924)',
+	chat_images_find_codex_chat:
+		'finds the chat of a Codex pane from the title of its terminal, with the package data_layer_coding_agents (issue #924)',
 	topic_clusters_read: 'application state: it reads the translation table of the clustered dynamic topics, a file that Heidrun Code writes itself',
 	topic_clusters_write: 'application state: it saves the translation table of the clustered dynamic topics, a file that Heidrun Code writes itself',
 	coding_agent_ask: 'an action: it asks a coding agent to name topics, and it reads no source',

@@ -166,6 +166,11 @@ describe('TerminalDetection, the switches', () => {
 });
 
 describe('TerminalDetection, the precedence', () => {
+	it('leaves the text [Image #N] of a chat to its image, not to the issue N (issue #924)', () => {
+		const { items } = TerminalDetectionTestHelper.detect('> look [Image #1] and fix #12');
+		expect(items.map((item) => item.text)).toEqual(['#12']);
+	});
+
 	it('lets a shell command in a sentence take a reference inside it', () => {
 		const { items, suppressed } = TerminalDetectionTestHelper.detect('Run ! gh issue view 12 --repo org/app#9. Then wait');
 		expect(items.map((item) => item.family)).toEqual(['shellCommands']);
