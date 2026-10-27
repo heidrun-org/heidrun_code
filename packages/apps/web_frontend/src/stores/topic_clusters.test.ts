@@ -91,14 +91,14 @@ describe("prepareTopicClusters", () => {
   });
 
   it("makes one single call for all the new raw dynamic topics, and saves the answer on the disk", async () => {
-    const backend = installBackend({}, answerWith((topic) => (topic === "tab" ? "tab" : "sidebar")));
+    const backend = installBackend({}, answerWith((topic) => (topic === "tab" ? "tab" : "side bar")));
     const { prepareTopicClusters, topicClusterTable, topicClusterStatus } = await startRun(true);
     await prepareTopicClusters(["tab", "panel", "side bar", "tab"]);
     expect(callsOf("coding_agent_ask")).toBe(1);
     expect(backend.prompts[0]).toContain('New labels: ["panel","side bar","tab"]');
     expect(backend.prompts[0]).toContain("Existing clusters: []");
-    expect(Object.fromEntries(topicClusterTable.value)).toEqual({ panel: "sidebar", "side bar": "sidebar", tab: "tab" });
-    expect(backend.rows).toEqual({ panel: "sidebar", "side bar": "sidebar", tab: "tab" });
+    expect(Object.fromEntries(topicClusterTable.value)).toEqual({ panel: "side bar", "side bar": "side bar", tab: "tab" });
+    expect(backend.rows).toEqual({ panel: "side bar", "side bar": "side bar", tab: "tab" });
     expect(topicClusterStatus.error).toBeNull();
     expect(topicClusterStatus.isRunning).toBe(false);
   });
@@ -129,13 +129,21 @@ describe("prepareTopicClusters", () => {
     expect(backend.prompts[0]).toContain('New labels: ["right panel"]');
   });
 
+  it("makes each raw dynamic topic its own cluster when the answer invents a category name (issue 270)", async () => {
+    const backend = installBackend({}, answerWith(() => "interface"));
+    const { prepareTopicClusters, topicClusterTable } = await startRun(true);
+    await prepareTopicClusters(["dropdown", "modal"]);
+    expect(Object.fromEntries(topicClusterTable.value)).toEqual({ dropdown: "dropdown", modal: "modal" });
+    expect(backend.rows).toEqual({ dropdown: "dropdown", modal: "modal" });
+  });
+
   it("never changes a row that is saved", async () => {
-    const backend = installBackend({ panel: "sidebar" }, answerWith(() => "tabs"));
+    const backend = installBackend({ panel: "sidebar" }, answerWith(() => "tab"));
     const { prepareTopicClusters, topicClusterTable } = await startRun(true);
     await prepareTopicClusters(["panel", "tab"]);
     expect(topicClusterTable.value.get("panel")).toBe("sidebar");
     expect(backend.rows.panel).toBe("sidebar");
-    expect(backend.rows.tab).toBe("tabs");
+    expect(backend.rows.tab).toBe("tab");
   });
 
   it("saves nothing when the answer is wrong, and does not call again for the same raw dynamic topics", async () => {
@@ -225,7 +233,7 @@ describe("prepareTopicClusters", () => {
 
 describe("rebuildTopicClusters", () => {
   it("empties the translation table on the disk, then clusters all the raw dynamic topics again in one call", async () => {
-    const backend = installBackend({ panel: "sidebar", tab: "sidebar" }, answerWith(() => "tabs"));
+    const backend = installBackend({ panel: "sidebar", tab: "sidebar" }, answerWith(() => "tab"));
     const { prepareTopicClusters, rebuildTopicClusters, topicClusterTable } = await startRun(true);
     await prepareTopicClusters(["panel", "tab"]);
     expect(callsOf("coding_agent_ask")).toBe(0);
@@ -234,8 +242,8 @@ describe("rebuildTopicClusters", () => {
     expect(callsOf("coding_agent_ask")).toBe(1);
     expect(backend.prompts[0]).toContain("Existing clusters: []");
     expect(backend.prompts[0]).toContain('New labels: ["panel","tab"]');
-    expect(Object.fromEntries(topicClusterTable.value)).toEqual({ panel: "tabs", tab: "tabs" });
-    expect(backend.rows).toEqual({ panel: "tabs", tab: "tabs" });
+    expect(Object.fromEntries(topicClusterTable.value)).toEqual({ panel: "tab", tab: "tab" });
+    expect(backend.rows).toEqual({ panel: "tab", tab: "tab" });
   });
 
   it("forgets a failure, so a rebuild tries again", async () => {
@@ -255,15 +263,15 @@ describe("rebuildTopicClusters", () => {
         await gate;
         return '[{"topic":"panel","cluster":"old cluster"}]';
       }
-      return answerWith(() => "new cluster")(prompt);
+      return answerWith(() => "sidebar")(prompt);
     });
     const { prepareTopicClusters, rebuildTopicClusters, topicClusterTable } = await startRun(true);
-    const first = prepareTopicClusters(["panel"]);
+    const first = prepareTopicClusters(["panel", "sidebar"]);
     await vi.waitFor(() => expect(backend.prompts).toHaveLength(1));
     await rebuildTopicClusters();
     release();
     await first;
-    await vi.waitFor(() => expect(topicClusterTable.value.get("panel")).toBe("new cluster"));
-    expect(backend.rows).toEqual({ panel: "new cluster" });
+    await vi.waitFor(() => expect(topicClusterTable.value.get("panel")).toBe("sidebar"));
+    expect(backend.rows).toEqual({ panel: "sidebar", sidebar: "sidebar" });
   });
 });

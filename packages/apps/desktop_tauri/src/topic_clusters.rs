@@ -17,8 +17,9 @@ use std::path::{Path, PathBuf};
 /// The name of the file of the translation table, in the folder of the data of Heidrun Code.
 const TABLE_FILE: &str = "topic_clusters.json";
 
-/// The version of the content of the file. A file with another version is thrown away: the table starts empty.
-const TABLE_VERSION: u32 = 1;
+/// The version of the content of the file. A file with another version is thrown away: the table starts empty. The version
+/// 2 throws away the wide clusters of the version 1, such as "software" or "interface" (issue 270).
+const TABLE_VERSION: u32 = 2;
 
 /// How long the call waits for the answer, in seconds.
 const ANSWER_TIMEOUT: u64 = 180;
@@ -116,6 +117,8 @@ mod tests {
         let path = folder.join(TABLE_FILE);
         assert!(read_rows(&path).is_empty());
         std::fs::write(&path, "not json").unwrap();
+        assert!(read_rows(&path).is_empty());
+        std::fs::write(&path, "{\"version\":1,\"rows\":{\"modal\":\"interface\"}}").unwrap();
         assert!(read_rows(&path).is_empty());
         std::fs::write(&path, "{\"version\":99,\"rows\":{\"a\":\"b\"}}").unwrap();
         assert!(read_rows(&path).is_empty());
