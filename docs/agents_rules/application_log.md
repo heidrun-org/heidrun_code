@@ -27,7 +27,7 @@ This file gives the rules of the application log, the file where Heidrun Code wr
 - `github_rate_limit`: after each call to `gh` that GitHub answered, Heidrun Code reads `gh api rate_limit`, which GitHub does not count. Fields: `after_call_id` (the `call_id` of the call), `caller`, `graphql_used`, `graphql_remaining`, `graphql_reset`, `core_used`, `core_remaining`, `error`.
 - `data_layer_call_start`: the desktop application calls a function of a data layer package. Fields: `call_id`, `package` (`code_hosting`, `source_control`, `user_activity`, or `coding_agents`), `function`.
 - `data_layer_call_end`: the same call ends. Fields: `call_id`, `package`, `function`, `duration_ms`, `error`, `details`. The `details` of a refresh of `code_hosting` are `graphql_query_count`, `graphql_cost`, and `graphql_remaining`, from the field `rateLimit { cost remaining }` of each GraphQL answer. The `details` of a function `find_*` that gives a list are `row_count`.
-- `voice_recording_start`: the microphone starts to record. Field: `error`.
+- `voice_recording_start`: the microphone starts to record. Fields: `model` and `language` (the ones of the settings), `error`.
 - `voice_recording_cancel`: the recording is thrown away.
 - `voice_recording_stop`: the recording stops. Fields: `recording_seconds`, `error`.
 - `voice_transcription_start`: the transcription starts. Fields: `model`, `language`, `recording_seconds`.
