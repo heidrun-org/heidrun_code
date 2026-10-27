@@ -1,7 +1,7 @@
 /** How many topics one click on an arrow of the dynamic topic bar shows. */
 export const TOPICS_PER_CLICK = 3;
 
-/** The width, in pixels, of the part of the bar that an arrow and its fade cover. A topic under it counts as hidden. */
+/** The width, in pixels, of the part of the bar that an arrow and its fade cover (the arrow band of `DynamicTopicBar.vue`). A topic under it counts as hidden. */
 export const ARROW_ZONE = 44;
 
 /** The place of one button of the dynamic topic bar inside the strip that holds the buttons, in pixels. */
