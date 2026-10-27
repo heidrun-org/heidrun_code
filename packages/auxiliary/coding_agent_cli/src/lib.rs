@@ -11,5 +11,5 @@ mod fake_commands;
 mod run_tool;
 
 pub use agent_shell::{login_shell, AgentShell};
-pub use ask::{ask, coding_agent_names, Answer, CODING_AGENTS, DEFAULT_CODING_AGENTS, NO_CODING_AGENT};
+pub use ask::{ask, ask_light, coding_agent_names, Answer, CODING_AGENTS, DEFAULT_CODING_AGENTS, NO_CODING_AGENT};
 pub use run_tool::run_tool;

@@ -73,6 +73,8 @@ The function `ask` takes these arguments.
 | `folder` | The folder where the coding agent runs. The function makes it when it does not exist. `None` keeps the folder of the program. |
 | `timeout` | How long the function waits for the answer, in seconds. `None` waits without end. |
 
+The function `ask_light` takes the same arguments and gives the same answer, for a short labelling job that runs in the background: `claude` runs with `--model haiku --effort low --tools "" --no-session-persistence`, and `codex` runs with `--ephemeral -c model_reasoning_effort="low"`. A light call is cheaper, and it leaves no chat in the history of the coding agent.
+
 The function sends the prompt through the standard input, so a long prompt does not reach the size limit of the command line. The one exception is `agy`: its option `-p` needs the prompt as an argument, so a prompt larger than the limit of the command line gives the error "Argument list too long". The function returns the name of the coding agent and the text that the coding agent printed on the standard output, without the spaces and the line breaks at the start and at the end.
 
 The function gives an error in these cases:
