@@ -32,6 +32,7 @@ import ChatWorktreesLine from "./ChatWorktreesLine.vue";
 import ChatReferencesLine from "./ChatReferencesLine.vue";
 import ChatsSortMenu from "./ChatsSortMenu.vue";
 import DynamicTopicBar from "./DynamicTopicBar.vue";
+import TopicTimelineModal from "./TopicTimelineModal.vue";
 import Icon from "./Icon.vue";
 import { openChatInApp, openChatInHeidrun } from "../stores/chat_open";
 
@@ -200,6 +201,15 @@ const rows = computed(() =>
     .filter((row) => activeTopic.value === null || row.topics.includes(activeTopic.value)),
 );
 
+/** True while the topic timeline is open. */
+const isTopicTimelineOpen = ref(false);
+
+/** Opens the chat of a dot of the topic timeline in Heidrun Code, and closes the topic timeline. */
+function openTimelineChat(chat: (typeof shownChats.value)[number]): void {
+  isTopicTimelineOpen.value = false;
+  openChatInHeidrun(agent.value, chat, chats.folder);
+}
+
 /** The coding agent of the selector. */
 const agent = computed<ChatAgent>({
   get: () => selectedChatAgent.value ?? chats.agent,
@@ -261,6 +271,16 @@ const VIEWS = [
               </label>
             </div>
             <div class="d-flex align-items-center gap-2">
+              <button
+                v-if="barTopics.length > 0"
+                type="button"
+                class="btn"
+                :title="t('chatsPanel.topicTimelineTitle')"
+                :aria-label="t('chatsPanel.topicTimelineTitle')"
+                @click="isTopicTimelineOpen = true"
+              >
+                <Icon name="bar-chart-steps" />
+              </button>
               <ChatsSortMenu />
               <div class="btn-group" role="group" :aria-label="t('chatsPanel.viewLabel')">
                 <label v-for="choice in VIEWS" :key="choice.id" class="btn btn-check" :title="t(choice.title)">
@@ -384,6 +404,13 @@ const VIEWS = [
         </div>
       </template>
     </div>
+    <TopicTimelineModal
+      v-if="isTopicTimelineOpen"
+      :chats="shownChats"
+      :topics="topics"
+      @close="isTopicTimelineOpen = false"
+      @open="openTimelineChat"
+    />
   </section>
 </template>
 
