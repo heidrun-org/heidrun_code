@@ -12,6 +12,8 @@ Use workspaces to keep projects apart, tabs to group layouts, and panes to view 
 
 A workspace represents a project folder. Select a workspace from the workspace bar, or use the workspace controls to open a folder; the selected workspace and its tabs appear in the main window.
 
+![The Heidrun Code window in the dark theme: the File explorer sidebar section on the left, three panes with Claude Code and Codex in the middle, and a blocked coding agent in the Needs you sidebar section on the right.](/screenshots/window.png)
+
 ## Use tabs and panes
 
 <!-- source: docs/agents_rules/user_interface/workspaces_tabs_and_panes/tabs.md -->
@@ -21,6 +23,8 @@ A workspace represents a project folder. Select a workspace from the workspace b
 <!-- source: packages/apps/web_frontend/src/components/PaneCard.vue -->
 
 A tab holds a layout of panes. Select a tab to restore its layout, then use the pane header controls to focus or arrange panes. Zen Mode hides the top bar while keeping the workspace content available.
+
+![The Heidrun Code window with three panes in one tab: Claude Code on the left, Codex at the top right, and a second Claude Code under Codex. The Needs you sidebar section is on the right.](/screenshots/features/panes.png)
 
 ## Move between panes
 

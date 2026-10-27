@@ -12,6 +12,8 @@ Use Launchers to run a saved command for your user or the selected workspace.
 
 Open **Launchers** in the sidebar and select a launcher to run it. User launchers are available across workspaces; workspace launchers belong to the selected workspace.
 
+![The Launchers sidebar section with five launchers, each with its description and its button Run.](/screenshots/features/launchers.png){width=300}
+
 ## Related pages
 
 - [Work with workspaces, tabs, and panes](/documentation/workspaces_tabs_and_panes): organize the workspace where commands run.

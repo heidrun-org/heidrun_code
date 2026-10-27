@@ -13,6 +13,8 @@ Search the open issues and pull requests or merge requests for the selected work
 
 Select **Code hosting** in the sidebar. Expand **Issues** or **Pull requests** (GitHub) or **Merge requests** (GitLab), then enter a search in that list's search field. The results are open items; select a row to open its details.
 
+![The Code hosting sidebar section with the search field and the list of the open issues of the repository.](/screenshots/features/code_hosting.png){width=300}
+
 ## Save a search
 
 <!-- source: docs/agents_rules/user_interface/sidebars/code_hosting_saved_searches.md -->

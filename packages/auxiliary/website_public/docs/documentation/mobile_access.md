@@ -13,6 +13,8 @@ Connect Heidrun Code Mobile to the desktop application to use selected workspace
 
 Enable mobile access in Settings and follow the pairing instructions shown there. Enter the pairing key on the phone; the phone then displays the available workspace and pane controls.
 
+![The section "Mobile access" of the Settings window before the phone access is on: the switch "Turn on mobile access", and the note about the ngrok tunnel.](/screenshots/features/phone_access.png)
+
 ## Use phone controls
 
 <!-- source: docs/agents_rules/user_interface/heidrun_code_mobile/screens.md -->
