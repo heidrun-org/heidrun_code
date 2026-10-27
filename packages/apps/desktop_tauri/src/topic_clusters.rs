@@ -9,7 +9,7 @@
 //! goes through the login shell, so the commands that the developer installed are found, and Heidrun Code never reads or stores
 //! the login.
 
-use coding_agent_cli::{ask, AgentShell};
+use coding_agent_cli::{ask_light, AgentShell};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -86,11 +86,11 @@ pub fn topic_clusters_write(rows: BTreeMap<String, String>) -> Result<(), String
     write_rows(&table_path(), &rows)
 }
 
-/// Sends `prompt` to `codex` when it is installed, and to `claude` otherwise. The error `no_coding_agent` says that
-/// neither is installed.
+/// Sends `prompt` to `codex` when it is installed, and to `claude` otherwise, as a light call: a cheaper model when the
+/// coding agent allows it, and no saved chat (issue 269). The error `no_coding_agent` says that neither is installed.
 #[tauri::command]
 pub async fn coding_agent_ask(prompt: String) -> Result<CodingAgentAnswer, String> {
-    let answer = ask(&AgentShell::login(), None, &prompt, Some(&agent_folder()), Some(ANSWER_TIMEOUT)).await?;
+    let answer = ask_light(&AgentShell::login(), None, &prompt, Some(&agent_folder()), Some(ANSWER_TIMEOUT)).await?;
     Ok(CodingAgentAnswer { agent: answer.agent, text: answer.text })
 }
 
