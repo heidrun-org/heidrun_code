@@ -9,6 +9,7 @@ mod clipboard;
 mod coding_agent_models;
 mod durable_storage;
 mod environment_file;
+mod file_watch;
 mod files;
 mod forge_cache;
 mod former_web_view_storage;
@@ -282,6 +283,7 @@ pub fn run() {
         .manage(mobile::MobileState::default())
         .manage(voice_commands::VoiceState::default())
         .manage(status_item::StatusItemState::default())
+        .manage(file_watch::FileWatchState::default())
         .setup(|app| {
             if application_profile::is_development() == false {
                 claude::migrate_legacy();
@@ -439,6 +441,8 @@ pub fn run() {
             files::file_read,
             files::file_stat,
             files::file_write,
+            file_watch::file_watch_start,
+            file_watch::file_watch_stop,
             files::files_grep,
             files::file_create,
             files::dirs_existing,
