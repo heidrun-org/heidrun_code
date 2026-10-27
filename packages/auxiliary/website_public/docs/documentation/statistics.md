@@ -25,6 +25,8 @@ Open the **More** menu and choose **Statistics**. Select a tab in the window to 
 
 Choose the time range and workspaces shown in the **User activity** tab. Read the stacked chart by workspace; point to a bar to see its details. The window remembers supported selections between visits.
 
+![The tab "User activity" of the Statistics window: the histogram of the last day with one bar for each hour, and the information card of one bar with the time of each workspace.](/screenshots/features/statistics_user_activity.png)
+
 ## Explore one person's work
 
 <!-- source: docs/agents_rules/user_interface/window/statistics_person_work.md -->
@@ -38,6 +40,8 @@ Choose the time range and workspaces shown in the **User activity** tab. Read th
 <!-- source: packages/apps/web_frontend/src/components/StatisticsModal.vue -->
 
 In **Work of one person**, choose a person, source, time range, and workspace. Select chart legend entries to filter the chart; each chart keeps its own filter. Git history and AI cost are separate sources, and the values are summaries rather than direct measures of all work.
+
+![The tab "Work of one person" of the Statistics window with the source "Git history": the three totals, and one bar for each of the last 7 days with the commits and the pull requests.](/screenshots/features/statistics_person_work.png)
 
 ## Related pages
 

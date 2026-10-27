@@ -14,6 +14,8 @@ Use the sidebar sections to browse files, search text, review local changes, and
 
 Select a section from the sidebar icon bar. **File explorer** browses project files; **Source control** shows local Git changes; **Code hosting** shows issues and pull requests for the selected workspace's remote repository.
 
+![The File explorer sidebar section with the folders and the files at the root of the repository.](/screenshots/features/file_explorer.png){width=300}
+
 ## Search within files
 
 <!-- source: docs/agents_rules/user_interface/sidebars/file_search.md -->
@@ -27,6 +29,8 @@ Open **Search in files**, enter text, and choose **Match case** or **Regular exp
 <!-- source: packages/apps/web_frontend/src/components/SourceControlPanel.vue -->
 
 Open **Source control** to inspect changed files and select a file to review its diff. These changes come from the local repository.
+
+![The Source control sidebar section with the commit message box, the commit button, and the list of the changed files.](/screenshots/features/source_control.png){width=300}
 
 ## Related pages
 

@@ -22,6 +22,8 @@ The main window places workspaces and panes between the sidebars. Heidrun Code r
 
 The status bar summarizes workspace and Git information. Select its Git branch section to inspect available branch actions and synchronization information.
 
+![A Claude Code pane in the light theme, with its usage wheel in the header, and under it the status bar with the Claude quota at 62% and the Codex quota at 3%.](/screenshots/quotas.png){width=400}
+
 ## Related pages
 
 - [Explore activity and work statistics](/documentation/statistics): review longer time ranges.

@@ -14,6 +14,8 @@ Find a previous coding agent chat and inspect its files, dates, references, work
 
 Open **Past chats** in the sidebar and use its search and sort controls to find a chat. Select a chat to review its summary.
 
+![The Past chats sidebar section with the selector of the coding agent, the Chats sort dropdown menu, the dynamic topic bar, and four chats with their dynamic topics and their summary.](/screenshots/features/past_chats.png){width=300}
+
 ## Inspect chat details
 
 <!-- source: docs/agents_rules/user_interface/sidebars/chats/chat_summary.md -->
