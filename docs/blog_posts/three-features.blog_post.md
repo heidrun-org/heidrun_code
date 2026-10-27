@@ -60,7 +60,7 @@ This series follows the development branch `dev_jerome` as checked on 17 October
 
 You do not need several coding agents to begin. One coding agent already creates a sequence of instructions, questions, reviews, and saved conversations. Heidrun becomes more useful as the number of simultaneous tasks grows, because keeping track of those tasks becomes harder.
 
-Heidrun is early software that I use every day. The current installation instructions target a Mac with Apple silicon and require Herdr, the terminal program Heidrun uses. Start with the [installation instructions](https://github.com/heidrun-org/heidrun#installation) and [documentation](https://heidrun-org.github.io/heidrun/documentation/) so that you have the current requirements.
+Heidrun is early software that I use every day. The current installation instructions target a Mac with Apple silicon and require Herdr, the terminal program Heidrun uses. Start with the [installation instructions](https://github.com/heidrun-org/heidrun_code#installation) and [documentation](https://heidrun-org.github.io/heidrun_code/documentation/) so that you have the current requirements.
 
 Try one real task, then a second task while the first coding agent works. Notice how easily you can return to a coding agent that needs you. Notice where the workflow still requires too much remembering.
 
