@@ -1,11 +1,11 @@
 # Web styling of Heidrun Code: appearance of the viewport and the panes
 
 - Created: 22 October 2026
-- Last updated: 26 October 2026
+- Last updated: 27 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Shared design rules](shared_design.md), [Colors and scroll bars](colors_and_scroll_bars.md), [Glossary of Heidrun Code](../glossary/index.md)
-- Related issue: [issue 326](https://github.com/heidrun-org/heidrun/issues/326), [issue 345](https://github.com/heidrun-org/heidrun/issues/345), [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 749](https://github.com/heidrun-org/heidrun/issues/749), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 786](https://github.com/heidrun-org/heidrun/issues/786), [issue 799](https://github.com/heidrun-org/heidrun/issues/799), [issue 810](https://github.com/heidrun-org/heidrun/issues/810)
+- Related issue: [issue 326](https://github.com/heidrun-org/heidrun/issues/326), [issue 345](https://github.com/heidrun-org/heidrun/issues/345), [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 749](https://github.com/heidrun-org/heidrun/issues/749), [issue 784](https://github.com/heidrun-org/heidrun/issues/784), [issue 786](https://github.com/heidrun-org/heidrun/issues/786), [issue 799](https://github.com/heidrun-org/heidrun/issues/799), [issue 810](https://github.com/heidrun-org/heidrun/issues/810), [issue 928](https://github.com/heidrun-org/heidrun_code/issues/928)
 
 This file gives the rules about how the frames of the window, the panes, the pane header, the composition bar, and the file view pane look. What each part contains and does is in the folder `user_interface`. Each rule names its test, and the paths of the tests start at `packages/apps/web_frontend/src`.
 
@@ -36,3 +36,4 @@ This file gives the rules about how the frames of the window, the panes, the pan
 ## File view pane
 
 - The front matter card has rounded corners and a background that differs from the background of the rendered text ([issue 784](https://github.com/heidrun-org/heidrun/issues/784)). No automated test checks the look of the card: `components/FileView.test.ts` checks its content.
+- The Markdown preview has the background of a pane (`--bg`), as a terminal has, and not the background of the code theme, which is a darker blue in the dark theme. The code view keeps the code theme ([issue 928](https://github.com/heidrun-org/heidrun_code/issues/928)). Test: `components/FileView.test.ts` checks the class `preview`; no automated test checks the color.

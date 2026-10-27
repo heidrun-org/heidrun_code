@@ -21,6 +21,9 @@ export type FileViewLineRequest = {
 /** The line to show for each absolute path of a file, set before the file view pane shows the file (issue #898). */
 export const fileViewLineRequests = reactive({} as Record<string, FileViewLineRequest>);
 
+/** The anchor to show for each absolute path of a Markdown file, set by a link of a Markdown preview (issue #928). */
+export const fileViewAnchorRequests = reactive({} as Record<string, string>);
+
 let lineRequestSequence = 0;
 
 /** Opens a file in a file view pane: a pane that shows the file over a terminal that only waits. */
@@ -31,9 +34,10 @@ export class FileViewPanes {
 	 * pane holds unsaved changes: then a new pane opens to its right, and the changes stay.
 	 * @param absolutePath The absolute path of the file to show.
 	 * @param line The line to show, from 1, or null to show the file from its start.
+	 * @param anchor The anchor of a heading to show in the Markdown preview, or null to show the file from its start.
 	 * @returns True when a file view pane shows the file, false when there is no selected pane or when Herdr failed.
 	 */
-	static async open(absolutePath: string, line: number | null = null): Promise<boolean> {
+	static async open(absolutePath: string, line: number | null = null, anchor: string | null = null): Promise<boolean> {
 		if (line !== null) {
 			fileViewLineRequests[absolutePath] = {
 				line,
@@ -41,6 +45,11 @@ export class FileViewPanes {
 			};
 		} else {
 			delete fileViewLineRequests[absolutePath];
+		}
+		if (anchor !== null) {
+			fileViewAnchorRequests[absolutePath] = anchor;
+		} else {
+			delete fileViewAnchorRequests[absolutePath];
 		}
 		const isSelectedPaneDirty = FileViewEditState.isDirty(selectedPane.value?.pane_id);
 		return ViewPanes.open({
