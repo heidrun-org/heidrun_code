@@ -8,6 +8,7 @@ import {
   clusterPrompt,
   newRawTopics,
   parseClusterAnswer,
+  specificClusters,
   type TranslationTable,
 } from "../lib/topic_clusters";
 import { settings } from "./settings";
@@ -109,7 +110,7 @@ async function clusterOnce(): Promise<void> {
     return;
   }
   const table = new Map(topicClusterTable.value);
-  for (const [topic, cluster] of clusters) {
+  for (const [topic, cluster] of specificClusters(clusters, topicClusterTable.value)) {
     if (table.has(topic) === false) {
       table.set(topic, cluster);
     }

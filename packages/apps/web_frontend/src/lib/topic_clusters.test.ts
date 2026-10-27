@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  MOST_CLUSTER_TOPICS,
   clusterNames,
   clusterPrompt,
   clusteredTopics,
@@ -8,6 +9,8 @@ import {
   newRawTopics,
   parseClusterAnswer,
   rawTopicKey,
+  specificClusters,
+  type TranslationTable,
 } from "./topic_clusters";
 
 describe("rawTopicKey", () => {
@@ -50,7 +53,7 @@ describe("clusterPrompt", () => {
     const prompt = clusterPrompt(["cache", "sidebar"], ["panel", "right panel"]);
     expect(prompt).toContain('Existing clusters: ["cache","sidebar"]');
     expect(prompt).toContain('New labels: ["panel","right panel"]');
-    expect(prompt).toContain("one or two words");
+    expect(prompt).toContain("at most 5 labels");
     expect(prompt).toContain('{"topic": "<new label>", "cluster": "<name of the cluster>"}');
     expect(prompt).toContain("exactly once");
   });
@@ -99,6 +102,69 @@ describe("parseClusterAnswer", () => {
     ["an empty array", "[]"],
   ])("gives null for %s", (_name, answer) => {
     expect(parseClusterAnswer(answer, asked)).toBeNull();
+  });
+});
+
+describe("clusterPrompt asks for specific clusters (issue 270)", () => {
+  const prompt = clusterPrompt([], ["modal"]);
+
+  it("asks for a cluster name that is one of its labels, and forbids the category names", () => {
+    expect(prompt).toContain("The name of a cluster is always one of its labels");
+    expect(prompt).toContain('"software"');
+    expect(prompt).toContain('"interface"');
+  });
+
+  it("limits the size of a cluster, and lets a label stay alone", () => {
+    expect(prompt).toContain(`at most ${MOST_CLUSTER_TOPICS} labels`);
+    expect(prompt).toContain("its cluster name is the label itself");
+  });
+});
+
+describe("specificClusters", () => {
+  it("keeps a cluster named after one of its new raw dynamic topics, or after an existing cluster", () => {
+    const table: TranslationTable = new Map([["dialog", "modal"]]);
+    const clusters = new Map([
+      ["resize", "resize"],
+      ["resized", "resize"],
+      ["popup", "modal"],
+    ]);
+    expect(specificClusters(clusters, table)).toEqual(clusters);
+  });
+
+  it("makes each raw dynamic topic its own cluster when the answer invents a category name", () => {
+    // The ten biggest clusters of issue 270 had invented names such as "interface", "dimensions", and "media".
+    const clusters = new Map([
+      ["dropdown", "interface"],
+      ["modal", "interface"],
+      ["color", "dimensions"],
+      ["pixel", "dimensions"],
+      ["video", "media"],
+    ]);
+    expect([...specificClusters(clusters, new Map()).entries()]).toEqual([
+      ["dropdown", "dropdown"],
+      ["modal", "modal"],
+      ["color", "color"],
+      ["pixel", "pixel"],
+      ["video", "video"],
+    ]);
+  });
+
+  it("never lets a cluster hold more than the most raw dynamic topics, the translation table counted", () => {
+    const table: TranslationTable = new Map([
+      ["app", "app"],
+      ["application", "app"],
+      ["apps", "app"],
+    ]);
+    const clusters = new Map([
+      ["applet", "app"],
+      ["webapp", "app"],
+      ["program", "app"],
+    ]);
+    const result = specificClusters(clusters, table);
+    expect(result.get("applet")).toBe("app");
+    expect(result.get("webapp")).toBe("app");
+    expect(result.get("program")).toBe("program");
+    expect(MOST_CLUSTER_TOPICS).toBe(5);
   });
 });
 

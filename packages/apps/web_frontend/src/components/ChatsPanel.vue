@@ -14,7 +14,7 @@ import {
   type ChatAgent,
 } from "../stores/chats";
 import { chatReferences } from "../lib/chat_references";
-import { dynamicTopicBarTopics, dynamicTopicChatCounts } from "../lib/dynamic_topic_bar";
+import { dynamicTopicBarTopics, dynamicTopicChatCounts, withoutCommonTopics } from "../lib/dynamic_topic_bar";
 import { chatSummaryLines } from "../lib/chat_summary";
 import { EMPTY_CONTEXT, refContext, type RefContext } from "../lib/refs";
 import { clusteredTopicsByChat } from "../lib/topic_clusters";
@@ -154,10 +154,13 @@ const rawTopics = computed(() => {
 
 /**
  * The dynamic topics that the rows and the dynamic topic bar show, by identifier of chat. They are the raw dynamic topics,
- * or the clustered dynamic topics when the option "Clustered dynamic topics" is on.
+ * or the clustered dynamic topics when the option "Clustered dynamic topics" is on, without the topics that more than half
+ * of the chats have.
  */
 const topics = computed(() =>
-  settings.clusteredDynamicTopics ? clusteredTopicsByChat(rawTopics.value, topicClusterTable.value) : rawTopics.value,
+  withoutCommonTopics(
+    settings.clusteredDynamicTopics ? clusteredTopicsByChat(rawTopics.value, topicClusterTable.value) : rawTopics.value,
+  ),
 );
 
 /** The topics of the dynamic topic bar, the strongest first. */
