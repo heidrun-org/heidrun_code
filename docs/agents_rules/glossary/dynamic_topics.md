@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: dynamic topics
 
 - Created: 14 October 2026
-- Last updated: 23 October 2026
+- Last updated: 27 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: dynamic topics](../user_interface/sidebars/chats/dynamic_topics/index.md)
@@ -35,7 +35,7 @@ The choice of the method that computes the dynamic topics: "Keyword" (from the w
 
 ### Dynamic topic bar
 
-The row of small rounded buttons in the header of the Past chats sidebar section, below the line of the selector of the coding agent, the Chats sort dropdown menu, and the two view buttons. The first button, "All", shows every chat. Each other button is one dynamic topic, the strongest first, and shows only the chats that have the topic. An arrow at its end, and an arrow at its start, move the bar by three topics.
+The row of small rounded buttons in the header of the Past chats sidebar section, below the line of the selector of the coding agent, the Chats sort dropdown menu, and the two view buttons. The first button, "All", shows every chat. Each other button is one dynamic topic, the strongest first, and shows only the chats that have the topic. The bar scrolls horizontally with the trackpad. An arrow at its end, and an arrow at its start, move the bar by three topics.
 
 ## Rules
 

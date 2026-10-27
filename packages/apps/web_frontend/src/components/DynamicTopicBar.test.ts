@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { enableAutoUnmount, mount } from "@vue/test-utils";
+import Fs from "node:fs";
+import Path from "node:path";
 import DynamicTopicBar from "./DynamicTopicBar.vue";
+import { ARROW_ZONE } from "../lib/dynamic_topic_bar";
 
 enableAutoUnmount(afterEach);
 
@@ -121,7 +124,7 @@ describe("DynamicTopicBar", () => {
     expect(next.attributes("aria-label")).toBe("Show the next topics");
   });
 
-  it("moves the strip by three buttons after a click on the arrow at the end, without a scroll bar and without a scroll by hand", async () => {
+  it("moves the strip by three buttons after a click on the arrow at the end, without a scroll bar", async () => {
     layoutTenButtons();
     const { wrapper, scrollTo } = await mountBar();
     await wrapper.get(".topic-arrow.is-next").trigger("click");
@@ -166,5 +169,28 @@ describe("DynamicTopicBar", () => {
     await scrollStripTo(wrapper, 252);
     await scrollStripTo(wrapper, 0);
     expect(wrapper.find(".topic-arrow.is-previous").exists()).toBe(false);
+  });
+
+  it("shows the arrows that match the place of the strip after a scroll with the trackpad (issue 945)", async () => {
+    layoutTenButtons();
+    const { wrapper } = await mountBar();
+    await scrollStripTo(wrapper, 100);
+    expect(wrapper.find(".topic-arrow.is-previous").exists()).toBe(true);
+    expect(wrapper.find(".topic-arrow.is-next").exists()).toBe(true);
+  });
+
+  it("puts each arrow in a band that lets the trackpad scroll reach the strip (issue 945)", async () => {
+    layoutTenButtons();
+    const { wrapper } = await mountBar();
+    await scrollStripTo(wrapper, 100);
+    expect(wrapper.get(".topic-arrow-band.is-previous").find(".topic-arrow.is-previous").exists()).toBe(true);
+    expect(wrapper.get(".topic-arrow-band.is-next").find(".topic-arrow.is-next").exists()).toBe(true);
+  });
+
+  it("lets the strip scroll horizontally with no scroll bar, and gives the arrow band the width of ARROW_ZONE (issue 945)", () => {
+    const sourceText = Fs.readFileSync(Path.resolve(import.meta.dirname, "DynamicTopicBar.vue"), "utf8");
+    expect(sourceText).toMatch(/\.topic-strip \{[^}]*overflow-x: auto;[^}]*scrollbar-width: none;/);
+    expect(sourceText).toMatch(new RegExp(`\\.topic-arrow-band \\{[^}]*width: ${ARROW_ZONE}px;`));
+    expect(sourceText).toMatch(/\.topic-arrow-band \{[^}]*pointer-events: none;/);
   });
 });
