@@ -116,12 +116,12 @@ describe("ChatImagesSection", () => {
       state.snapshot = snapshotWith({ hd_sid: "chat-1", hd_ts: "2" });
       await flushPromises();
       await vi.advanceTimersByTimeAsync(2000);
-      expect(vi.mocked(invoke).mock.calls.at(-1)?.[1]).toEqual({ sessionId: "chat-1", afterNumber: 1 });
+      expect(vi.mocked(invoke).mock.lastCall?.[1]).toEqual({ sessionId: "chat-1", afterNumber: 1 });
       expect(wrapper.findAll("li span").map((span) => span.text())).toEqual(["[Image #1]", "[Image #2]"]);
       answerImages([5]);
       state.snapshot = snapshotWith({ hd_sid: "chat-2", hd_ts: "3" });
       await flushPromises();
-      expect(vi.mocked(invoke).mock.calls.at(-1)?.[1]).toEqual({ sessionId: "chat-2", afterNumber: 0 });
+      expect(vi.mocked(invoke).mock.lastCall?.[1]).toEqual({ sessionId: "chat-2", afterNumber: 0 });
       expect(wrapper.findAll("li span").map((span) => span.text())).toEqual(["[Image #5]"]);
     } finally {
       vi.useRealTimers();
