@@ -9,7 +9,16 @@ const openSearchMock = vi.hoisted(() => vi.fn());
 const goToLineMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
-vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
+/** The handlers of the backend events, by event name: a test sends the event `file-changed` of the backend. */
+const eventHandlers = vi.hoisted(() => new Map<string, Array<(event: { payload: unknown }) => void>>());
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async (name: string, handler: (event: { payload: unknown }) => void) => {
+    eventHandlers.set(name, [...(eventHandlers.get(name) ?? []), handler]);
+    return () => {
+      eventHandlers.set(name, (eventHandlers.get(name) ?? []).filter((each) => each !== handler));
+    };
+  }),
+}));
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn(async () => {}), revealItemInDir: revealMock }));
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({ writeText: writeTextMock }));
 // The theme reads the colour scheme of the browser, which jsdom does not have.
@@ -483,7 +492,7 @@ describe("FileView editing (issue #899)", () => {
     expect(invokeMock).toHaveBeenCalledWith("file_write", expect.objectContaining({ content: "const b = 3;\n" }));
   });
 
-  it("shows a conflict when the file changed on the disk, and overwrites it only after a click", async () => {
+  it("shows a conflict when the file changed on the disk, and overwrites it only at the save after Keep my version", async () => {
     invokeMock.mockImplementation(async (command: string, args: Record<string, string>) => {
       if (command === "file_write" && (args as unknown as { expected: string }).expected === "hash-1") {
         throw "changed_on_disk";
@@ -502,14 +511,18 @@ describe("FileView editing (issue #899)", () => {
     await flushPromises();
     await controls().get("button[data-action='save']").trigger("click");
     await flushPromises();
-    expect(wrapper.get(".banner.warn").text()).toContain("The file changed on the disk");
-    await wrapper.get(".banner.warn button[data-action='overwrite']").trigger("click");
+    expect(wrapper.get(".banner.warn").text()).toContain("The file changed on disk");
+    await wrapper.get(".banner.warn button[data-action='keep-mine']").trigger("click");
+    await flushPromises();
+    expect(wrapper.find(".banner.warn").exists()).toBe(false);
+    expect(invokeMock).not.toHaveBeenCalledWith("file_write", expect.objectContaining({ expected: "hash-disk" }));
+    await controls().get("button[data-action='save']").trigger("click");
     await flushPromises();
     expect(invokeMock).toHaveBeenCalledWith("file_write", { root: "/work/project", path: "src/main.ts", content: "const mine = 1;\n", expected: "hash-disk" });
     expect(invokeMock).toHaveBeenLastCalledWith("set_unsaved", { on: false });
   });
 
-  it("drops the changes and reads the disk again with the button Reload of the conflict", async () => {
+  it("drops the changes and reads the disk again with the button Load the new version of the conflict", async () => {
     invokeMock.mockImplementation(async (command: string, args: Record<string, string>) => {
       if (command === "file_write") {
         throw "changed_on_disk";
@@ -692,5 +705,146 @@ describe("FileView Markdown links and background (issue #928)", () => {
     const code = mountFileView();
     await flushPromises();
     expect(code.get(".code").classes()).not.toContain("preview");
+  });
+});
+
+describe("FileView changes on the disk (issue #931)", () => {
+  /** The text and the fingerprint of the file on the fake disk. Null for the fingerprint when the file is deleted. */
+  let disk: { text: string; hash: string | null };
+
+  beforeEach(() => {
+    disk = { text: "const a = 1;\n", hash: "hash-1" };
+    eventHandlers.clear();
+    invokeMock.mockImplementation(async (command: string, args: Record<string, string>) => {
+      if (command === "file_stat") {
+        return { hash: disk.hash };
+      }
+      if (command === "file_read") {
+        return { text: args.path.endsWith(".md") ? markdownContent : disk.text, hash: disk.hash };
+      }
+      if (command === "git_file") {
+        if (disk.hash === null) {
+          throw "fichier introuvable";
+        }
+        return args.path.endsWith(".md") ? markdownContent : disk.text;
+      }
+      if (command === "file_write") {
+        disk = { text: (args as unknown as { content: string }).content, hash: "hash-saved" };
+        return { hash: disk.hash };
+      }
+      return answer(command, args);
+    });
+  });
+
+  /** The identifier of the watch that the pane started. */
+  function watchId(): string {
+    const call = invokeMock.mock.calls.filter(([command]) => command === "file_watch_start").pop();
+    return (call?.[1] as unknown as { watchId: string }).watchId;
+  }
+
+  /** Sends the event of the backend for a watch, then waits for the pane to look at the disk. */
+  async function fileChanged(id = watchId()) {
+    for (const handler of eventHandlers.get("file-changed") ?? []) {
+      handler({ payload: { watchId: id } });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await flushPromises();
+  }
+
+  it("watches the file of the pane, and stops the watch when the pane closes", async () => {
+    const wrapper = mountFileView();
+    await flushPromises();
+    const id = watchId();
+    expect(invokeMock).toHaveBeenCalledWith("file_watch_start", { watchId: id, root: "/work/project", path: "src/main.ts" });
+    wrapper.unmount();
+    expect(invokeMock).toHaveBeenCalledWith("file_watch_stop", { watchId: id });
+    expect(eventHandlers.get("file-changed")).toEqual([]);
+  });
+
+  it("gives each drawing of a pane its own watch, so a pane drawn again keeps its watch", async () => {
+    const first = mountFileView();
+    await flushPromises();
+    const firstId = watchId();
+    const second = mountFileView();
+    await flushPromises();
+    expect(watchId()).not.toBe(firstId);
+    first.unmount();
+    expect(invokeMock).not.toHaveBeenCalledWith("file_watch_stop", { watchId: watchId() });
+    second.unmount();
+  });
+
+  it("shows the new content of a file without unsaved changes, with a short message", async () => {
+    const wrapper = mountFileView();
+    await flushPromises();
+    disk = { text: "const agent = 1;\n", hash: "hash-agent" };
+    await fileChanged();
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("const agent = 1;\n");
+    expect(wrapper.get("[data-state='changed-on-disk']").text()).toBe("The file changed on disk");
+    expect(wrapper.find(".banner.warn").exists()).toBe(false);
+  });
+
+  it("keeps the text of the developer when the pane has unsaved changes, and loads the new version only after a click", async () => {
+    const wrapper = mountFileView();
+    await flushPromises();
+    editorOf(wrapper).vm.$emit("change", "const mine = 1;\n");
+    await flushPromises();
+    disk = { text: "const agent = 1;\n", hash: "hash-agent" };
+    await fileChanged();
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("const mine = 1;\n");
+    const bar = wrapper.get(".banner.warn");
+    expect(bar.text()).toContain("The file changed on disk");
+    expect(bar.findAll("button").map((button) => button.text())).toEqual(["Load the new version", "Keep my version"]);
+    expect(wrapper.find("[data-state='changed-on-disk']").exists()).toBe(false);
+    await bar.get("button[data-action='reload']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("const agent = 1;\n");
+    expect(wrapper.find(".banner.warn").exists()).toBe(false);
+  });
+
+  it("shows nothing after a save of the pane", async () => {
+    const wrapper = mountFileView();
+    await flushPromises();
+    editorOf(wrapper).vm.$emit("change", "const mine = 1;\n");
+    editorOf(wrapper).vm.$emit("save");
+    await flushPromises();
+    await fileChanged();
+    expect(wrapper.find("[data-state='changed-on-disk']").exists()).toBe(false);
+    expect(wrapper.find(".banner.warn").exists()).toBe(false);
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("const mine = 1;\n");
+  });
+
+  it("does nothing for the event of another watch", async () => {
+    const wrapper = mountFileView();
+    await flushPromises();
+    disk = { text: "const agent = 1;\n", hash: "hash-agent" };
+    await fileChanged("file-view-other");
+    expect(wrapper.get(".code-editor-stub").attributes("data-text")).toBe("const a = 1;\n");
+  });
+
+  it("shows the new content in the Markdown preview, at the same scroll position", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    const body = wrapper.get(".code").element as HTMLElement;
+    body.scrollTop = 120;
+    markdownContent = "# New title\n";
+    disk = { text: markdownContent, hash: "hash-agent" };
+    await fileChanged();
+    expect(wrapper.get(".md-doc h1").text()).toBe("New title");
+    expect(body.scrollTop).toBe(120);
+    expect(wrapper.get("[data-state='changed-on-disk']").text()).toBe("The file changed on disk");
+  });
+
+  it("says that the file was deleted, in the code editor and in the Markdown preview", async () => {
+    const code = mountFileView();
+    await flushPromises();
+    const codeWatchId = watchId();
+    const preview = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    disk = { text: "", hash: null };
+    await fileChanged(codeWatchId);
+    await fileChanged();
+    expect(code.get(".banner.warn").text()).toContain("The file was deleted");
+    expect(preview.get("[data-state='deleted']").text()).toBe("The file was deleted");
+    expect(preview.get(".md-doc h1").text()).toBe("Title");
   });
 });
