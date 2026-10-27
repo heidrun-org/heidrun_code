@@ -163,10 +163,16 @@ pub async fn voice_download_model(app: AppHandle, state: State<'_, VoiceState>, 
     result.map(|_| ()).map_err(report)
 }
 
-/// Starts to record the microphone, and sends the event `voice-input-level` while it records. The error says why it cannot:
-/// `no_microphone`, `microphone_denied`, `already_recording`, or `recording_failed`.
+/// Starts to record the microphone, and sends the event `voice-input-level` while it records. The model and the language are
+/// the ones of the settings, and go only to the application log. The error says why it cannot: `no_microphone`,
+/// `microphone_denied`, `already_recording`, or `recording_failed`.
 #[tauri::command]
-pub fn voice_start_recording(app: AppHandle, state: State<'_, VoiceState>) -> Result<(), String> {
+pub fn voice_start_recording(
+    app: AppHandle,
+    state: State<'_, VoiceState>,
+    model_id: String,
+    language: String,
+) -> Result<(), String> {
     let mut recorder = state.recorder.lock().map_err(|_| "recording_failed".to_string())?;
     if recorder.is_some() {
         return Err(report(VoiceError::AlreadyRecording));
@@ -175,9 +181,14 @@ pub fn voice_start_recording(app: AppHandle, state: State<'_, VoiceState>) -> Re
         let _ = app.emit(LEVEL_EVENT, level);
     });
     let error = started.as_ref().err().map(|error| error.category().to_string());
-    application_log::write("voice_recording_start", serde_json::json!({ "error": error }));
+    application_log::write("voice_recording_start", recording_start_fields(&model_id, &language, error));
     *recorder = Some(started.map_err(report)?);
     Ok(())
+}
+
+/// The fields of the event `voice_recording_start` of the application log.
+fn recording_start_fields(model_id: &str, language: &str, error: Option<String>) -> serde_json::Value {
+    serde_json::json!({ "model": model_id, "language": language, "error": error })
 }
 
 /// Throws the recording away. It does nothing when no recording runs.
@@ -275,6 +286,15 @@ pub async fn voice_transcribe_recording(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_start_of_a_recording_logs_the_model_and_the_language() {
+        let fields = recording_start_fields("base", "fr", None);
+        assert_eq!(fields, serde_json::json!({ "model": "base", "language": "fr", "error": null }));
+        let fields = recording_start_fields("small", "en", Some("microphone_denied".to_string()));
+        assert_eq!(fields["model"], "small");
+        assert_eq!(fields["error"], "microphone_denied");
+    }
 
     #[test]
     fn the_models_folder_is_in_the_folder_of_the_data_of_heidrun() {

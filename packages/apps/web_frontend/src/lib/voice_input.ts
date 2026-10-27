@@ -454,7 +454,10 @@ export class VoiceInput {
 			if (operationId !== VoiceInput.operationId) {
 				return;
 			}
-			VoiceInput.starting = invoke<void>('voice_start_recording');
+			VoiceInput.starting = invoke<void>('voice_start_recording', {
+				modelId: settings.voiceInputModel,
+				language: settings.voiceInputLanguage,
+			});
 			await VoiceInput.starting;
 		} catch (error) {
 			if (operationId !== VoiceInput.operationId) {

@@ -1,5 +1,6 @@
 // Reads, saves, and watches the file of a file view pane, and asks before Heidrun Code quits with unsaved changes.
 // - issue #899
+// - issue #931
 import { watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -28,8 +29,27 @@ type FileStamp = {
 	hash: string | null;
 };
 
+/**
+ * What a look at the disk found: nothing new, a new version read into the pane, a new version kept apart because the pane
+ * has unsaved changes, or a deleted file.
+ */
+export type FileCheckOutcome = 'unchanged' | 'reloaded' | 'conflict' | 'deleted';
+
 /** Reads, saves, and watches the file of a file view pane. */
 export class FileViewEdits {
+	/** The number of watches given by `newWatchId`. */
+	private static _watchCount = 0;
+
+	/**
+	 * Gives the identifier of a new watch of the backend, for one drawing of a file view pane. Each drawing has its own
+	 * identifier, so a pane drawn again (Zen Mode) never stops the watch of the new drawing (issue #931).
+	 * @returns An identifier that no other watch of the window has.
+	 */
+	static newWatchId(): string {
+		FileViewEdits._watchCount += 1;
+		return `file-view-${FileViewEdits._watchCount}`;
+	}
+
 	/**
 	 * Reads a file to edit it in a pane. When the pane already holds unsaved changes of the same file, they stay.
 	 * @param paneId The identifier of the pane.
@@ -95,45 +115,72 @@ export class FileViewEdits {
 	}
 
 	/**
-	 * Looks at the file on the disk. A file without unsaved changes is read again quietly. A file with unsaved changes
-	 * shows the conflict at once, before the save.
+	 * Looks at the file on the disk, after the backend said that the file changed. A file without unsaved changes is read
+	 * again quietly. A file with unsaved changes keeps the text of the developer and shows the conflict at once, before
+	 * the save. A save of the pane changes nothing, because the file has the fingerprint of the save (issue #931).
 	 * @param paneId The identifier of the pane.
+	 * @returns What the pane shows now.
 	 */
-	static async check(paneId: string): Promise<void> {
+	static async check(paneId: string): Promise<FileCheckOutcome> {
 		const edit = fileViewEdits[paneId];
 		if (edit === undefined || edit.isSaving) {
-			return;
+			return 'unchanged';
 		}
 		let stamp: FileStamp;
 		try {
 			stamp = await invoke<FileStamp>('file_stat', { root: edit.root, path: edit.path });
 		} catch {
-			return;
+			return 'unchanged';
 		}
-		if (edit.isConflict) {
-			if (stamp.hash !== edit.diskHash) {
-				await FileViewEdits._markConflict(paneId);
+		if (stamp.hash === null) {
+			if (edit.isConflict && edit.diskText === null && edit.diskHash === null) {
+				return 'unchanged';
 			}
-			return;
+			await FileViewEdits._markConflict(paneId);
+			return 'deleted';
 		}
-		if (stamp.hash === edit.hash) {
-			return;
-		}
-		if (FileViewEditState.isDirty(paneId) === false && stamp.hash !== null) {
-			const fileText = await invoke<FileText>('file_read', { root: edit.root, path: edit.path }).catch(() => null);
-			const now = fileViewEdits[paneId];
-			if (fileText === null || now === undefined) {
-				return;
+		if (FileViewEditState.isDirty(paneId)) {
+			const knownHash = edit.isConflict ? edit.diskHash : edit.hash;
+			if (stamp.hash === knownHash) {
+				return 'unchanged';
 			}
-			// The developer typed while the file was read: the text is not replaced, it is a conflict.
-			if (now.current !== now.original) {
-				await FileViewEdits._markConflict(paneId);
-				return;
-			}
-			fileViewEdits[paneId] = FileViewEdits._fresh(edit.root, edit.path, fileText);
+			await FileViewEdits._markConflict(paneId);
+			return 'conflict';
+		}
+		if (stamp.hash === edit.hash && edit.isConflict === false) {
+			return 'unchanged';
+		}
+		const fileText = await invoke<FileText>('file_read', { root: edit.root, path: edit.path }).catch(() => null);
+		const now = fileViewEdits[paneId];
+		if (fileText === null || now === undefined) {
+			return 'unchanged';
+		}
+		// The developer typed while the file was read: the text is not replaced, it is a conflict.
+		if (now.current !== now.original) {
+			await FileViewEdits._markConflict(paneId);
+			return 'conflict';
+		}
+		fileViewEdits[paneId] = FileViewEdits._fresh(edit.root, edit.path, fileText);
+		return 'reloaded';
+	}
+
+	/**
+	 * Keeps the text of the developer after a conflict: the version of the disk becomes the version that the next save
+	 * replaces, and the conflict goes away. Nothing is written now (issue #931).
+	 * @param paneId The identifier of the pane.
+	 */
+	static keepMine(paneId: string): void {
+		const edit = fileViewEdits[paneId];
+		if (edit === undefined || edit.isConflict === false || edit.diskText === null || edit.diskHash === null) {
 			return;
 		}
-		await FileViewEdits._markConflict(paneId);
+		Object.assign(edit, {
+			original: edit.diskText,
+			hash: edit.diskHash,
+			isConflict: false,
+			diskText: null,
+			diskHash: null,
+		});
 	}
 
 	/**

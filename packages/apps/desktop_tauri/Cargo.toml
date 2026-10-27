@@ -46,6 +46,8 @@ chrono = { version = "0.4", default-features = false, features = ["std", "clock"
 mobile_server = { path = "../../auxiliary/mobile_server" }
 # Deleting from the file explorer goes to the macOS Trash
 trash = "5"
+# The file view pane shows the new content when a file changes on the disk (issue #931)
+notify = "8"
 tauri-plugin-dialog = "2"
 # The position and the size of the window come back at the next start
 tauri-plugin-window-state = "2"

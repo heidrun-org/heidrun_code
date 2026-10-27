@@ -309,6 +309,21 @@ pub(crate) fn full_path(root: &str, path: &str) -> Result<PathBuf, String> {
     Ok(real)
 }
 
+/// The real path of a file of the project to watch: its real folder, which must be inside the project, and its name.
+/// The file itself may be missing, because a coding agent can delete it and write it again (issue #931).
+pub(crate) fn watch_path(root: &str, path: &str) -> Result<PathBuf, String> {
+    known_root(root)?;
+    let rel = safe_rel(path)?;
+    let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
+    let full = base.join(rel);
+    let parent = full.parent().ok_or("folder not found")?;
+    let parent = std::fs::canonicalize(parent).map_err(|_| "the folder of the file no longer exists".to_string())?;
+    if !parent.starts_with(&base) {
+        return Err("path outside the project".into());
+    }
+    Ok(parent.join(full.file_name().ok_or("invalid name")?))
+}
+
 /// An image of the project as a data URL (8 MB max). Off the main thread.
 #[tauri::command(async)]
 pub fn file_image(root: String, path: String) -> Result<String, String> {
@@ -674,6 +689,23 @@ mod tests {
         assert!(not_in_git_dir(".git/config").is_err());
         assert!(not_in_git_dir("a/.git/hooks/x").is_err());
         assert!(not_in_git_dir("src/.gitignore").is_ok());
+    }
+
+    #[test]
+    fn gives_the_real_path_to_watch_even_for_a_missing_file() {
+        let dir = std::env::temp_dir().join(format!("hd-files-watch-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        std::fs::write(dir.join("src/a.txt"), "un\n").unwrap();
+        let real = std::fs::canonicalize(&dir).unwrap();
+        let root = real.display().to_string();
+        remember_root(&root);
+        assert_eq!(watch_path(&root, "src/a.txt").unwrap(), real.join("src/a.txt"));
+        assert_eq!(watch_path(&root, "src/gone.txt").unwrap(), real.join("src/gone.txt"));
+        assert!(watch_path(&root, "missing/a.txt").is_err());
+        assert!(watch_path(&root, "../a.txt").is_err());
+        assert!(watch_path("/not/a/known/root", "a.txt").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
