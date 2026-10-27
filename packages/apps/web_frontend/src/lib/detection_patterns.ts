@@ -46,8 +46,8 @@ export class DetectionPatterns {
 	/** An exclamation mark and a number, the merge request of GitLab. */
 	static readonly BANG = /(?<![\w!])!(\d+)\b/;
 
-	/** A number sign and a number, an issue. */
-	static readonly HASH = /(?<![\w&#/])#(\d+)\b/;
+	/** A number sign and a number, an issue, but not the text `[Image #N]` of a chat, which shows its image (issue #924). */
+	static readonly HASH = /(?<![\w&#/])(?<!\[Image )#(\d+)\b/;
 
 	/** A ticket key: capital letters, a hyphen, and a number. */
 	static readonly TICKET = /\b([A-Z][A-Z0-9]{1,9})-(\d+)\b/;

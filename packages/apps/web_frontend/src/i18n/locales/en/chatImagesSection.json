@@ -1,9 +1,12 @@
 {
   "title": "Images of the chat",
-  "noChat": "The selected pane shows no chat of Claude Code.",
+  "noChat": "The selected pane shows no chat of Claude Code or Codex.",
+  "codexWithoutChat": "Heidrun Code finds the chat of a Codex pane by the title that Codex gives to the chat. This chat has no title yet: send a first message.",
   "noImage": "The chat of the selected pane has no image.",
   "failed": "The images cannot be read: {error}",
   "imageName": "[Image #{number}]",
+  "imageNameInMessage": "Message {message} · [Image #{number}]",
+  "messageName": "Message {message}",
   "openLarge": "Open in the big view",
   "viewerLabel": "Big view of the images of the chat",
   "previous": "Previous image",

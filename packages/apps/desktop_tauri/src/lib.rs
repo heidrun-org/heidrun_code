@@ -415,6 +415,7 @@ pub fn run() {
             claude::claude_commands,
             claude::claude_session_agents,
             chat_images::chat_images::chat_images_find,
+            chat_images::chat_images::chat_images_find_codex_chat,
             past_chats::chats::chats_synchronize,
             past_chats::chats::chats_list,
             past_chats::chats_files::chats_files_exist,

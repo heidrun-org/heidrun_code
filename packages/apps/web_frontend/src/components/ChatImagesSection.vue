@@ -2,48 +2,24 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import Icon from "./Icon.vue";
 import { ChatImages } from "../stores/chat_images";
-import { selectedPane } from "../stores/session";
+import { ChatImagesFollower } from "../stores/chat_images_follower";
+import { ChatImageLinks } from "../lib/chat_image_links";
 import { t } from "../i18n/index";
 
 // The image behind each text [Image #N] of the chat of the selected pane, at the bottom of the Clipboard sidebar section.
-// Issue: https://github.com/heidrun-org/heidrun_code/issues/790
+// Issues: https://github.com/heidrun-org/heidrun_code/issues/790 and https://github.com/heidrun-org/heidrun_code/issues/924
 
-/** The shortest time between two reads of the images, in milliseconds: the status line of Claude Code reports often. */
-const READ_INTERVAL_MILLISECONDS = 2000;
+const imageName = ChatImageLinks.imageName;
 
 const state = ChatImages.state;
-const sessionId = computed(() => selectedPane.value?.tokens?.hd_sid ?? null);
-// The status line of Claude Code writes a new time after each change of the chat.
-const reportTime = computed(() => selectedPane.value?.tokens?.hd_ts ?? "");
-const viewerImage = computed(() => state.images.find((image) => image.number === state.viewerNumber) ?? null);
-const viewerPosition = computed(() => state.images.findIndex((image) => image.number === state.viewerNumber) + 1);
+const followed = ChatImagesFollower.state;
+const viewerImage = computed(() => state.images.find((image) => image.key === state.viewerKey) ?? null);
+const viewerPosition = computed(() => state.images.findIndex((image) => image.key === state.viewerKey) + 1);
 const viewer = ref<HTMLElement | null>(null);
-
-let lastReadAt = 0;
-let timer: ReturnType<typeof setTimeout> | null = null;
-
-function readSoon() {
-  if (timer !== null) {
-    return;
-  }
-  const wait = Math.max(0, lastReadAt + READ_INTERVAL_MILLISECONDS - Date.now());
-  timer = setTimeout(() => {
-    timer = null;
-    lastReadAt = Date.now();
-    void ChatImages.load(sessionId.value);
-  }, wait);
-}
-
-watch(sessionId, (current) => {
-  // A new chat shows at once, without the images of the chat before.
-  void ChatImages.load(current);
-  lastReadAt = Date.now();
-});
-watch(reportTime, () => readSoon());
 
 // A key of the big view never reaches the terminal or the shortcuts of the window.
 function onKey(event: KeyboardEvent) {
-  if (state.viewerNumber === null) {
+  if (state.viewerKey === null) {
     return;
   }
   const actions: Record<string, () => void> = {
@@ -64,14 +40,10 @@ watch(viewer, (element) => element?.focus());
 
 onMounted(() => {
   window.addEventListener("keydown", onKey, true);
-  lastReadAt = Date.now();
-  void ChatImages.load(sessionId.value);
+  ChatImagesFollower.start();
 });
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKey, true);
-  if (timer !== null) {
-    clearTimeout(timer);
-  }
   ChatImages.closeViewer();
 });
 </script>
@@ -79,18 +51,20 @@ onBeforeUnmount(() => {
 <template>
   <section class="chat-images d-flex flex-column gap-2 border-top pt-2" :aria-label="t('chatImagesSection.title')">
     <h3 class="fw-semibold m-0">{{ t("chatImagesSection.title") }}</h3>
-    <p v-if="sessionId === null" class="empty text-body-secondary m-0">{{ t("chatImagesSection.noChat") }}</p>
+    <p v-if="followed.isCodexWithoutChat" class="empty text-body-secondary m-0">{{ t("chatImagesSection.codexWithoutChat") }}</p>
+    <p v-else-if="followed.sessionId === null" class="empty text-body-secondary m-0">{{ t("chatImagesSection.noChat") }}</p>
     <p v-else-if="state.error !== ''" class="empty text-danger-emphasis m-0">{{ t("chatImagesSection.failed", { error: state.error }) }}</p>
     <p v-else-if="state.images.length === 0" class="empty text-body-secondary m-0">{{ t("chatImagesSection.noImage") }}</p>
     <ul v-else class="images">
-      <li v-for="image in state.images" :key="image.number">
+      <li v-for="image in state.images" :key="image.key">
         <button
           class="btn thumbnail d-flex flex-column gap-1 p-2"
           :title="t('chatImagesSection.openLarge')"
-          @click="ChatImages.openViewer(image.number)"
+          @click="ChatImages.openViewer(image.key)"
         >
-          <img :src="image.source" :alt="t('chatImagesSection.imageName', { number: image.number })" />
-          <span class="mono">{{ t("chatImagesSection.imageName", { number: image.number }) }}</span>
+          <img :src="image.source" :alt="imageName(image)" />
+          <span class="mono label">{{ t("chatImagesSection.imageName", { number: image.number }) }}</span>
+          <span v-if="image.message !== null" class="label small text-body-secondary">{{ t("chatImagesSection.messageName", { message: image.message }) }}</span>
         </button>
       </li>
     </ul>
@@ -112,9 +86,9 @@ onBeforeUnmount(() => {
           <Icon name="chevron-left" />
         </button>
         <figure class="stage" @mousedown.self="ChatImages.closeViewer()">
-          <img :src="viewerImage.source" :alt="t('chatImagesSection.imageName', { number: viewerImage.number })" />
+          <img :src="viewerImage.source" :alt="imageName(viewerImage)" />
           <figcaption>
-            <span class="mono">{{ t("chatImagesSection.imageName", { number: viewerImage.number }) }}</span>
+            <span class="mono">{{ imageName(viewerImage) }}</span>
             <span class="position">{{ t("chatImagesSection.position", { position: viewerPosition, total: state.images.length }) }}</span>
           </figcaption>
         </figure>
@@ -133,7 +107,9 @@ h3, .empty, .mono { font-size: var(--font-size); }
 .empty { line-height: 1.6; }
 /* A grid of thumbnails that fills the width of the sidebar: Bootstrap has no utility class for it. */
 .images { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.thumbnail { width: 100%; height: auto; }
+.thumbnail { width: 100%; height: auto; min-width: 0; }
+/* A label longer than the thumbnail ends with an ellipsis instead of covering the next thumbnail. */
+.label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .images img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; background: var(--bg); }
 .overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 28px; background: var(--overlay-heavy); outline: none; }
 .stage { flex: 1; min-width: 0; max-height: 100%; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
