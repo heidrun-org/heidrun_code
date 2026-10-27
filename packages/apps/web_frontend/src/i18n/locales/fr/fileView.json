@@ -3,6 +3,8 @@
   "searchTitle": "Rechercher dans le fichier (⌘F)",
   "raw": "Brut",
   "previewTitle": "Aperçu : montrer le texte mis en forme, avec le front matter dans une carte",
+  "previewHtmlTitle": "Aperçu : montrer la page web rendue",
+  "htmlLabel": "Affichage HTML",
   "rawTitle": "Brut : montrer le fichier tel quel",
   "frontMatterLabel": "Front matter",
   "menuLabel": "Autres actions",

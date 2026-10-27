@@ -293,7 +293,7 @@ pub fn folder_children(root: String, path: String) -> Result<Vec<String>, String
     children_of(&real)
 }
 
-fn full_path(root: &str, path: &str) -> Result<PathBuf, String> {
+pub(crate) fn full_path(root: &str, path: &str) -> Result<PathBuf, String> {
     known_root(root)?;
     let rel = safe_rel(path)?;
     let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
@@ -404,7 +404,7 @@ pub struct FileStamp {
 }
 
 /// Never inside .git (hooks, config): editing those is not what a file view pane is for.
-fn not_in_git_dir(path: &str) -> Result<(), String> {
+pub(crate) fn not_in_git_dir(path: &str) -> Result<(), String> {
     if Path::new(path).components().any(|c| c.as_os_str() == ".git") {
         return Err("fichier interne de git : non modifiable ici".into());
     }

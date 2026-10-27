@@ -15,6 +15,7 @@ mod former_web_view_storage;
 mod git;
 mod git_source_control;
 mod history;
+mod html_preview;
 mod image_preview;
 mod legacy;
 mod login_shell_path;
@@ -280,6 +281,7 @@ pub fn run() {
         .manage(pty::PtyState::default())
         .manage(herdr::StatusWatcher::default())
         .manage(mobile::MobileState::default())
+        .manage(html_preview::HtmlPreviewState::default())
         .manage(voice_commands::VoiceState::default())
         .manage(status_item::StatusItemState::default())
         .setup(|app| {
@@ -433,6 +435,8 @@ pub fn run() {
             files::files_list,
             files::folder_children,
             files::files_resolve,
+            html_preview::html_preview_open,
+            html_preview::html_preview_close,
             files::file_image,
             files::file_open_external,
             files::file_full_path,
