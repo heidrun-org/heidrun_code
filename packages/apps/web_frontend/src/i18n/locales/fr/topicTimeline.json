@@ -1,0 +1,12 @@
+{
+  "title": "Chronologie des sujets",
+  "close": "Fermer la chronologie des sujets",
+  "empty": "Aucune conversation de la liste n’a encore de sujet dynamique.",
+  "help": "Chaque ligne est un sujet dynamique, et chaque point est une conversation à la date de son dernier message. Un trait vertical relie les sujets d’une même conversation. Clique sur un sujet pour ne garder que ses conversations, et sur un point pour ouvrir la conversation.",
+  "topicsLabel": "Sujets dynamiques",
+  "topicTitle_one": "Afficher seulement les conversations sur « {topic} » ({count} conversation)",
+  "topicTitle_other": "Afficher seulement les conversations sur « {topic} » ({count} conversations)",
+  "topicAllTitle": "Afficher toutes les conversations",
+  "plotLabel": "Les conversations de chaque sujet dynamique, par date",
+  "dotTitle": "{title} — {date}"
+}

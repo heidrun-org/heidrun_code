@@ -107,5 +107,6 @@
   "sortKey.pull_requests": "Pull requests",
   "sortKey.files_written": "Fichiers écrits",
   "sortOrder.ascending": "Croissant",
-  "sortOrder.descending": "Décroissant"
+  "sortOrder.descending": "Décroissant",
+  "topicTimelineTitle": "Afficher la chronologie des sujets"
 }

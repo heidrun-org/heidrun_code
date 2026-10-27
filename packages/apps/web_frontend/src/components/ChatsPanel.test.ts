@@ -128,6 +128,20 @@ describe("ChatsPanel", () => {
     expect(chatCommands).toEqual(["chats_list", "chats_synchronize", "chats_list"]);
   });
 
+  it("opens the topic timeline with the button of the header, and closes it (issue 264)", async () => {
+    answer(["Fix the tab bar", "Add the Chats sidebar section"], ["Describe image"]);
+    const wrapper = mount(ChatsPanel, { attachTo: document.body });
+    await flushPromises();
+    const button = wrapper.get("button[aria-label='Show the topic timeline']");
+    expect(wrapper.find(".timeline").exists()).toBe(false);
+    await button.trigger("click");
+    expect(wrapper.find("#topic-timeline-title").text()).toBe("Topic timeline");
+    expect(wrapper.findAll(".timeline-topic").length).toBeGreaterThan(0);
+    await wrapper.get(".dialog-header button").trigger("click");
+    expect(wrapper.find("#topic-timeline-title").exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it("shows the header first, with the agent group and the right side, then a separator, then the title of each conversation of Claude", async () => {
     answer(["Fix the tab bar", "Add the Chats sidebar section"], ["Describe image"]);
     const wrapper = mount(ChatsPanel);
@@ -137,7 +151,7 @@ describe("ChatsPanel", () => {
     const row = header.firstElementChild as HTMLElement;
     expect([...row.children].map((child) => child.getAttribute("role"))).toEqual(["group", null]);
     const rightSide = row.lastElementChild as HTMLElement;
-    expect([...rightSide.children].map((child) => child.tagName)).toEqual(["BUTTON", "DIV"]);
+    expect([...rightSide.children].map((child) => child.tagName)).toEqual(["BUTTON", "BUTTON", "DIV"]);
     expect(rightSide.lastElementChild?.getAttribute("role")).toBe("group");
     expect(header.lastElementChild?.getAttribute("role")).toBe("separator");
     expect(header.nextElementSibling?.tagName).toBe("UL");
