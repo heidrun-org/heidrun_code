@@ -5,7 +5,7 @@
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
-- Related issue: [issue 337](https://github.com/heidrun-org/heidrun/issues/337), [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 810](https://github.com/heidrun-org/heidrun/issues/810), [issue 885](https://github.com/heidrun-org/heidrun_code/issues/885)
+- Related issue: [issue 337](https://github.com/heidrun-org/heidrun/issues/337), [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 810](https://github.com/heidrun-org/heidrun/issues/810), [issue 885](https://github.com/heidrun-org/heidrun_code/issues/885), [issue 925](https://github.com/heidrun-org/heidrun_code/issues/925), [issue 930](https://github.com/heidrun-org/heidrun_code/issues/930)
 
 This file lists the files and the subfolders of this folder, for agents and tools.
 
@@ -15,6 +15,7 @@ This file lists the files and the subfolders of this folder, for agents and tool
 - [diff_pane.md](diff_pane.md): the diff pane: a pane that shows the changes of one file, read only, how a click on a file line of the Source control sidebar section opens it, its header, its controls, and how Heidrun Code keeps it in Herdr.
 - [file_view_pane.md](file_view_pane.md): the file view pane: a pane that shows one file, its header, its controls, the front matter card, and how Heidrun Code keeps it in Herdr.
 - [file_view_pane_opening.md](file_view_pane_opening.md): the actions that open a file in a file view pane, the line of a file name, the box of ⌘P that searches a file by its name, and the place of the new pane. Read it each time that you add a way to open a file.
+- [file_view_pane_html_preview.md](file_view_pane_html_preview.md): the HTML preview of the file view pane: an HTML file shown as a web page in a sandboxed frame, the web server on the loopback address that serves the files next to it, the links to a web site, and the isolation from the Tauri commands. Read it each time that you change the HTML preview.
 - [file_view_pane_editing.md](file_view_pane_editing.md): the editing of a file in a file view pane, the save, the changes on the disk, the question before a pane with unsaved changes closes or Heidrun Code quits, and the actions "Explain" and "Fix these lines" on the selected lines.
 - [pane_focus_history.md](pane_focus_history.md): the pane focus history, and the Back button and the Forward button of the top bar.
 - [pane_move.md](pane_move.md): moving a pane with the pointer, inside its tab and to another tab: the press on the header, the four drop triangles of the destination pane, the move preview, the drop on the plus button of the tab bar that moves the pane into a new tab, the calls to Herdr, and the failures. Read it each time that you change the move of a pane, the pane header press, or the selection of a tab during a move.

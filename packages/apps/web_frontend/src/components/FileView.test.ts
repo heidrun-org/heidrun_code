@@ -4,6 +4,7 @@ import { DOMWrapper, enableAutoUnmount, flushPromises, mount, type VueWrapper } 
 
 const invokeMock = vi.hoisted(() => vi.fn(async (_command: string, _args: Record<string, string>): Promise<unknown> => null));
 const writeTextMock = vi.hoisted(() => vi.fn(async (_text: string) => {}));
+const openUrlMock = vi.hoisted(() => vi.fn(async (_url: string) => {}));
 const revealMock = vi.hoisted(() => vi.fn(async (_path: string) => {}));
 const openSearchMock = vi.hoisted(() => vi.fn());
 const goToLineMock = vi.hoisted(() => vi.fn());
@@ -19,7 +20,7 @@ vi.mock("@tauri-apps/api/event", () => ({
     };
   }),
 }));
-vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn(async () => {}), revealItemInDir: revealMock }));
+vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: openUrlMock, revealItemInDir: revealMock }));
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({ writeText: writeTextMock }));
 // The theme reads the colour scheme of the browser, which jsdom does not have.
 vi.mock("../stores/theme", async () => {
@@ -60,6 +61,7 @@ enableAutoUnmount(afterEach);
 
 const LABEL = "Heidrun file view: /work/project/src/main.ts";
 const MARKDOWN_LABEL = "Heidrun file view: /work/project/README.md";
+const HTML_LABEL = "Heidrun file view: /work/project/reports/my report.html";
 const PLAIN_MARKDOWN = "# Title\n\nSome **text**.\n";
 
 /** The text of the Markdown file of the tests. */
@@ -86,6 +88,9 @@ function answer(command: string, args: Record<string, string>) {
   }
   if (command === "file_image") {
     return "data:image/png;base64,AAAA";
+  }
+  if (command === "html_preview_open") {
+    return { key: "secret-1", address: "http://127.0.0.1:52000/secret-1/" };
   }
   return null;
 }
@@ -153,6 +158,7 @@ beforeEach(() => {
   invokeMock.mockImplementation(async (command: string, args: Record<string, string>) => answer(command, args));
   writeTextMock.mockClear();
   revealMock.mockClear();
+  openUrlMock.mockClear();
   openSearchMock.mockClear();
   goToLineMock.mockClear();
   for (const paneId of Object.keys(fileViewEdits)) {
@@ -598,6 +604,83 @@ describe("FileView selected lines (issue #901)", () => {
     editor.vm.$emit("selection", null);
     await flushPromises();
     expect(wrapper.find(".selection-bar").exists()).toBe(false);
+  });
+});
+
+describe("FileView HTML preview (issues #925 and #930)", () => {
+  it("shows an HTML file in Preview as a web page in a sandboxed frame, served on the loopback address", async () => {
+    const wrapper = mountFileView(HTML_LABEL);
+    await flushPromises();
+    const frame = wrapper.get("iframe.html-preview");
+    expect(frame.attributes("sandbox")).toBe("allow-scripts allow-same-origin");
+    expect(frame.attributes("src")).toBe("http://127.0.0.1:52000/secret-1/reports/my%20report.html");
+    expect(wrapper.find(".code-editor-stub").exists()).toBe(false);
+    expect(invokeMock.mock.calls.map(([command]) => command)).toEqual(["files_resolve", "html_preview_open", "file_watch_start"]);
+    expect(invokeMock.mock.calls[1][1]).toEqual({ root: "/work/project" });
+  });
+
+  it("closes the preview when the developer chooses Raw and when the pane closes", async () => {
+    const wrapper = mountFileView(HTML_LABEL);
+    await flushPromises();
+    const closeCalls = () => invokeMock.mock.calls.filter(([command]) => command === "html_preview_close");
+    expect(closeCalls()).toEqual([]);
+    await controls().findAll("input[type='radio']")[1].setValue();
+    await flushPromises();
+    expect(closeCalls()).toEqual([["html_preview_close", { key: "secret-1" }]]);
+    await controls().findAll("input[type='radio']")[0].setValue();
+    await flushPromises();
+    wrapper.unmount();
+    expect(closeCalls()).toEqual([
+      ["html_preview_close", { key: "secret-1" }],
+      ["html_preview_close", { key: "secret-1" }],
+    ]);
+  });
+
+  it("closes at once a preview that opens after the pane closed", async () => {
+    let finishOpen: (value: unknown) => void = () => {};
+    invokeMock.mockImplementation(async (command: string, args: Record<string, string>) => {
+      if (command === "html_preview_open") {
+        return new Promise((resolve) => {
+          finishOpen = resolve;
+        });
+      }
+      return answer(command, args);
+    });
+    const wrapper = mountFileView(HTML_LABEL);
+    await flushPromises();
+    wrapper.unmount();
+    finishOpen({ key: "late-key", address: "http://127.0.0.1:52000/late-key/" });
+    await flushPromises();
+    expect(invokeMock.mock.calls.filter(([command]) => command === "html_preview_close")).toEqual([
+      ["html_preview_close", { key: "late-key" }],
+    ]);
+  });
+
+  it("has the buttons Preview and Raw, with the title of a web page, and shows the source code in Raw", async () => {
+    const wrapper = mountFileView(HTML_LABEL);
+    await flushPromises();
+    const group = controls().get("[role='group']");
+    expect(group.attributes("aria-label")).toBe("HTML display");
+    expect(group.findAll("label").map((label) => label.text())).toEqual(["Preview", "Raw"]);
+    expect(group.findAll("label")[0].attributes("title")).toBe("Preview: show the rendered web page");
+    await controls().findAll("input[type='radio']")[1].setValue();
+    await flushPromises();
+    expect(settings.filesMdRead).toBe(false);
+    expect(wrapper.find("iframe").exists()).toBe(false);
+    expect(wrapper.get(".code-editor-stub").attributes("data-path")).toBe("reports/my report.html");
+  });
+
+  it("opens in the browser a link to a web site that the frame sends, and ignores the messages of another window", async () => {
+    const wrapper = mountFileView(HTML_LABEL);
+    await flushPromises();
+    const frameWindow = (wrapper.get("iframe").element as HTMLIFrameElement).contentWindow;
+    const data = { type: "heidrun-html-preview-open-url", url: "https://example.com/" };
+    window.dispatchEvent(new MessageEvent("message", { data, source: window }));
+    expect(openUrlMock).not.toHaveBeenCalled();
+    window.dispatchEvent(new MessageEvent("message", { data: { ...data, url: "file:///etc/hosts" }, source: frameWindow }));
+    expect(openUrlMock).not.toHaveBeenCalled();
+    window.dispatchEvent(new MessageEvent("message", { data, source: frameWindow }));
+    expect(openUrlMock).toHaveBeenCalledWith("https://example.com/");
   });
 });
 

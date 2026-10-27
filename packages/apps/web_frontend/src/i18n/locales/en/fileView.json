@@ -3,6 +3,8 @@
   "searchTitle": "Search in the file (⌘F)",
   "raw": "Raw",
   "previewTitle": "Preview: show the rendered text, with the front matter in a card",
+  "previewHtmlTitle": "Preview: show the rendered web page",
+  "htmlLabel": "HTML display",
   "rawTitle": "Raw: show the file as it is",
   "frontMatterLabel": "Front matter",
   "menuLabel": "More actions",
