@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -8,10 +8,11 @@ import FileViewMenu from "./FileViewMenu.vue";
 import { FileViewLabel } from "../lib/file_view_label";
 import { FrontMatter } from "../lib/front_matter";
 import { isMarkdown, renderMarkdown } from "../lib/markdown";
+import { MarkdownLinks } from "../lib/markdown_links";
 import { isImage } from "../stores/files";
 import { fileViewEdits, FileViewEditState } from "../stores/file_view_edit_state";
 import { FileViewEdits } from "../stores/file_view_edits";
-import { fileViewLineRequests } from "../stores/file_view_panes";
+import { fileViewAnchorRequests, fileViewLineRequests, FileViewPanes } from "../stores/file_view_panes";
 import { FileViewAgentPrompt, type FileViewAgentRequest } from "../stores/file_view_agent_prompt";
 import { toast } from "../stores/session";
 import type { EditorSelection } from "../lib/editor";
@@ -78,6 +79,7 @@ const lineRequest = computed(() => (absolutePath.value === null ? null : fileVie
 /** The selected lines of the editor, with the place of the bar of actions in the body of the pane, or null. */
 const selection = ref<{ fromLine: number; toLine: number; text: string; left: number; top: number } | null>(null);
 const body = ref<HTMLElement>();
+const markdownArticle = ref<HTMLElement>();
 let sequence = 0;
 
 // An answer that comes after the path or the mode changed again is dropped.
@@ -146,6 +148,25 @@ async function load() {
   }
 }
 watch([absolutePath, isPreview], load, { immediate: true });
+
+// A link of another Markdown preview asked for a heading of this file: the preview shows it once the text is rendered (issue #928).
+watch(
+  [rendered, isLoading, () => (absolutePath.value === null ? undefined : fileViewAnchorRequests[absolutePath.value])],
+  async () => {
+    const path = absolutePath.value;
+    if (path === null || isLoading.value === true || rendered.value === "") {
+      return;
+    }
+    const anchor = fileViewAnchorRequests[path];
+    if (anchor === undefined) {
+      return;
+    }
+    delete fileViewAnchorRequests[path];
+    await nextTick();
+    scrollToAnchor(anchor);
+  },
+  { flush: "post" },
+);
 
 // A line asked again for the file that the pane shows already: the editor goes to it.
 watch(
@@ -228,16 +249,48 @@ async function openInVisualStudioCode() {
   }
   await invoke("file_open_external", { root: location.value.root, path: location.value.path }).catch((e) => toast(String(e)));
 }
-// Links in rendered Markdown open in the browser.
+// A web link of the rendered Markdown opens in the browser. A link to a heading shows the heading, and a link to a file of the
+// disk opens the file in this pane, as a browser follows a link (issue #928).
 function onMarkdownClick(event: MouseEvent) {
-  const anchor = (event.target as HTMLElement).closest("a");
-  if (anchor === null) {
+  const linkElement = (event.target as HTMLElement).closest("a");
+  if (linkElement === null) {
     return;
   }
   event.preventDefault();
-  const href = anchor.getAttribute("href") ?? "";
-  if (/^https?:\/\//.test(href)) {
-    openUrl(href).catch(() => {});
+  const path = absolutePath.value;
+  if (path === null || location.value === null) {
+    return;
+  }
+  const target = MarkdownLinks.resolve(linkElement.getAttribute("href") ?? "", path, location.value.root);
+  if (target === null) {
+    return;
+  }
+  if (target.kind === "web") {
+    openUrl(target.url).catch(() => {});
+    return;
+  }
+  if (target.kind === "heading") {
+    scrollToAnchor(target.anchor);
+    return;
+  }
+  if (target.absolutePath === path) {
+    if (target.anchor !== null) {
+      scrollToAnchor(target.anchor);
+    }
+    return;
+  }
+  const line = target.anchor === null ? null : MarkdownLinks.lineOfAnchor(target.anchor);
+  void FileViewPanes.open(target.absolutePath, line, line === null ? target.anchor : null);
+}
+// The heading of an anchor goes to the top of the pane. An anchor with no heading leaves the text where it is. Only the body
+// of the pane scrolls: `scrollIntoView` also moved the window by one pixel.
+function scrollToAnchor(anchor: string) {
+  if (markdownArticle.value === undefined || body.value === undefined) {
+    return;
+  }
+  const element = MarkdownLinks.findAnchor(markdownArticle.value, anchor);
+  if (element !== null) {
+    body.value.scrollTop += element.getBoundingClientRect().top - body.value.getBoundingClientRect().top;
   }
 }
 </script>
@@ -320,11 +373,11 @@ function onMarkdownClick(event: MouseEvent) {
       </template>
     </div>
     <div v-if="readOnlyReason !== '' && isCodeShown" class="banner info">{{ t("fileView.readOnly", { reason: readOnlyReason }) }}</div>
-    <div ref="body" class="code" :class="[codeThemeClass, { editing: isCodeShown }]" @scroll.capture="selection = null">
+    <div ref="body" class="code" :class="[codeThemeClass, { editing: isCodeShown, preview: isPreview }]" @scroll.capture="selection = null">
       <div v-if="error !== ''" class="empty err">{{ error }}</div>
       <div v-else-if="isLoading" class="empty">{{ t("fileView.loading") }}</div>
       <div v-else-if="image !== ''" class="img"><img :src="image" :alt="absolutePath ?? ''" /></div>
-      <article v-else-if="isPreview" class="md-doc" :class="markdownWidthClass" @click="onMarkdownClick">
+      <article v-else-if="isPreview" ref="markdownArticle" class="md-doc" :class="markdownWidthClass" @click="onMarkdownClick">
         <section v-if="frontMatter !== null" class="front-matter-card" :aria-label="t('fileView.frontMatterLabel')">
           <pre>{{ frontMatter }}</pre>
         </section>
@@ -366,6 +419,8 @@ function onMarkdownClick(event: MouseEvent) {
 .file-view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .code { position: relative; flex: 1; min-height: 0; overflow: auto; font-family: var(--mono); line-height: 1.55; }
 .code.editing { overflow: hidden; }
+/* The Markdown preview is text, not code: it has the background of a pane, not the background of the code theme (issue #928). */
+.code.preview { background: var(--bg); }
 .img { padding: 24px; display: flex; justify-content: center; background: repeating-conic-gradient(var(--image-checker-light) 0% 25%, var(--image-checker-dark) 0% 50%) 50% / 20px 20px; min-height: 100%; }
 .img img { max-width: 100%; height: auto; image-rendering: auto; }
 .md-doc { padding: 24px 36px 60px; }

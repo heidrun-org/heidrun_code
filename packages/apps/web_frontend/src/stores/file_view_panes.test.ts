@@ -110,6 +110,14 @@ describe('FileViewPanes (issue #714)', () => {
 		expect(fileViewLineRequests['/work/project/src/main.rs']).toBeUndefined();
 	});
 
+	it('keeps the anchor of a Markdown link, and forgets it for a file with no anchor (issue #928)', async () => {
+		const { FileViewPanes, fileViewAnchorRequests } = await import('./file_view_panes');
+		await FileViewPanes.open('/work/project/docs/rules.md', null, 'the-rules');
+		expect(fileViewAnchorRequests['/work/project/docs/rules.md']).toBe('the-rules');
+		await FileViewPanes.open('/work/project/docs/rules.md');
+		expect(fileViewAnchorRequests['/work/project/docs/rules.md']).toBeUndefined();
+	});
+
 	it('opens a new pane next to a file view pane with unsaved changes, so that the changes stay (issue #899)', async () => {
 		selectedPane.value = { ...selectedPane.value, label: 'Heidrun file view: /work/project/README.md' };
 		const { fileViewEdits } = await import('./file_view_edit_state');

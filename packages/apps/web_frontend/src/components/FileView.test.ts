@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { DOMWrapper, enableAutoUnmount, flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 
 const invokeMock = vi.hoisted(() => vi.fn(async (_command: string, _args: Record<string, string>): Promise<unknown> => null));
@@ -44,7 +44,8 @@ vi.mock("./CodeEditor.vue", async () => {
 import FileView from "./FileView.vue";
 import { settings } from "../stores/settings";
 import { fileViewEdits } from "../stores/file_view_edit_state";
-import { fileViewLineRequests } from "../stores/file_view_panes";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { fileViewAnchorRequests, fileViewLineRequests, FileViewPanes } from "../stores/file_view_panes";
 
 enableAutoUnmount(afterEach);
 
@@ -151,6 +152,10 @@ beforeEach(() => {
   for (const path of Object.keys(fileViewLineRequests)) {
     delete fileViewLineRequests[path];
   }
+  for (const path of Object.keys(fileViewAnchorRequests)) {
+    delete fileViewAnchorRequests[path];
+  }
+  vi.mocked(openUrl).mockClear();
   settings.filesMdRead = true;
   settings.codeWrap = false;
   settings.markdownWrapAt80Columns = false;
@@ -580,5 +585,112 @@ describe("FileView selected lines (issue #901)", () => {
     editor.vm.$emit("selection", null);
     await flushPromises();
     expect(wrapper.find(".selection-bar").exists()).toBe(false);
+  });
+});
+
+describe("FileView Markdown links and background (issue #928)", () => {
+  const LINKS_MARKDOWN = [
+    "# Title",
+    "",
+    "[web](https://example.com/page) [notes](#notes) [rules](docs/rules.md#the-rules) [code](src/main.ts#L42)",
+    "[mail](mailto:someone@example.com) [self](README.md#notes)",
+    "",
+    "## Notes",
+    "",
+    "Text.",
+    "",
+  ].join("\n");
+  let openSpy: MockInstance<typeof FileViewPanes.open>;
+
+  beforeEach(() => {
+    markdownContent = LINKS_MARKDOWN;
+    openSpy = vi.spyOn(FileViewPanes, "open").mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    openSpy.mockRestore();
+  });
+
+  /** Places the heading Notes 300 pixels below the top of the body of the pane, as jsdom has no layout. */
+  function placeNotesHeading(wrapper: ReturnType<typeof mountFileView>) {
+    const heading = wrapper.get(".md-doc h2").element as HTMLElement;
+    heading.getBoundingClientRect = () => ({ top: 300 }) as DOMRect;
+  }
+
+  /** The scroll position of the body of the pane. */
+  function scrollTopOf(wrapper: ReturnType<typeof mountFileView>): number {
+    return (wrapper.get(".code").element as HTMLElement).scrollTop;
+  }
+
+  /** Clicks the link of the preview that has this text. */
+  async function clickLink(wrapper: ReturnType<typeof mountFileView>, text: string) {
+    const link = wrapper.findAll(".md-doc a").find((anchor) => anchor.text() === text);
+    if (link === undefined) {
+      throw new Error(`no link ${text}`);
+    }
+    await link.trigger("click");
+    await flushPromises();
+  }
+
+  it("opens a web link in the browser", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    await clickLink(wrapper, "web");
+    expect(openUrl).toHaveBeenCalledWith("https://example.com/page");
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it("opens a link to a file of the project in the pane, with the heading of its anchor", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    await clickLink(wrapper, "rules");
+    expect(openSpy).toHaveBeenCalledWith("/work/project/docs/rules.md", null, "the-rules");
+    expect(openUrl).not.toHaveBeenCalled();
+  });
+
+  it("opens a link with a GitHub line anchor at that line", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    await clickLink(wrapper, "code");
+    expect(openSpy).toHaveBeenCalledWith("/work/project/src/main.ts", 42, null);
+  });
+
+  it("shows the heading of a link that is only an anchor, and of a link to the same file", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    placeNotesHeading(wrapper);
+    await clickLink(wrapper, "notes");
+    expect(scrollTopOf(wrapper)).toBe(300);
+    (wrapper.get(".code").element as HTMLElement).scrollTop = 0;
+    await clickLink(wrapper, "self");
+    expect(scrollTopOf(wrapper)).toBe(300);
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it("opens nothing for a link that is neither a web page nor a file", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    await clickLink(wrapper, "mail");
+    expect(openUrl).not.toHaveBeenCalled();
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows the heading that a link of another preview asked for, once", async () => {
+    const wrapper = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    placeNotesHeading(wrapper);
+    fileViewAnchorRequests["/work/project/README.md"] = "notes";
+    await flushPromises();
+    expect(scrollTopOf(wrapper)).toBe(300);
+    expect(fileViewAnchorRequests["/work/project/README.md"]).toBeUndefined();
+  });
+
+  it("gives the preview the background of a pane, and keeps the code theme for code", async () => {
+    const preview = mountFileView(MARKDOWN_LABEL);
+    await flushPromises();
+    expect(preview.get(".code").classes()).toContain("preview");
+    const code = mountFileView();
+    await flushPromises();
+    expect(code.get(".code").classes()).not.toContain("preview");
   });
 });
