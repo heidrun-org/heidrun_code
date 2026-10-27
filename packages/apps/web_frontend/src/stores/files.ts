@@ -14,6 +14,8 @@ interface FileList {
   ignored: string[];
   /** Submodule folders relative to the project root, without a trailing slash. */
   submodules: string[];
+  /** The symbolic links to a folder of the project, without a trailing slash. `files` lists each one with a trailing "/". */
+  linkedFolders?: string[];
   status: Record<string, string>;
   truncated: boolean;
 }
@@ -28,6 +30,11 @@ export const files = reactive({
   ignored: [] as string[],
   /** Submodule folders, including submodules with no listed files. */
   submodules: [] as string[],
+  /**
+   * The symbolic links to a folder of the project, without a trailing slash. Git lists such a link as a file, so the tree
+   * shows it as a folder whose content comes from the disk (issue #923).
+   */
+  linkedFolders: [] as string[],
   status: {} as Record<string, string>,
   truncated: false,
   expanded: new Set<string>(),
@@ -51,9 +58,9 @@ export type FilesPanelSelection = {
 export const filesPanelSelections = reactive({} as Record<string, FilesPanelSelection>);
 
 /**
- * Sidebar section File explorer: the first level of each unfolded folder that Git ignores, by path of the folder
- * relative to the root. A folder ends with "/". Git does not list these files, so the program reads them from the disk
- * when the developer unfolds the folder (issue #430).
+ * Sidebar section File explorer: the first level of each unfolded folder that Git ignores or that is a symbolic link to a
+ * folder, by path of the folder relative to the root. A folder ends with "/". Git does not list these files, so the
+ * program reads them from the disk when the developer unfolds the folder (issue #430, issue #923).
  */
 export const filesPanelIgnoredChildren = reactive({} as Record<string, string[]>);
 
@@ -71,8 +78,19 @@ export function isInIgnoredFolder(path: string): boolean {
   return false;
 }
 
+/** True when the path is a symbolic link to a folder, or is inside such a link (issue #923). */
+export function isInLinkedFolder(path: string): boolean {
+  return files.linkedFolders.some((folder) => path === folder || path.startsWith(`${folder}/`));
+}
+
+/** True when the content of the path comes from the disk: a folder that Git ignores, or a symbolic link to a folder. */
+export function isInFolderReadFromDisk(path: string): boolean {
+  return isInIgnoredFolder(path) || isInLinkedFolder(path);
+}
+
 /**
- * Reads the first level of one folder that Git ignores, and keeps it in `filesPanelIgnoredChildren`.
+ * Reads the first level of one folder that Git ignores or that is a symbolic link to a folder, and keeps it in
+ * `filesPanelIgnoredChildren`.
  * @param path - The path of the folder, relative to the root.
  * @returns True when the folder was read. False when it cannot be read, for example because it was removed: the folder
  * is then forgotten.
@@ -91,9 +109,12 @@ export async function loadIgnoredFolder(path: string): Promise<boolean> {
   }
 }
 
-/** Reads again every unfolded folder that Git ignores, and forgets the folders that are not unfolded any more. */
+/**
+ * Reads again every unfolded folder that Git ignores or that is a symbolic link to a folder, and forgets the folders that
+ * are not unfolded any more.
+ */
 export async function loadExpandedIgnoredFolders(): Promise<void> {
-  const folders = [...files.expanded].filter((path) => isInIgnoredFolder(path));
+  const folders = [...files.expanded].filter((path) => isInFolderReadFromDisk(path));
   for (const path of Object.keys(filesPanelIgnoredChildren)) {
     if (folders.includes(path) === false) {
       delete filesPanelIgnoredChildren[path];
@@ -121,6 +142,7 @@ export async function loadFiles(cwd: string): Promise<boolean> {
       list: markRaw(r.files),
       ignored: markRaw(r.ignored ?? []),
       submodules: markRaw(r.submodules ?? []),
+      linkedFolders: markRaw(r.linkedFolders ?? []),
       status: markRaw(r.status),
       truncated: r.truncated,
     });
@@ -163,7 +185,10 @@ export interface TreeRow {
   name: string;
   depth: number;
   dir: boolean;
-  /** True for a folder that Git ignores and that the tree lists as one row, without its content. */
+  /**
+   * True for a folder that the tree lists as one row, without its content, because its content comes from the disk: a
+   * folder that Git ignores, or a symbolic link to a folder (issue #923).
+   */
   ignored: boolean;
   /** True for every row that Git ignores: a folder, a file, and a row inside a folder that Git ignores. */
   isGitIgnored: boolean;
@@ -176,17 +201,28 @@ interface Node {
   files: string[];
   /** The names, among `files`, that Git ignores. */
   ignoredFiles: Set<string>;
+  /** The names, among the keys of `dirs` that end with "/", that are symbolic links to a folder that Git does not ignore. */
+  linkedDirs: Set<string>;
 }
 
 const collator = new Intl.Collator("fr", { sensitivity: "base", numeric: true });
 
 function emptyNode(): Node {
-  return { dirs: new Map(), files: [], ignoredFiles: new Set() };
+  return { dirs: new Map(), files: [], ignoredFiles: new Set(), linkedDirs: new Set() };
 }
 
-export function buildTree(list: string[], emptyFolders: string[] = [], ignoredPaths: string[] = []): Node {
+/**
+ * The tree of the listed paths.
+ * @param list - The listed paths. A path that ends with "/" is a folder whose content comes from the disk.
+ * @param emptyFolders - The new empty folders that the developer created.
+ * @param ignoredPaths - The paths that Git ignores, written as in `list`.
+ * @param linkedFolders - The symbolic links to a folder, without a trailing slash (issue #923).
+ * @returns The root node of the tree.
+ */
+export function buildTree(list: string[], emptyFolders: string[] = [], ignoredPaths: string[] = [], linkedFolders: string[] = []): Node {
   const root = emptyNode();
   const ignoredSet = new Set(ignoredPaths);
+  const linkedSet = new Set(linkedFolders);
   for (const path of list) {
     const ignoredDir = path.endsWith("/");
     const parts = (ignoredDir ? path.slice(0, -1) : path).split("/");
@@ -199,6 +235,9 @@ export function buildTree(list: string[], emptyFolders: string[] = [], ignoredPa
     const last = parts[parts.length - 1];
     if (ignoredDir) {
       if (!node.dirs.has(last + "/")) node.dirs.set(last + "/", emptyNode());
+      if (linkedSet.has(path.slice(0, -1)) && ignoredSet.has(path) === false) {
+        node.linkedDirs.add(last + "/");
+      }
     } else {
       node.files.push(last);
       if (ignoredSet.has(path)) {
@@ -249,30 +288,31 @@ export function visibleRows(
     for (let i = 1; i < parts.length; i++) changedDirs.add(parts.slice(0, i).join("/"));
   }
   const rows: TreeRow[] = [];
-  const walkIgnoredFolder = (folder: string, depth: number) => {
+  const walkIgnoredFolder = (folder: string, depth: number, isGitIgnored: boolean) => {
     const names = ignoredChildren?.[folder] ?? [];
     const folderNames = names.filter((name) => name.endsWith("/")).map((name) => name.slice(0, -1)).sort(collator.compare);
     const fileNames = names.filter((name) => name.endsWith("/") === false).sort(collator.compare);
     for (const name of folderNames) {
       const path = `${folder}/${name}`;
-      rows.push({ path, name, depth, dir: true, ignored: true, isGitIgnored: true, status: null });
+      rows.push({ path, name, depth, dir: true, ignored: true, isGitIgnored, status: null });
       if (expanded.has(path)) {
-        walkIgnoredFolder(path, depth + 1);
+        walkIgnoredFolder(path, depth + 1, isGitIgnored);
       }
     }
     for (const name of fileNames) {
-      rows.push({ path: `${folder}/${name}`, name, depth, dir: false, ignored: false, isGitIgnored: true, status: null });
+      rows.push({ path: `${folder}/${name}`, name, depth, dir: false, ignored: false, isGitIgnored, status: null });
     }
   };
   const walk = (node: Node, prefix: string, depth: number) => {
     for (const name of node.dirs.keys()) {
       const ignored = name.endsWith("/");
+      const isGitIgnored = ignored && node.linkedDirs.has(name) === false;
       const clean = ignored ? name.slice(0, -1) : name;
       const path = prefix ? `${prefix}/${clean}` : clean;
-      rows.push({ path, name: clean, depth, dir: true, ignored, isGitIgnored: ignored, status: changedDirs.has(path) ? "•" : null });
+      rows.push({ path, name: clean, depth, dir: true, ignored, isGitIgnored, status: changedDirs.has(path) ? "•" : null });
       if (ignored) {
         if (ignoredChildren !== undefined && expanded.has(path)) {
-          walkIgnoredFolder(path, depth + 1);
+          walkIgnoredFolder(path, depth + 1, isGitIgnored);
         }
       } else if (expanded.has(path)) {
         walk(node.dirs.get(name)!, path, depth + 1);
