@@ -2,7 +2,7 @@
   "name": "work_by_folder_over_time",
   "private": true,
   "license": "MIT",
-  "version": "0.3.0",
+  "version": "0.3.5",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

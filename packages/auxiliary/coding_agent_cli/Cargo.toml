@@ -1,6 +1,6 @@
 [package]
 name = "coding_agent_cli"
-version = "0.3.0"
+version = "0.3.5"
 description = "Sends one prompt to a coding agent command line tool (codex, claude, or agy) and returns the answer"
 license = "MIT"
 edition = "2021"
