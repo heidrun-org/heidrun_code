@@ -6,6 +6,12 @@
 /** The most words in the name of a cluster. */
 const MOST_CLUSTER_WORDS = 2;
 
+/** The most raw dynamic topics in one cluster. A wider cluster hides the precise words behind one name (issue 270). */
+export const MOST_CLUSTER_TOPICS = 5;
+
+/** The category names that fit every project, so they never help the developer to find a chat (issue 270). */
+const GENERIC_NAMES = ["software", "interface", "changes", "state", "actions", "dimensions", "media", "organization", "subjects", "unclear", "misc"];
+
 /** The translation table: the name of the cluster of each raw dynamic topic, by raw dynamic topic in lower case. */
 export type TranslationTable = Map<string, string>;
 
@@ -53,9 +59,15 @@ export function clusterNames(table: TranslationTable): string[] {
  */
 export function clusterPrompt(existingClusters: string[], newTopics: string[]): string {
   return [
-    "You group short labels by meaning. Each label names a subject of a work conversation.",
+    "You group short labels that are near-synonyms. Each label names a subject of a conversation about one software project. A developer clicks a cluster name to find the conversations about one precise subject, so a cluster name must be precise.",
     "",
-    `For each new label, choose one existing cluster that has a close meaning. When no existing cluster fits, make a new cluster with a name of one or two words. Write each cluster name in lower case. Never rename, merge, or split an existing cluster.`,
+    "Rules:",
+    `- A cluster holds only labels that name the same precise thing, for example "resize" and "resized", or "merge" and "merged", or "modal" and "dialog". Two labels that are only in the same broad area ("button" and "menu", "color" and "pixel") stay in separate clusters.`,
+    "- The name of a cluster is always one of its labels, written exactly as it is. Never invent a new name.",
+    `- Never use a category name such as ${GENERIC_NAMES.map((name) => `"${name}"`).join(", ")}.`,
+    `- A cluster holds at most ${MOST_CLUSTER_TOPICS} labels.`,
+    "- A label with no near-synonym is its own cluster: its cluster name is the label itself. This is the normal case.",
+    "- Existing clusters: put a new label in an existing cluster only when it is a near-synonym of the existing cluster name.",
     "",
     `Answer with only a JSON array and no other text. The array has one item for each new label, in this form: {"topic": "<new label>", "cluster": "<name of the cluster>"}. Each new label appears exactly once, written as it is below.`,
     "",
@@ -110,6 +122,30 @@ export function parseClusterAnswer(answer: string, newTopics: string[]): Map<str
     clusters.set(key, name);
   }
   return clusters.size === asked.size ? clusters : null;
+}
+
+/**
+ * Keeps only the specific clusters of an answer. The name of a cluster must be a new raw dynamic topic of the answer or an
+ * existing cluster, never an invented category, and a cluster holds at most `MOST_CLUSTER_TOPICS` raw dynamic topics, the
+ * rows of the translation table counted. A raw dynamic topic that breaks a rule is its own cluster.
+ * @param clusters - the cluster of each new raw dynamic topic, as `parseClusterAnswer` gives it
+ * @param table - the translation table
+ * @returns the cluster of each new raw dynamic topic, in the same order
+ */
+export function specificClusters(clusters: Map<string, string>, table: TranslationTable): Map<string, string> {
+  const allowedNames = new Set([...clusters.keys(), ...table.values()]);
+  const sizes = new Map<string, number>();
+  for (const name of table.values()) {
+    sizes.set(name, (sizes.get(name) ?? 0) + 1);
+  }
+  const result = new Map<string, string>();
+  for (const [topic, name] of clusters) {
+    const size = sizes.get(name) ?? 0;
+    const cluster = allowedNames.has(name) && size < MOST_CLUSTER_TOPICS ? name : topic;
+    sizes.set(cluster, (sizes.get(cluster) ?? 0) + 1);
+    result.set(topic, cluster);
+  }
+  return result;
 }
 
 /**

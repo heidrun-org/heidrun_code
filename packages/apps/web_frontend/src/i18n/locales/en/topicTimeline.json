@@ -1,0 +1,12 @@
+{
+  "title": "Topic timeline",
+  "close": "Close the topic timeline",
+  "empty": "No chat of the list has a dynamic topic yet.",
+  "help": "Each row is one dynamic topic, and each dot is one chat at the date of its last message. A vertical line joins the topics of one chat. Click a topic to keep only its chats, and click a dot to open the chat.",
+  "topicsLabel": "Dynamic topics",
+  "topicTitle_one": "Show only the chats about “{topic}” ({count} chat)",
+  "topicTitle_other": "Show only the chats about “{topic}” ({count} chats)",
+  "topicAllTitle": "Show all the chats",
+  "plotLabel": "The chats of each dynamic topic, by date",
+  "dotTitle": "{title} — {date}"
+}

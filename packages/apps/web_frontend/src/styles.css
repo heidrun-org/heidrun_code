@@ -95,6 +95,8 @@
   --search-match-selected: rgba(242, 169, 59, 0.35);
   --image-checker-light: #1a1d21;
   --image-checker-dark: #121417;
+  /* The background of a web page in the HTML preview of the file view pane: white in both themes, as in a browser. */
+  --web-page-bg: #ffffff;
   --reference-open: #1f7430;
   --reference-merged: #7040c1;
   --reference-closed: #b82a28;

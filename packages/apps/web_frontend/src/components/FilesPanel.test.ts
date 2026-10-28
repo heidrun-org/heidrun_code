@@ -84,6 +84,7 @@ afterEach(() => {
   files.root = "";
   files.ignored = [];
   files.submodules = [];
+  files.linkedFolders = [];
   files.expanded = new Set();
   for (const folder of Object.keys(filesPanelIgnoredChildren)) {
     delete filesPanelIgnoredChildren[folder];
@@ -753,5 +754,89 @@ describe("FilesPanel, the files and the folders that Git ignores", () => {
     await vi.waitFor(() => expect(rowNames(wrapper)).toContain("created"));
     expect(rowNames(wrapper).filter((name) => name === "created")).toHaveLength(1);
     expect(filesPanelNewFolders["/work/heidrun"] ?? []).toEqual([]);
+  });
+});
+
+describe("FilesPanel, a symbolic link to a folder (issue #923)", () => {
+  /** The first level of each folder that the backend reads from the disk. A folder ends with "/". */
+  let diskFolders: Record<string, string[]>;
+
+  beforeEach(() => {
+    diskFolders = {
+      "skills/feature-status": ["SKILL.md", "references/"],
+      "skills/feature-status/references": ["notes.md"],
+    };
+    invokeMock.mockImplementation(async (command: string, args: { path?: string; paths?: string[] }) => {
+      if (command === "files_list") {
+        return {
+          root: "/work/heidrun",
+          git: true,
+          files: ["README.md", "skills/feature-status/", "skills/file-link.md"],
+          ignored: [],
+          submodules: [],
+          linkedFolders: ["skills/feature-status"],
+          status: {},
+          truncated: false,
+        };
+      }
+      if (command === "folder_children") {
+        const children = diskFolders[args.path ?? ""];
+        if (children === undefined) {
+          throw new Error("not a folder");
+        }
+        return children;
+      }
+      if (command === "dirs_existing") {
+        return args.paths;
+      }
+      return null;
+    });
+  });
+
+  /** The row whose name is `name`. */
+  function rowNamed(wrapper: Awaited<ReturnType<typeof mountPanel>>, name: string) {
+    return wrapper.findAll(".row").find((row) => row.get(".name").text() === name);
+  }
+
+  /** The names of the rows, from the top. */
+  function rowNames(wrapper: Awaited<ReturnType<typeof mountPanel>>): string[] {
+    return wrapper.findAll(".row .name").map((name) => name.text());
+  }
+
+  it("shows the link as a folder in the normal color, unfolds it from the disk, and opens a file inside it", async () => {
+    const wrapper = await mountPanel();
+    await rowNamed(wrapper, "skills")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toEqual(["skills", "feature-status", "file-link.md", "README.md"]));
+    const link = rowNamed(wrapper, "feature-status");
+    expect(link?.find(".arrow i").exists()).toBe(true);
+    expect(link?.classes()).not.toContain("ignored");
+    await link?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("SKILL.md"));
+    expect(invokeMock).toHaveBeenCalledWith("folder_children", { root: "/work/heidrun", path: "skills/feature-status" });
+    expect(rowNamed(wrapper, "SKILL.md")?.classes()).not.toContain("ignored");
+    await rowNamed(wrapper, "references")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("notes.md"));
+    await rowNamed(wrapper, "SKILL.md")?.trigger("click");
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/skills/feature-status/SKILL.md"));
+  });
+
+  it("reads the unfolded link again after the button Refresh", async () => {
+    const wrapper = await mountPanel();
+    await rowNamed(wrapper, "skills")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("feature-status"));
+    await rowNamed(wrapper, "feature-status")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("SKILL.md"));
+    diskFolders["skills/feature-status"] = ["SKILL.md", "references/", "created_outside.md"];
+    await wrapper.get("[aria-label='Refresh']").trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("created_outside.md"));
+  });
+
+  it("opens a symbolic link to a file as a file", async () => {
+    const wrapper = await mountPanel();
+    await rowNamed(wrapper, "skills")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("file-link.md"));
+    expect(rowNamed(wrapper, "file-link.md")?.find(".arrow i").exists()).toBe(false);
+    await rowNamed(wrapper, "file-link.md")?.trigger("click");
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/skills/file-link.md"));
   });
 });

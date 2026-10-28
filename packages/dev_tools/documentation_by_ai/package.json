@@ -9,7 +9,9 @@
   },
   "scripts": {
     "cli": "node --import tsx src/cli.ts",
-    "generate-and-build": "node --import tsx src/cli.ts generate-and-build"
+    "generate-and-build": "node --import tsx src/cli.ts generate-and-build",
+    "update": "node --import tsx src/cli.ts update",
+    "test": "node --import tsx --test --test-concurrency=4 src/*.test.ts"
   },
   "dependencies": {
     "commander": "^15.0.0",

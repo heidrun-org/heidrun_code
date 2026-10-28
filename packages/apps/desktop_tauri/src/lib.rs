@@ -9,12 +9,14 @@ mod clipboard;
 mod coding_agent_models;
 mod durable_storage;
 mod environment_file;
+mod file_watch;
 mod files;
 mod forge_cache;
 mod former_web_view_storage;
 mod git;
 mod git_source_control;
 mod history;
+mod html_preview;
 mod image_preview;
 mod legacy;
 mod login_shell_path;
@@ -280,8 +282,10 @@ pub fn run() {
         .manage(pty::PtyState::default())
         .manage(herdr::StatusWatcher::default())
         .manage(mobile::MobileState::default())
+        .manage(html_preview::HtmlPreviewState::default())
         .manage(voice_commands::VoiceState::default())
         .manage(status_item::StatusItemState::default())
+        .manage(file_watch::FileWatchState::default())
         .setup(|app| {
             if application_profile::is_development() == false {
                 claude::migrate_legacy();
@@ -411,6 +415,7 @@ pub fn run() {
             claude::claude_commands,
             claude::claude_session_agents,
             chat_images::chat_images::chat_images_find,
+            chat_images::chat_images::chat_images_find_codex_chat,
             past_chats::chats::chats_synchronize,
             past_chats::chats::chats_list,
             past_chats::chats_files::chats_files_exist,
@@ -433,12 +438,16 @@ pub fn run() {
             files::files_list,
             files::folder_children,
             files::files_resolve,
+            html_preview::html_preview_open,
+            html_preview::html_preview_close,
             files::file_image,
             files::file_open_external,
             files::file_full_path,
             files::file_read,
             files::file_stat,
             files::file_write,
+            file_watch::file_watch_start,
+            file_watch::file_watch_stop,
             files::files_grep,
             files::file_create,
             files::dirs_existing,

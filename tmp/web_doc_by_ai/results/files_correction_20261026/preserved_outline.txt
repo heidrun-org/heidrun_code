@@ -1,0 +1,82 @@
+### browse_project_files.md
+
+- Action: change
+- Page type: how-to
+- Title: Browse and open project files
+- Reader goal: Find and open a file in the selected workspace’s Git repository.
+- Sources: `docs/agents_rules/user_interface/sidebars/files.md`; `docs/agents_rules/user_interface/workspaces_tabs_and_panes/workspace.md`; `docs/agents_rules/glossary.md`; captured [WorkspaceStatusSummary.vue](/Users/jetienne/webwork/heidrun/tmp/web_doc_by_ai/workspace/packages/apps/web_frontend/src/components/WorkspaceStatusSummary.vue:168) and [session.ts](/Users/jetienne/webwork/heidrun/tmp/web_doc_by_ai/workspace/packages/apps/web_frontend/src/stores/session.ts:867) confirm that creation and selection are separate actions.
+- Sections:
+  - Select an existing workspace: Keep selection instructions, but make the **New workspace…** alternative separate numbered actions: choose the folder, reopen the workspace information card by clicking the workspace name in the status bar, click the newly added workspace entry, and check that the status bar shows the chosen workspace.
+  - Open a project file: Keep the existing instructions and screenshot for locating and opening a file.
+  - Refresh the folder tree: Keep the existing instructions for refreshing the displayed files.
+  - Troubleshooting: Preserve the existing problems and guidance without adding new claims.
+  - Related pages: Preserve the existing links and their purposes.
+- Troubleshooting: “Select a workspace.”; “This workspace is not a Git repository.”; “The list is too long: only the first files are shown.”
+- Related pages: `create_a_file_or_folder.md`, `copy_a_file_path.md`, `files_sidebar_section_controls.md`, `shortcuts.md`.
+- Leave out: Workspace creation implementation, unrelated workspace management, new screenshots, and changes beyond the missing workspace-selection step.
+
+### create_a_file_or_folder.md
+
+- Action: keep
+- Page type: how-to
+- Title: Create a file or folder
+- Reader goal: Create an empty file or folder in the intended repository folder.
+- Sources: `docs/agents_rules/user_interface/sidebars/files.md`; `docs/agents_rules/glossary.md`.
+- Sections:
+  - Choose the destination: Preserve the existing destination choices.
+  - Create the file or folder: Preserve the existing creation instructions and screenshot.
+  - Cancel creation: Preserve the existing cancellation instructions.
+  - Troubleshooting: Preserve the existing duplicate-name and invalid-name guidance.
+  - Related pages: Preserve the existing links and their purposes.
+- Troubleshooting: “un fichier ou dossier porte déjà ce nom” appears and the name box stays open; “A name cannot contain the character /. Select a folder first.” appears.
+- Related pages: `browse_project_files.md`, `copy_a_file_path.md`, `files_sidebar_section_controls.md`.
+- Leave out: All changes to this page; neither verified correction requires an edit here.
+
+### copy_a_file_path.md
+
+- Action: change
+- Page type: how-to
+- Title: Copy a file path
+- Reader goal: Choose and copy a file path for use outside Heidrun.
+- Sources: `docs/agents_rules/user_interface/sidebars/files.md`; `docs/agents_rules/glossary.md`; captured [files.rs](/Users/jetienne/webwork/heidrun/tmp/web_doc_by_ai/workspace/packages/apps/desktop_tauri/src/files.rs:121), [files.ts](/Users/jetienne/webwork/heidrun/tmp/web_doc_by_ai/workspace/packages/apps/web_frontend/src/stores/files.ts:202), and [FilesPanel.vue](/Users/jetienne/webwork/heidrun/tmp/web_doc_by_ai/workspace/packages/apps/web_frontend/src/components/FilesPanel.vue:313). **Source conflict:** the Files rule says workspace-relative, but the captured implementation and preserved live verification confirm repository-relative copying; follow the verified correction without editing the rule.
+- Sections:
+  - Choose the path format: Define the Git repository root as the repository’s top folder and explain that, with repository `/Users/alex/projects/example` and workspace `/Users/alex/projects/example/docs`, copying the file `README.md` inside `docs` produces relative path `docs/README.md` and absolute path `/Users/alex/projects/example/docs/README.md`.
+  - Copy the path: Preserve the existing instructions and screenshot, keeping the notification example `Copied: docs/README.md` consistent with the repository-subfolder example.
+  - Troubleshooting: Preserve the existing guidance for a folder row without a path-copy menu.
+  - Related pages: Preserve the existing links and their purposes.
+- Troubleshooting: The path-copy menu does not appear when a folder row is right-clicked.
+- Related pages: `browse_project_files.md`, `create_a_file_or_folder.md`, `files_sidebar_section_controls.md`.
+- Leave out: Internal path calculations, exact notification duration, new screenshots, and unrelated revisions.
+
+### files_sidebar_section_controls.md
+
+- Action: change
+- Page type: reference
+- Title: Files sidebar section controls
+- Reader goal: Look up the Files sidebar section’s controls and indicators.
+- Sources: `docs/agents_rules/user_interface/sidebars/files.md`; `docs/agents_rules/glossary.md`; captured [files.rs](/Users/jetienne/webwork/heidrun/tmp/web_doc_by_ai/workspace/packages/apps/desktop_tauri/src/files.rs:121) and [FilesPanel.vue](/Users/jetienne/webwork/heidrun/tmp/web_doc_by_ai/workspace/packages/apps/web_frontend/src/components/FilesPanel.vue:313) confirm repository-relative copying, contrary to the workspace-relative wording in the Files rule.
+- Sections:
+  - Header buttons: Preserve the existing table and screenshot.
+  - Row and name box actions: Preserve the existing action table.
+  - More options: Preserve the existing appearance-choice table.
+  - File context menu: Change **Copy relative path** to mean the path from the Git repository’s top folder, including the concise example that a workspace ending in `/docs` still copies `docs/README.md`.
+  - Folder tree indicators: Preserve the existing indicator table.
+  - Selection: Preserve the existing selection descriptions.
+  - Ignored files: Preserve the existing description and links.
+  - Related pages: Preserve the existing links and their purposes.
+- Troubleshooting: none; this reference page links to the existing how-to guidance.
+- Related pages: `browse_project_files.md`, `create_a_file_or_folder.md`, `copy_a_file_path.md`.
+- Leave out: Copying steps and extended examples covered by Copy a file path, internal implementation details, new screenshots, and unrelated revisions.
+
+### Sidebar
+
+Preserve the existing groups and order; no configuration change is needed.
+
+1. **Documentation**
+   - Introduction — `index.md` — unchanged and outside the correction scope.
+   - Keyboard shortcuts — `shortcuts.md` — unchanged and outside the correction scope.
+2. **Files**
+   - Browse and open project files — `browse_project_files.md`.
+   - Create a file or folder — `create_a_file_or_folder.md`.
+   - Copy a file path — `copy_a_file_path.md`.
+   - Files sidebar section controls — `files_sidebar_section_controls.md`.

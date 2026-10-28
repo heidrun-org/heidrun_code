@@ -14,7 +14,7 @@ import {
   type ChatAgent,
 } from "../stores/chats";
 import { chatReferences } from "../lib/chat_references";
-import { dynamicTopicBarTopics, dynamicTopicChatCounts } from "../lib/dynamic_topic_bar";
+import { dynamicTopicBarTopics, dynamicTopicChatCounts, withoutCommonTopics } from "../lib/dynamic_topic_bar";
 import { chatSummaryLines } from "../lib/chat_summary";
 import { EMPTY_CONTEXT, refContext, type RefContext } from "../lib/refs";
 import { clusteredTopicsByChat } from "../lib/topic_clusters";
@@ -32,6 +32,7 @@ import ChatWorktreesLine from "./ChatWorktreesLine.vue";
 import ChatReferencesLine from "./ChatReferencesLine.vue";
 import ChatsSortMenu from "./ChatsSortMenu.vue";
 import DynamicTopicBar from "./DynamicTopicBar.vue";
+import TopicTimelineModal from "./TopicTimelineModal.vue";
 import Icon from "./Icon.vue";
 import { openChatInApp, openChatInHeidrun } from "../stores/chat_open";
 
@@ -154,10 +155,13 @@ const rawTopics = computed(() => {
 
 /**
  * The dynamic topics that the rows and the dynamic topic bar show, by identifier of chat. They are the raw dynamic topics,
- * or the clustered dynamic topics when the option "Clustered dynamic topics" is on.
+ * or the clustered dynamic topics when the option "Clustered dynamic topics" is on, without the topics that more than half
+ * of the chats have.
  */
 const topics = computed(() =>
-  settings.clusteredDynamicTopics ? clusteredTopicsByChat(rawTopics.value, topicClusterTable.value) : rawTopics.value,
+  withoutCommonTopics(
+    settings.clusteredDynamicTopics ? clusteredTopicsByChat(rawTopics.value, topicClusterTable.value) : rawTopics.value,
+  ),
 );
 
 /** The topics of the dynamic topic bar, the strongest first. */
@@ -196,6 +200,15 @@ const rows = computed(() =>
     }))
     .filter((row) => activeTopic.value === null || row.topics.includes(activeTopic.value)),
 );
+
+/** True while the topic timeline is open. */
+const isTopicTimelineOpen = ref(false);
+
+/** Opens the chat of a dot of the topic timeline in Heidrun Code, and closes the topic timeline. */
+function openTimelineChat(chat: (typeof shownChats.value)[number]): void {
+  isTopicTimelineOpen.value = false;
+  openChatInHeidrun(agent.value, chat, chats.folder);
+}
 
 /** The coding agent of the selector. */
 const agent = computed<ChatAgent>({
@@ -258,6 +271,16 @@ const VIEWS = [
               </label>
             </div>
             <div class="d-flex align-items-center gap-2">
+              <button
+                v-if="barTopics.length > 0"
+                type="button"
+                class="btn"
+                :title="t('chatsPanel.topicTimelineTitle')"
+                :aria-label="t('chatsPanel.topicTimelineTitle')"
+                @click="isTopicTimelineOpen = true"
+              >
+                <Icon name="bar-chart-steps" />
+              </button>
               <ChatsSortMenu />
               <div class="btn-group" role="group" :aria-label="t('chatsPanel.viewLabel')">
                 <label v-for="choice in VIEWS" :key="choice.id" class="btn btn-check" :title="t(choice.title)">
@@ -381,6 +404,13 @@ const VIEWS = [
         </div>
       </template>
     </div>
+    <TopicTimelineModal
+      v-if="isTopicTimelineOpen"
+      :chats="shownChats"
+      :topics="topics"
+      @close="isTopicTimelineOpen = false"
+      @open="openTimelineChat"
+    />
   </section>
 </template>
 

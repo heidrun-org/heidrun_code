@@ -9,7 +9,7 @@
 //! goes through the login shell, so the commands that the developer installed are found, and Heidrun Code never reads or stores
 //! the login.
 
-use coding_agent_cli::{ask, AgentShell};
+use coding_agent_cli::{ask_light, AgentShell};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -17,8 +17,9 @@ use std::path::{Path, PathBuf};
 /// The name of the file of the translation table, in the folder of the data of Heidrun Code.
 const TABLE_FILE: &str = "topic_clusters.json";
 
-/// The version of the content of the file. A file with another version is thrown away: the table starts empty.
-const TABLE_VERSION: u32 = 1;
+/// The version of the content of the file. A file with another version is thrown away: the table starts empty. The version
+/// 2 throws away the wide clusters of the version 1, such as "software" or "interface" (issue 270).
+const TABLE_VERSION: u32 = 2;
 
 /// How long the call waits for the answer, in seconds.
 const ANSWER_TIMEOUT: u64 = 180;
@@ -85,11 +86,11 @@ pub fn topic_clusters_write(rows: BTreeMap<String, String>) -> Result<(), String
     write_rows(&table_path(), &rows)
 }
 
-/// Sends `prompt` to `codex` when it is installed, and to `claude` otherwise. The error `no_coding_agent` says that
-/// neither is installed.
+/// Sends `prompt` to `codex` when it is installed, and to `claude` otherwise, as a light call: a cheaper model when the
+/// coding agent allows it, and no saved chat (issue 269). The error `no_coding_agent` says that neither is installed.
 #[tauri::command]
 pub async fn coding_agent_ask(prompt: String) -> Result<CodingAgentAnswer, String> {
-    let answer = ask(&AgentShell::login(), None, &prompt, Some(&agent_folder()), Some(ANSWER_TIMEOUT)).await?;
+    let answer = ask_light(&AgentShell::login(), None, &prompt, Some(&agent_folder()), Some(ANSWER_TIMEOUT)).await?;
     Ok(CodingAgentAnswer { agent: answer.agent, text: answer.text })
 }
 
@@ -116,6 +117,8 @@ mod tests {
         let path = folder.join(TABLE_FILE);
         assert!(read_rows(&path).is_empty());
         std::fs::write(&path, "not json").unwrap();
+        assert!(read_rows(&path).is_empty());
+        std::fs::write(&path, "{\"version\":1,\"rows\":{\"modal\":\"interface\"}}").unwrap();
         assert!(read_rows(&path).is_empty());
         std::fs::write(&path, "{\"version\":99,\"rows\":{\"a\":\"b\"}}").unwrap();
         assert!(read_rows(&path).is_empty());

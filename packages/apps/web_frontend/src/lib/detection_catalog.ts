@@ -127,7 +127,7 @@ export class DetectionCatalog {
 					id: 'hash',
 					patterns: [{ id: 'finds', regex: DetectionPatterns.HASH }],
 					found: ['fix #12', '(#569)'],
-					notFound: ['a &#39; b', 'C#12', 'https://example.com/page#12'],
+					notFound: ['a &#39; b', 'C#12', 'https://example.com/page#12', '[Image #1]'],
 					pane: 'any',
 					need: 'repository',
 					forge: 'github',

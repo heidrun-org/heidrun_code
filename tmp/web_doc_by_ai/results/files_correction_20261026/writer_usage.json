@@ -1,0 +1,11 @@
+{
+  "usage": {
+    "input_tokens": 364336,
+    "cached_input_tokens": 323072,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2451,
+    "reasoning_output_tokens": 437
+  },
+  "cost": null,
+  "cost_status": "Codex did not report a monetary charge."
+}

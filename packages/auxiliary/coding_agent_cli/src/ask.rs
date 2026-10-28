@@ -36,12 +36,25 @@ struct Invocation {
 /// How to run `agent` with `prompt`. `claude` and `codex` read the prompt on their standard input. `agy` does not: its option
 /// `-p` takes the prompt as its value, and `-p -` would send the text `-`. `codex exec` refuses to run outside a trusted Git
 /// repository without `--skip-git-repo-check`, so the flag is always given.
-fn invocation_of(agent: &str, prompt: &str) -> Invocation {
+///
+/// A light call is a short labelling job that runs in the background. `claude` runs with the small model `haiku`, a low
+/// effort, no tool, and no saved chat: one call cost 0.0026 dollar instead of 0.16 dollar with the default model (issue
+/// 269). `codex` runs with a low effort and no saved chat, with its default model, because a model name of `codex` can be
+/// missing from the plan of the developer. `agy` has no such options and runs as for a normal call.
+fn invocation_of(agent: &str, prompt: &str, is_light: bool) -> Invocation {
     let words = |words: &[&str]| words.iter().map(|word| word.to_string()).collect::<Vec<String>>();
-    match agent {
-        "claude" => Invocation { arguments: words(&["-p"]), standard_input: Some(prompt.as_bytes().to_vec()) },
-        "agy" => Invocation { arguments: vec!["-p".to_string(), prompt.to_string()], standard_input: None },
-        _ => Invocation { arguments: words(&["exec", "--skip-git-repo-check", "-"]), standard_input: Some(prompt.as_bytes().to_vec()) },
+    match (agent, is_light) {
+        ("claude", false) => Invocation { arguments: words(&["-p"]), standard_input: Some(prompt.as_bytes().to_vec()) },
+        ("claude", true) => Invocation {
+            arguments: words(&["-p", "--model", "haiku", "--effort", "low", "--tools", "", "--no-session-persistence"]),
+            standard_input: Some(prompt.as_bytes().to_vec()),
+        },
+        ("agy", _) => Invocation { arguments: vec!["-p".to_string(), prompt.to_string()], standard_input: None },
+        (_, false) => Invocation { arguments: words(&["exec", "--skip-git-repo-check", "-"]), standard_input: Some(prompt.as_bytes().to_vec()) },
+        (_, true) => Invocation {
+            arguments: words(&["exec", "--skip-git-repo-check", "--ephemeral", "-c", "model_reasoning_effort=\"low\"", "-"]),
+            standard_input: Some(prompt.as_bytes().to_vec()),
+        },
     }
 }
 
@@ -91,8 +104,33 @@ pub async fn ask(
     folder: Option<&Path>,
     timeout: Option<u64>,
 ) -> Result<Answer, String> {
+    ask_with(shell, agent, prompt, folder, timeout, false).await
+}
+
+/// Sends `prompt` to a coding agent as a light call: a short labelling job that runs in the background, on a cheaper model
+/// when the coding agent allows it, and that leaves no chat in the history of the coding agent. The arguments and the
+/// answer are the ones of `ask`.
+pub async fn ask_light(
+    shell: &AgentShell,
+    agent: Option<&str>,
+    prompt: &str,
+    folder: Option<&Path>,
+    timeout: Option<u64>,
+) -> Result<Answer, String> {
+    ask_with(shell, agent, prompt, folder, timeout, true).await
+}
+
+/// Runs `ask` or `ask_light`: `is_light` chooses the arguments of the light call.
+async fn ask_with(
+    shell: &AgentShell,
+    agent: Option<&str>,
+    prompt: &str,
+    folder: Option<&Path>,
+    timeout: Option<u64>,
+    is_light: bool,
+) -> Result<Answer, String> {
     let agent = choose(shell, agent).await?;
-    let invocation = invocation_of(agent, prompt);
+    let invocation = invocation_of(agent, prompt, is_light);
     let mut command = shell.command("exec \"$0\" \"$@\"", &[]);
     command.arg(agent).args(&invocation.arguments);
     command.stdin(if invocation.standard_input.is_some() { Stdio::piped() } else { Stdio::null() });
@@ -128,6 +166,26 @@ pub async fn ask(
 mod tests {
     use super::*;
     use crate::fake_commands::{FakeCommands, ECHO_SCRIPT};
+
+    #[tokio::test]
+    async fn runs_a_light_call_of_codex_with_a_low_effort_and_no_saved_chat() {
+        let fake = FakeCommands::new("light_codex", &[("codex", ECHO_SCRIPT)]);
+        let answer = ask_light(&fake.shell, None, "the prompt", Some(&fake.working_folder()), Some(20)).await.unwrap();
+        assert_eq!(
+            answer.text,
+            "arguments:exec --skip-git-repo-check --ephemeral -c model_reasoning_effort=\"low\" -\nstandard input:the prompt"
+        );
+    }
+
+    #[tokio::test]
+    async fn runs_a_light_call_of_claude_with_haiku_no_tool_and_no_saved_chat() {
+        let fake = FakeCommands::new("light_claude", &[("claude", ECHO_SCRIPT)]);
+        let answer = ask_light(&fake.shell, Some("claude"), "the prompt", None, Some(20)).await.unwrap();
+        assert_eq!(
+            answer.text,
+            "arguments:-p --model haiku --effort low --tools  --no-session-persistence\nstandard input:the prompt"
+        );
+    }
 
     #[tokio::test]
     async fn runs_codex_with_the_prompt_on_the_standard_input_when_both_exist() {

@@ -163,12 +163,24 @@ describe("prepareLanguageModelTopics", () => {
 
   it("makes no call for a chat whose last message did not change, and asks again when it changed", async () => {
     installBackend(answerWith(() => ["cache"]));
-    const { prepareLanguageModelTopics } = await startRun("languageModel");
+    const { prepareLanguageModelTopics, REFRESH_AFTER } = await startRun("languageModel");
     await prepareLanguageModelTopics([chatOf("a", "Fix the cache", 100)]);
     await prepareLanguageModelTopics([chatOf("a", "Fix the cache", 100)]);
     expect(calls()).toBe(1);
-    await prepareLanguageModelTopics([chatOf("a", "Fix the cache", 200)]);
+    await prepareLanguageModelTopics([chatOf("a", "Fix the cache", 100 + REFRESH_AFTER)]);
     expect(calls()).toBe(2);
+  });
+
+  it("does not ask again for a running chat whose last message is newer by less than 30 minutes (issue 269)", async () => {
+    installBackend(answerWith(() => ["cache"]));
+    const { prepareLanguageModelTopics, REFRESH_AFTER } = await startRun("languageModel");
+    expect(REFRESH_AFTER).toBe(30 * 60 * 1000);
+    await prepareLanguageModelTopics([chatOf("a", "Fix the cache", 100)]);
+    for (let seconds = 10; seconds <= 120; seconds += 10) {
+      await prepareLanguageModelTopics([chatOf("a", "Fix the cache", 100 + seconds * 1000)]);
+    }
+    await prepareLanguageModelTopics([chatOf("a", "Fix the cache", 100 + REFRESH_AFTER - 1)]);
+    expect(calls()).toBe(1);
   });
 
   it("asks only about the chats that have no fresh topics, and gives the existing topics in the prompt", async () => {
@@ -192,7 +204,7 @@ describe("prepareLanguageModelTopics", () => {
         release = resolve;
       }),
     }));
-    const changed = [chatOf("a", "Fix the cache", 200)];
+    const changed = [chatOf("a", "Fix the cache", 100 + 30 * 60 * 1000)];
     const pending = prepareLanguageModelTopics(changed);
     expect(languageModelTopicsOf(changed).get("a")).toEqual(["cache"]);
     release('[{"conversation": 1, "topics": ["sidebar"]}]');
@@ -236,7 +248,7 @@ describe("prepareLanguageModelTopics", () => {
     installBackend(async () => {
       throw "no_coding_agent";
     });
-    const changed = [chatOf("a", "Fix the cache", 200)];
+    const changed = [chatOf("a", "Fix the cache", 100 + 30 * 60 * 1000)];
     await prepareLanguageModelTopics(changed);
     expect(languageModelStatus.error).toBe("noCodingAgent");
     expect(languageModelTopicsOf(changed).get("a")).toEqual(["cache"]);

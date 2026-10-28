@@ -1,9 +1,12 @@
 {
   "title": "Images de la conversation",
-  "noChat": "Le panneau sélectionné ne montre aucune conversation de Claude Code.",
+  "noChat": "Le panneau sélectionné ne montre aucune conversation de Claude Code ou de Codex.",
+  "codexWithoutChat": "Heidrun Code trouve la conversation d’un panneau Codex grâce au titre que Codex donne à la conversation. Cette conversation n’a pas encore de titre : envoyez un premier message.",
   "noImage": "La conversation du panneau sélectionné n’a aucune image.",
   "failed": "Les images ne peuvent pas être lues : {error}",
   "imageName": "[Image #{number}]",
+  "imageNameInMessage": "Message {message} · [Image #{number}]",
+  "messageName": "Message {message}",
   "openLarge": "Ouvrir en grand",
   "viewerLabel": "Vue en grand des images de la conversation",
   "previous": "Image précédente",

@@ -28,6 +28,7 @@ const STOP_WORDS = new Set(
   won would wouldn yes yet you your yours yourself
   add added adds fix fixed fixes get gets got going give know look make makes made need needs okay please pull request
   requests say see show sure take thing things think try want wants way work works issue issues
+  anywhere better blah hello little poor pound silly strange twice whole
   alors apres assez aucun aupres aussi autre autres avec avoir avons avez beaucoup bien car cela celui ceci cette ces
   chaque comme comment dans dedans dehors depuis donc dont elle elles encore entre est etre faire fait faut fois
   jamais leur leurs mais meme moins mon mes nous notre nos oui parce pas pour plus puis quand que quel quelle quels
@@ -39,7 +40,7 @@ const STOP_WORDS = new Set(
 );
 
 /**
- * The word without its plural mark: "topics" gives "topic", "branches" gives "branch", "queries" gives "query". A word
+ * The word without its plural mark: "topics" gives "topic", "branches" gives "branch", "queries" gives "query", "caches" gives "cache". A word
  * that ends with "ss", "us", or "is" keeps its end, because the end is part of the word ("status", "process").
  * @param word - one word in lower case
  * @returns the word in the singular
@@ -50,6 +51,9 @@ export function singularOf(word: string): string {
   }
   if (word.length > 4 && word.endsWith("ies")) {
     return `${word.slice(0, -3)}y`;
+  }
+  if (word.endsWith("caches")) {
+    return word.slice(0, -1);
   }
   if (/(x|ch|sh|ss)es$/.test(word)) {
     return word.slice(0, -2);

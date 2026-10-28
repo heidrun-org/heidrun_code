@@ -35,6 +35,7 @@ const REF_COLORS_LIGHT: typeof REF_COLORS = {
 import { FONT_DEFAULT, fontStack, settings } from "../stores/settings";
 import { selectionReaders } from "../stores/notes";
 import { ImageDrop } from "../lib/image_drop";
+import { ChatImageHover } from "../stores/chat_image_hover";
 
 const props = defineProps<{
   terminalId: string;
@@ -308,6 +309,8 @@ watch(
 
 let webLinks: WebLinksAddon | null = null;
 let detectionProvider: IDisposable | null = null;
+// The texts [Image #N] of the chat, with their image under the pointer (issue #924).
+let chatImageProvider: IDisposable | null = null;
 
 /** The detection families that are on now. The switches are read each time, so a change applies at once. */
 function enabledFamilies() {
@@ -359,6 +362,8 @@ function buildLinkProviders() {
     term.loadAddon(webLinks);
   }
   detectionProvider = term.registerLinkProvider({ provideLinks: provideDetectionLinks });
+  chatImageProvider?.dispose();
+  chatImageProvider = term.registerLinkProvider(ChatImageHover.createLinkProvider(term, () => props.paneId));
 }
 
 /**
@@ -949,6 +954,8 @@ onBeforeUnmount(() => {
   window.clearTimeout(chipTimer);
   webLinks?.dispose();
   detectionProvider?.dispose();
+  chatImageProvider?.dispose();
+  ChatImageHover.hide();
   for (const y of [...rows.keys()]) clearRow(y);
   el.value?.removeEventListener("wheel", onWheel, { capture: true });
   el.value?.removeEventListener("copy", onCopy, true);

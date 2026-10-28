@@ -23,6 +23,8 @@ import ColumnOfPinnedPanes from "./components/ColumnOfPinnedPanes.vue";
 import ShortcutsModal from "./components/ShortcutsModal.vue";
 import MosaicModal from "./components/MosaicModal.vue";
 import ImageViewer from "./components/ImageViewer.vue";
+import ChatImageHoverPreview from "./components/ChatImageHoverPreview.vue";
+import { ChatImagesFollower } from "./stores/chat_images_follower";
 import { CompositionBar, compositionBarsByPane } from './stores/composition_bar';
 import { mosaic } from "./stores/mosaic";
 import { activePaneId, allPinnedPanes } from "./stores/pinned_panes";
@@ -316,6 +318,8 @@ onMounted(async () => {
   start();
   startProjects();
   startMacros();
+  // The images of the chat of the selected pane, for the texts [Image #N] of the terminals (issue #924).
+  ChatImagesFollower.start();
   startGit();
   startGitBackgroundFetch();
   startAlerts();
@@ -415,6 +419,7 @@ onBeforeUnmount(() => {
     <ShortcutsModal v-if="state.shortcutsOpen" />
     <MosaicModal v-if="mosaic.paneId" />
     <ImageViewer v-if="compositionViewerPaneId !== null" :pane-id="compositionViewerPaneId" />
+    <ChatImageHoverPreview />
     <AgentsInformationModal v-if="agentsInformationModal.open" />
     <NewCustomLauncherModal v-if="newCustomLauncherModal.open" />
     <SavedSearchModal v-if="savedSearchModal.open" />

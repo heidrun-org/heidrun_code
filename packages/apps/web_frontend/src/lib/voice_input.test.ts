@@ -212,6 +212,7 @@ describe("VoiceInput.press and VoiceInput.release: a long press", () => {
 		passTime(LONG_PRESS_MILLISECONDS + 100);
 		await VoiceInput.release(false, 'pane-1');
 		expect(commandNames()).toEqual(["voice_start_recording", "voice_stop_recording", "voice_transcribe_recording"]);
+		expect(invokeMock.mock.calls[0][1]).toEqual({ modelId: "base", language: "auto" });
 		expect(invokeMock.mock.calls[1][1]).toBeUndefined();
 		expect(invokeMock.mock.calls[2][1]).toEqual({ recordingId: RECORDING_ID, modelId: "base", language: "auto" });
 		expect(compositionBar.text).toBe("Run the tests again.");
@@ -225,6 +226,7 @@ describe("VoiceInput.press and VoiceInput.release: a long press", () => {
 		await VoiceInput.press('pane-1');
 		passTime(LONG_PRESS_MILLISECONDS);
 		await VoiceInput.release(false, 'pane-1');
+		expect(invokeMock.mock.calls[0][1]).toEqual({ modelId: "base", language: "fr" });
 		expect(invokeMock.mock.calls[2][1]).toEqual({ recordingId: RECORDING_ID, modelId: "base", language: "fr" });
 	});
 
@@ -515,7 +517,7 @@ describe("VoiceInput.settle", () => {
 		const starting = VoiceInput.press('pane-1');
 		expect(voiceInput.state).toBe("starting");
 		const settling = VoiceInput.settle('pane-1');
-		await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith("voice_start_recording"));
+		await vi.waitFor(() => expect(commandNames()).toContain("voice_start_recording"));
 		openMicrophone();
 		expect(await settling).toBe(true);
 		await starting;

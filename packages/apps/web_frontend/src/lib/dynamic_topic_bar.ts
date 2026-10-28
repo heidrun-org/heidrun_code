@@ -1,7 +1,7 @@
 /** How many topics one click on an arrow of the dynamic topic bar shows. */
 export const TOPICS_PER_CLICK = 3;
 
-/** The width, in pixels, of the part of the bar that an arrow and its fade cover. A topic under it counts as hidden. */
+/** The width, in pixels, of the part of the bar that an arrow and its fade cover (the arrow band of `DynamicTopicBar.vue`). A topic under it counts as hidden. */
 export const ARROW_ZONE = 44;
 
 /** The place of one button of the dynamic topic bar inside the strip that holds the buttons, in pixels. */
@@ -60,6 +60,28 @@ export function dynamicTopicChatCounts(topicsByChat: Map<string, string[]>): Map
     }
   }
   return counts;
+}
+
+/** The fewest chats in the list for which a topic that most chats have is hidden. A short list has too few chats to judge. */
+export const FEWEST_CHATS_TO_HIDE_COMMON_TOPICS = 6;
+
+/**
+ * The topics of each chat without the topics that more than half of the chats have. Such a topic cannot separate the
+ * chats, so it does not help the developer to find a chat (issue 270). A list of fewer than
+ * `FEWEST_CHATS_TO_HIDE_COMMON_TOPICS` chats keeps every topic.
+ * @param topicsByChat - the topics of each chat that the list shows
+ * @returns the topics of each chat, in the same order, without the common topics
+ */
+export function withoutCommonTopics(topicsByChat: Map<string, string[]>): Map<string, string[]> {
+  if (topicsByChat.size < FEWEST_CHATS_TO_HIDE_COMMON_TOPICS) {
+    return topicsByChat;
+  }
+  const counts = dynamicTopicChatCounts(topicsByChat);
+  const result = new Map<string, string[]>();
+  for (const [id, topics] of topicsByChat) {
+    result.set(id, topics.filter((topic) => (counts.get(topic) ?? 0) * 2 <= topicsByChat.size));
+  }
+  return result;
 }
 
 /** A number kept between a lowest and a highest value. */

@@ -8,13 +8,22 @@ Find a file in the selected workspace and view the file in the large Git window.
 <!-- source: docs/agents_rules/user_interface/workspaces_tabs_and_panes/workspace.md -->
 <!-- source: docs/agents_rules/glossary.md -->
 <!-- source: packages/apps/web_frontend/src/components/WorkspaceStatusSummary.vue -->
+<!-- source: packages/apps/web_frontend/src/stores/session.ts -->
 
 A workspace is a project folder. Choose a workspace that contains a Git repository.
 
 1. Click the workspace name at the left end of the status bar to open the workspace information card, a small card with details and a list of workspaces.
-2. Click the workspace you want in the list below the details. If no suitable workspace is listed, click **New workspace…** at the end of the workspace information card and choose the repository folder.
+2. Click the workspace you want in the list below the details.
 
 The workspace information card closes, and the status bar shows the selected workspace name.
+
+If no suitable workspace is listed, add and select a workspace:
+
+1. Click **New workspace…** at the end of the workspace information card.
+2. Choose the repository folder in the folder chooser.
+3. Click the workspace name in the status bar to reopen the workspace information card.
+4. Click the newly added workspace entry in the list below the details.
+5. Check that the status bar shows the chosen workspace name.
 
 ## Open a project file
 <!-- source: docs/agents_rules/user_interface/sidebars/files.md -->

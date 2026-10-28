@@ -31,7 +31,7 @@ This file gives the rule for every agent that changes the Past chats sidebar sec
 | Statistics: User activity | `user_activity_synchronize` | `user_activity_records_in_range` | `data_layer_user_activity` |
 | Statistics: Git history | `person_work_synchronize` | `person_work_in_range` | `data_layer_source_control`, `data_layer_code_hosting` |
 | Statistics: AI cost | `ai_cost_synchronize` | `ai_cost_in_range` | `data_layer_coding_agents` |
-| Clipboard: the images of a chat | none | `chat_images_find` | `data_layer_coding_agents` |
+| Clipboard: the images of a chat | none | `chat_images_find`, `chat_images_find_codex_chat` | `data_layer_coding_agents` |
 
 The commands are in the folders `past_chats`, `statistics`, and `chat_images` of `packages/apps/desktop_tauri/src`.
 

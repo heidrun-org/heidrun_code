@@ -121,7 +121,7 @@ export class TauriMock {
 				return true;
 			case 'chat_images_find':
 				return {
-					numbers: [],
+					keys: [],
 					images: [],
 				};
 			case 'chat_references_synchronize':

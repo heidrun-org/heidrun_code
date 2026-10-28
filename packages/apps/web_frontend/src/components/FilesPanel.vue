@@ -22,6 +22,7 @@ import {
   filesPanelIgnoredChildren,
   filesPanelNewFolders,
   filesPanelSelections,
+  isInFolderReadFromDisk,
   isInIgnoredFolder,
   loadExpandedIgnoredFolders,
   loadFiles,
@@ -57,6 +58,7 @@ const tree = computed(() => buildTree(
   files.list,
   [...(filesPanelNewFolders[files.root] ?? []), ...files.submodules],
   files.ignored,
+  files.linkedFolders,
 ));
 const rows = computed(() => visibleRows(tree.value, files.expanded, files.status, filesPanelIgnoredChildren));
 
@@ -253,8 +255,9 @@ async function submitNaming() {
   const folders = new Set(files.expanded);
   if (current.kind === "dir") {
     folders.add(path);
-    // A new folder inside a folder that Git ignores shows from the disk, so the tree does not remember it.
-    if (isInIgnoredFolder(path) === false) {
+    // A new folder inside a folder that Git ignores, or inside a symbolic link to a folder, shows from the disk, so the
+    // tree does not remember it.
+    if (isInFolderReadFromDisk(path) === false) {
       filesPanelNewFolders[files.root] = [...(filesPanelNewFolders[files.root] ?? []), path];
     }
   }
@@ -283,7 +286,8 @@ function refresh() {
 }
 
 /**
- * Folds or unfolds a folder. A folder that Git ignores unfolds after the program reads its first level from the disk.
+ * Folds or unfolds a folder. A folder that Git ignores, and a symbolic link to a folder, unfold after the program reads
+ * their first level from the disk.
  * @param row - The row of the folder.
  */
 async function toggleFolder(row: TreeRow) {
@@ -293,7 +297,7 @@ async function toggleFolder(row: TreeRow) {
     files.expanded = folded;
     return;
   }
-  if (row.isGitIgnored && (await loadIgnoredFolder(row.path)) === false) {
+  if (row.ignored && (await loadIgnoredFolder(row.path)) === false) {
     toast(t("filesPanel.cannotReadFolder"), "error");
     return;
   }
