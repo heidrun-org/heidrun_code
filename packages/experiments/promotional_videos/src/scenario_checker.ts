@@ -1,5 +1,5 @@
-import { GameSettings, GameWorld } from 'parallax_dino_runner';
-import type { CommitRecord } from 'parallax_dino_runner';
+import { GameSettings, GameWorld } from 'git_runner';
+import type { CommitRecord } from 'git_runner';
 import type { DinoRunScenario, ScenarioEvent, ScenarioReport } from './dino_run_types.ts';
 
 ///////////////////////////////////////////////////////////////////////////////

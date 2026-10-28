@@ -1,36 +1,39 @@
 <script setup lang="ts">
 // The File explorer sidebar section of the left sidebar: the whole folder tree of the Git repository of the selected
-// workspace. A click on a folder folds or unfolds it. A click on a file opens it in the Files window. The only
+// workspace. A click on a folder folds or unfolds it. A click on a file opens it in a file view pane. The only
 // changes that the section makes are a new empty file and a new empty folder. It has no button to rename, move,
 // delete, or edit a file. A right click on the row of a file or of a folder opens a context menu that copies the
-// absolute path or the relative path to the clipboard. The option "Ignored files" of the menu shows the files and the
-// folders that Git ignores, in the muted color. A folder that Git ignores unfolds one level at a time.
+// absolute path or the relative path to the clipboard, and starts a chat about the file. The option "Ignored files" of
+// the menu shows the files and the folders that Git ignores, in the muted color. A folder that Git ignores unfolds one
+// level at a time.
 // - issue #349
 // - issue #383
 // - issue #430
 // - issue #443
+// - issue #854
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import Icon from "./Icon.vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
-import { currentGit, openGitModal } from "../stores/git";
+import { currentGit } from "../stores/git";
 import {
   buildTree,
   files,
   filesPanelIgnoredChildren,
   filesPanelNewFolders,
   filesPanelSelections,
+  isInFolderReadFromDisk,
   isInIgnoredFolder,
   loadExpandedIgnoredFolders,
   loadFiles,
   loadIgnoredFolder,
-  openFiles,
   visibleRows,
   type TreeRow,
 } from "../stores/files";
 import { FileViewPanes } from "../stores/file_view_panes";
 import { state, toast } from "../stores/session";
 import { settings } from "../stores/settings";
+import { chatAboutFile } from "../stores/chat_open";
 import { fileIconName } from "../lib/chat_files";
 import { copy } from "../lib/clipboard";
 import { t } from "../i18n/index";
@@ -55,6 +58,7 @@ const tree = computed(() => buildTree(
   files.list,
   [...(filesPanelNewFolders[files.root] ?? []), ...files.submodules],
   files.ignored,
+  files.linkedFolders,
 ));
 const rows = computed(() => visibleRows(tree.value, files.expanded, files.status, filesPanelIgnoredChildren));
 
@@ -251,8 +255,9 @@ async function submitNaming() {
   const folders = new Set(files.expanded);
   if (current.kind === "dir") {
     folders.add(path);
-    // A new folder inside a folder that Git ignores shows from the disk, so the tree does not remember it.
-    if (isInIgnoredFolder(path) === false) {
+    // A new folder inside a folder that Git ignores, or inside a symbolic link to a folder, shows from the disk, so the
+    // tree does not remember it.
+    if (isInFolderReadFromDisk(path) === false) {
       filesPanelNewFolders[files.root] = [...(filesPanelNewFolders[files.root] ?? []), path];
     }
   }
@@ -260,7 +265,7 @@ async function submitNaming() {
   select(path, current.kind === "dir");
   await loadTree(files.root);
   if (current.kind === "file") {
-    openGitModal(path);
+    void FileViewPanes.open(`${files.root}/${path}`);
   }
 }
 
@@ -281,7 +286,8 @@ function refresh() {
 }
 
 /**
- * Folds or unfolds a folder. A folder that Git ignores unfolds after the program reads its first level from the disk.
+ * Folds or unfolds a folder. A folder that Git ignores, and a symbolic link to a folder, unfold after the program reads
+ * their first level from the disk.
  * @param row - The row of the folder.
  */
 async function toggleFolder(row: TreeRow) {
@@ -291,7 +297,7 @@ async function toggleFolder(row: TreeRow) {
     files.expanded = folded;
     return;
   }
-  if (row.isGitIgnored && (await loadIgnoredFolder(row.path)) === false) {
+  if (row.ignored && (await loadIgnoredFolder(row.path)) === false) {
     toast(t("filesPanel.cannotReadFolder"), "error");
     return;
   }
@@ -306,18 +312,8 @@ function chooseRow(row: TreeRow) {
     toggleFolder(row);
     return;
   }
-  void openFileInPane(row.path);
-}
-
-/**
- * Shows a file in a file view pane, read only. Without a selected pane to put it next to, the Files window opens the file.
- * Issue: https://github.com/heidrun-org/heidrun/issues/714
- */
-async function openFileInPane(path: string) {
-  if (await FileViewPanes.open(`${files.root}/${path}`)) {
-    return;
-  }
-  await openFiles(files.root, { path });
+  // A file opens in a file view pane, read only (issue #714).
+  void FileViewPanes.open(`${files.root}/${row.path}`);
 }
 
 /** The context menu of a file row or a folder row: the relative path, and where the pointer was. Null when closed. */
@@ -389,6 +385,27 @@ async function copyPath(kind: "absolute" | "relative") {
   }
   await copy(text);
   toast(t("filesPanel.copied", { path: text }));
+}
+
+/**
+ * Starts a coding agent in a new tab of the selected workspace, with the first message "Let's chat about <absolute path>"
+ * for the row of the context menu, and closes the menu. The new tab has the name of the file.
+ * Issue: https://github.com/heidrun-org/heidrun_code/issues/854
+ */
+async function chatAboutRow() {
+  const relativePath = fileMenu.value?.path ?? null;
+  closeFileMenu();
+  if (relativePath === null) {
+    return;
+  }
+  let absolutePath: string;
+  try {
+    absolutePath = await invoke<string>("file_full_path", { root: files.root, path: relativePath });
+  } catch (error) {
+    toast(String(error), "error");
+    return;
+  }
+  await chatAboutFile(absolutePath, relativePath.split("/").pop() ?? relativePath, files.root);
 }
 
 onBeforeUnmount(closeFileMenu);
@@ -541,6 +558,10 @@ function letterClass(letter: string): string {
         </button>
         <button type="button" class="menu-item" role="menuitem" @click="copyPath('relative')">
           {{ t("filesPanel.fileMenu.copyRelativePath") }}
+        </button>
+        <div class="menu-divider" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" @click="chatAboutRow()">
+          {{ t("filesPanel.fileMenu.chatAboutFile") }}
         </button>
       </div>
     </Teleport>

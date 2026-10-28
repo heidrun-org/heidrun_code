@@ -1,7 +1,7 @@
 # Directory Context: `/packages/auxiliary/website_public`
 
 ## Purpose
-The public website of Heidrun: a homepage and the user documentation, built with VitePress and published on GitHub Pages with the script `ghpage:deploy`.
+The public website of Heidrun Code: a homepage and the user documentation, built with VitePress and published on GitHub Pages with the script `ghpage:deploy`.
 
 ## Key Exports & Entry Points
 - `docs/`: the Markdown source of the website. `docs/index.md` is the homepage. `docs/documentation/` holds the documentation pages.

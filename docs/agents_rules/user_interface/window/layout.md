@@ -1,10 +1,10 @@
-# User interface of Heidrun: layout of the window
+# User interface of Heidrun Code: layout of the window
 
 - Created: 13 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
 - Related issue: [issue 303](https://github.com/heidrun-org/heidrun/issues/303), [issue 315](https://github.com/heidrun-org/heidrun/issues/315), [issue 323](https://github.com/heidrun-org/heidrun/issues/323), [issue 380](https://github.com/heidrun-org/heidrun/issues/380), [issue 371](https://github.com/heidrun-org/heidrun/issues/371), [issue 690](https://github.com/heidrun-org/heidrun/issues/690)
 
 This document says where each part of the window goes and how each part works. The words are defined in [glossary/index.md](../../glossary/index.md). The layout below is the layout of the window.
@@ -46,6 +46,6 @@ The other files of the folder `docs/agents_rules/user_interface` give the rules 
 
 ## Files
 
-- Heidrun never modifies a file of the developer. Only the coding agents that run in the panes modify files.
+- Heidrun Code never modifies a file of the developer. Only the coding agents that run in the panes modify files.
 - A part of the window that shows files, for example a file explorer, only reads them. It has no button to rename, move, delete, or edit a file. The only exception is the File explorer sidebar section, which can create a new empty file and a new empty folder ([files.md](../sidebars/files.md)).
 

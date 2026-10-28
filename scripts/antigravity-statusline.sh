@@ -1,5 +1,5 @@
 #!/bin/bash
-# Heidrun — reports Antigravity account quota to the active Herdr pane.
+# Heidrun Code — reports Antigravity account quota to the active Herdr pane.
 # The Antigravity status line still displays the user's former status line, or
 # the built-in line when there was no former command.
 
@@ -39,7 +39,7 @@ if [ -n "$HERDR_PANE_ID" ]; then
   fi
 fi
 
-desk_dir="${HEIDRUN_DIR:-$HOME/.config/heidrun}"
+desk_dir="${HEIDRUN_CODE_DIR:-$HOME/.config/heidrun_code}"
 next_file="$desk_dir/antigravity-statusline-next"
 if [ -s "$next_file" ]; then
   printf '%s' "$input" | sh -c "$(cat "$next_file")"

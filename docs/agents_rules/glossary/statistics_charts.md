@@ -1,13 +1,13 @@
-# Glossary of Heidrun: charts of the Statistics window
+# Glossary of Heidrun Code: charts of the Statistics window
 
 - Created: 15 October 2026
-- Last updated: 17 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [Charts of the Statistics window](../user_interface/window/statistics_charts.md), [Glossary of Heidrun: status bar](status_bar.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [Charts of the Statistics window](../user_interface/window/statistics_charts.md), [Glossary of Heidrun Code: status bar](status_bar.md)
 - Related issue: [issue 498](https://github.com/heidrun-org/heidrun/issues/498), [issue 629](https://github.com/heidrun-org/heidrun/issues/629)
 
-This document gives one short definition for each word of the bar charts of the Statistics window that every chart shares. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the bar charts of the Statistics window that every chart shares. The other words of Heidrun Code are in [index.md](index.md).
 
 ## The words of a chart
 

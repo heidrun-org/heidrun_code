@@ -1,6 +1,6 @@
 {
   "title": "User activity",
-  "label": "Activity of the user in front of Heidrun",
+  "label": "Activity of the user in front of Heidrun Code",
   "active": "Active",
   "notActive": "Not active",
   "activeSince": "since {time}",

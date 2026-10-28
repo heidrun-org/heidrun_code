@@ -11,8 +11,8 @@ const themeConfig = config.themeConfig as {
 };
 
 describe('VitePress configuration', () => {
-	it('names the site Heidrun', () => {
-		expect(config.title).toBe('Heidrun');
+	it('names the site Heidrun Code', () => {
+		expect(config.title).toBe('Heidrun Code');
 	});
 
 	it('has a description', () => {
@@ -20,7 +20,7 @@ describe('VitePress configuration', () => {
 	});
 
 	it('uses the GitHub Pages path of the repository as base', () => {
-		expect(config.base).toBe('/heidrun/');
+		expect(config.base).toBe('/heidrun_code/');
 	});
 
 	it('starts and ends the base with a slash', () => {
@@ -52,6 +52,6 @@ describe('VitePress configuration', () => {
 	});
 
 	it('links to the GitHub repository of the organization', () => {
-		expect(themeConfig.socialLinks).toContainEqual({ icon: 'github', link: 'https://github.com/heidrun-org/heidrun' });
+		expect(themeConfig.socialLinks).toContainEqual({ icon: 'github', link: 'https://github.com/heidrun-org/heidrun_code' });
 	});
 });

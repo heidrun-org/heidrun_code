@@ -1,5 +1,5 @@
 // The saved searches of the Code hosting sidebar section: a search under a name, kept with the other options of
-// Heidrun. Each list has its own saved searches. A saved search has a level (issue #822): the user level shows in every
+// Heidrun Code. Each list has its own saved searches. A saved search has a level (issue #822): the user level shows in every
 // workspace, and the workspace level shows only in the workspace where the developer saved it.
 // - issue #374
 // - issue #607

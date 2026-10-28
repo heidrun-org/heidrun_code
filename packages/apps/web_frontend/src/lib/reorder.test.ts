@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { gapAt, moveId, reorderSubset, type Box } from "./reorder";
 

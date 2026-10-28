@@ -1,4 +1,4 @@
-//! The copy of the saved state of the web page (its `localStorage` entries) in the data folder of Heidrun.
+//! The copy of the saved state of the web page (its `localStorage` entries) in the data folder of Heidrun Code.
 //!
 //! The web view keeps `localStorage` in a folder named after the application identifier, so a change of the identifier
 //! shows an empty `localStorage` and every option returns to its default value (issue 772). The data folder does not depend
@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-/// The file of the copy, in the folder of the data of Heidrun. Installed Heidrun and Heidrun Development have separate folders.
+/// The file of the copy, in the folder of the data of Heidrun Code. Installed Heidrun Code and Heidrun Code Development have separate folders.
 const FILE_NAME: &str = "local_storage.json";
 
 /// Two writes never use the same temporary file at the same time.

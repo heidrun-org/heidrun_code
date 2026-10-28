@@ -6,6 +6,13 @@
 .skillsSection .name { font-size: var(--font-size); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skillsSection .sub { font-size: var(--font-size); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skillsSection .place { flex-shrink: 0; padding: 2px 8px; border-radius: 6px; background: var(--field); color: var(--text-2); font-size: var(--font-size); }
+.skillsSection .nameLine .name { min-width: 0; }
+.skillsSection .infoPart { line-height: 1; }
+.skillsSection .sub.scrolling { text-overflow: clip; }
+.skillsSection .sub.scrolling > .subText { display: inline-block; transform: translateX(var(--scroll-distance)); transition: transform var(--scroll-duration) linear 0.4s; }
+.skillsSection .rowActions { width: 15rem; flex-shrink: 0; }
+.skillsSection .rowActions > .btn { flex: 1 1 0; min-width: 0; }
+.skillsSection .differentBadge { flex-shrink: 0; padding: 1px 6px; border-radius: 6px; background: var(--tint-warn); color: var(--level-warn); font-size: calc(var(--font-size) * 0.8); font-weight: 600; line-height: 1.4; }
 .skillsSection .spinner {
   display: inline-block; width: 1em; height: 1em; flex-shrink: 0; box-sizing: border-box;
   border: 0.15em solid currentcolor; border-right-color: transparent; border-radius: 50%;

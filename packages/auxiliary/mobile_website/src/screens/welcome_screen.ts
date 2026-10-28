@@ -4,7 +4,7 @@ import { HtmlEscape } from '../html_escape';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	WelcomeScreen — the first page: the baby goat, the name, what Heidrun does, and the button "Go to the app"
+//	WelcomeScreen — the first page: the baby goat, the name, what Heidrun Code does, and the button "Go to the app"
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -15,7 +15,7 @@ import { HtmlEscape } from '../html_escape';
 export class WelcomeScreen {
 	/**
 	 * Draws the page. The name, the motto, and the description come from the file `data/identity.json`, the one
-	 * place where Heidrun keeps them.
+	 * place where Heidrun Code keeps them.
 	 * @returns The HTML of the page.
 	 */
 	static render(): string {
@@ -31,7 +31,7 @@ export class WelcomeScreen {
 						src="${imageUrl}"
 						width="640"
 						height="640"
-						alt="The baby goat of Heidrun, with a golden crown and golden horns"
+						alt="The baby goat of Heidrun Code, with a golden crown and golden horns"
 					>
 				</div>
 				<div class="welcome-text">

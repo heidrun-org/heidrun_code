@@ -1,4 +1,4 @@
-// Copies the browser storage entries written under the former name "Herdr Desk" to the keys named "Heidrun".
+// Copies the browser storage entries written under the former name "Herdr Desk" to the keys named "Heidrun Code".
 // Imported first in main.ts, so it runs before the stores read their keys.
 
 const LEGACY_PREFIX = "herdr-desk.";

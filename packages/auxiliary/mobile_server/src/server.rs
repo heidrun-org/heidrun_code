@@ -2,7 +2,7 @@
 
 use crate::access::AccessGuard;
 use crate::config::MobileConfig;
-use crate::handler::MobileCallHandler;
+use crate::handler::{MobileCallHandler, MobileEvent};
 use crate::leftover_tunnel::TunnelRecord;
 use crate::router::{router, Shared};
 use crate::tunnel;
@@ -11,7 +11,7 @@ use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::process::Child;
 use tokio::sync::{oneshot, watch};
 
@@ -68,6 +68,13 @@ impl MobileError {
     }
 }
 
+impl MobileErrorKind {
+    /// The name that the settings window receives, in camel case, for example `ngrokMissing`.
+    fn name(&self) -> String {
+        serde_json::to_value(self).ok().and_then(|value| value.as_str().map(str::to_string)).unwrap_or_default()
+    }
+}
+
 /// Where the server finds the program `ngrok`. A test gives a fake program.
 type ProgramFinder = Arc<dyn Fn() -> Option<PathBuf> + Send + Sync>;
 
@@ -97,7 +104,7 @@ struct Inner {
     tunnel_host: Option<String>,
     /// The program `ngrok`. It is here, and not in the task, so that `stop` kills it at once, with no async runtime.
     tunnel: Option<Child>,
-    /// The file that holds the process id of the program `ngrok`, so that the next Heidrun kills it after a hard stop.
+    /// The file that holds the process id of the program `ngrok`, so that the next Heidrun Code kills it after a hard stop.
     /// None in the tests of the server, which must not touch the file of the developer.
     record: Option<Arc<TunnelRecord>>,
     error: Option<MobileError>,
@@ -125,7 +132,7 @@ impl MobileServer {
     }
 
     /// For the button "Stop the old ngrok" of the error `ngrokAddressInUse`: kills the recorded program `ngrok` of every
-    /// earlier or other Heidrun, but never the program of this Heidrun. True when a program was killed. The tunnel starts
+    /// earlier or other Heidrun Code, but never the program of this Heidrun Code. True when a program was killed. The tunnel starts
     /// again at the next try.
     pub fn stop_leftover_tunnel(&self) -> bool {
         TunnelRecord::new(record_folder(), std::process::id()).kill_recorded()
@@ -200,7 +207,7 @@ fn pairing_qr(host: &str, token: &str) -> Option<String> {
     )
 }
 
-/// The folder of the records of the program `ngrok` of each Heidrun, next to the file `mobile.json`.
+/// The folder of the records of the program `ngrok` of each Heidrun Code, next to the file `mobile.json`.
 fn record_folder() -> PathBuf {
     crate::config::config_folder().join("mobile_ngrok")
 }
@@ -272,7 +279,7 @@ async fn supervise(
         }
     };
     let local_port = listener.local_addr().map(|address| address.port()).unwrap_or(port);
-    let shared = Shared { guard: guard.clone(), handler };
+    let shared = Shared { guard: guard.clone(), handler: handler.clone() };
     let (down_tx, down_rx) = oneshot::channel::<()>();
     let server = tokio::spawn(async move {
         let _ = axum::serve(listener, router(shared))
@@ -285,10 +292,16 @@ async fn supervise(
         if *stop.borrow() {
             break;
         }
+        let started = Instant::now();
         let end = match find_program() {
-            Some(program) => run_tunnel(&inner, &guard, run, &program, local_port, &mut stop, timing).await,
+            Some(program) => run_tunnel(&inner, &guard, handler.as_ref(), run, &program, local_port, &mut stop, timing).await,
             None => TunnelEnd::Failed(MobileError::new(MobileErrorKind::NgrokMissing, "")),
         };
+        let error = match &end {
+            TunnelEnd::Stopped => None,
+            TunnelEnd::Failed(error) => Some(error.kind.name()),
+        };
+        handler.record_event(MobileEvent::TunnelStop { duration_ms: started.elapsed().as_millis() as u64, error });
         match end {
             TunnelEnd::Stopped => break,
             TunnelEnd::Failed(error) => {
@@ -309,7 +322,17 @@ async fn supervise(
 /// Runs the program `ngrok` once, and reads its messages until it ends or until the stop. The address of the tunnel is
 /// published at once when the program announces it: the host name of the account is fixed, so every name server already
 /// knows it.
-async fn run_tunnel(inner: &Mutex<Inner>, guard: &Mutex<AccessGuard>, run: u64, program: &Path, local_port: u16, stop: &mut watch::Receiver<bool>, timing: Timing) -> TunnelEnd {
+#[allow(clippy::too_many_arguments)]
+async fn run_tunnel(
+    inner: &Mutex<Inner>,
+    guard: &Mutex<AccessGuard>,
+    handler: &dyn MobileCallHandler,
+    run: u64,
+    program: &Path,
+    local_port: u16,
+    stop: &mut watch::Receiver<bool>,
+    timing: Timing,
+) -> TunnelEnd {
     let record = inner.lock().unwrap().record.clone();
     if let Some(record) = &record {
         let record = record.clone();
@@ -329,6 +352,8 @@ async fn run_tunnel(inner: &Mutex<Inner>, guard: &Mutex<AccessGuard>, run: u64, 
         }
         inner.tunnel = Some(child);
     }
+    handler.record_event(MobileEvent::TunnelStart);
+    let started = Instant::now();
     let no_address = tokio::time::sleep(timing.no_address);
     tokio::pin!(no_address);
     let mut is_announced = false;
@@ -351,6 +376,7 @@ async fn run_tunnel(inner: &Mutex<Inner>, guard: &Mutex<AccessGuard>, run: u64, 
                         if !is_announced {
                             is_announced = true;
                             publish(inner, guard, run, Some(host), None);
+                            handler.record_event(MobileEvent::TunnelReady { duration_ms: started.elapsed().as_millis() as u64 });
                         }
                     }
                     tunnel::Message::Problem(text) => {
@@ -373,7 +399,7 @@ async fn run_tunnel(inner: &Mutex<Inner>, guard: &Mutex<AccessGuard>, run: u64, 
     }
 }
 
-/// The kind of end that a text of `ngrok` tells, when the text holds the code of a problem that Heidrun knows.
+/// The kind of end that a text of `ngrok` tells, when the text holds the code of a problem that Heidrun Code knows.
 fn kind_of_problem(text: &str) -> Option<MobileErrorKind> {
     if text.contains(tunnel::NOT_SIGNED_IN_CODE) {
         Some(MobileErrorKind::NgrokNotSignedIn)
@@ -405,6 +431,36 @@ mod tests {
     impl MobileCallHandler for EchoHandler {
         fn handle_call(&self, method: String, _params: Value) -> CallFuture {
             Box::pin(async move { Ok(json!({ "method": method })) })
+        }
+    }
+
+    /// Answers like `EchoHandler`, and keeps the events of the application log.
+    #[derive(Default)]
+    struct RecordingHandler {
+        events: Mutex<Vec<MobileEvent>>,
+    }
+
+    impl MobileCallHandler for RecordingHandler {
+        fn handle_call(&self, method: String, _params: Value) -> CallFuture {
+            Box::pin(async move { Ok(json!({ "method": method })) })
+        }
+
+        fn record_event(&self, event: MobileEvent) {
+            self.events.lock().unwrap().push(event);
+        }
+    }
+
+    impl RecordingHandler {
+        /// Waits until an event matches `wanted`, and gives every event so far.
+        async fn wait_for(&self, wanted: impl Fn(&MobileEvent) -> bool) -> Vec<MobileEvent> {
+            for _ in 0..150 {
+                let events = self.events.lock().unwrap().clone();
+                if events.iter().any(&wanted) {
+                    return events;
+                }
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+            panic!("the event never came: {:?}", self.events.lock().unwrap());
         }
     }
 
@@ -715,6 +771,44 @@ mod tests {
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
         panic!("the server still answers, or the program is still alive, after stop");
+    }
+
+    #[tokio::test]
+    async fn the_start_the_address_and_the_stop_of_the_tunnel_go_to_the_application_log_without_the_address() {
+        let server = MobileServer::new();
+        let config = config(true, "secret");
+        let program = announcing_program("events");
+        let handler = Arc::new(RecordingHandler::default());
+        tokio::spawn(server.start_with(handler.clone(), &config, finder(&program), SHORT));
+        let events = handler.wait_for(|event| matches!(event, MobileEvent::TunnelReady { .. })).await;
+        assert_eq!(events[0], MobileEvent::TunnelStart);
+        assert!(matches!(events[1], MobileEvent::TunnelReady { .. }));
+        server.stop();
+        let events = handler.wait_for(|event| matches!(event, MobileEvent::TunnelStop { .. })).await;
+        assert!(matches!(events.last(), Some(MobileEvent::TunnelStop { error: None, .. })), "{events:?}");
+        assert_eq!(format!("{events:?}").contains("ngrok-free.dev"), false);
+        assert_eq!(format!("{events:?}").contains("secret"), false);
+    }
+
+    #[tokio::test]
+    async fn a_tunnel_that_cannot_start_goes_to_the_application_log_with_the_kind_of_problem_only() {
+        let server = MobileServer::new();
+        let config = config(true, "secret");
+        let program = fake::write("not_signed_in_events", fake::NOT_SIGNED_IN);
+        let handler = Arc::new(RecordingHandler::default());
+        tokio::spawn(server.start_with(handler.clone(), &config, finder(&program), SHORT));
+        let events = handler.wait_for(|event| matches!(event, MobileEvent::TunnelStop { .. })).await;
+        server.stop();
+        let stop = events.iter().find(|event| matches!(event, MobileEvent::TunnelStop { .. })).unwrap();
+        let MobileEvent::TunnelStop { error, .. } = stop else { unreachable!() };
+        assert_eq!(error.as_deref(), Some("ngrokNotSignedIn"));
+        assert_eq!(events.iter().any(|event| matches!(event, MobileEvent::TunnelReady { .. })), false);
+    }
+
+    #[test]
+    fn the_name_of_a_kind_of_problem_is_the_name_that_the_settings_window_receives() {
+        assert_eq!(MobileErrorKind::NgrokMissing.name(), "ngrokMissing");
+        assert_eq!(MobileErrorKind::NgrokAddressInUse.name(), "ngrokAddressInUse");
     }
 
     #[tokio::test]

@@ -5,8 +5,11 @@ import { t } from "../i18n/index";
 
 // The dropdown menu of the header of a file view pane: the actions on the file that the header has no room for as buttons.
 // The menu opens with a click or with the keys Enter and Space on the button. The arrow keys move between the entries, and the
-// key Escape closes the menu and gives the keyboard back to the button.
-// Issue: https://github.com/heidrun-org/heidrun/issues/784
+// key Escape closes the menu and gives the keyboard back to the button. The diff pane puts its own entries first, in the slot:
+// each entry calls `choose` with its action, so that the menu closes first. The file view pane puts its switches last, in the
+// slot `options`, under a divider: a switch changes its setting and leaves the menu open.
+// Issues: https://github.com/heidrun-org/heidrun/issues/784, https://github.com/heidrun-org/heidrun_code/issues/885, and
+// https://github.com/heidrun-org/heidrun_code/issues/897
 defineProps<{
   /** True while the file is shown as code: only then the menu has the entry "Search". */
   isSearchShown: boolean;
@@ -32,7 +35,7 @@ const position = ref({ top: 0, right: 0 });
 
 /** The entries of the open menu, from the first to the last. */
 function entries(): HTMLButtonElement[] {
-  return Array.from(menu.value?.querySelectorAll<HTMLButtonElement>("[role='menuitem']") ?? []);
+  return Array.from(menu.value?.querySelectorAll<HTMLButtonElement>("[role='menuitem'], [role='menuitemcheckbox']") ?? []);
 }
 
 /** Opens the dropdown menu under the button, or closes it. The window places it, so that the pane cannot cut it. */
@@ -123,7 +126,7 @@ onBeforeUnmount(close);
     :title="t('fileView.menuTitle')"
     @click="toggle"
   >
-    <Icon name="three-dots" />
+    <Icon name="three-dots-vertical" />
   </button>
   <Teleport to="body">
     <div
@@ -134,6 +137,7 @@ onBeforeUnmount(close);
       :aria-label="t('fileView.menuLabel')"
       :style="{ top: `${position.top}px`, right: `${position.right}px` }"
     >
+      <slot :choose="choose"></slot>
       <button
         v-if="isSearchShown"
         type="button"
@@ -151,7 +155,7 @@ onBeforeUnmount(close);
         class="menu-item d-flex align-items-center gap-2"
         role="menuitem"
         data-action="copy-path"
-        :title="t('filesModal.copyPathTitle')"
+        :title="t('fileView.copyPathTitle')"
         @click="choose(() => emit('copyPath', $event.altKey))"
       >
         <Icon name="copy" />
@@ -162,7 +166,7 @@ onBeforeUnmount(close);
         class="menu-item d-flex align-items-center gap-2"
         role="menuitem"
         data-action="show-in-finder"
-        :title="t('filesModal.finderTitle')"
+        :title="t('fileView.finderTitle')"
         @click="choose(() => emit('showInFinder'))"
       >
         <Icon name="folder2-open" />
@@ -173,12 +177,16 @@ onBeforeUnmount(close);
         class="menu-item d-flex align-items-center gap-2"
         role="menuitem"
         data-action="open-in-visual-studio-code"
-        :title="t('filesModal.vscodeTitle')"
+        :title="t('fileView.vscodeTitle')"
         @click="choose(() => emit('openInVisualStudioCode'))"
       >
         <Icon name="box-arrow-up-right" />
         {{ t("fileView.openInVisualStudioCode") }}
       </button>
+      <template v-if="$slots.options !== undefined">
+        <div class="menu-divider" role="separator"></div>
+        <slot name="options"></slot>
+      </template>
     </div>
   </Teleport>
 </template>

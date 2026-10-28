@@ -69,7 +69,7 @@ describe("SettingsMobileAccessSection, with the access off", () => {
     expect(wrapper.text()).not.toContain("opens an ngrok tunnel with the program ngrok");
     const mark = wrapper.findAll(".information-card-part").find((part) => part.get('[role="img"]').attributes("aria-label") === "About the option “Turn on mobile access”")!;
     await mark.trigger("click");
-    expect(wrapper.get(".popover").text()).toContain("Heidrun opens a tunnel with the program ngrok");
+    expect(wrapper.get(".popover").text()).toContain("Heidrun Code opens a tunnel with the program ngrok");
     expect(wrapper.find(".qr").exists()).toBe(false);
   });
 
@@ -179,12 +179,12 @@ describe("SettingsMobileAccessSection, when something goes wrong", () => {
     expect(wrapper.find(".old-ngrok-not-found").exists()).toBe(false);
   });
 
-  it("says to close the other ngrok by hand when Heidrun did not start it", async () => {
+  it("says to close the other ngrok by hand when Heidrun Code did not start it", async () => {
     fake.isLeftoverKilled = false;
     const wrapper = await mountSection({ ...OPENING, error: { kind: "ngrokAddressInUse", detail: "ERR_NGROK_334" } });
     await wrapper.get(".stop-old-ngrok").trigger("click");
     await flushPromises();
-    expect(wrapper.get(".old-ngrok-not-found").text()).toContain("Heidrun did not start the other ngrok. Close it by hand");
+    expect(wrapper.get(".old-ngrok-not-found").text()).toContain("Heidrun Code did not start the other ngrok. Close it by hand");
     expect(wrapper.get(".kill-all-ngrok").text()).toBe("pkill -x ngrok");
   });
 

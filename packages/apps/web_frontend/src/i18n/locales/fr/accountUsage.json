@@ -4,7 +4,7 @@
   "antigravityAccount": "Compte Antigravity",
   "percent": "{value} %",
   "resetsAt": "réinitialisé {time}",
-  "waitingClaude": "Statut du quota non renseigné. Heidrun n’a pas encore reçu les chiffres du quota depuis la ligne d’état de Claude Code. Cela ne signifie pas que votre utilisation est nulle.",
+  "waitingClaude": "Statut du quota non renseigné. Heidrun Code n’a pas encore reçu les chiffres du quota depuis la ligne d’état de Claude Code. Cela ne signifie pas que votre utilisation est nulle.",
   "waitingCodex": "Pas encore de données : Codex les écrit après sa première réponse.",
   "antigravityNotLinked": "Activez le suivi du quota d’Antigravity dans Réglages, sous Agents de programmation. Les données du quota apparaissent après la prochaine réponse d’Antigravity.",
   "waitingAntigravity": "En attente de la prochaine réponse d’Antigravity.",

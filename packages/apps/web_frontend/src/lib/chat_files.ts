@@ -10,7 +10,7 @@ export type ChatFile = {
   openPath: string;
 };
 
-/** A worktree that Claude Code or Heidrun made inside the repository, for example `.claude/worktrees/fix-tab-35/`. */
+/** A worktree that Claude Code or Heidrun Code made inside the repository, for example `.claude/worktrees/fix-tab-35/`. */
 const WORKTREE_PREFIX = /^\.claude\/worktrees\/[^/]+\//;
 
 /**

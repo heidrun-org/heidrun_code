@@ -187,6 +187,18 @@ describe('TauriMock', () => {
 		TauriMockFixture.setProjectConfig({ version: 1, launchers: [] });
 	});
 
+	it('keeps the user level launchers that the Tauri command launchers_user_write writes, for the Tauri command launchers_user_read', async () => {
+		TauriMock.install();
+		const first = await invoke<{ exists: boolean; launchers: unknown[]; error: string | null }>('launchers_user_read');
+		expect(first).toEqual({ exists: true, launchers: [], error: null });
+		const launchers = [{ id: 'a', label: 'A', command: 'ls' }];
+		await invoke('launchers_user_write', { launchers });
+		const second = await invoke<{ launchers: unknown[] }>('launchers_user_read');
+		expect(second.launchers).toEqual(launchers);
+		expect(await invoke('launcher_folder_exists', { root: '/Users/demo/webwork/heidrun', folder: 'web' })).toBe(true);
+		TauriMockFixture.setUserLaunchers([]);
+	});
+
 	it('answers the root of the repository with the chats, and the commands that the files line of a chat calls', async () => {
 		TauriMock.install();
 		const result = await invoke<{ root: string }>('chats_list', { folder: '/Users/demo/webwork/heidrun', limit: 5 });

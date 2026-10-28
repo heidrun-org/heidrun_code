@@ -13,7 +13,7 @@ const launchersAnswer = (): LaunchersAnswer => ({
 				{
 					id: 'dev',
 					label: 'Dev server',
-					description: 'Starts Heidrun',
+					description: 'Starts Heidrun Code',
 					command: 'pnpm dev',
 					status: 'running',
 				},
@@ -44,7 +44,7 @@ describe('Launchers screen', () => {
 		expect(names).toEqual(['Dev server', 'Clean']);
 		const badges = [...document.querySelectorAll('.launcher .badge')].map((badge) => badge.textContent);
 		expect(badges).toEqual(['Running', 'Not started']);
-		expect(harness.text()).toContain('Starts Heidrun');
+		expect(harness.text()).toContain('Starts Heidrun Code');
 		expect(document.querySelector('.launcher .detail')?.textContent).toBe('rm -rf build');
 	});
 

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { LAUNCHER_NAME_LENGTH, launcherNameFromCommand } from "./launcher_name";
 

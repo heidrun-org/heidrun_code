@@ -1,7 +1,7 @@
 # Learning and using the documentation prompt
 
 - Created: 15 October 2026
-- Last updated: 15 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained description of the documentation process
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related issue: [issue 501](https://github.com/heidrun-org/heidrun/issues/501)
@@ -18,7 +18,7 @@ Choose a task that a person can complete in the application, such as selecting a
 
 Read the current user-interface rules and glossary, then the implementation needed to establish exact behavior and labels. Rules describe intended behavior; the implementation may expose a conflict. During an explicitly authorised learning experiment, a check in the matching running application can resolve the uncertainty. A source statement alone is not proof that a visible interaction worked.
 
-The source version matters. An older installed application, a workspace opened at the repository root instead of a subfolder, or a differently focused pane can produce misleading evidence. Use a matching application build and disposable fixtures. Restore the starting selection and settings after checks. Start Heidrun with --no-splash-screen when preparing such checks.
+The source version matters. An older installed application, a workspace opened at the repository root instead of a subfolder, or a differently focused pane can produce misleading evidence. Use a matching application build and disposable fixtures. Restore the starting selection and settings after checks. Start Heidrun Code with --no-splash-screen when preparing such checks.
 
 ## 2. Generate and preserve a candidate
 
@@ -63,3 +63,14 @@ No judge, post-generation page audit, native checks, browser checks, automatic s
 Screenshot collection is a separate input-preparation task. Supply authentic captures with their source version, date, described state and verification limits. Old experiment images are not automatically current evidence. Without suitable captures, the writer reports the gap instead of fabricating an image.
 
 The developer can later request one bounded correction or a new learning experiment. Such a request is a new action; it is not an implicit loop inside generate-and-build. Commits, merges, deployment and public preview updates remain separate actions too.
+
+
+## Full updates and draft review
+
+The separate command `pnpm docs:update_by_ai` reuses the normal one-call generation and one-build operation. It always checks all current documentation. All commits since the last documented revision are hints, with pull request or merge request context and closed issues when available. The current glossary is the folder `docs/agents_rules/glossary`, not a single glossary file.
+
+A real update starts from a clean personal development branch and writes in a separate temporary worktree. Mechanical checks require generated marks and current source references, and website tests must pass. Only then does the command record the documented source revision, commit the allowed documentation files, push the temporary branch and open a draft for human review. The command never merges or deploys. Failed output and logs remain available; a failure does not start a repair loop.
+
+Screenshots remain separately prepared evidence from the matching Heidrun Code Development build, with the source version and verification limits recorded. The update command neither captures screenshots nor treats old experimental images as current evidence.
+
+The real one-page generation and website build succeeded on 26 October 2026. That result does not establish full-documentation coverage, successful draft publication, or native task verification.

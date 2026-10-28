@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { AiCost, type AiCostAnswer, type AiCostHourRow, type AiCostWorkspace } from "./ai_cost";
 

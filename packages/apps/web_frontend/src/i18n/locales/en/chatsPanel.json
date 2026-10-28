@@ -33,11 +33,13 @@
   "forgeMissingTitle": "Cannot open in {forge}: the file does not exist on the default branch.",
   "outsideTitle": "Cannot open the file: it is not in the repository.",
   "openFileLabel": "Open this file",
-  "heidrunTitle": "Open in Heidrun",
+  "heidrunTitle": "Open in Heidrun Code",
   "openReferenceLabel": "Open this issue or pull request",
   "copyWebAddressTitle": "Copy the {forge} web address",
   "webAddressCopied": "Web address copied",
   "webAddressCopyFailed": "Cannot copy the web address: the clipboard refused it.",
+  "chatAboutIssueTitle": "Let's chat about this issue",
+  "chatAboutPullRequestTitle": "Let's chat about this pull request",
   "referenceDetailsOn": " on {date}",
   "labelToggleTitle": "Add this label to the search, or remove it",
   "referenceLoading": "Reading from {forge}…",
@@ -105,5 +107,6 @@
   "sortKey.pull_requests": "Pull requests",
   "sortKey.files_written": "Files written",
   "sortOrder.ascending": "Ascending",
-  "sortOrder.descending": "Descending"
+  "sortOrder.descending": "Descending",
+  "topicTimelineTitle": "Show the topic timeline"
 }

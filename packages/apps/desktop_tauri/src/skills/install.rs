@@ -102,7 +102,7 @@ pub fn skills_install_local_folder(level: String, cwd: Option<String>, path: Str
     finish_install(&plan, origin, written)
 }
 
-/// Installs one skill that is included with Heidrun for every coding agent at the user level.
+/// Installs one skill that is included with Heidrun Code for every coding agent at the user level.
 pub(super) fn install_bundled_skill(source: &Path, skill_id: &str) -> Result<InstalledSkill, String> {
     let agents = AGENTS.iter().map(|agent| agent.to_string()).collect();
     let plan = plan_install("user".into(), None, skill_id, agents)?;

@@ -47,9 +47,9 @@ afterEach(() => {
 });
 
 describe('TopBar', () => {
-	it('does not show the application name Heidrun', () => {
+	it('does not show the application name Heidrun Code', () => {
 		const wrapper = mount(TopBar);
-		expect(wrapper.text()).not.toContain('Heidrun');
+		expect(wrapper.text()).not.toContain('Heidrun Code');
 		wrapper.unmount();
 	});
 

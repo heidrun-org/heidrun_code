@@ -287,6 +287,35 @@ export class TauriMockFixture {
 		TauriMockFixture._projectConfig = JSON.parse(JSON.stringify(config));
 	}
 
+	/** The content of the file `launchers.json` of the user level launchers, which the mock keeps as the file on the disk does. */
+	private static _userLaunchers: unknown[] = [];
+
+	/**
+	 * The answer of the Tauri command `launchers_user_read`: the user level launchers that the last call of
+	 * `setUserLaunchers` saved.
+	 * - issue #853
+	 *
+	 * @returns The file as the desktop application reads it: it exists, it holds the launchers, and it has no error.
+	 */
+	static buildUserLaunchersFile(): unknown {
+		return {
+			exists: true,
+			launchers: JSON.parse(JSON.stringify(TauriMockFixture._userLaunchers)),
+			error: null,
+		};
+	}
+
+	/**
+	 * Replaces the user level launchers, as the Tauri command `launchers_user_write` does.
+	 * - issue #853
+	 *
+	 * @param launchers - The new content of the file `launchers.json`.
+	 * @returns Nothing.
+	 */
+	static setUserLaunchers(launchers: unknown[]): void {
+		TauriMockFixture._userLaunchers = JSON.parse(JSON.stringify(launchers));
+	}
+
 	/**
 	 * The answer of the Tauri command `git_status`: one staged file and one changed file, as in the screenshots of the
 	 * Source control sidebar section.

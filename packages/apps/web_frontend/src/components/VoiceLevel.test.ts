@@ -50,10 +50,27 @@ describe("VoiceLevel", () => {
 		wrapper.unmount();
 	});
 
+	it("shows flat dots, and marks the row as waiting, while the recording waits for Whisper (issue 868)", () => {
+		const levels = new Array<number>(LEVEL_COUNT).fill(1);
+		const wrapper = mount(VoiceLevel, { props: { levels, isWaiting: true } });
+		expect(wrapper.classes()).toContain("is-waiting");
+		expect(wrapper.classes()).not.toContain("is-transcribing");
+		expect(heightsOf(wrapper).every((height) => height === 4)).toBe(true);
+		wrapper.unmount();
+	});
+
+	it("marks the row as transcribing only, when both marks are given", () => {
+		const wrapper = mount(VoiceLevel, { props: { levels: [], isWaiting: true, isTranscribing: true } });
+		expect(wrapper.classes()).toContain("is-transcribing");
+		expect(wrapper.classes()).not.toContain("is-waiting");
+		wrapper.unmount();
+	});
+
 	it("shows the levels and no mark while the microphone is open", () => {
 		const levels = new Array<number>(LEVEL_COUNT).fill(1);
 		const wrapper = mount(VoiceLevel, { props: { levels } });
 		expect(wrapper.classes()).not.toContain("is-transcribing");
+		expect(wrapper.classes()).not.toContain("is-waiting");
 		expect(heightsOf(wrapper).every((height) => height === 36)).toBe(true);
 		wrapper.unmount();
 	});

@@ -2,12 +2,12 @@
   "name": "mobile_website",
   "private": true,
   "license": "MIT",
-  "version": "0.3.0",
+  "version": "0.3.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "vitest run --minWorkers=1 --maxWorkers=2"
+    "test": "vitest run --minWorkers=1 --maxWorkers=4"
   },
   "devDependencies": {
     "bootstrap-icons": "^1.13.2",

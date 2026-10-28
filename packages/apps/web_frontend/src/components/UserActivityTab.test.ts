@@ -111,7 +111,7 @@ const resizeCallbacks: Array<() => void> = [];
  *
  * @param records - The records that the data layer gives, or the error that it gives.
  * @param runningPeriodStartedAgoMs - How long ago the active period that runs now started, or `null` when no period runs.
- * @param openWorkspaceList - The workspaces that Heidrun currently has open.
+ * @param openWorkspaceList - The workspaces that Heidrun Code currently has open.
  */
 async function mountUserActivityTab(
   records: unknown[] | Error | Promise<never>,
@@ -740,7 +740,7 @@ describe("UserActivityTab: the memory of the choices (issue 707)", () => {
     return mountUserActivityTab([], null, openWorkspaceList);
   }
 
-  /** Starts Heidrun again: every module is loaded again, and the settings are read from `localStorage`. */
+  /** Starts Heidrun Code again: every module is loaded again, and the settings are read from `localStorage`. */
   async function restart(wrapper: VueWrapper, openWorkspaceList = OPEN_WORKSPACES) {
     await flushPromises();
     wrapper.unmount();
@@ -788,7 +788,7 @@ describe("UserActivityTab: the memory of the choices (issue 707)", () => {
     expect(checkedTexts(reopened, "Slot length")).toEqual(["1 day"]);
   });
 
-  it("keeps the choices after Heidrun starts again", async () => {
+  it("keeps the choices after Heidrun Code starts again", async () => {
     const { wrapper } = await mountUserActivityTab([]);
     await wrapper.get("#statistics-range-week").setValue(true);
     await wrapper.get("#statistics-slot-one_hour").setValue(true);

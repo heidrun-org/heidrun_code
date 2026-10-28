@@ -8,8 +8,8 @@ const packageDir = Path.join(__dirname, '..');
 const indexText = Fs.readFileSync(Path.join(packageDir, 'index.html'), 'utf8');
 
 describe('Head of the page', () => {
-	it('names the page "Heidrun Mobile"', () => {
-		expect(indexText).toContain('<title>Heidrun Mobile</title>');
+	it('names the page "Heidrun Code Mobile"', () => {
+		expect(indexText).toContain('<title>Heidrun Code Mobile</title>');
 	});
 
 	it('links the favicon from the root of the website', () => {

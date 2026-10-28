@@ -9,7 +9,7 @@ import { SiteFiles } from './site_files';
 
 const outDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'heidrun-site-'));
 const packageDir = Path.resolve(SiteFiles.docsDir, '..');
-const siteAddress = 'https://heidrun-org.github.io/heidrun/';
+const siteAddress = 'https://heidrun-org.github.io/heidrun_code/';
 
 /** The Open Graph tags that every page must have. */
 const openGraphProperties = [
@@ -62,13 +62,13 @@ describe('website build', () => {
 	it('links the home page to every feature page, with the base path', () => {
 		const html = Fs.readFileSync(Path.join(outDir, 'index.html'), 'utf8');
 		for (const name of ['needs_you', 'panes', 'quotas', 'phone_access', 'sidebar_sections', 'past_chats', 'statistics', 'ai']) {
-			expect(html, name).toContain(`href="/heidrun/features/${name}`);
+			expect(html, name).toContain(`href="/heidrun_code/features/${name}`);
 		}
 	});
 
 	it('uses the base path in the links to the assets', () => {
 		const html = Fs.readFileSync(Path.join(outDir, 'index.html'), 'utf8');
-		expect(html).toContain('/heidrun/assets/');
+		expect(html).toContain('/heidrun_code/assets/');
 	});
 
 	it('puts the title of the site in the home page', () => {
@@ -133,7 +133,7 @@ describe('website build', () => {
 		expect(pages.length).toBeGreaterThanOrEqual(5);
 		for (const page of pages) {
 			const html = Fs.readFileSync(Path.join(outDir, page), 'utf8');
-			expect(html, page).toContain('<link rel="icon" type="image/svg+xml" href="/heidrun/favicon.svg">');
+			expect(html, page).toContain('<link rel="icon" type="image/svg+xml" href="/heidrun_code/favicon.svg">');
 		}
 	});
 

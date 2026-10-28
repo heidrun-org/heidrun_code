@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "heidrun-code-control",
+  "version": "0.1.0",
+  "description": "Control Heidrun Code macros and project launchers with the heidrun_code_ctrl command line.",
+  "author": {
+    "name": "Heidrun Code"
+  },
+  "repository": "https://github.com/heidrun-org/heidrun_code",
+  "license": "MIT"
+}

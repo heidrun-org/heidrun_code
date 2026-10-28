@@ -1,7 +1,7 @@
 # Directory Context: `/tmp/web_doc_by_ai/workspace`
 
 ## Purpose
-A frozen Heidrun source snapshot with an isolated documentation writer, judge and preview website.
+A frozen Heidrun Code source snapshot with an isolated documentation writer, judge and preview website.
 
 ## Key Exports & Entry Points
 - `packages/dev_tools/documentation_updater/`: writer and judge; public interface is its src/index.ts.

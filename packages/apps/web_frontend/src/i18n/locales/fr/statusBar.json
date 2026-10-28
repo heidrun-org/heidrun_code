@@ -3,7 +3,7 @@
   "estimatedCost": "coût estimé",
   "costValue": "{value} $",
   "claudeQuotaUnspecified": "Quota Claude : non renseigné",
-  "claudeQuotaUnspecifiedTitle": "Heidrun n’a pas encore reçu les chiffres du quota depuis la ligne d’état de Claude Code. Cela ne signifie pas que votre utilisation est nulle.",
+  "claudeQuotaUnspecifiedTitle": "Heidrun Code n’a pas encore reçu les chiffres du quota depuis la ligne d’état de Claude Code. Cela ne signifie pas que votre utilisation est nulle.",
   "offline": "hors ligne",
   "expectedNow": "Utilisation attendue maintenant",
   "resetsAt": "Réinitialisation à {time}",

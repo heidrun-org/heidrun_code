@@ -206,7 +206,7 @@ pub fn project_save(root: String, config: Value) -> Result<(), String> {
 
 /// The text of the file `.heidrun/config.json` of the project that holds `cwd`, or an empty text when the project has none.
 /// The window reads it about every second and loads the project again when the text changes, so a change made by another
-/// program, such as the command line `heidrun_ctrl`, shows in the window.
+/// program, such as the command line `heidrun_code_ctrl`, shows in the window.
 #[tauri::command]
 pub fn project_config_text(cwd: String) -> String {
     std::fs::read_to_string(config_path(&find_root(Path::new(&cwd)))).unwrap_or_default()

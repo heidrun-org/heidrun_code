@@ -53,12 +53,12 @@ describe('Plain terminal', () => {
 		expect(computer.callsOf('read').pop()?.params.paneId).toBe('p-terminal');
 	});
 
-	it('shows only the output, with no way to type, when the setting of Heidrun forbids typing', async () => {
+	it('shows only the output, with no way to type, when the setting of Heidrun Code forbids typing', async () => {
 		const computer = computerWithTerminal();
 		computer.terminalTypingAllowed = false;
 		const harness = await AppHarness.start(computer);
 		await harness.openPane('p-terminal');
-		expect(harness.text()).toContain('Typing is off in the Settings window of Heidrun.');
+		expect(harness.text()).toContain('Typing is off in the Settings window of Heidrun Code.');
 		expect(document.querySelector('[data-action="typing-ask"]')).toBeNull();
 		expect(document.querySelector('#prompt-field')).toBeNull();
 	});

@@ -2,6 +2,7 @@
 import Icon from "./Icon.vue";
 import { computed, ref } from "vue";
 import ConfirmButton from "./ConfirmButton.vue";
+import ChatImagesSection from "./ChatImagesSection.vue";
 import SettingsSwitchRow from "./settings/SettingsSwitchRow.vue";
 import InlineRename from "./InlineRename.vue";
 import { moveNote, notes, removeNote, renameNote, visibleNotes, type Note } from "../stores/notes";
@@ -91,6 +92,8 @@ function sendTo(n: Note, paneId: string) {
         </select>
       </div>
     </article>
+
+    <ChatImagesSection />
   </div>
 </template>
 

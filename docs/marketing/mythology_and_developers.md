@@ -1,12 +1,12 @@
-# Heidrun and the developer with artificial intelligence
+# Heidrun Code and the developer with artificial intelligence
 
 - Created: 11 October 2026
 - Last updated: 13 October 2026
 - Status: Maintained reference for the public texts
 - Related framing: [Project instructions](../../AGENTS.md)
-- Related rules: [The jokes](jokes.md) and [The name of Heidrun](name_of_heidrun.md)
+- Related rules: [The jokes](jokes.md) and [The name of Heidrun Code](name_of_heidrun.md)
 
-This document links the Norse mythology of Heidrun to the situation of developers who work with artificial intelligence today. It defines six words that the public texts use: Vikings, Valhalla, mead, the einherjar, Ragnarök, and "Skål!". The rules for the jokes are in [jokes.md](jokes.md). Every statement about the mythology in this document comes from the *Poetic Edda* and the *Prose Edda*.
+This document links the Norse mythology of Heidrun Code to the situation of developers who work with artificial intelligence today. It defines six words that the public texts use: Vikings, Valhalla, mead, the einherjar, Ragnarök, and "Skål!". The rules for the jokes are in [jokes.md](jokes.md). Every statement about the mythology in this document comes from the *Poetic Edda* and the *Prose Edda*.
 
 ## The situation of developers today
 
@@ -17,7 +17,7 @@ A developer used to write every line of code, in one editor and one terminal. A 
 - Two agents can change the same lines of the same file, and the two changes collide. This is a merge conflict.
 - Every agent uses a quota of tokens. When the quota is empty, the agent stops.
 
-The work of the developer changes. The developer writes fewer lines, and gives more answers. The slow part is no longer the agent. The slow part is the developer, who must find which agent waits, and must answer it. Herdr runs the agents in one session. Heidrun shows the agents and the terminals of that session in one work window, and shows which agent needs the developer now.
+The work of the developer changes. The developer writes fewer lines, and gives more answers. The slow part is no longer the agent. The slow part is the developer, who must find which agent waits, and must answer it. Herdr runs the agents in one session. Heidrun Code shows the agents and the terminals of that session in one work window, and shows which agent needs the developer now.
 
 This is the same picture as the myth. The warriors do the fighting, and the goat keeps the supply flowing. The motto says it: "With AI, every developer is THE GOAT!"
 
@@ -27,7 +27,7 @@ This is the same picture as the myth. The warriors do the fighting, and the goat
 
 **Meaning.** The Vikings were Norse people from Scandinavia, today Denmark, Norway, and Sweden. They sailed to raid, to trade, to explore, and to settle in Europe and the North Atlantic. The Viking Age is the period from about 793 to about 1066. The Old Norse word *víkingr* first named a person who goes on a sea raid. It named an activity, not a whole people. Most Norse people were farmers. Real Vikings did not wear helmets with horns. That picture comes from stage costumes and paintings of the nineteenth century.
 
-**Link to developers.** A developer who works with agents sails into land without a map. The tools are new, the habits are new, and nobody has done this before. The developer sets out with a crew of agents, like a Viking with a ship. This is why the README says that Heidrun is "forged for Vikings".
+**Link to developers.** A developer who works with agents sails into land without a map. The tools are new, the habits are new, and nobody has done this before. The developer sets out with a crew of agents, like a Viking with a ship. This is why the README says that Heidrun Code is "forged for Vikings".
 
 **Joke.** Real Vikings wore no horns. Only the goat needs them.
 
@@ -45,7 +45,7 @@ This is the same picture as the myth. The warriors do the fighting, and the goat
 
 **Link to developers.** Mead is what keeps the agents working. It has two parts: the answers of the developer (decisions, permissions, and code reviews), and the quota of tokens. The goat turns the leaves of a tree into mead. The developer turns attention into answers.
 
-**Joke.** In the myth, the mead never runs out. In real life, the quota runs out. Heidrun shows the level in the status bar, so there is no surprise.
+**Joke.** In the myth, the mead never runs out. In real life, the quota runs out. Heidrun Code shows the level in the status bar, so there is no surprise.
 
 ### The einherjar
 
@@ -73,9 +73,9 @@ This is the same picture as the myth. The warriors do the fighting, and the goat
 
 ## The map
 
-| Myth | Developer with artificial intelligence | Heidrun |
+| Myth | Developer with artificial intelligence | Heidrun Code |
 | --- | --- | --- |
-| The Vikings | The developers who sail into new land with a crew of agents | The people who use Heidrun |
+| The Vikings | The developers who sail into new land with a crew of agents | The people who use Heidrun Code |
 | Valhalla | The place where all the agents work together | The work window |
 | The mead | The answers of the developer, and the quota of tokens | The "Needs you" queue, the inspector, and the quotas in the status bar |
 | The einherjar | The agents | The panes and the terminals of the session |

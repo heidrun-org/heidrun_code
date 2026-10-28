@@ -39,7 +39,7 @@ watch(
   { immediate: true },
 );
 
-/** The rows of the data of the project: a label, and the value that Heidrun reads. */
+/** The rows of the data of the project: a label, and the value that Heidrun Code reads. */
 const projectRows = computed(() => {
   const forgeKey =
     context.value.forge === null ? "textDetection.project.none" : `textDetection.project.${context.value.forge}`;

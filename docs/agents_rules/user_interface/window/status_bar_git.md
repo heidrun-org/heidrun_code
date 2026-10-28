@@ -1,13 +1,13 @@
-# User interface of Heidrun: Git branch section of the status bar
+# User interface of Heidrun Code: Git branch section of the status bar
 
 - Created: 13 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md), [status_bar.md](status_bar.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [status_bar.md](status_bar.md)
 - Related issue: [issue 350](https://github.com/heidrun-org/heidrun/issues/350), [issue 348](https://github.com/heidrun-org/heidrun/issues/348), [issue 432](https://github.com/heidrun-org/heidrun/issues/432), [issue 556](https://github.com/heidrun-org/heidrun/issues/556)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../glossary/index.md). The other status bar sections are in [status_bar.md](status_bar.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md). The other status bar sections are in [status_bar.md](status_bar.md).
 
 ## Git branch section
 
@@ -38,9 +38,9 @@ This file is a part of the rules of the user interface of Heidrun. The words are
 
 ### Fetch in the background
 
-- The counts come from `git status --porcelain=v2 --branch --untracked-files=all`, which reads only the local repository and never contacts the remote repository. Heidrun reads it again every 10 seconds for the selected workspace, and every 60 seconds for the other workspaces. So the count to download changes only after a fetch ([issue #432](https://github.com/heidrun-org/heidrun/issues/432)).
-- Heidrun runs `git fetch --prune` in the background for the Git repository of the selected workspace, with the Tauri command `git_sync` and the action `fetch` (`stores/git_background_fetch.ts`). The command never asks for a password (`GIT_TERMINAL_PROMPT=0`) and stops after 90 seconds. The Git status is read again after each fetch, so the counts change at once.
+- The counts come from `git status --porcelain=v2 --branch --untracked-files=all`, which reads only the local repository and never contacts the remote repository. Heidrun Code reads it again every 10 seconds for the selected workspace, and every 60 seconds for the other workspaces. So the count to download changes only after a fetch ([issue #432](https://github.com/heidrun-org/heidrun/issues/432)).
+- Heidrun Code runs `git fetch --prune` in the background for the Git repository of the selected workspace, with the Tauri command `git_sync` and the action `fetch` (`stores/git_background_fetch.ts`). The command never asks for a password (`GIT_TERMINAL_PROMPT=0`) and stops after 90 seconds. The Git status is read again after each fetch, so the counts change at once.
 - The option is in the section "Sidebars" of the Settings window, under the heading "Source control", after the name "Fetch the remote repository in the background": a Bootstrap button group of five radio inputs, "Off", "1 minute", "5 minutes", "10 minutes", and "30 minutes". The default is "5 minutes". The option is the setting `gitFetchMinutes`, which holds 0 for "Off". A line in muted color under the group says that the fetch keeps the two counts true and that a fetch that fails shows nothing.
-- A fetch starts each time the delay passes. When the developer changes the option, the old delay stops and the new delay starts at once, without a fetch. When the developer selects another workspace, and when the first Git status of the selected workspace arrives, Heidrun fetches its repository at once if the last fetch of that repository is older than the delay, or if there is none.
-- Heidrun does not fetch when the option is "Off", when the selected workspace has no Git repository, when the branch has no upstream branch, and while a synchronization, a pull, a push, or another fetch runs.
+- A fetch starts each time the delay passes. When the developer changes the option, the old delay stops and the new delay starts at once, without a fetch. When the developer selects another workspace, and when the first Git status of the selected workspace arrives, Heidrun Code fetches its repository at once if the last fetch of that repository is older than the delay, or if there is none.
+- Heidrun Code does not fetch when the option is "Off", when the selected workspace has no Git repository, when the branch has no upstream branch, and while a synchronization, a pull, a push, or another fetch runs.
 - A fetch that fails shows nothing: no toast and no error line. The next delay tries again.

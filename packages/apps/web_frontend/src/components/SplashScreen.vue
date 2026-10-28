@@ -13,7 +13,7 @@ const MOTTO_LOWEST_POINT_FROM_BOTTOM_PX = 72;
 /** The radius of the circle that the motto follows. A larger radius gives a flatter curve. */
 const MOTTO_CIRCLE_RADIUS_PX = 1800;
 
-/** False until Heidrun tells if it was started with `--no-splash-screen`. The main window is hidden until then. */
+/** False until Heidrun Code tells if it was started with `--no-splash-screen`. The main window is hidden until then. */
 const isVisible = ref(false);
 const screenWidth = ref(window.innerWidth);
 const screenHeight = ref(window.innerHeight);
@@ -41,7 +41,7 @@ onMounted(async () => {
   try {
     isDisabled = await isSplashScreenDisabled();
   } catch {
-    // Outside Heidrun (a plain browser), there is no command line option, so the splash screen shows.
+    // Outside Heidrun Code (a plain browser), there is no command line option, so the splash screen shows.
   }
   if (isDisabled) {
     await showMainWindowIfPossible();
@@ -62,7 +62,7 @@ async function showMainWindowIfPossible() {
   try {
     await showMainWindow();
   } catch {
-    // Outside Heidrun (a plain browser), there is no window to show.
+    // Outside Heidrun Code (a plain browser), there is no window to show.
   }
 }
 

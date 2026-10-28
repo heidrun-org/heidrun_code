@@ -1,6 +1,6 @@
 packages:
   - packages/apps/*
   - packages/auxiliary/*
-  - packages/data_layers/*
   - packages/dev_tools/*
   - packages/experiments/*
+  - submodules/heidrun_git_runner/packages/git_runner

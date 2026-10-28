@@ -1,17 +1,17 @@
 # User activity statistics
 
 - Created: 15 October 2026
-- Last updated: 17 October 2026
+- Last updated: 25 October 2026
 - Status: Maintained description of the statistic of the tab "User activity"
 - Related framing: [Project instructions](../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: user activity](../agents_rules/glossary/user_activity.md), [Statistics window](../agents_rules/user_interface/window/statistics_window.md), [User activity sidebar section](../agents_rules/user_interface/sidebars/user_activity.md)
+- Related rules: [Glossary of Heidrun Code: user activity](../agents_rules/glossary/user_activity.md), [Statistics window](../agents_rules/user_interface/window/statistics_window.md), [User activity sidebar section](../agents_rules/user_interface/sidebars/user_activity.md)
 - Related issue: [issue 489](https://github.com/heidrun-org/heidrun/issues/489), [issue 440](https://github.com/heidrun-org/heidrun/issues/440), [issue 473](https://github.com/heidrun-org/heidrun/issues/473), [issue 474](https://github.com/heidrun-org/heidrun/issues/474), [issue 498](https://github.com/heidrun-org/heidrun/issues/498), [issue 552](https://github.com/heidrun-org/heidrun/issues/552)
 
 This file describes the statistic of the tab "User activity" of the Statistics window, and the data layer that it reads. The words are defined in the [glossary of the user activity](../agents_rules/glossary/user_activity.md). The rules of the window are in [statistics_window.md](../agents_rules/user_interface/window/statistics_window.md). The data layers are explained in [the_four_data_layers.md](the_four_data_layers.md).
 
 ## What the statistic shows
 
-One histogram of the user activity time: the time that the developer is in front of Heidrun. The developer chooses the last day (24 slots of one hour), the last week (7 slots of one day), or the last month (30 slots of one day). Each bar is the user activity time of one slot. The bar is stacked: it has one part of one color for each chosen workspace, and its height is the time of all the chosen workspaces together. A legend gives the name of each color, and a card beside the bar under the pointer, with an arrow that points to the bar, gives the slot, the total, and the time of each workspace.
+One histogram of the user activity time: the time that the developer is in front of Heidrun Code. The developer chooses the last day (24 slots of one hour), the last week (7 slots of one day), or the last month (30 slots of one day). Each bar is the user activity time of one slot. The bar is stacked: it has one part of one color for each chosen workspace, and its height is the time of all the chosen workspaces together. A legend gives the name of each color, and a card beside the bar under the pointer, with an arrow that points to the bar, gives the slot, the total, and the time of each workspace.
 
 ## The data layer that it reads
 
@@ -30,7 +30,7 @@ The statistic uses only `startedAt` and `endedAt`. The user activity time of a s
 
 ## The way of the data
 
-1. The web frontend ends an active period and calls the command `user_activity_append`. The command adds one line to the file `~/.config/heidrun/user_activity.jsonl`. The folder `HEIDRUN_DIR` replaces `~/.config/heidrun` when the variable is set.
+1. The web frontend ends an active period and calls the command `user_activity_append`. The command adds one line to the file `~/.config/heidrun_code/user_activity.jsonl`. The folder `HEIDRUN_CODE_DIR` replaces `~/.config/heidrun_code` when the variable is set.
 2. The developer opens the Statistics window. The window calls the command `user_activity_records_in_range` once, for the last month. It does not call it again while the window stays open.
 3. The command takes the lock of the file, so that it never reads half a line. It takes the lock of the SQLite file too.
 4. The command runs the mode `update` of `data_layer_user_activity`. The mode copies the lines of the file that are new into the table.
@@ -78,20 +78,20 @@ GROUP BY workspaceFolder
 ORDER BY hours DESC"
 ```
 
-The [file `README.md` of the package](../../packages/data_layers/data_layer_user_activity/README.md) has two more queries and the options of the command line tool.
+The [file `README.md` of the package](../../submodules/heidrun_data/packages/data_layer_user_activity/README.md) has two more queries and the options of the command line tool.
 
 ## Where the code is
 
 | Part | Place |
 | --- | --- |
-| The data layer | `packages/data_layers/data_layer_user_activity` |
+| The data layer | `submodules/heidrun_data/packages/data_layer_user_activity` |
 | The commands `user_activity_append` and `user_activity_read` | `packages/apps/desktop_tauri/src/user_activity.rs` |
 | The commands `user_activity_synchronize` and `user_activity_records_in_range` | `packages/apps/desktop_tauri/src/statistics/user_activity_records.rs` |
-| The lock of the SQLite file | `packages/data_layers/heidrun_data/src/database_lock.rs` |
+| The lock of the SQLite file | `submodules/heidrun_data/packages/heidrun_data/src/database_lock.rs` |
 | The window and the chart | `packages/apps/web_frontend/src/components/StatisticsModal.vue` and `UserActivityHistogram.vue` |
 | The calculation of the slots | `packages/apps/web_frontend/src/lib/user_activity_slots.ts` |
 
-The tests are listed in [statistics_window.md](../agents_rules/user_interface/window/statistics_window.md), in the section "Tests". The tests of the data layer are in its own package: `pnpm --filter data_layer_user_activity test`.
+The tests are listed in [statistics_window.md](../agents_rules/user_interface/window/statistics_window.md), in the section "Tests". The tests of the data layer are in its own package: `cargo test --package data_layer_user_activity`.
 
 ## Open points
 

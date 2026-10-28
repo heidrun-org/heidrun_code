@@ -2,8 +2,10 @@
   "name": "voice_input",
   "private": true,
   "license": "MIT",
-  "version": "0.3.0",
+  "version": "0.3.5",
   "scripts": {
-    "test": "cargo test"
+    "test": "pnpm run test:fast && pnpm run test:slow",
+    "test:fast": "cargo test --lib",
+    "test:slow": "cargo test --test transcription_with_tiny_model"
   }
 }

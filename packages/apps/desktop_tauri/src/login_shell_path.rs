@@ -1,5 +1,5 @@
 //! The `PATH` of the login shell, put into the environment of the application at the start. An application opened from
-//! the Finder or the Dock gets a short `PATH` from macOS, without `/opt/homebrew/bin`, so the programs that Heidrun
+//! the Finder or the Dock gets a short `PATH` from macOS, without `/opt/homebrew/bin`, so the programs that Heidrun Code
 //! starts by their name only, such as `gh` and `glab` in the data layer, are not found
 //! ([issue 660](https://github.com/heidrun-org/heidrun/issues/660)).
 
@@ -9,16 +9,16 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-/// The longest time that Heidrun waits for the login shell. A slow shell configuration must not hold the start.
+/// The longest time that Heidrun Code waits for the login shell. A slow shell configuration must not hold the start.
 const LOGIN_SHELL_TIMEOUT: Duration = Duration::from_secs(2);
 
-/// The folders that Heidrun adds when the login shell cannot give its `PATH`: the folders of Homebrew on Apple silicon
+/// The folders that Heidrun Code adds when the login shell cannot give its `PATH`: the folders of Homebrew on Apple silicon
 /// and on Intel.
 const USUAL_FOLDERS: [&str; 2] = ["/opt/homebrew/bin", "/usr/local/bin"];
 
 /// The text around the `PATH` in the output of the login shell, so that a text that the shell configuration writes is
 /// never read as a folder.
-const MARKER: &str = "__HEIDRUN_LOGIN_SHELL_PATH__";
+const MARKER: &str = "__HEIDRUN_CODE_LOGIN_SHELL_PATH__";
 
 /// Puts the folders of the `PATH` of the login shell, then the usual folders, into the `PATH` of the application. The
 /// folders of the current `PATH` stay. Called once, before Tauri creates threads, because a change of the environment
@@ -27,7 +27,7 @@ pub fn apply() {
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
     let login_shell_path = read(&shell, LOGIN_SHELL_TIMEOUT);
     if login_shell_path.is_none() {
-        eprintln!("Heidrun: the PATH of the login shell {shell} cannot be read, so the usual folders are added.");
+        eprintln!("Heidrun Code: the PATH of the login shell {shell} cannot be read, so the usual folders are added.");
     }
     let current_path = std::env::var_os("PATH").unwrap_or_default();
     let mut path = merge(&current_path, login_shell_path.as_deref());

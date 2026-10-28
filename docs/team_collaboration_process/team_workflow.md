@@ -26,5 +26,5 @@ All the members of the team agree on the full test. It has two parts:
 
 ## Open points
 
-- What Heidrun does to support this workflow is not decided.
+- What Heidrun Code does to support this workflow is not decided.
 - The open points of [Agreement about product](agreement_about_product.md) also apply to step 1.

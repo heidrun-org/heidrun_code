@@ -2,7 +2,7 @@
   "connection": "Connection",
   "starting": "Starting Herdr…",
   "notResponding": "Herdr does not respond",
-  "intro": "Heidrun can start the Herdr server in the background, without a terminal. The server stops when you quit Heidrun. When the setting “Keep agents running after quit” is on, the server keeps running until {command} or until the Mac restarts.",
+  "intro": "Heidrun Code can start the Herdr server in the background, without a terminal. The server stops when you quit Heidrun Code. When the setting “Keep agents running after quit” is on, the server keeps running until {command} or until the Mac restarts.",
   "start": "Start Herdr",
   "startTitle": "Start Herdr",
   "retry": "Try again",

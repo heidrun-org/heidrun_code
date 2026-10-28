@@ -1,13 +1,13 @@
-# User interface of Heidrun: the list of workspaces of the Needs you sidebar section
+# User interface of Heidrun Code: the list of workspaces of the Needs you sidebar section
 
 - Created: 14 October 2026
-- Last updated: 22 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md), [User interface of Heidrun: panes](../workspaces_tabs_and_panes/panes.md), [User interface of Heidrun: workspace](../workspaces_tabs_and_panes/workspace.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [User interface of Heidrun Code: panes](../workspaces_tabs_and_panes/panes.md), [User interface of Heidrun Code: workspace](../workspaces_tabs_and_panes/workspace.md)
 - Related issue: [issue 417](https://github.com/heidrun-org/heidrun/issues/417), [issue 556](https://github.com/heidrun-org/heidrun/issues/556), [issue 807](https://github.com/heidrun-org/heidrun/issues/807)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../glossary/index.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md).
 
 ## The list of workspaces
 
@@ -22,6 +22,7 @@ This file is a part of the rules of the user interface of Heidrun. The words are
 - The developer moves a row by drag and drop, with the same function `moveWorkspace` as the information card. A drop is saved in Herdr, so both lists show the new order. A drag does not select the workspace, and a short press is a click.
 - The row has no button to rename or to close a workspace. The information card of the workspace status bar section keeps them.
 - The list shows nothing when Herdr has no workspace.
+- While the microphone of the voice input records for a pane of a workspace, its row shows the recording icon after its name, as [voice_input_across_panes.md](../workspaces_tabs_and_panes/voice_input_across_panes.md) says ([issue 762](https://github.com/heidrun-org/heidrun_code/issues/762)).
 
 ## The heading "Needs you" of the section "Sidebars" of the Settings window
 

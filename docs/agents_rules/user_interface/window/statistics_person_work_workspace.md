@@ -1,10 +1,10 @@
-# User interface of Heidrun: Statistics window, tab "Work of one person", workspace selector
+# User interface of Heidrun Code: Statistics window, tab "Work of one person", workspace selector
 
 - Created: 16 October 2026
-- Last updated: 19 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Source "Git history"](statistics_git_history.md), [Source "AI cost"](statistics_ai_cost.md), [Tab "User activity"](statistics_user_activity.md)
+- Related rules: [Glossary of Heidrun Code: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Source "Git history"](statistics_git_history.md), [Source "AI cost"](statistics_ai_cost.md), [Tab "User activity"](statistics_user_activity.md)
 - Related issue: [issue 559](https://github.com/heidrun-org/heidrun/issues/559), [issue 629](https://github.com/heidrun-org/heidrun/issues/629), [issue 707](https://github.com/heidrun-org/heidrun/issues/707)
 
 This file is a part of the rules of the tab "Work of one person". The words are defined in [glossary/person_work.md](../../glossary/person_work.md). The layout of the tab is in [statistics_person_work.md](statistics_person_work.md).
@@ -13,8 +13,8 @@ This file is a part of the rules of the tab "Work of one person". The words are 
 
 - The workspace selector is the second line of the right column of the tab ([statistics_person_work.md](statistics_person_work.md)). It has the label "Workspaces", then two groups of small Bootstrap buttons (`btn-group-sm`, `btn-check btn-outline theme-secondary`). Both sources show it.
 - The first group is a radio button group with two buttons, "All" and "None". "All" chooses every workspace, and "None" chooses no workspace. "All" is shown as chosen when every workspace is chosen, and "None" when no workspace is chosen. When only some workspaces are chosen, neither button is shown as chosen.
-- The second group has one button with a checkbox for each workspace that is open in Heidrun now, in the order of the list of workspaces, with the name of the workspace. A workspace with no known folder has no button. The title of the button says "Show or hide the work of the workspace in the folder {folder}".
-- The developer can choose one workspace, several workspaces, or all of them. At first, only the selected workspace is chosen. When the selected workspace is not open, the first open workspace is chosen. Heidrun remembers the choice ([statistics_remembered_selections.md](statistics_remembered_selections.md)).
+- The second group has one button with a checkbox for each workspace that is open in Heidrun Code now, in the order of the list of workspaces, with the name of the workspace. A workspace with no known folder has no button. The title of the button says "Show or hide the work of the workspace in the folder {folder}".
+- The developer can choose one workspace, several workspaces, or all of them. At first, only the selected workspace is chosen. When the selected workspace is not open, the first open workspace is chosen. Heidrun Code remembers the choice ([statistics_remembered_selections.md](statistics_remembered_selections.md)).
 - When no workspace is chosen, the tab shows the text "No workspace is chosen. Choose a workspace to see its work.", no total, and no chart, and reads nothing.
 - When no workspace is open, the tab shows the text "No workspace is open…", no selector, and reads nothing.
 
@@ -30,7 +30,7 @@ This file is a part of the rules of the tab "Work of one person". The words are 
 
 ## Where the list comes from
 
-- The list is `openWorkspaces` in `packages/apps/web_frontend/src/stores/user_activity.ts`: each workspace of Heidrun with its folder, found by `workspaceCwd`. The tab starts with `selectedWorkspaceId` of the same file.
+- The list is `openWorkspaces` in `packages/apps/web_frontend/src/stores/user_activity.ts`: each workspace of Heidrun Code with its folder, found by `workspaceCwd`. The tab starts with `selectedWorkspaceId` of the same file.
 - The sums of the Git history come from the pure function `PersonWork.merge` (`lib/person_work.ts`). The command `person_work_synchronize` takes one folder, and the tab calls it once for each folder, then calls `person_work_in_range` with the repository that it gave. The command `ai_cost_in_range` takes the list of the chosen folders, and the data layer adds them up.
 
 ## Tests

@@ -1,4 +1,4 @@
-//! Connects Antigravity's custom status line to quota tracking in Heidrun.
+//! Connects Antigravity's custom status line to quota tracking in Heidrun Code.
 
 use serde::Serialize;
 use serde_json::{json, Map, Value};
@@ -76,6 +76,33 @@ fn is_ours(command: &str) -> bool {
 
 fn saved_line() -> Option<Map<String, Value>> {
     serde_json::from_str(&std::fs::read_to_string(saved_path()).ok()?).ok()
+}
+
+/// Points the Antigravity status line command at the data folder when it points into the former data folder
+/// `~/.config/heidrun`, which Heidrun Code moved to `~/.config/heidrun_code` ([issue
+/// 881](https://github.com/heidrun-org/heidrun_code/issues/881)).
+pub fn migrate_former_folder() {
+    let Ok(mut m) = read_settings() else { return };
+    let Some(command) = current_command(&m) else { return };
+    if points_into_the_former_folder(&command) == false {
+        return;
+    }
+    if let Some(Value::Object(line)) = m.get_mut("statusLine") {
+        line.insert("command".into(), json!(script_path().display().to_string()));
+    }
+    if write_settings(&m).is_ok() {
+        let _ = std::fs::create_dir_all(desk_dir());
+        let _ = std::fs::write(script_path(), SCRIPT);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(script_path(), std::fs::Permissions::from_mode(0o755));
+        }
+    }
+}
+
+fn points_into_the_former_folder(command: &str) -> bool {
+    command.contains(".config/heidrun/antigravity-statusline.sh")
 }
 
 #[tauri::command]
@@ -158,4 +185,15 @@ pub fn antigravity_statusline_uninstall() -> Result<AntigravityStatuslineState, 
     let _ = std::fs::remove_file(next_path());
     let _ = std::fs::remove_file(saved_path());
     antigravity_statusline_state()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_status_line_script_in_the_former_data_folder_moves() {
+        assert!(points_into_the_former_folder("/Users/someone/.config/heidrun/antigravity-statusline.sh"));
+        assert!(points_into_the_former_folder("/Users/someone/.config/heidrun_code/antigravity-statusline.sh") == false);
+    }
 }

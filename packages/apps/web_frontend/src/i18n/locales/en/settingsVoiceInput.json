@@ -13,5 +13,16 @@
   "downloading": "Downloading the model… {percent} %",
   "downloadingLabel": "Download of the model",
   "downloadFailed": "The download failed. Check the network.",
-  "tryAgain": "Try again"
+  "tryAgain": "Try again",
+  "wordsTitle": "Word replacement list",
+  "wordsAdd": "Add a word",
+  "wordsCancel": "Cancel",
+  "wordsWhisperWrites": "Whisper writes",
+  "wordsHeidrunWrites": "Heidrun Code writes instead",
+  "wordsAddThisWord": "Add this word",
+  "wordsDelete": "Delete the word {text}",
+  "wordsNone": "No word in the list.",
+  "wordsFileInvalid": "The word replacement list cannot be used. {reason}",
+  "wordsChangeFailed": "The change was not saved. {reason}",
+  "wordsWhisperWritesEmpty": "The text that Whisper writes cannot be empty."
 }

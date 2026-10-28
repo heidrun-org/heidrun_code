@@ -1,7 +1,7 @@
-//! The status item of Heidrun in the macOS menu bar: one wide picture with four slots, and a menu that opens on click.
+//! The status item of Heidrun Code in the macOS menu bar: one wide picture with four slots, and a menu that opens on click.
 //!
-//! The slots, from left to right: the icon of Heidrun, blocked agents, finished agents, working agents. The
-//! quota is not in the picture and not in the menu: the status bar of the Heidrun window shows it.
+//! The slots, from left to right: the icon of Heidrun Code, blocked agents, finished agents, working agents. The
+//! quota is not in the picture and not in the menu: the status bar of the Heidrun Code window shows it.
 //! The web page sends the data with the command `status_item_update`. This module draws the picture, builds the
 //! menu, and tells the web page which agent the user chose in the menu.
 
@@ -81,22 +81,22 @@ pub struct StatusItemPayload {
 }
 
 /// Name of the environment variable that makes the status item show fake agents, to look at the animations.
-const DEMO_VARIABLE: &str = "HEIDRUN_STATUS_ITEM_DEMO";
+const DEMO_VARIABLE: &str = "HEIDRUN_CODE_STATUS_ITEM_DEMO";
 
-/// Name of the environment variable that makes the icon of Heidrun fade while the user is not active in front of
-/// Heidrun. It shows by eye that the detection of the activity of the user works.
-const USER_ACTIVITY_VARIABLE: &str = "HEIDRUN_STATUS_ITEM_USER_ACTIVITY";
+/// Name of the environment variable that makes the icon of Heidrun Code fade while the user is not active in front of
+/// Heidrun Code. It shows by eye that the detection of the activity of the user works.
+const USER_ACTIVITY_VARIABLE: &str = "HEIDRUN_CODE_STATUS_ITEM_USER_ACTIVITY";
 
 /// The data that the status item shows now, and the time of its creation, which gives the time of each picture.
 pub struct StatusItemState {
     payload: Mutex<StatusItemPayload>,
     started: Instant,
-    /// True when the environment variable `HEIDRUN_STATUS_ITEM_DEMO` is set: the data of the web page is ignored.
+    /// True when the environment variable `HEIDRUN_CODE_STATUS_ITEM_DEMO` is set: the data of the web page is ignored.
     is_demo: bool,
-    /// True when the environment variable `HEIDRUN_STATUS_ITEM_USER_ACTIVITY` is set: the icon of Heidrun is faded
-    /// while the user is not active in front of Heidrun.
+    /// True when the environment variable `HEIDRUN_CODE_STATUS_ITEM_USER_ACTIVITY` is set: the icon of Heidrun Code is faded
+    /// while the user is not active in front of Heidrun Code.
     is_user_activity_shown: bool,
-    /// True while the user is active in front of Heidrun. The web page sends it with `status_item_set_user_active`.
+    /// True while the user is active in front of Heidrun Code. The web page sends it with `status_item_set_user_active`.
     is_user_active: AtomicBool,
 }
 
@@ -126,7 +126,7 @@ fn demo_payload() -> StatusItemPayload {
         blocked: section("Blocked", 2),
         done: section("Finished", 1),
         working: section("Working", 3),
-        open_label: "Open Heidrun".to_string(),
+        open_label: "Open Heidrun Code".to_string(),
         empty_label: "No agent".to_string(),
         is_urgent: true,
     }
@@ -137,7 +137,7 @@ impl StatusItemState {
         self.payload.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    /// True when the icon of Heidrun must be drawn faded: the environment variable is set and the user is not active.
+    /// True when the icon of Heidrun Code must be drawn faded: the environment variable is set and the user is not active.
     fn is_icon_faded(&self) -> bool {
         self.is_user_activity_shown && !self.is_user_active.load(Ordering::Relaxed)
     }
@@ -147,14 +147,14 @@ impl StatusItemState {
 // Picture
 ///////////////////////////////////////////////////////////////////////////////
 
-/// The slots for the data of the web page: the icon of Heidrun, then blocked, finished, and working. The quota is not
-/// in the picture: the status bar of the Heidrun window shows it. The icon of Heidrun
+/// The slots for the data of the web page: the icon of Heidrun Code, then blocked, finished, and working. The quota is not
+/// in the picture: the status bar of the Heidrun Code window shows it. The icon of Heidrun Code
 /// does not move.
 pub fn slots_for(payload: &StatusItemPayload) -> Vec<Slot> {
     slots_with_icon(payload, icon::frames())
 }
 
-/// The slots of `slots_for`, with `icon` as the frames of the icon of Heidrun: the normal icon or the faded icon.
+/// The slots of `slots_for`, with `icon` as the frames of the icon of Heidrun Code: the normal icon or the faded icon.
 fn slots_with_icon(payload: &StatusItemPayload, icon: &'static [Sprite]) -> Vec<Slot> {
     let mut slots = Vec::new();
     if !icon.is_empty() {
@@ -167,7 +167,7 @@ fn slots_with_icon(payload: &StatusItemPayload, icon: &'static [Sprite]) -> Vec<
 }
 
 /// Draws the picture of the status item for the data of the web page, at `time` seconds after the start. The icon of
-/// Heidrun is faded when `is_icon_faded` is true.
+/// Heidrun Code is faded when `is_icon_faded` is true.
 fn draw(payload: &StatusItemPayload, is_icon_faded: bool, time: f32) -> Image<'static> {
     let icon = if is_icon_faded { icon::faded_frames() } else { icon::frames() };
     let slots = slots_with_icon(payload, icon);
@@ -330,7 +330,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let state = app.state::<StatusItemState>();
     let mut payload = state.lock().clone();
     if crate::application_profile::is_development() {
-        payload.open_label = "Open Heidrun Development".into();
+        payload.open_label = "Open Heidrun Code Development".into();
         *state.lock() = payload.clone();
     }
     TrayIconBuilder::with_id(STATUS_ITEM_ID)
@@ -366,7 +366,7 @@ pub fn status_item_update(
     }
     let mut payload = payload;
     if crate::application_profile::is_development() {
-        payload.open_label = "Open Heidrun Development".into();
+        payload.open_label = "Open Heidrun Code Development".into();
     }
     let menu = build_menu(&app, &payload).map_err(|error| error.to_string())?;
     *state.lock() = payload;
@@ -377,7 +377,7 @@ pub fn status_item_update(
     Ok(())
 }
 
-/// Called by the web page each time the user starts or stops to be active in front of Heidrun. The menu does not change.
+/// Called by the web page each time the user starts or stops to be active in front of Heidrun Code. The menu does not change.
 #[tauri::command]
 pub fn status_item_set_user_active(app: AppHandle, state: State<StatusItemState>, is_active: bool) {
     state.is_user_active.store(is_active, Ordering::Relaxed);
@@ -407,12 +407,12 @@ mod tests {
             "blocked": { "title": "Blocked (1)", "agents": [{ "paneId": "p1", "name": "api · fix" }] },
             "done": { "title": "Finished (0)", "agents": [] },
             "working": { "title": "Working (0)", "agents": [] },
-            "openLabel": "Open Heidrun",
+            "openLabel": "Open Heidrun Code",
             "emptyLabel": "No agent"
         }"#;
         let payload: StatusItemPayload = serde_json::from_str(json).expect("the data is valid");
         assert_eq!(payload.blocked.agents, vec![StatusAgent { pane_id: "p1".into(), name: "api · fix".into() }]);
-        assert_eq!(payload.open_label, "Open Heidrun");
+        assert_eq!(payload.open_label, "Open Heidrun Code");
     }
 
     #[test]
@@ -541,7 +541,7 @@ mod tests {
                 assert_eq!(frames.len(), 1);
                 assert!(!is_walking);
             }
-            _ => panic!("the first slot is the icon of Heidrun"),
+            _ => panic!("the first slot is the icon of Heidrun Code"),
         }
         assert!(!picture::is_animated(&slots_for(&working)));
     }
@@ -564,9 +564,9 @@ mod tests {
 
     #[test]
     fn the_menu_starts_with_the_item_that_opens_heidrun_and_a_separator() {
-        let payload = StatusItemPayload { open_label: "Open Heidrun".into(), ..demo_payload() };
+        let payload = StatusItemPayload { open_label: "Open Heidrun Code".into(), ..demo_payload() };
         let lines = menu_lines(&payload);
-        assert_eq!(lines[0], MenuLine::Open("Open Heidrun".into()));
+        assert_eq!(lines[0], MenuLine::Open("Open Heidrun Code".into()));
         assert_eq!(lines[1], MenuLine::Separator);
         assert!(matches!(lines[2], MenuLine::Title(_)));
         let open_count = lines.iter().filter(|line| matches!(line, MenuLine::Open(_))).count();

@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires the disposable heidrun_issue_724 session and temporary Heidrun data"]
+    #[ignore = "Requires the disposable heidrun_issue_724 session and temporary Heidrun Code data"]
     async fn live_creation_saves_the_absolute_folder_in_the_real_herdr_session() {
         assert_eq!(std::env::var("HERDR_SESSION").unwrap(), "heidrun_issue_724");
         assert_eq!(crate::herdr::socket_path(),

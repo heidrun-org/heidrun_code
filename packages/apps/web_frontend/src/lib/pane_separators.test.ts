@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { PaneSeparators } from './pane_separators';
 import type { LayoutSplit, PaneLayoutSnapshot, Rect } from './types';

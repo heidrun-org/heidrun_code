@@ -1,6 +1,6 @@
 # voice_input
 
-`voice_input` is the Rust library behind the voice input of Heidrun. The developer holds the push-to-talk button, speaks, and releases the button, or clicks to start and clicks to stop. The library records the microphone between these two moments, tells the level of the voice 20 times a second, changes the speech into text with a Whisper model on the computer, and gives the text to the application. The sound stays in memory, is never saved, and never leaves the computer.
+`voice_input` is the Rust library behind the voice input of Heidrun Code. The developer holds the push-to-talk button, speaks, and releases the button, or clicks to start and clicks to stop. The library records the microphone between these two moments, tells the level of the voice 20 times a second, changes the speech into text with a Whisper model on the computer, and gives the text to the application. The sound stays in memory, is never saved, and never leaves the computer.
 
 The library has five parts:
 
@@ -13,7 +13,9 @@ The library has five parts:
 Building the library needs `cmake` (`brew install cmake`), because `whisper-rs` builds the C++ engine whisper.cpp. To test it:
 
 ```bash
-pnpm --filter voice_input test
+pnpm --filter voice_input test:fast   # the fast tests, with no model
+pnpm --filter voice_input test:slow   # the slow tests, with the real model tiny
+pnpm --filter voice_input test        # both
 ```
 
-The first run of the tests downloads the model `tiny` (78 MB) once. To record the real microphone for one second, run `cargo test live_ -- --ignored` in this folder.
+The first run of the slow tests downloads the model `tiny` (78 MB) once. To record the real microphone for one second, run `cargo test live_ -- --ignored` in this folder.

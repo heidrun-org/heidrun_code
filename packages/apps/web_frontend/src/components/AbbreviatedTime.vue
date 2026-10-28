@@ -14,7 +14,7 @@ import Icon from "./Icon.vue";
 const props = defineProps<{
   /** The date, in milliseconds since 1970. */
   milliseconds: number;
-  /** The key of a phrase that ends with the time, as `{time}`, for example "gitModal.lastCommit". */
+  /** The key of a phrase that ends with the time, as `{time}`, for example "mobileModal.lastSeen". */
   phraseKey?: string;
 }>();
 

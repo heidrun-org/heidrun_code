@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import type { UserActivityRecord } from "./user_activity";
 import { USER_ACTIVITY_ROW_LIMIT, UserActivityView } from "./user_activity_view";

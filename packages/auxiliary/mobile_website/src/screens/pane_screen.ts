@@ -104,7 +104,7 @@ export class PaneScreen {
 		const shownHtmlContent = outputHtmlContent === '' ? '…' : outputHtmlContent;
 		const paneId = HtmlEscape.escape(agent.paneId);
 		const noticeText = {
-			off: 'The phone only reads this terminal. Typing is off in the Settings window of Heidrun.',
+			off: 'The phone only reads this terminal. Typing is off in the Settings window of Heidrun Code.',
 			locked: 'The phone only reads this terminal until you allow typing.',
 			unlocked: 'Every command passes the guards before it runs.',
 		}[terminalTyping];

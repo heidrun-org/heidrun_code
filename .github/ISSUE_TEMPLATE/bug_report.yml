@@ -1,5 +1,5 @@
 name: Bug report
-description: Something is broken in Heidrun. Even Valhalla has a few bugs.
+description: Something is broken in Heidrun Code. Even Valhalla has a few bugs.
 labels: ["bug"]
 body:
   - type: markdown
@@ -33,7 +33,7 @@ body:
   - type: input
     id: heidrun-version
     attributes:
-      label: Heidrun version
+      label: Heidrun Code version
     validations:
       required: true
   - type: input

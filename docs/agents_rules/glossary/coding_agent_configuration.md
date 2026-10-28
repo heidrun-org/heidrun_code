@@ -1,13 +1,13 @@
-# Glossary of Heidrun: coding agent configuration
+# Glossary of Heidrun Code: coding agent configuration
 
 - Created: 16 October 2026
-- Last updated: 18 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [Glossary of Heidrun: chats](chats.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [Glossary of Heidrun Code: chats](chats.md)
 - Related issue: [issue 569](https://github.com/heidrun-org/heidrun/issues/569), [issue 605](https://github.com/heidrun-org/heidrun/issues/605)
 
-This document gives one short definition for each word of the configuration of the coding agent, which the package `data_layer_coding_agents` reads. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the configuration of the coding agent, which the package `data_layer_coding_agents` reads. The other words of Heidrun Code are in [index.md](index.md).
 
 ## The words
 
@@ -29,4 +29,4 @@ One folder with a file `SKILL.md`, which teaches a coding agent one task. A skil
 
 ### Removed configuration item
 
-A row of the table `memory_files`, `subagents`, or `skills` whose file is gone. The row stays, and its field `removedAt` holds the date of the first synchronization that did not find the file any more. It is the date when Heidrun saw the removal, not the exact date of the removal.
+A row of the table `memory_files`, `subagents`, or `skills` whose file is gone. The row stays, and its field `removedAt` holds the date of the first synchronization that did not find the file any more. It is the date when Heidrun Code saw the removal, not the exact date of the removal.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DETECTION_FAMILY_IDS, type DetectionFamilyId } from './detection_families';
 import type { RefContext } from './refs';
@@ -59,11 +60,11 @@ class TerminalDetectionTestHelper {
 
 describe('TerminalDetection, the paths of the screenshot of the issue #793', () => {
 	it('finds the whole folder name, and names it in the label of the hover button', () => {
-		const text = '- ~/Library/WebKit/dev.heidrun-org.heidrun.development';
+		const text = '- ~/Library/WebKit/dev.heidrun-org.heidrun-code.development';
 		const { items } = TerminalDetectionTestHelper.detect(text);
 		expect(items).toHaveLength(1);
-		expect(items[0]).toMatchObject({ family: 'filePaths', text: '~/Library/WebKit/dev.heidrun-org.heidrun.development' });
-		expect(items[0].primary?.labelParams).toEqual({ name: 'dev.heidrun-org.heidrun.development' });
+		expect(items[0]).toMatchObject({ family: 'filePaths', text: '~/Library/WebKit/dev.heidrun-org.heidrun-code.development' });
+		expect(items[0].primary?.labelParams).toEqual({ name: 'dev.heidrun-org.heidrun-code.development' });
 		expect(items[0].end).toBe(text.length);
 	});
 });
@@ -165,6 +166,11 @@ describe('TerminalDetection, the switches', () => {
 });
 
 describe('TerminalDetection, the precedence', () => {
+	it('leaves the text [Image #N] of a chat to its image, not to the issue N (issue #924)', () => {
+		const { items } = TerminalDetectionTestHelper.detect('> look [Image #1] and fix #12');
+		expect(items.map((item) => item.text)).toEqual(['#12']);
+	});
+
 	it('lets a shell command in a sentence take a reference inside it', () => {
 		const { items, suppressed } = TerminalDetectionTestHelper.detect('Run ! gh issue view 12 --repo org/app#9. Then wait');
 		expect(items.map((item) => item.family)).toEqual(['shellCommands']);

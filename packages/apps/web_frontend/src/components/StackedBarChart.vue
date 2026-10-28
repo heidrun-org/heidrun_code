@@ -25,7 +25,7 @@ import { resolvedTheme } from "../stores/theme";
 // Like every chart of the Statistics window, it has a legend above the bars, and a chart information card that opens beside
 // the bar under the pointer. A click on a name of the legend filters the chart: the chart then shows only the color of this
 // name, and a second click on the same name shows every color again. The settings keep the filter of each chart, so the
-// next run of Heidrun shows the chart with the same filter. Plotly.js is loaded only when the window opens, so the
+// next run of Heidrun Code shows the chart with the same filter. Plotly.js is loaded only when the window opens, so the
 // other windows do not pay for its size.
 // Issue: https://github.com/heidrun-org/heidrun/issues/498
 // Issue: https://github.com/heidrun-org/heidrun/issues/629

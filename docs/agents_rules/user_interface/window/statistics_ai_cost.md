@@ -1,10 +1,10 @@
-# User interface of Heidrun: Statistics window, tab "Work of one person", source "AI cost"
+# User interface of Heidrun Code: Statistics window, tab "Work of one person", source "AI cost"
 
 - Created: 15 October 2026
-- Last updated: 19 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Chat summary](../sidebars/chats/chat_summary.md), [Workspace selector](statistics_person_work_workspace.md)
+- Related rules: [Glossary of Heidrun Code: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Chat summary](../sidebars/chats/chat_summary.md), [Workspace selector](statistics_person_work_workspace.md)
 - Related issue: [issue 482](https://github.com/heidrun-org/heidrun/issues/482), [issue 523](https://github.com/heidrun-org/heidrun/issues/523), [issue 558](https://github.com/heidrun-org/heidrun/issues/558), [issue 559](https://github.com/heidrun-org/heidrun/issues/559), [issue 557](https://github.com/heidrun-org/heidrun/issues/557), [issue 616](https://github.com/heidrun-org/heidrun/issues/616)
 
 This file is a part of the rules of the tab "Work of one person". The layout of the tab, the two radio button groups, and the bar chart are in [statistics_person_work.md](statistics_person_work.md). The words are defined in [glossary/person_work.md](../../glossary/person_work.md). The tables, the prices, and the measurements are in [token_usage_and_cost.md](../../../statistics/token_usage_and_cost.md).
@@ -21,13 +21,13 @@ This file is a part of the rules of the tab "Work of one person". The layout of 
 ## The import of the history
 
 - The first import of a workspace opens every chat file of the workspace once, which can take a few minutes. The tab never starts it by itself. A workspace that was never imported gives no day, and the tab shows no total and no chart until a chosen workspace is imported. The tab then shows the text "The history of the chats of {count} workspace is not imported yet, so it is not in the chart…" and the button "Import the history" with the id `statistics-person-import`. A click imports the workspaces that are not imported. While it runs, the tab shows the text "Importing the history of the chats…" in place of the reading text.
-- A workspace that was imported is brought up to date each time that the tab reads: only the chat files that changed since the last read are opened. The tab does not show the update as a step. The tab reads again only when the source or the chosen folders change, never when Heidrun makes the list of the open workspaces again (it does so after each change that Herdr reports), so the chart does not blink.
+- A workspace that was imported is brought up to date each time that the tab reads: only the chat files that changed since the last read are opened. The tab does not show the update as a step. The tab reads again only when the source or the chosen folders change, never when Heidrun Code makes the list of the open workspaces again (it does so after each change that Herdr reports), so the chart does not blink.
 - The tab shows the date of the last update, "Token usage updated on {time}." (the oldest date of the chosen workspaces that were imported), then the version of the prices, "Prices: version {version}, checked on {time}.". When no price is stored, the second text is "No price of the models is stored yet, so no cost is shown.".
 - When the prices cannot be refreshed, the tab shows the warning "The prices of the models could not be refreshed, so the latest known prices are used: {error}" in an alert (`alert theme-warning`), and the chart stays. When one workspace cannot be read, the tab shows its error in an alert (`alert theme-danger`) and still shows the other workspaces.
 
 ## The unit: US dollars or tokens
 
-- When the source "AI cost" is shown, a radio button group of the unit comes after the radio button group of the source. It has the same Bootstrap form, with two buttons that have a text and a title: "US dollars", chosen at first, and "Tokens". The source "Git history" does not show it. A click shows the other unit at once, from the data that the tab already read, so a change of the unit reads nothing. Heidrun remembers the choice.
+- When the source "AI cost" is shown, a radio button group of the unit comes after the radio button group of the source. It has the same Bootstrap form, with two buttons that have a text and a title: "US dollars", chosen at first, and "Tokens". The source "Git history" does not show it. A click shows the other unit at once, from the data that the tab already read, so a change of the unit reads nothing. The choice is remembered.
 - The tokens of a day are the input tokens, with the ones read from the cache and written to it, and the output tokens, for every model: the numbers that the Past chats sidebar section shows ([chat_summary.md](../sidebars/chats/chat_summary.md)).
 - In tokens, a model with no known price counts with its tokens, because a token has no price. The line of text about the cost that is not complete is shown only in US dollars.
 - A number of tokens is written as the information card of a chat writes it: a number under one thousand as it is, else two decimal digits and KT (thousand), MT (million), BT (billion), or TT (trillion), for example "20.61 KT". A total of zero is "0".

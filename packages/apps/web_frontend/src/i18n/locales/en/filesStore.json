@@ -1,10 +1,3 @@
 {
-  "saved": "{name} saved",
-  "changedAgain": "The file changed again on the disk: look at the new difference",
-  "reloaded": "{name} changed on the disk (an agent?): reloaded",
-  "unsavedBeforeSwitch": "Some changed files are not saved: save them or close their tabs first",
-  "unknownFolder": "Folder of the pane unknown",
-  "saveFirst": "First save the changed files concerned",
-  "unsavedConcerned": "Changed files that are not saved are concerned: save them or cancel first",
-  "trashed": "{name} moved to the Trash"
+  "unknownFolder": "Folder of the pane unknown"
 }

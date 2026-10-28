@@ -39,7 +39,7 @@ function statusOf(root: string, upstream: string | null = "origin/main"): GitSta
 let stopLastRun: () => void = () => {};
 
 /**
- * The stores, as a new run of Heidrun sees them: the modules are loaded again, and nothing is started yet. The mocked
+ * The stores, as a new run of Heidrun Code sees them: the modules are loaded again, and nothing is started yet. The mocked
  * module `./git` is not loaded again, so its Git status of the earlier tests is emptied here.
  */
 async function loadStores() {
@@ -56,7 +56,7 @@ async function loadStores() {
 }
 
 /**
- * Starts the fetch in the background with the workspace "w1" selected, and forgets the first fetch, which Heidrun makes
+ * Starts the fetch in the background with the workspace "w1" selected, and forgets the first fetch, which Heidrun Code makes
  * at once when the Git status of the selected workspace arrives.
  */
 async function startWith(minutes: number, upstream: string | null = "origin/main") {

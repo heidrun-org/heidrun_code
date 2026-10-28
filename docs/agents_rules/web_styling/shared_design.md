@@ -1,13 +1,13 @@
-# Web styling of Heidrun: shared design rules
+# Web styling of Heidrun Code: shared design rules
 
 - Created: 21 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained shared design rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Colors and scroll bars](colors_and_scroll_bars.md), [Status dot](../../architecture/status_dot.md)
 - Related issue: [issue 749](https://github.com/heidrun-org/heidrun/issues/749), [issue 796](https://github.com/heidrun-org/heidrun/issues/796), [issue 799](https://github.com/heidrun-org/heidrun/issues/799)
 
-These rules govern desktop colors, buttons, contrast, and status displays. Keep the existing layout and font selections. The public website and experiments have their own visual identities. Heidrun Mobile retains its existing mobile layout and shared status colors.
+These rules govern desktop colors, buttons, contrast, and status displays. Keep the existing layout and font selections. The public website and experiments have their own visual identities. Heidrun Code Mobile retains its existing mobile layout and shared status colors.
 
 ## Authority and application
 

@@ -6,7 +6,8 @@
 
 use coding_agent_cli::login_shell;
 use serde::Serialize;
-use std::time::Duration;
+use crate::application_log::record_git_call;
+use std::time::{Duration, Instant};
 use tokio::process::Command;
 
 #[derive(Serialize, Default)]
@@ -51,15 +52,34 @@ async fn worktree_details(folder: String, branch: Option<String>) -> GitWorktree
     GitWorktree { folder, branch, created_at, last_commit_at }
 }
 
+/// Runs `git -C cwd args`, writes it in the application log, and gives the standard output, or None when it fails.
 async fn git(cwd: &str, args: &[&str]) -> Option<String> {
-    let out = tokio::time::timeout(
+    let started = Instant::now();
+    let output = tokio::time::timeout(
         Duration::from_secs(8),
         Command::new("git").arg("-C").arg(cwd).args(args).kill_on_drop(true).output(),
     )
-    .await
-    .ok()?
-    .ok()?;
-    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+    .await;
+    let result = match output {
+        Err(_) => Err("no answer in 8 s".to_string()),
+        Ok(Err(error)) => Err(error.to_string()),
+        Ok(Ok(out)) => match output_error(&out) {
+            None => Ok(String::from_utf8_lossy(&out.stdout).into_owned()),
+            Some(error) => Err(error),
+        },
+    };
+    record_git_call(args, started, result.as_ref().err().map(String::as_str));
+    result.ok()
+}
+
+/// The failure of a finished `git` command: None when it succeeded, else its standard error output, or its exit status when
+/// the standard error output is empty.
+pub(crate) fn output_error(output: &std::process::Output) -> Option<String> {
+    if output.status.success() {
+        return None;
+    }
+    let error = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    Some(if error.is_empty() { output.status.to_string() } else { error })
 }
 
 /// Names with quotes or control characters are still C-quoted by git, even with
@@ -157,18 +177,21 @@ pub async fn git_status(cwd: String) -> Option<GitStatus> {
 #[tauri::command]
 pub async fn git_worktrees(root: String) -> Result<Vec<GitWorktree>, String> {
     known_root(&root)?;
+    let args = ["worktree", "list", "--porcelain", "-z"];
+    let started = Instant::now();
     let output = tokio::time::timeout(
         Duration::from_secs(8),
-        Command::new("git")
-            .arg("-C")
-            .arg(&root)
-            .args(["worktree", "list", "--porcelain", "-z"])
-            .kill_on_drop(true)
-            .output(),
+        Command::new("git").arg("-C").arg(&root).args(args).kill_on_drop(true).output(),
     )
     .await
-    .map_err(|_| "Git worktree listing timed out.".to_string())?
-    .map_err(|error| format!("Git worktree listing failed: {error}"))?;
+    .map_err(|_| "Git worktree listing timed out.".to_string())
+    .and_then(|output| output.map_err(|error| format!("Git worktree listing failed: {error}")));
+    let error = match &output {
+        Ok(output) => output_error(output),
+        Err(error) => Some(error.clone()),
+    };
+    record_git_call(&args, started, error.as_deref());
+    let output = output?;
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
     }
@@ -228,7 +251,11 @@ pub async fn git_diff(root: String, path: String) -> Result<String, String> {
     known_root(&root)?;
     let rel = safe_rel(&path)?;
     let spec = format!("HEAD:{rel}");
-    let in_head = git_literal(&root).args(["cat-file", "-e", &spec]).output().await.map(|o| o.status.success()).unwrap_or(false);
+    let started = Instant::now();
+    // `cat-file -e` exits with 1 when the file is not in HEAD: an answer, not a failure.
+    let in_head = git_literal(&root).args(["cat-file", "-e", &spec]).output().await;
+    record_git_call(&["cat-file"], started, in_head.as_ref().err().map(|error| error.to_string()).as_deref());
+    let in_head = in_head.map(|o| o.status.success()).unwrap_or(false);
     let mut cmd = git_literal(&root);
     cmd.args(["-c", "core.quotepath=off", "diff", "--no-color", "--no-ext-diff", "-U3"]);
     if in_head {
@@ -236,16 +263,27 @@ pub async fn git_diff(root: String, path: String) -> Result<String, String> {
     } else {
         cmd.args(["--no-index", "--", "/dev/null", rel]);
     }
+    let started = Instant::now();
     let out = tokio::time::timeout(Duration::from_secs(8), cmd.output())
         .await
-        .map_err(|_| "git diff : pas de réponse".to_string())?
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "git diff : pas de réponse".to_string())
+        .and_then(|output| output.map_err(|e| e.to_string()));
+    let out = match out {
+        Ok(out) => out,
+        Err(error) => {
+            record_git_call(&["diff"], started, Some(&error));
+            return Err(error);
+        }
+    };
     // `--no-index` exits with 1 when the files differ; anything else is an error.
     let code = out.status.code().unwrap_or(-1);
     if code != 0 && !(code == 1 && !in_head) {
         let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
-        return Err(if err.is_empty() { format!("git diff a échoué ({code})") } else { err });
+        let err = if err.is_empty() { format!("git diff a échoué ({code})") } else { err };
+        record_git_call(&["diff"], started, Some(&err));
+        return Err(err);
     }
+    record_git_call(&["diff"], started, None);
     as_text(out.stdout)
 }
 
@@ -274,7 +312,11 @@ pub async fn git_file(root: String, path: String, rev: Option<String>) -> Result
         }
         Some("HEAD") => {
             let spec = format!("HEAD:{rel}");
-            let size = git_literal(&root).args(["cat-file", "-s", &spec]).output().await.map_err(|e| e.to_string())?;
+            let started = Instant::now();
+            let size = git_literal(&root).args(["cat-file", "-s", &spec]).output().await.map_err(|e| e.to_string());
+            let error = size.as_ref().map(output_error).unwrap_or_else(|error| Some(error.clone()));
+            record_git_call(&["cat-file"], started, error.as_deref());
+            let size = size?;
             if !size.status.success() {
                 return Err("absent de HEAD (nouveau fichier)".into());
             }
@@ -282,11 +324,14 @@ pub async fn git_file(root: String, path: String, rev: Option<String>) -> Result
             if n > MAX_TEXT {
                 return Err(format!("fichier trop gros pour l’aperçu ({} Ko)", n / 1024));
             }
+            let started = Instant::now();
             let out = tokio::time::timeout(Duration::from_secs(8), git_literal(&root).args(["show", &spec]).output())
                 .await
-                .map_err(|_| "git show : pas de réponse".to_string())?
-                .map_err(|e| e.to_string())?;
-            as_text(out.stdout)
+                .map_err(|_| "git show : pas de réponse".to_string())
+                .and_then(|output| output.map_err(|e| e.to_string()));
+            let error = out.as_ref().map(output_error).unwrap_or_else(|error| Some(error.clone()));
+            record_git_call(&["show"], started, error.as_deref());
+            as_text(out?.stdout)
         }
         Some(_) => Err("révision non prise en charge".into()),
     }
@@ -334,28 +379,133 @@ pub(crate) fn allowed(tool: &str, args: &[String]) -> bool {
 /// Runs `glab` / `gh` in the repository through the login shell (Homebrew PATH,
 /// accounts already connected). `exec "$0" "$@"` passes arguments as is.
 pub(crate) async fn run_forge(cwd: &str, tool: &str, args: &[String], timeout: u64) -> Result<String, String> {
-    let mut cmd = Command::new(login_shell());
-    cmd.arg("-lc").arg("exec \"$0\" \"$@\"").arg(tool).args(args).current_dir(cwd).kill_on_drop(true);
-    cmd.env("NO_COLOR", "1").env("NO_PROMPT", "1").env("GLAB_NO_PROMPT", "1").env("GH_PROMPT_DISABLED", "1");
-    let out = tokio::time::timeout(Duration::from_secs(timeout), cmd.output())
-        .await
-        .map_err(|_| format!("{tool} : pas de réponse en {timeout} s"))?
-        .map_err(|e| format!("{tool} : {e}"))?;
+    let out = run_forge_process(cwd, tool, args, timeout).await?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     } else {
-        let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
-        Err(if err.is_empty() { format!("{tool} a échoué ({})", out.status) } else { err })
+        Err(forge_failure_text(tool, &out))
     }
 }
 
-/// Runs a read-only `glab` / `gh` call (see `allowed`).
-#[tauri::command]
-pub async fn forge_cli(cwd: String, tool: String, args: Vec<String>) -> Result<String, String> {
-    if !allowed(&tool, &args) {
-        return Err(format!("forge_cli : appel non autorisé ({tool} {})", args.join(" ")));
+/// The same call as `run_forge`, which gives the whole output of the process, the standard output included when the
+/// process fails.
+async fn run_forge_process(cwd: &str, tool: &str, args: &[String], timeout: u64) -> Result<std::process::Output, String> {
+    let mut cmd = Command::new(login_shell());
+    cmd.arg("-lc").arg("exec \"$0\" \"$@\"").arg(tool).args(args).current_dir(cwd).kill_on_drop(true);
+    cmd.env("NO_COLOR", "1").env("NO_PROMPT", "1").env("GLAB_NO_PROMPT", "1").env("GH_PROMPT_DISABLED", "1");
+    tokio::time::timeout(Duration::from_secs(timeout), cmd.output())
+        .await
+        .map_err(|_| format!("{tool} : pas de réponse en {timeout} s"))?
+        .map_err(|e| format!("{tool} : {e}"))
+}
+
+/// The failure of a process of `glab` / `gh` that failed: its error output, or its exit status when the error output is
+/// empty.
+fn forge_failure_text(tool: &str, out: &std::process::Output) -> String {
+    let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+    if err.is_empty() { format!("{tool} a échoué ({})", out.status) } else { err }
+}
+
+/// The same call as `run_forge`, with a start line and an end line in the application log, with `caller`, the part of the application that
+/// asked (issue #879).
+async fn run_forge_logged(caller: &str, cwd: &str, tool: &str, args: &[String], timeout: u64) -> Result<String, String> {
+    use crate::application_log::{ForgeAnswerSource, ForgeCall};
+    let call = ForgeCall::start(Some(caller), tool, args, true);
+    let result = run_forge(cwd, tool, args, timeout).await;
+    match &result {
+        Ok(_) => {
+            log_github_points_after(&call, cwd, tool, args);
+            call.end(ForgeAnswerSource::Forge, None)
+        }
+        Err(failure) => call.end(ForgeAnswerSource::Failed, Some(failure)),
     }
-    run_forge(&cwd, &tool, &args, 20).await
+    result
+}
+
+/// After a call to `gh` that GitHub answered, reads `gh api rate_limit` in the background and writes the GitHub points
+/// left in the application log, because `gh issue list`, `gh pr list`, `gh issue view`, and `gh pr view` do not give the
+/// cost of the call. GitHub does not count `gh api rate_limit`, so the read itself is not followed by another read
+/// (issue #883).
+pub(crate) fn log_github_points_after(call: &crate::application_log::ForgeCall, cwd: &str, tool: &str, args: &[String]) {
+    if tool != "gh" || is_rate_limit_read(args) {
+        return;
+    }
+    let (call_id, caller, cwd) = (call.call_id(), call.caller().to_string(), cwd.to_string());
+    tauri::async_runtime::spawn(async move {
+        let args = ["api", "rate_limit"].map(String::from);
+        let answer = run_forge(&cwd, "gh", &args, 20).await;
+        crate::application_log::record_github_rate_limit(call_id, &caller, answer);
+    });
+}
+
+/// True when the arguments of `gh` are the read of the rate limit, `api rate_limit`.
+fn is_rate_limit_read(args: &[String]) -> bool {
+    args.len() == 2 && args[0] == "api" && args[1] == "rate_limit"
+}
+
+/// The time when the exceeded GitHub rate limit resets, in seconds since 1970, or `None` when no limit is exceeded. It
+/// reads `gh api rate_limit`, which GitHub does not count in the rate limit (issue #869).
+#[tauri::command]
+pub async fn forge_rate_limit_reset(cwd: String) -> Result<Option<u64>, String> {
+    let args = ["api", "rate_limit"].map(String::from);
+    let output = run_forge_logged("code_hosting_rate_limit", &cwd, "gh", &args, 20).await?;
+    rate_limit_reset_of(&output)
+}
+
+/// The latest reset time of the GitHub resources that have no request left, in the answer of `gh api rate_limit`.
+pub(crate) fn rate_limit_reset_of(output: &str) -> Result<Option<u64>, String> {
+    let answer: serde_json::Value = serde_json::from_str(output).map_err(|e| e.to_string())?;
+    let Some(resources) = answer.get("resources").and_then(|r| r.as_object()) else {
+        return Err("gh api rate_limit : pas de ressources".into());
+    };
+    Ok(resources
+        .values()
+        .filter(|resource| resource.get("remaining").and_then(|r| r.as_u64()) == Some(0))
+        .filter_map(|resource| resource.get("reset").and_then(|r| r.as_u64()))
+        .max())
+}
+
+/// The time when the exceeded GitLab rate limit resets, in seconds since 1970, or `None` when no limit is exceeded or
+/// GitLab gives no reset time. GitLab has no endpoint like `gh api rate_limit`, so it reads the headers of
+/// `glab api --include user`, which `glab` writes on the standard output also when GitLab answers 429 (issue #872).
+#[tauri::command]
+pub async fn forge_gitlab_rate_limit_reset(cwd: String) -> Result<Option<u64>, String> {
+    use crate::application_log::{ForgeAnswerSource, ForgeCall};
+    let args = ["api", "--include", "user"].map(String::from);
+    let call = ForgeCall::start(Some("code_hosting_rate_limit"), "glab", &args, true);
+    let result = run_forge_process(&cwd, "glab", &args, 20).await;
+    match &result {
+        Ok(out) if out.status.success() => call.end(ForgeAnswerSource::Forge, None),
+        Ok(out) => call.end(ForgeAnswerSource::Failed, Some(&forge_failure_text("glab", out))),
+        Err(failure) => call.end(ForgeAnswerSource::Failed, Some(failure)),
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs())
+        .unwrap_or(0);
+    gitlab_rate_limit_reset_of(&String::from_utf8_lossy(&result?.stdout), now)
+}
+
+/// The reset time of the exceeded GitLab rate limit, from the status line and the headers that `glab api --include`
+/// writes before the body. The limit is exceeded when the status is 429 or when `Ratelimit-Remaining` is 0. The reset
+/// time is `Ratelimit-Reset` (seconds since 1970), or else `now` plus `Retry-After` (a number of seconds).
+pub(crate) fn gitlab_rate_limit_reset_of(output: &str, now: u64) -> Result<Option<u64>, String> {
+    let mut lines = output.lines();
+    let status = lines
+        .next()
+        .and_then(|line| line.strip_prefix("HTTP/"))
+        .and_then(|line| line.split_whitespace().nth(1))
+        .ok_or("glab api --include : pas d’en-têtes")?;
+    let headers: Vec<(String, &str)> = lines
+        .take_while(|line| !line.trim().is_empty())
+        .filter_map(|line| line.split_once(':'))
+        .map(|(name, value)| (name.trim().to_ascii_lowercase(), value.trim()))
+        .collect();
+    let header = |name: &str| headers.iter().find(|(n, _)| n == name).and_then(|(_, value)| value.parse::<u64>().ok());
+    if status != "429" && header("ratelimit-remaining") != Some(0) {
+        return Ok(None);
+    }
+    Ok(header("ratelimit-reset").or_else(|| header("retry-after").map(|seconds| now + seconds)))
 }
 
 /// Merges a MR / PR, after the user confirmed it in the app. `sha` is the head
@@ -408,12 +558,12 @@ pub async fn forge_merge(
         }
         _ => return Err("hébergeur inconnu".into()),
     };
-    let out = run_forge(&root, tool, &args, 60).await?;
+    let out = run_forge_logged("merge", &root, tool, &args, 60).await?;
     if forge == "github" && delete_branch {
         if let Some(b) = branch {
             let path = format!("repos/{{owner}}/{{repo}}/git/refs/heads/{b}");
             let del = ["api", "-X", "DELETE", &path].map(String::from);
-            if let Err(e) = run_forge(&root, "gh", &del, 20).await {
+            if let Err(e) = run_forge_logged("merge", &root, "gh", &del, 20).await {
                 return Ok(format!("fusionnée, mais la branche distante n’a pas été supprimée : {e}"));
             }
         }
@@ -424,6 +574,41 @@ pub async fn forge_merge(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gives_the_reset_of_the_exceeded_rate_limit() {
+        let exceeded = r#"{"resources":{"core":{"limit":5000,"remaining":0,"reset":1792933288},
+"graphql":{"limit":5000,"remaining":0,"reset":1792933644},"search":{"limit":30,"remaining":30,"reset":1792933999}}}"#;
+        assert_eq!(rate_limit_reset_of(exceeded), Ok(Some(1792933644)));
+        let fine = r#"{"resources":{"graphql":{"limit":5000,"remaining":3859,"reset":1792933644}}}"#;
+        assert_eq!(rate_limit_reset_of(fine), Ok(None));
+        assert!(rate_limit_reset_of("{}").is_err());
+        assert!(rate_limit_reset_of("not json").is_err());
+        assert!(is_rate_limit_read(&["api".into(), "rate_limit".into()]));
+        assert!(is_rate_limit_read(&["issue".into(), "list".into()]) == false);
+        assert!(is_rate_limit_read(&["api".into(), "graphql".into()]) == false);
+    }
+
+    #[test]
+    fn gives_the_reset_of_the_exceeded_gitlab_rate_limit() {
+        // The output of `glab api --include user` 1.122.0 for an answer 429 (issue #872).
+        let exceeded = "HTTP/1.0 429 Too Many Requests\nContent-Length: 12\nContent-Type: text/plain\n\
+Ratelimit-Limit: 2000\nRatelimit-Name: throttle_authenticated_api\nRatelimit-Observed: 2001\n\
+Ratelimit-Remaining: 0\nRatelimit-Reset: 1793012400\nRetry-After: 47\n\nRetry later\n";
+        assert_eq!(gitlab_rate_limit_reset_of(exceeded, 1793012353), Ok(Some(1793012400)));
+        let retry_after_only = "HTTP/2.0 429 Too Many Requests\r\nretry-after: 47\r\n\r\nRetry later\n";
+        assert_eq!(gitlab_rate_limit_reset_of(retry_after_only, 1793012353), Ok(Some(1793012400)));
+        let no_time = "HTTP/2.0 429 Too Many Requests\n\nRetry later\n";
+        assert_eq!(gitlab_rate_limit_reset_of(no_time, 1793012353), Ok(None));
+        let last_request = "HTTP/2.0 200 OK\nRatelimit-Remaining: 0\nRatelimit-Reset: 1793012160\n\n{\"id\": 1}\n";
+        assert_eq!(gitlab_rate_limit_reset_of(last_request, 1793012100), Ok(Some(1793012160)));
+        let fine = "HTTP/2.0 200 OK\nRatelimit-Remaining: 98\nRatelimit-Reset: 1793012160\n\n{\"id\": 1}\n";
+        assert_eq!(gitlab_rate_limit_reset_of(fine, 1793012100), Ok(None));
+        let header_in_body = "HTTP/2.0 200 OK\n\nRatelimit-Remaining: 0\nRatelimit-Reset: 1793012160\n";
+        assert_eq!(gitlab_rate_limit_reset_of(header_in_body, 1793012100), Ok(None));
+        assert!(gitlab_rate_limit_reset_of("", 1793012100).is_err());
+        assert!(gitlab_rate_limit_reset_of("{\"id\": 1}", 1793012100).is_err());
+    }
 
     #[test]
     fn parses_porcelain_v2() {

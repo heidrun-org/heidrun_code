@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { CODING_AGENTS, CODING_AGENT_IDS, CUSTOM_LAUNCHER_CODING_AGENTS, CUSTOM_LAUNCHER_CODING_AGENT_IDS, findCodingAgent } from "./coding_agents";
 import { launcherAgentCommand } from "./launcher_agent_command";

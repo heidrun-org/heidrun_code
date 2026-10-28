@@ -51,7 +51,7 @@ describe("SettingsOptionHelp (issue #608)", () => {
     await wrapper.get(".information-card-part").trigger("click");
     await flushPromises();
     const blocks = wrapper.findAll("[data-help-block]").map((block) => block.text());
-    expect(blocks[0]).toContain("tells Heidrun that you can use Codex");
+    expect(blocks[0]).toContain("tells Heidrun Code that you can use Codex");
     expect(blocks[0]).not.toContain("{name}");
     expect(blocks[2]).toContain("does not offer the skills of Codex");
   });

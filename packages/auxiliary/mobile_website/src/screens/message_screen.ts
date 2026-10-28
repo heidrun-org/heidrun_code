@@ -17,7 +17,7 @@ export class MessageScreen {
 		const screenHtmlContent = /* html */`
 			<div class="message">
 				<h2>Pairing needed</h2>
-				<p>In Heidrun on your computer, open "Mobile access".</p>
+				<p>In Heidrun Code on your computer, open "Mobile access".</p>
 				<p>Scan the QR code with the camera.</p>
 			</div>
 		`;
@@ -30,7 +30,7 @@ export class MessageScreen {
 	 * @returns The HTML of the screen.
 	 */
 	static connecting(isOnline: boolean | null): string {
-		const offlineText = 'The computer does not answer. Is Heidrun open?';
+		const offlineText = 'The computer does not answer. Is Heidrun Code open?';
 		const text = isOnline === false ? offlineText : 'Connecting…';
 		const screenHtmlContent = /* html */`<div class="message">${text}</div>`;
 		return screenHtmlContent;

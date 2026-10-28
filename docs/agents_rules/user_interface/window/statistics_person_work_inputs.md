@@ -1,17 +1,17 @@
-# User interface of Heidrun: Statistics window, tab "Work of one person", inputs
+# User interface of Heidrun Code: Statistics window, tab "Work of one person", inputs
 
 - Created: 17 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Workspace selector](statistics_person_work_workspace.md), [Slot length](statistics_person_work_slots.md), [Source "Git history"](statistics_git_history.md)
+- Related rules: [Glossary of Heidrun Code: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Workspace selector](statistics_person_work_workspace.md), [Slot length](statistics_person_work_slots.md), [Source "Git history"](statistics_git_history.md)
 - Related issue: [issue 629](https://github.com/heidrun-org/heidrun/issues/629), [issue 707](https://github.com/heidrun-org/heidrun/issues/707)
 
 This file is a part of the rules of the tab "Work of one person". The words are defined in [glossary/person_work.md](../../glossary/person_work.md). The totals and the bar chart are in [statistics_person_work.md](statistics_person_work.md).
 
 ## The layout
 
-- The inputs are in two columns on one block that wraps on a narrow window. The left column has two lines. The first line has the radio button group of the source and the person chooser (Git history only). The second line has the radio button group of the metric (Git history only) or the radio button group of the unit (AI cost only). The right column has two lines, and each line is pushed to the right edge of the window with the class `ms-auto`. The first line has the radio button group of the slot length, then the radio button group of the time range. The second line has the workspace selector ([statistics_person_work_workspace.md](statistics_person_work_workspace.md)). Every one of these inputs has a visible label before it, in a Bootstrap `form-text` span. The size of the button groups and of the person chooser is in [statistics_and_settings_appearance.md](../../web_styling/statistics_and_settings_appearance.md). Heidrun remembers the choice of the source, of the metric, of the unit, of the workspace, of the person, of the time range, and of the slot length ([statistics_remembered_selections.md](statistics_remembered_selections.md)), and the filter of the chart legend ([statistics_person_work_legend_filter.md](statistics_person_work_legend_filter.md)).
+- The inputs are in two columns on one block that wraps on a narrow window. The left column has two lines. The first line has the radio button group of the source and the person chooser (Git history only). The second line has the radio button group of the metric (Git history only) or the radio button group of the unit (AI cost only). The right column has two lines, and each line is pushed to the right edge of the window with the class `ms-auto`. The first line has the radio button group of the slot length, then the radio button group of the time range. The second line has the workspace selector ([statistics_person_work_workspace.md](statistics_person_work_workspace.md)). Every one of these inputs has a visible label before it, in a Bootstrap `form-text` span. The size of the button groups and of the person chooser is in [statistics_and_settings_appearance.md](../../web_styling/statistics_and_settings_appearance.md). Heidrun Code remembers the choice of the source, of the metric, of the unit, of the workspace, of the person, of the time range, and of the slot length ([statistics_remembered_selections.md](statistics_remembered_selections.md)), and the filter of the chart legend ([statistics_person_work_legend_filter.md](statistics_person_work_legend_filter.md)).
 
 ## The inputs
 

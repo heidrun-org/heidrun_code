@@ -4,6 +4,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { CUSTOM_LAUNCHER_CODING_AGENT_IDS } from "../lib/coding_agents";
 import { AGENTS } from "../lib/agents";
 import { DetectionFamilies } from "../lib/detection_families";
+import { NotificationChannels } from "../lib/notification_channels";
 import { PERSON_WORK_PERIODS, type PersonWorkPeriodId, type PersonWorkSlotHours } from "../lib/person_work";
 import {
   USER_ACTIVITY_RANGE_IDS,
@@ -48,10 +49,10 @@ document.documentElement.style.setProperty("--font-size", `${FONT_DEFAULT}px`);
 const KEY = "heidrun.settings";
 
 /**
- * The sidebar sections of the left sidebar: "launchers" is the Launchers sidebar section, "files" is the Files one, and
- * "codeHosting" is the Code hosting one.
+ * The sidebar sections of the left sidebar: "launchers" is the Launchers sidebar section, "files" is the Files one,
+ * "fileSearch" is the Search in files one, and "codeHosting" is the Code hosting one.
  */
-export type LeftSidebarSection = "launchers" | "sourceControl" | "files" | "codeHosting";
+export type LeftSidebarSection = "launchers" | "sourceControl" | "files" | "fileSearch" | "codeHosting";
 
 /** The sidebar sections of the right sidebar: "toHandle" is the Needs you sidebar section. */
 export type RightSidebarSection = "toHandle" | "notes" | "chats" | "userActivity";
@@ -80,7 +81,7 @@ export type SavedSearchLevel = "user" | "workspace";
 
 /**
  * The choice of the workspace selector of the tab "User activity" of the Statistics window (issue 707). The choice is saved by the
- * folder of each workspace, because a folder is the same at every run of Heidrun.
+ * folder of each workspace, because a folder is the same at every run of Heidrun Code.
  */
 export type StatisticsUserActivityWorkspaces = {
   /** True when every workspace was chosen: a workspace that opens later is then chosen too. `folders` is then not read. */
@@ -110,7 +111,7 @@ const defaults = {
    */
   mouseMode: "select" as "select" | "app",
   /**
-   * Settings window, section Terminal: the automatic detection in the text of the terminals is on (issue #638). Off: Heidrun
+   * Settings window, section Terminal: the automatic detection in the text of the terminals is on (issue #638). Off: Heidrun Code
    * colors nothing, adds no hover button, and gives no action to the text of any terminal.
    */
   terminalTextDetection: true,
@@ -134,7 +135,7 @@ const defaults = {
   chatsRefreshSeconds: 10,
   /**
    * Settings window, section Dynamic topics: the dynamic topics are on. Off: the Past chats sidebar section shows no dynamic
-   * topic bar and no dynamic topic label, and Heidrun computes no dynamic topic and calls no coding agent for them (issue #422).
+   * topic bar and no dynamic topic label, and Heidrun Code computes no dynamic topic and calls no coding agent for them (issue #422).
    */
   dynamicTopics: true,
   /** Settings window, section Dynamic topics: the method that computes the dynamic topics of each chat, "keyword" or "languageModel". */
@@ -153,7 +154,7 @@ const defaults = {
   autoStartHerdr: true,
   /** True when the notice of the missing programs already named the missing ngrok once: it does not name it again (issue 546). */
   ngrokMissingNoticeShown: false,
-  /** Quitting Heidrun does not stop the Herdr session of Heidrun: the agents continue to run. Off: quitting stops it. */
+  /** Quitting Heidrun Code does not stop the Herdr session of Heidrun Code: the agents continue to run. Off: quitting stops it. */
   keepAgentsRunningAfterQuit: true,
   /** A click on the cross of a workspace in the information card of the Workspace status bar section opens the confirmation dialog "Close the workspace". Off: the workspace closes at once. */
   confirmWorkspaceClose: true,
@@ -164,7 +165,7 @@ const defaults = {
   /** Window "Edit the saved search": the button "Delete" opens the confirmation dialog "Delete the saved search". Off: the saved search is deleted at once. */
   confirmSavedSearchDelete: true,
   /**
-   * Settings window, section General: how often Heidrun runs `git fetch` in the background for the repository of the
+   * Settings window, section General: how often Heidrun Code runs `git fetch` in the background for the repository of the
    * selected workspace, in minutes. 0 is off (issue #432).
    */
   gitFetchMinutes: 5,
@@ -190,7 +191,7 @@ const defaults = {
   /** Settings window, section Mobile access: the phone may type a command in a plain terminal. Off: the phone only reads the terminals. */
   mobileTerminalTyping: false,
   /**
-   * Settings window, section Voice input: the voice input is on (issue 662). Off: Heidrun shows no push-to-talk button, downloads
+   * Settings window, section Voice input: the voice input is on (issue 662). Off: Heidrun Code shows no push-to-talk button, downloads
    * no model, and never opens the microphone.
    */
   voiceInput: false,
@@ -213,17 +214,16 @@ const defaults = {
   notifEvening: "", // "18:30": summary of the day's finished work ("" = off)
   quietFrom: "", // "20:00" … "08:00": no notification in between ("" = never quiet)
   quietTo: "",
+  /** Notifications: for each kind of notification, the system notification, the sound, and the name of the sound (issue #857). */
+  notificationChannels: NotificationChannels.createDefaults(),
   /** The status item (the dots) is shown in the macOS menu bar. */
   showStatusItem: true,
-  /** Git viewer: "unified" | "split" diff, the whole "file", or the "preview" of a Markdown file. */
-  diffMode: "unified" as "unified" | "split" | "file" | "preview",
+  /** Diff pane: the "unified" diff or the "split" diff, side by side. */
+  diffMode: "unified" as "unified" | "split",
   /** Side-by-side diff: share of the width for the old version (0.5 = middle). */
   splitRatio: 0.5,
   /** Markdown reading: centred column, or the whole width. */
   mdWidth: "center" as "center" | "full",
-  /** Git window: file list hidden (the viewer takes the whole window). */
-  gitListHidden: false,
-  gitListWidth: 340,
   /** Language of the user interface. */
   language: "en" as "en" | "fr",
   /** Clock display: "auto" follows the language, "12h" shows AM and PM, "24h" shows the hour from 0 to 23. */
@@ -234,6 +234,8 @@ const defaults = {
   theme: "system" as "system" | "light" | "dark",
   /** Code views (diff, file): long lines wrap instead of scrolling sideways. */
   codeWrap: false,
+  /** Markdown preview of the file view pane and of a skill file: a column of about 80 characters. Off: the whole width (issue 897). */
+  markdownWrapAt80Columns: false,
   rightWidth: 320,
   noteHeight: 520,
   /** Pinned panes (pane ids), stacked in the column of pinned panes on the right of the panes of the selected tab. */
@@ -243,11 +245,8 @@ const defaults = {
   /** Your own time: minutes per consigne written, per decision answered. */
   histPromptMin: 3,
   histDecisionMin: 0.5,
-  /** File explorer: tree width, Markdown shown rendered. */
-  filesListWidth: 300,
+  /** File view pane: a Markdown file shows rendered. */
   filesMdRead: true,
-  /** Show the diff before each save in the editor. */
-  filesDiffBeforeSave: false,
   /** Mosaic: only the agents at work (main, recent journal, or in Claude's list). */
   mosaicActiveOnly: true,
   /** Monthly budget per workspace (label → USD); alert at 80 % and 100 %. */
@@ -264,13 +263,7 @@ const defaults = {
   skillsLevel: "workspace" as "workspace" | "user",
   /** The window of a SKILL.md file shows the rendered Markdown (true) or the highlighted source (false). */
   skillsViewRendered: true,
-  /** Window Files: the side column shows the file tree ("tree") or the search in the files ("grep"). */
-  filesSideMode: "tree" as "tree" | "grep",
-  /** Window Files, search in the files: the query is a regular expression. */
-  filesGrepRegex: false,
-  /** Window Files, search in the files: the case of the letters counts. */
-  filesGrepCase: false,
-  /** Window Files and sidebar section File explorer: the file tree shows the files that Git ignores. */
+  /** Sidebar section File explorer: the file tree shows the files that Git ignores. */
   filesShowIgnored: false,
   /** Sidebar section File explorer: the space that each level of a folder adds at the left of a row. */
   filesPanelIndent: "medium" as "small" | "medium" | "large",
@@ -278,6 +271,10 @@ const defaults = {
   filesPanelRowHeight: "comfortable" as "compact" | "comfortable",
   /** Sidebar section File explorer: a thin vertical line under each unfolded folder links its rows. */
   filesPanelIndentGuides: true,
+  /** Sidebar section Search in files: the search finds only the text with the same upper case and lower case letters. */
+  fileSearchMatchCase: false,
+  /** Sidebar section Search in files: the searched text is a regular expression. */
+  fileSearchRegularExpression: false,
   /** Window Agents information: the activity list shows all the panes ("all") or only the selected pane ("pane"). */
   agentsActivityScope: "all" as "all" | "pane",
   /** Window History: the period of the runs. */
@@ -298,7 +295,7 @@ const defaults = {
   codeHostingSavedSearches: { issues: [], requests: [] } as SavedSearches,
   /**
    * Sidebar section Code hosting: the saved searches of the workspace level (issue #822). The key is the workspace folder,
-   * because a folder is the same at every run of Heidrun. Each value has the saved searches of each list, in the order of
+   * because a folder is the same at every run of Heidrun Code. Each value has the saved searches of each list, in the order of
    * their buttons.
    */
   codeHostingWorkspaceSavedSearches: {} as Record<string, SavedSearches>,
@@ -337,7 +334,7 @@ const defaults = {
 /** The values that an option accepts, for the options that have a short list of values. A saved value outside the list is dropped. */
 const ALLOWED_VALUES: Record<string, readonly unknown[]> = {
   rightSidebarSection: ["toHandle", "notes", "chats", "userActivity"],
-  filesSideMode: ["tree", "grep"],
+  diffMode: ["unified", "split"],
   filesPanelIndent: ["small", "medium", "large"],
   filesPanelRowHeight: ["compact", "comfortable"],
   agentsActivityScope: ["all", "pane"],
@@ -539,9 +536,18 @@ function load(): typeof defaults {
     }
     // The choice of the code theme is gone (issue #446): the code colors follow the theme of the application.
     delete stored.codeTheme;
-    // The button "Reading" of the large Git window became the button "Preview" (issue #446): the saved value "read" is now "preview".
-    if (stored.diffMode === "read") {
-      stored.diffMode = "preview";
+    // The Files window and the large Git window are gone (issue #886): their saved options are forgotten.
+    const removedNames = [
+      "filesListWidth",
+      "filesDiffBeforeSave",
+      "filesSideMode",
+      "filesGrepRegex",
+      "filesGrepCase",
+      "gitListHidden",
+      "gitListWidth",
+    ];
+    for (const name of removedNames) {
+      delete stored[name];
     }
     // The hide buttons of the sidebars are gone (issue #315): a sidebar that was hidden is now collapsed.
     if (stored.leftOpen === false) {
@@ -569,6 +575,7 @@ function load(): typeof defaults {
     saved.statisticsUserActivityWorkspaces = keepUserActivityWorkspaces(saved.statisticsUserActivityWorkspaces);
     saved.statisticsPersonWorkWorkspaces = keepPersonWorkWorkspaces(saved.statisticsPersonWorkWorkspaces);
     saved.disabledDetectionFamilies = DetectionFamilies.keepKnownIds(saved.disabledDetectionFamilies);
+    saved.notificationChannels = NotificationChannels.keep(saved.notificationChannels);
     return saved;
   } catch {
     return { ...defaults };
@@ -625,18 +632,18 @@ export async function applyWindowZoom() {
   try {
     await getCurrentWebview().setZoom(zoomFactor());
   } catch {
-    /* outside the Heidrun window (a test, a plain browser) there is no web view to zoom */
+    /* outside the Heidrun Code window (a test, a plain browser) there is no web view to zoom */
   }
 }
 
 watch(() => settings.fontSize, applyWindowZoom, { immediate: true });
 
-/** Tells the Rust side whether quitting Heidrun leaves the Herdr session of Heidrun running. */
+/** Tells the Rust side whether quitting Heidrun Code leaves the Herdr session of Heidrun Code running. */
 export async function applyKeepAgentsRunning() {
   try {
     await invoke("set_keep_agents_running", { isKeeping: settings.keepAgentsRunningAfterQuit });
   } catch {
-    /* outside the Heidrun window (a test, a plain browser) there is no Rust side to tell */
+    /* outside the Heidrun Code window (a test, a plain browser) there is no Rust side to tell */
   }
 }
 

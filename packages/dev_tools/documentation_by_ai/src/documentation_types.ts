@@ -16,6 +16,8 @@ export type DocumentationOptions = {
 	evidencePath?: string;
 	/** Prints the assembled request without running a model, writing files or building. */
 	isDryRun: boolean;
+	/** Change history supplied as hints; every run still checks all current documentation. */
+	hintsText?: string;
 };
 
 /** A file fingerprint saved with the run for later human investigation. */

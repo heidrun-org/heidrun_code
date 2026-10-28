@@ -20,7 +20,7 @@ const SOURCE_WEIGHTS = {
   fileFolders: 1,
 } as const;
 
-/** The data that Heidrun reads in a chat to compute its dynamic topics. */
+/** The data that Heidrun Code reads in a chat to compute its dynamic topics. */
 export type DynamicTopicSourceInformation = {
   /** The title of the chat. */
   title: string;

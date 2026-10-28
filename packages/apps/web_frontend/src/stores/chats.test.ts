@@ -19,8 +19,10 @@ import {
   type Chat,
 } from "./chats";
 import { settings } from "./settings";
+import { ApplicationLog } from "../lib/application_log";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("../lib/application_log", () => ({ ApplicationLog: { recordLoadTime: vi.fn() } }));
 
 /** One conversation of the test. */
 function chat(id: string, title: string): Chat {
@@ -72,6 +74,7 @@ function answerByHand<T>() {
 
 beforeEach(() => {
   vi.mocked(invoke).mockReset();
+  vi.mocked(ApplicationLog.recordLoadTime).mockReset();
   listing.repeated = undefined;
   listing.once = [];
   vi.mocked(invoke).mockImplementation(async (command: string) => {
@@ -157,6 +160,21 @@ describe("loadChats", () => {
     expect(chats.claude).toEqual([chat("a", "First")]);
     expect(chats.error).toBe("the SQLite file is locked");
     expect(chats.isLoading).toBe(false);
+    expect(ApplicationLog.recordLoadTime).toHaveBeenCalledWith("past_chats", expect.any(Number), "the SQLite file is locked");
+  });
+
+  it("writes the load time in the application log once for each load, and not for a folder that is no longer the current one", async () => {
+    listAlways(answerOf([chat("a", "First")]));
+    await loadChats("/work/app");
+    expect(ApplicationLog.recordLoadTime).toHaveBeenCalledTimes(1);
+    expect(ApplicationLog.recordLoadTime).toHaveBeenCalledWith("past_chats", expect.any(Number), null);
+    const slow = answerByHand<unknown>();
+    listOnce(slow.promise);
+    const dropped = loadChats("/work/website");
+    await loadChats("/work/app");
+    slow.answer(answerOf([chat("c", "Third")]));
+    await dropped;
+    expect(ApplicationLog.recordLoadTime).toHaveBeenCalledTimes(2);
   });
 
   it("starts one synchronization when two refreshes of the same folder overlap", async () => {

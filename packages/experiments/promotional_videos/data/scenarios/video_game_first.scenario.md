@@ -56,7 +56,7 @@ The time counts from the key Enter that starts the run.
 ## Texts of the outro
 
 - Motto: "With AI, every developer is THE GOAT!"
-- Address: `https://heidrun-org.github.io/heidrun/`
+- Address: `https://heidrun-org.github.io/heidrun_code/`
 - Picture: `data/images/baby_goat.png` of the repository.
 
 ## Music

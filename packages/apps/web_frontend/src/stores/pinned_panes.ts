@@ -44,7 +44,7 @@ export const gridLayout = computed(() => {
   return PaneLayoutWithoutPanes.remove(layout, settings.pinnedPanes);
 });
 
-/** Names of the tabs that the developer opened since Heidrun started, in the order of the first opening. */
+/** Names of the tabs that the developer opened since Heidrun Code started, in the order of the first opening. */
 const openedTabIds = reactive(new Set<string>());
 
 watch(

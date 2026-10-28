@@ -20,7 +20,7 @@ The backend of the windows Installed skill and Find new skills: it finds, reads,
 - `repository_paths.rs`, `skill_text.rs`, and `types.rs` do no input or output, and import no other module of this folder except `types.rs`.
 - A command name and an error code never change without a matching change in `stores/skills.ts` and in `skillsStore.json` of the frontend.
 - Each file keeps its own tests at its end. Helpers shared by several test modules go in `test_support.rs`.
-- Heidrun never replaces a real folder with a link.
+- Heidrun Code never replaces a real folder with a link.
 
 ## Background
 - The folder comes from the split of the former file `skills.rs`: [issue 129](https://github.com/heidrun-org/heidrun/issues/129).

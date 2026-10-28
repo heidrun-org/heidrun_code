@@ -6,7 +6,7 @@ The parts that more than one screen of the mobile website uses.
 ## Key Exports & Entry Points
 - `agent_card.ts`: a coding agent as a card that waits for the developer, and as a row of the list of panes.
 - `bottom_bar.ts`: the four buttons Dashboard, Needs you, Panes, and Launchers.
-- `icon.ts`: the class `Icon`. It draws the Bootstrap icons and the shared Heidrun branding icon as inline SVG.
+- `icon.ts`: the class `Icon`. It draws the Bootstrap icons and the shared Heidrun Code branding icon as inline SVG.
 - `confirm_sheet.ts`: the sheet that asks the developer to check a command once more.
 - `macro_sheet.ts`: the sheet that lists the macros of the open pane. A tap writes the text of a macro into the field for a prompt.
 - `menu_buttons.ts`: one button for each choice of the menu that blocks a coding agent.

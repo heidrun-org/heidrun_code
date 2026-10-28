@@ -81,7 +81,7 @@ export class ChangeLogRenderer {
 			].join('\n');
 		});
 		return [
-			'You write the change log of the application Heidrun.',
+			'You write the change log of the application Heidrun Code.',
 			'',
 			`Below is the list of the pull requests that were merged since ${sinceStr}${untilStr}. Each item has the `
 				+ 'number of the pull request, the name of its branch, and the message of its merge commit.',
@@ -179,6 +179,35 @@ export class ChangeLogRenderer {
 			...before,
 			...sectionLines,
 			'',
+			...lines.slice(endIndex),
+		].join('\n');
+	}
+
+	/**
+	 * Removes the section `Unreleased` from the text of the file `CHANGELOG.md`: its heading line and all its lines,
+	 * up to the next section. The other sections stay exactly as they are. The caller uses it when a release becomes
+	 * the last release, because the pull requests of the section `Unreleased` now belong to this release.
+	 * @param existingText The text of the file `CHANGELOG.md`, or null when the file does not exist.
+	 * @returns The text without the section `Unreleased`, the same text when the file has no such section, or null
+	 * when `existingText` is null.
+	 */
+	static removeUnreleasedSection(existingText: string | null): string | null {
+		if (existingText === null) {
+			return null;
+		}
+		const lines = existingText.split('\n');
+		const startIndex = lines.findIndex((line) => {
+			return line.startsWith('## ') && ChangeLogRenderer._readSectionName(line) === UNRELEASED_NAME;
+		});
+		if (startIndex === -1) {
+			return existingText;
+		}
+		let endIndex = startIndex + 1;
+		while (endIndex < lines.length && lines[endIndex].startsWith('## ') === false) {
+			endIndex += 1;
+		}
+		return [
+			...lines.slice(0, startIndex),
 			...lines.slice(endIndex),
 		].join('\n');
 	}

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
+import PersonWorkUpdateStages from "./PersonWorkUpdateStages.vue";
 import StackedBarChart from "./StackedBarChart.vue";
 import {
   AI_COST_AGENT_IDS,
@@ -11,6 +12,7 @@ import {
   type AiCostSynchronization,
   type AiTokensByAgent,
 } from "../lib/ai_cost";
+import { ApplicationLog } from "../lib/application_log";
 import { AveragePerDay } from "../lib/average_per_day";
 import { CalendarDays } from "../lib/calendar_days";
 import { SLOT_HOURS_OF_A_DAY } from "../lib/calendar_slots";
@@ -27,6 +29,11 @@ import {
   type PersonWorkPeriodId,
   type PersonWorkSlotHours,
 } from "../lib/person_work";
+import {
+  PersonWorkUpdateStages as UpdateStages,
+  type PersonWorkProgress,
+  type PersonWorkUpdateReports,
+} from "../lib/person_work_update_stages";
 import type { StackedBarChartContent } from "../lib/stacked_bar_chart";
 import { settings } from "../stores/settings";
 import { openWorkspaces, selectedWorkspaceId } from "../stores/user_activity";
@@ -154,7 +161,7 @@ const chosenFolders = computed(() => [
 ]);
 
 /**
- * The chosen folders as one text. Heidrun makes the list of the open workspaces again after each change that Herdr reports, so
+ * The chosen folders as one text. Heidrun Code makes the list of the open workspaces again after each change that Herdr reports, so
  * `chosenFolders` is a new array each time, with the same folders. A watch on the array would read again each time, and the
  * chart would blink.
  */
@@ -206,6 +213,9 @@ const slotHoursChoices = computed(() => PERSON_WORK_PERIODS[periodId.value].slot
 
 /** What the command `person_work_in_range` gave for each folder that the tab asked for. The tab keeps it while the window is open. */
 const gitHistoryReads = reactive<Record<string, FolderRead<PersonWorkItems>>>({});
+
+/** The last progress report of each stage of the update of each folder that the tab reads, by folder. */
+const gitHistoryUpdates = reactive<Record<string, PersonWorkUpdateReports>>({});
 
 /** What the AI cost gave for the chosen folders together. */
 const aiCostRead = ref<AiCostRead>({ state: "idle" });
@@ -288,6 +298,13 @@ const aiCostPriceWarning = computed(() => (aiCostRead.value.state === "done" ? a
 
 /** True while a chosen workspace gives its commits, its pull requests, and its issues. */
 const isGitHistoryReading = computed(() => isReading(gitHistoryReads));
+
+/** The chosen folders that are read, each one with the last progress report of each stage of its update. */
+const gitHistoryUpdateList = computed(() =>
+  chosenFolders.value
+    .filter((folder) => (gitHistoryReads[folder]?.state ?? "reading") === "reading")
+    .map((folder) => ({ folder, reports: gitHistoryUpdates[folder] ?? {} })),
+);
 
 /** True while the token usage is updated or imported, and read. */
 const isAiCostReading = computed(() => aiCostRead.value.state === "working");
@@ -550,9 +567,15 @@ async function readGitHistory(folderToRead: string): Promise<void> {
     return;
   }
   gitHistoryReads[folderToRead] = { state: "reading" };
+  gitHistoryUpdates[folderToRead] = {};
+  const onProgress = new Channel<PersonWorkProgress>();
+  onProgress.onmessage = (report) => {
+    gitHistoryUpdates[folderToRead] = UpdateStages.withReport(gitHistoryUpdates[folderToRead] ?? {}, report);
+  };
   const now = Date.now();
+  const startedAt = performance.now();
   try {
-    const synchronization = await invoke<PersonWorkSynchronization>("person_work_synchronize", { folder: folderToRead });
+    const synchronization = await invoke<PersonWorkSynchronization>("person_work_synchronize", { folder: folderToRead, onProgress });
     const items = await invoke<Omit<PersonWorkItems, "codeHostingError">>("person_work_in_range", {
       repository: synchronization.repository,
       ...longestRange(now),
@@ -562,8 +585,10 @@ async function readGitHistory(folderToRead: string): Promise<void> {
       items: { ...items, codeHostingError: synchronization.codeHostingError },
       readAt: now,
     };
+    void ApplicationLog.recordLoadTime("statistics_git_history", startedAt, null);
   } catch (error) {
     gitHistoryReads[folderToRead] = { state: "failed", error: String(error) };
+    void ApplicationLog.recordLoadTime("statistics_git_history", startedAt, String(error));
   }
 }
 
@@ -579,6 +604,7 @@ async function readAiCost(isImportAllowed: boolean): Promise<void> {
   const readNumber = aiCostReadNumber;
   aiCostRead.value = { state: "working", isImport: isImportAllowed };
   const folders = chosenFolders.value;
+  const startedAt = performance.now();
   try {
     const synchronization = await invoke<AiCostSynchronization>("ai_cost_synchronize", { folders, isImportAllowed });
     const now = Date.now();
@@ -591,10 +617,12 @@ async function readAiCost(isImportAllowed: boolean): Promise<void> {
         priceWarning: synchronization.priceWarning,
       };
     }
+    void ApplicationLog.recordLoadTime("statistics_ai_cost", startedAt, null);
   } catch (error) {
     if (readNumber === aiCostReadNumber) {
       aiCostRead.value = { state: "failed", error: String(error) };
     }
+    void ApplicationLog.recordLoadTime("statistics_ai_cost", startedAt, String(error));
   }
 }
 
@@ -811,7 +839,7 @@ watch(
       <span v-if="chosenFolders.length === 0" class="form-text">{{ t("statisticsModal.personWorkWorkspacesNone") }}</span>
       <template v-else-if="sourceId === 'git_history'">
         <div v-if="errorText !== ''" class="alert theme-danger" role="alert">{{ t("statisticsModal.personWorkLoadError", { error: errorText }) }}</div>
-        <span v-if="isGitHistoryReading" class="form-text" role="status"><span class="spinner-border spinner-sm me-2" aria-hidden="true"></span>{{ t("statisticsModal.personWorkLoading") }}</span>
+        <PersonWorkUpdateStages v-if="isGitHistoryReading" :updates="gitHistoryUpdateList" />
         <template v-else-if="items !== null">
           <div v-if="items.codeHostingError !== null" class="alert theme-warning" role="alert">
             {{ t("statisticsModal.personWorkCodeHostingError", { error: items.codeHostingError }) }}

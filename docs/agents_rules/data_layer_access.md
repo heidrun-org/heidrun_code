@@ -1,18 +1,19 @@
 # Rule: the Past chats sidebar section and the Statistics window get all their data through the data layer
 
 - Created: 17 October 2026
-- Last updated: 17 October 2026
+- Last updated: 26 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
-- Related rules: [Chats list](user_interface/sidebars/chats/chats_list.md), [Statistics window](user_interface/window/statistics_window.md), [Glossary of Heidrun](glossary/index.md)
-- Related issue: [issue 617](https://github.com/heidrun-org/heidrun/issues/617)
+- Related rules: [Chats list](user_interface/sidebars/chats/chats_list.md), [Statistics window](user_interface/window/statistics_window.md), [Glossary of Heidrun Code](glossary/index.md)
+- Related issue: [issue 617](https://github.com/heidrun-org/heidrun/issues/617), [issue 790](https://github.com/heidrun-org/heidrun_code/issues/790)
 
-This file gives the rule for every agent that changes the Past chats sidebar section, the Statistics window, or a package of the folder `packages/data_layers`. The description of the four packages is in [the_four_data_layers.md](../statistics/the_four_data_layers.md).
+This file gives the rule for every agent that changes the Past chats sidebar section, the Statistics window, or a package of the folder `submodules/heidrun_data/packages`. The description of the four packages is in [the_four_data_layers.md](../statistics/the_four_data_layers.md).
 
 ## The rule
 
 - The Past chats sidebar section and the Statistics window get all their data from the packages `data_layer_coding_agents`, `data_layer_source_control`, `data_layer_code_hosting`, and `data_layer_user_activity`.
-- "Data" is everything that these two parts show about the world outside Heidrun: the list of chats, the information cards, the summaries, the counts, the details of an issue or of a pull request, the status of a referenced file or of a worktree, the totals of tokens and of dollars, and the data of the dynamic topics.
+- "Data" is everything that these two parts show about the world outside Heidrun Code: the list of chats, the information cards, the summaries, the counts, the details of an issue or of a pull request, the status of a referenced file or of a worktree, the totals of tokens and of dollars, and the data of the dynamic topics.
+- The images of a chat at the bottom of the Clipboard sidebar section follow the same rule ([issue 790](https://github.com/heidrun-org/heidrun_code/issues/790)).
 - The desktop application (`packages/apps/desktop_tauri`) and the web page never read a chat session file, never start `git`, `gh`, or `glab`, never make a network request, and never run SQL for this data. Only a package of the data layer does these things.
 - An action is not data. To resume a chat, to open a worktree in VS Code, and to open a file are actions. They stay in the desktop application, and they show no data.
 
@@ -30,19 +31,21 @@ This file gives the rule for every agent that changes the Past chats sidebar sec
 | Statistics: User activity | `user_activity_synchronize` | `user_activity_records_in_range` | `data_layer_user_activity` |
 | Statistics: Git history | `person_work_synchronize` | `person_work_in_range` | `data_layer_source_control`, `data_layer_code_hosting` |
 | Statistics: AI cost | `ai_cost_synchronize` | `ai_cost_in_range` | `data_layer_coding_agents` |
+| Clipboard: the images of a chat | none | `chat_images_find`, `chat_images_find_codex_chat` | `data_layer_coding_agents` |
 
-The commands of the Past chats sidebar section are in the folder `packages/apps/desktop_tauri/src/past_chats`, and the commands of the Statistics window are in the folder `packages/apps/desktop_tauri/src/statistics`.
+The commands are in the folders `past_chats`, `statistics`, and `chat_images` of `packages/apps/desktop_tauri/src`.
 
 ## The exceptions
 
 Each exception has a reason, and is written in `boundary_rules.ts` of the package `data_layer_boundary_checker`. Add a new exception there, with its reason, and add it here.
 
-- The three commands for files and worktrees ask a typed function of `data_layer_source_control` whether a file or a folder exists on the disk, and which branch a worktree holds. This status changes outside Heidrun, so it is not stored.
+- The three commands for files and worktrees ask a typed function of `data_layer_source_control` whether a file or a folder exists on the disk, and which branch a worktree holds. This status changes outside Heidrun Code, so it is not stored.
 - GitLab: `data_layer_code_hosting` reads GitHub only ([issue 455](https://github.com/heidrun-org/heidrun/issues/455)). The details of an issue or of a merge request of GitLab stay live in `stores/forge_reference_details.ts`, read through `stores/chat_references.ts`. The Code hosting sidebar section is not part of this rule: it stays live.
-- The translation table of the clustered dynamic topics is a file that Heidrun writes itself, and the language model call is an action. The data of the dynamic topics comes from the stored chats.
+- The translation table of the clustered dynamic topics is a file that Heidrun Code writes itself, and the language model call is an action. The data of the dynamic topics comes from the stored chats.
 - The files `claude.rs` and `usage.rs` take the folder names `claude_dir` and `codex_home` from `data_layer_coding_agents`. A folder name is not data.
 - `ChatsPanel.vue` asks `project_refs` (`refContext`) for the forge and the address of the repository. They come from the configuration of the project and from the remote `origin`, they choose GitHub or GitLab and build web links, and they are not data of a chat. A later issue can move them to `data_layer_source_control`.
 - `project::find_root` walks up from a folder to the folder that holds `.git` or `.heidrun`. It names the root of a workspace and reads no data.
+- `chat_images_find` calls `find_chat_images`, which reads the chat session file at each call. The images are not copied into the SQLite file: the package stores no message content, and a copy would double the disk space of the images.
 
 ## The check
 
@@ -73,16 +76,7 @@ These Rust tests in `packages/apps/desktop_tauri/src` run a command on a real SQ
 
 ## The audit of the bypasses
 
-These bypasses existed before [issue 617](https://github.com/heidrun-org/heidrun/issues/617).
-
-| Where | What it did | What it does now |
-| --- | --- | --- |
-| Desktop `chats.rs` | Read the chat session files itself with its own scan cache, at each call. | `chats_synchronize` calls `refresh_chat_sessions`, and `chats_list` calls `find_chat_list`. |
-| Desktop `chats_files.rs` | Read `.git` files and started `git` for the status of files and worktrees. | The three commands call `find_file_existence`, `find_existing_folders`, and `find_worktree_branches`. |
-| Desktop `person_work.rs` | Built the Git reader and the GitHub reader of the packages, and ran `SELECT` statements. | `person_work_synchronize` calls `refresh_*`, and `person_work_in_range` calls `find_commits`, `find_pull_requests_opened_between`, and `find_issues_opened_between`. |
-| Desktop `ai_cost.rs`, `model_prices.rs` | Opened the token usage database, the price database, and the scan cache of the package. | `ai_cost_synchronize` calls `refresh_ai_cost`, `ai_cost_in_range` calls `find_ai_cost`, and the prices refresh is `refresh_public_model_prices_when_due`. |
-| Desktop `user_activity.rs` | Opened the user activity database of the package to read the records. | `user_activity_synchronize` calls `refresh_user_activity`, and `user_activity_records_in_range` calls `find_user_activity_records`. |
-| Web page `chat_references.ts` | Started `gh` for the details of each issue and pull request of a chat. | GitHub: `chat_references_synchronize` then `chat_references_find`. GitLab: see the exceptions. |
+The bypasses that existed before [issue 617](https://github.com/heidrun-org/heidrun/issues/617), and what replaced each one, are in [data_layer_access_audit.md](data_layer_access_audit.md).
 
 ## Freshness
 

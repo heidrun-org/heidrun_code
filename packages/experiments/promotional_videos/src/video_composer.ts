@@ -58,8 +58,8 @@ export class VideoComposer {
 	/** The folder of the repository that holds the images and the identity texts. */
 	private static readonly _REPOSITORY_FOLDER = Path.resolve(__dirname, '../../../..');
 
-	/** The address of the website of Heidrun. The configuration of the website, `config.ts`, holds the same address. */
-	private static readonly _WEBSITE_ADDRESS = 'https://heidrun-org.github.io/heidrun/';
+	/** The address of the website of Heidrun Code. The configuration of the website, `config.ts`, holds the same address. */
+	private static readonly _WEBSITE_ADDRESS = 'https://heidrun-org.github.io/heidrun_code/';
 
 	/** The width of the video, in pixels. */
 	private static readonly _WIDTH = 1280;

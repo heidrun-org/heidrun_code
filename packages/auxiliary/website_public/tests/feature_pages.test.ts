@@ -202,7 +202,7 @@ describe('feature pages', () => {
 				expect(description?.endsWith('.')).toBe(true);
 			});
 
-			it('first says what Heidrun does, then ends with exactly one joke', () => {
+			it('first says what Heidrun Code does, then ends with exactly one joke', () => {
 				const jokes = lines.filter((line) => FeaturePageReader.isJoke(line));
 				expect(jokes).toHaveLength(1);
 				expect(FeaturePageReader.isJoke(lines[lines.length - 1])).toBe(true);

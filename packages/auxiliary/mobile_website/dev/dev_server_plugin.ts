@@ -138,8 +138,17 @@ export class DevServerPlugin {
 		}
 	}
 
+	/**
+	 * Gives `~/.config/heidrun_code`.
+	 * @returns The folder that holds the file `mobile.json` when no environment variable names a folder.
+	 */
+	private static defaultDataFolder(): string {
+		const folder = Path.join(Os.homedir(), '.config', 'heidrun_code');
+		return folder;
+	}
+
 	private static readRealPairingKey(): string | null {
-		const folder = process.env.HEIDRUN_DIR ?? Path.join(Os.homedir(), '.config', 'heidrun');
+		const folder = process.env.HEIDRUN_CODE_DIR ?? DevServerPlugin.defaultDataFolder();
 		try {
 			const text = Fs.readFileSync(Path.join(folder, 'mobile.json'), 'utf8');
 			const token = (JSON.parse(text) as { token?: unknown }).token;

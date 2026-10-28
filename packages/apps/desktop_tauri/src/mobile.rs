@@ -4,7 +4,7 @@
 //!
 //! The server itself (the loopback address, the ngrok tunnel, the pairing key, the page) is the package `mobile_server`.
 
-use mobile_server::{CallFuture, MobileCallHandler, MobileServer, MobileStatus};
+use mobile_server::{CallFuture, MobileCallHandler, MobileEvent, MobileServer, MobileStatus};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -37,6 +37,28 @@ impl MobileCallHandler for WindowBridge {
         let app = self.app.clone();
         Box::pin(async move { call(&app, &method, params).await })
     }
+
+    fn record_event(&self, event: MobileEvent) {
+        let (name, fields) = log_line(event);
+        crate::application_log::write(name, fields);
+    }
+}
+
+/// The kind and the fields of the line of the application log for one event of the mobile server.
+fn log_line(event: MobileEvent) -> (&'static str, Value) {
+    match event {
+        MobileEvent::Call { method, status, duration_ms, error } => (
+            "mobile_call",
+            json!({ "method": method, "status": status, "duration_ms": duration_ms, "error": error }),
+        ),
+        MobileEvent::Refused { reason } => ("mobile_request_refused", json!({ "reason": reason })),
+        MobileEvent::Locked => ("mobile_pairing_locked", json!({})),
+        MobileEvent::TunnelStart => ("mobile_tunnel_start", json!({})),
+        MobileEvent::TunnelReady { duration_ms } => ("mobile_tunnel_ready", json!({ "duration_ms": duration_ms })),
+        MobileEvent::TunnelStop { duration_ms, error } => {
+            ("mobile_tunnel_stop", json!({ "duration_ms": duration_ms, "error": error }))
+        }
+    }
 }
 
 async fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, String> {
@@ -52,7 +74,7 @@ async fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Str
         Ok(Ok(v)) => Ok(v),
         _ => {
             state.pending.lock().unwrap().remove(&id);
-            Err("Heidrun does not answer on the computer".into())
+            Err("Heidrun Code does not answer on the computer".into())
         }
     }
 }
@@ -62,7 +84,7 @@ fn start(app: &AppHandle, state: &MobileState, config: &mobile_server::MobileCon
     tauri::async_runtime::spawn(state.server.start(bridge, config));
 }
 
-/// Called when Heidrun quits: the server stops and the program `ngrok` is killed, so no tunnel stays open.
+/// Called when Heidrun Code quits: the server stops and the program `ngrok` is killed, so no tunnel stays open.
 pub fn stop_on_quit(app: &AppHandle) {
     app.state::<MobileState>().server.stop();
 }
@@ -135,7 +157,7 @@ pub fn mobile_revoke(state: State<'_, MobileState>) -> Result<MobileStatus, Stri
 }
 
 /// The button "Stop the old ngrok" of the error `ngrokAddressInUse`: kills the program `ngrok` that an earlier or another
-/// Heidrun started, never the program of this Heidrun (issue 583). True when a program was killed.
+/// Heidrun Code started, never the program of this Heidrun Code (issue 583). True when a program was killed.
 #[tauri::command]
 pub async fn mobile_stop_leftover_ngrok(app: AppHandle) -> bool {
     if crate::application_profile::is_development() {
@@ -154,5 +176,23 @@ mod tests {
         assert!(!is_push_wanted(&config));
         config.enabled = true;
         assert!(is_push_wanted(&config));
+    }
+
+    #[test]
+    fn writes_each_event_of_the_mobile_server_as_a_line_of_the_application_log() {
+        let call = MobileEvent::Call { method: "state".into(), status: 200, duration_ms: 7, error: None };
+        assert_eq!(
+            log_line(call),
+            ("mobile_call", json!({ "method": "state", "status": 200, "duration_ms": 7, "error": null }))
+        );
+        assert_eq!(
+            log_line(MobileEvent::Refused { reason: "unpaired" }),
+            ("mobile_request_refused", json!({ "reason": "unpaired" }))
+        );
+        assert_eq!(log_line(MobileEvent::Locked), ("mobile_pairing_locked", json!({})));
+        assert_eq!(log_line(MobileEvent::TunnelStart), ("mobile_tunnel_start", json!({})));
+        assert_eq!(log_line(MobileEvent::TunnelReady { duration_ms: 900 }), ("mobile_tunnel_ready", json!({ "duration_ms": 900 })));
+        let stop = MobileEvent::TunnelStop { duration_ms: 3000, error: Some("ngrokNotSignedIn".into()) };
+        assert_eq!(log_line(stop), ("mobile_tunnel_stop", json!({ "duration_ms": 3000, "error": "ngrokNotSignedIn" })));
     }
 }

@@ -123,14 +123,36 @@ describe("SettingsAgentsSection, the settings that moved here from other section
     expect(option.find('input[role="switch"]').exists()).toBe(true);
     const mark = option.get(".information-card-part");
     await mark.trigger("click");
-    expect(wrapper.get(".popover").text()).toContain("Heidrun Development cannot change the shared Antigravity status line");
+    expect(wrapper.get(".popover").text()).toContain("Heidrun Code Development cannot change the shared Antigravity status line");
   });
 
   it("shows only Terminal when all coding agents are switched off", async () => {
     const { wrapper, settings } = await mountSection();
     const group = wrapper.get('.btn-group[aria-label="Default command of a new tab"]');
-    expect(group.findAll("label").map((label) => label.text())).toEqual(["Terminal"]);
+    expect(group.attributes("role")).toBe("group");
+    const labels = group.findAll("label");
+    expect(labels.map((label) => label.text())).toEqual(["Terminal"]);
+    for (const label of labels) {
+      expect(label.classes()).toEqual(expect.arrayContaining(["btn-check", "btn-outline", "theme-secondary"]));
+    }
+    expect(group.findAll("input[type=radio]").map((radio) => (radio.element as HTMLInputElement).checked)).toEqual([true]);
     expect(settings.newTabCommand).toBe("terminal");
+  });
+
+  it.each([
+    ["claude", "claude", "Claude Code"],
+    ["codex", "codex", "Codex"],
+    ["antigravity", "agy", "Antigravity"],
+  ] as const)("shows Terminal and %s when only that coding agent is switched on, and saves the command %s", async (agent, command, label) => {
+    const { settings } = await import("../../stores/settings");
+    settings.ownedAgents = [agent];
+    const { wrapper } = await mountSection();
+    const radios = wrapper.get('.btn-group[aria-label="Default command of a new tab"]').findAll("input[type=radio]");
+    expect(wrapper.get('.btn-group[aria-label="Default command of a new tab"]').findAll("label").map((item) => item.text())).toEqual(["Terminal", label]);
+    const radio = radios.find((item) => (item.element as HTMLInputElement).value === command)!;
+    await radio.setValue(true);
+    expect(settings.newTabCommand).toBe(command);
+    expect(radios.find((item) => (item.element as HTMLInputElement).checked)?.element).toBe(radio.element);
   });
 
   it("shows only the enabled coding agents as new-tab commands and saves the selected command", async () => {
@@ -194,7 +216,7 @@ describe("SettingsAgentsSection, the settings that moved here from other section
     await mark.trigger("click");
     const card = wrapper.get(".popover");
     expect(card.classes()).toContain("bs-popover-bottom");
-    expect(card.text()).toContain("Heidrun stops its Herdr session");
+    expect(card.text()).toContain("Heidrun Code stops its Herdr session");
     expect(settings.keepAgentsRunningAfterQuit).toBe(true);
   });
 });

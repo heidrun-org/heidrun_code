@@ -25,11 +25,11 @@ describe('Icons', () => {
 		['needs-you', 'Needs you'],
 		['panes', 'Panes'],
 		['launchers', 'Launchers'],
-	])('shows the Heidrun branding icon before the title on %s', async (screen, title) => {
+	])('shows the Heidrun Code branding icon before the title on %s', async (screen, title) => {
 		await AppHarness.start(Fixtures.computer(), true, `#/${screen}`);
 		const header = document.querySelector('header');
 		const branding = header?.firstElementChild;
-		expect(branding?.getAttribute('aria-label')).toBe('Heidrun');
+		expect(branding?.getAttribute('aria-label')).toBe('Heidrun Code');
 		expect(branding?.getAttribute('role')).toBe('img');
 		const icon = branding?.querySelector('svg.bi-heidrun-goat-only');
 		expect(icon?.getAttribute('width')).toBe('24');

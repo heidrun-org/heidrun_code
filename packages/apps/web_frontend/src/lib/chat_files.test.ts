@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { chatFiles, fileFolder, fileIconName, fileName, fileWebUrl, relativeFilePath } from "./chat_files";
 

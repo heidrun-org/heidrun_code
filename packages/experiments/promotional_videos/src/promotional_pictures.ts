@@ -17,9 +17,9 @@ const __dirname = import.meta.dirname;
 export type OutroCardOptions = {
 	/** The path of the picture of the baby goat. */
 	babyGoatPath: string;
-	/** The motto of Heidrun. */
+	/** The motto of Heidrun Code. */
 	motto: string;
-	/** The address of the website of Heidrun. */
+	/** The address of the website of Heidrun Code. */
 	address: string;
 	/** The width of the picture, in pixels. */
 	width: number;

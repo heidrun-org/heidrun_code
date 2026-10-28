@@ -30,7 +30,7 @@ pub struct InstalledSkill {
     pub description: String,
     /// "workspace" or "user".
     pub level: String,
-    /// `None` for a skill that Heidrun did not install.
+    /// `None` for a skill that Heidrun Code did not install.
     pub origin: Option<SkillOrigin>,
     /// The folder of the skill that holds the real files.
     pub path: String,

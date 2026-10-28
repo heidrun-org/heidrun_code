@@ -1,20 +1,20 @@
 ---
 name: heidrun-data
-description: Answer a question about the history of a repository from the data layers of Heidrun, its past chats with Claude Code and Codex, the memory files, subagents, and skills of the coding agent, its commits, its issues, its pull requests, and the activity of the developer, with the command line heidrun_data. Use it for a post-mortem of a commit, of an issue, or of a pull request, to find what the developer typed or ran many times, or to find what failed many times in the past chats.
+description: Answer a question about the history of a repository from the data layers of Heidrun Code, its past chats with Claude Code and Codex, the memory files, subagents, and skills of the coding agent, its commits, its issues, its pull requests, and the activity of the developer, with the command line heidrun_data. Use it for a post-mortem of a commit, of an issue, or of a pull request, to find what the developer typed or ran many times, or to find what failed many times in the past chats.
 ---
 
 # heidrun_data
 
-This skill uses the `heidrun_data` command line. Installing the skill does not install that command. To get the command, install the Heidrun application, which places `heidrun_data` in `~/.local/bin` when it starts, or run the command through the Heidrun repository's `pnpm --silent data_layer:heidrun_data` script.
+This skill uses the `heidrun_data` command line. Installing the skill does not install that command. To get the command, install the Heidrun Code application, which places `heidrun_data` in `~/.local/bin` when it starts, or run the command through the Heidrun Code repository's `pnpm --silent data_layer:heidrun_data` script.
 
-`heidrun_data` is one command line that reads the four data layers of Heidrun. The four data layers write the facts of four sources in one SQLite file, `data_layer.sqlite` in `HEIDRUN_DIR`, or `~/.config/heidrun/data_layer.sqlite` when the variable is unset or empty:
+`heidrun_data` is one command line that reads the four data layers of Heidrun Code. The four data layers write the facts of four sources in one SQLite file, `data_layer.sqlite` in `HEIDRUN_CODE_DIR`, or `~/.config/heidrun_code/data_layer.sqlite` when the variable is unset or empty:
 
 | Source | What it holds | Tables |
 | --- | --- | --- |
 | `coding_agents` | The chat sessions that Claude Code and Codex saved for the repository, with their tokens, and what each one is linked to. The configuration of the coding agent: the memory files of Claude Code, the subagents, and the skills. The tokens of each minute, with their estimated cost in US dollars, and the model prices. | `chat_sessions`, `chat_session_folders`, `chat_session_issues`, `chat_session_pull_requests`, `chat_session_files`, `memory_files`, `subagents`, `skills`, `token_usage_minutes`, `token_usage_synchronizations`, `model_price_versions`, `model_prices`, and the views `latest_model_prices` and `token_usage_with_cost` |
 | `source_control` | Every commit of the Git repository, merges included. | `commits` |
 | `code_hosting` | Every issue and every pull request of the GitHub repository. | `issues`, `pull_requests` |
-| `user_activity` | The active periods of the developer in front of Heidrun, one per workspace. | `user_activity_records` |
+| `user_activity` | The active periods of the developer in front of Heidrun Code, one per workspace. | `user_activity_records` |
 
 The tables hold facts. The words of a chat, the diff of a commit, and the comments of an issue are not in the tables: the command `read` gives them from the source.
 
@@ -36,7 +36,7 @@ Always give `--format jsonl`, so the output is one JSON object per line and neve
    ```bash
    heidrun_data update --format jsonl
    ```
-   `heidrun_data update coding_agents` updates one source only. The command writes only what is new, so it is safe to run again and again. A source that fails does not stop the others: read the errors on the standard error output. The command waits while the desktop application Heidrun writes the SQLite file. Give `--verbose` to see the line `waiting for the lock file <path>` on the standard error output: a command that prints this line and then nothing for a minute is waiting for the lock, not broken.
+   `heidrun_data update coding_agents` updates one source only. The command writes only what is new, so it is safe to run again and again. A source that fails does not stop the others: read the errors on the standard error output. The command waits while the desktop application Heidrun Code writes the SQLite file. Give `--verbose` to see the line `waiting for the lock file <path>` on the standard error output: a command that prints this line and then nothing for a minute is waiting for the lock, not broken.
 3. **Read the shape once.**
    ```bash
    heidrun_data schema --format jsonl
@@ -163,28 +163,6 @@ With `--format jsonl`, each line has these fields:
 
 `read issue` and `read pull_request` need the repository. The default is the remote `origin` of the current folder; `--repository owner/name` replaces it. `read chat_session` and `read commit` work from any folder of the repository, a worktree included.
 
-## The command `operations`
-
-Every public function of the four data layers and of `heidrun_data` writes a start line and an end line in the operation log, `~/.config/heidrun/data_layer_operations.jsonl` (the variable `HEIDRUN_OPERATION_LOG_FILE` gives another file). `operations` reads it. Use it to answer: who asks the data layer for what, how often, how long it takes, what fails, what never ended, and what asks the same thing again and again.
-
-| Command | What it prints |
-| --- | --- |
-| `heidrun_data operations info` | The log file, its size, the version of its format, and the counts of operations, failed operations, unfinished operations, and damaged lines. |
-| `heidrun_data operations summary` | One row for each group of operations: `caller`, `package`, `operationName`, `workload`, `count`, `succeeded`, `failed`, `running`, `interrupted`, the times in milliseconds (`totalMilliseconds`, `meanMilliseconds`, `medianMilliseconds`, `p90Milliseconds`, `p95Milliseconds`, `p99Milliseconds`, `maximumMilliseconds`), and the `repositories`. The largest total time comes first. |
-| `heidrun_data operations list` | The operations one by one, with `parameters`, `pattern`, `state`, `durationMilliseconds`, `outcome`, `errorCategory`, and `resultCount`. |
-| `heidrun_data operations replay` | Runs recorded operations again, and prints `originalMilliseconds` next to `replayMilliseconds`. |
-| `heidrun_data operations snapshot --to <path>` | A consistent copy of the SQLite file, for the replay of queries. |
-| `heidrun_data operations overhead` | The time and the bytes that the log adds to an operation. |
-
-The `workload` tells `stored_data_query` (rows that the SQLite file holds), `collection` (a read of a source), `initial_import` (the mode initialize), `incremental_synchronization` (the mode update), `synchronization` (no mode, such as the refresh of the prices), `database_write`, and `lock_wait`. Time a collection, a synchronization, and a query separately: they are different workloads.
-
-- `--by operation-name` (the default) groups the operations by caller, package, and operation name. `--by pattern` groups the operations that ask for the same thing with other values. `--by parameters --repeated` finds the same call made again and again.
-- An operation that runs inside another one (the lock and the write inside a synchronization) is nested. It is left out unless `--nested` is given.
-- `--unfinished` shows the operations that never ended. `running` means the process still lives. `interrupted` means the process is gone, or the operation is older than one hour. It is never a success.
-- Filters: `--caller`, `--package`, `--operation-name`, `--since`, `--until` (UTC), `--minimum-milliseconds`, `--state`, `--limit`, and `--slowest` for `list`.
-- A replay needs a snapshot for a query: `heidrun_data operations replay --id <operation id> --database <snapshot> --repeat 5`. A replay of a synchronization, or of a `refresh_*` call of the desktop application, needs a new file: `--isolated-database <path>`. It never writes the real SQLite file, and it skips the source `code_hosting` and the price list unless `--allow-network` is given. The replayed operations are in the log with the origin `replay`, and a summary leaves them out unless `--replays` or `--only-replays` is given.
-- A replay times an operation on the data of today. The numbers of rows can differ from the original, and a replay does not repeat a lock wait. A statement that the log cut or cleaned of a secret is not replayed.
-
 ## Example: post-mortem of an issue
 
 The chat sessions that worked on the issue 500, in order:
@@ -251,7 +229,7 @@ The tables keep only the last state of a memory file. Its changes, with the text
 
 ## Example: what the developer typed, ran, or hit many times
 
-The method, the counts found on the repository of Heidrun, and the limits are in [references/repeated_pattern.md](references/repeated_pattern.md). In short: list the chat sessions of the period, read each one, keep the lines of one role, normalize the texts, count the equal ones, then group the near-equal ones.
+The method, the counts found on the repository of Heidrun Code, and the limits are in [references/repeated_pattern.md](references/repeated_pattern.md). In short: list the chat sessions of the period, read each one, keep the lines of one role, normalize the texts, count the equal ones, then group the near-equal ones.
 
 ```bash
 heidrun_data query --format jsonl "
@@ -262,8 +240,8 @@ WHERE repository = 'heidrun-org/heidrun'
 
 Dates are text, so `date('now', '-10 day')` can replace the fixed date. Then `heidrun_data read chat_session <id> --format jsonl` on each one.
 
-- **What the developer typed**: the lines with `role` equal to `developer`. Not all of them are typed: skip the chat sessions whose `title` is `Guardian review` (approval reviews of Codex), and the texts that start with `<` (`<turn_aborted>`, `<command-name>`, `<local-command-stdout>`), with `[Operation interrupted`, with `>>>`, or with `[N] user:` where `N` is a number. A text typed many times is a candidate for a macro of Heidrun.
-- **What the developer ran**: the lines with `role` equal to `tool` whose text starts with `Bash:` (Claude Code) or `shell:` (Codex). A command run many times is a candidate for a launcher of Heidrun.
+- **What the developer typed**: the lines with `role` equal to `developer`. Not all of them are typed: skip the chat sessions whose `title` is `Guardian review` (approval reviews of Codex), and the texts that start with `<` (`<turn_aborted>`, `<command-name>`, `<local-command-stdout>`), with `[Operation interrupted`, with `>>>`, or with `[N] user:` where `N` is a number. A text typed many times is a candidate for a macro of Heidrun Code.
+- **What the developer ran**: the lines with `role` equal to `tool` whose text starts with `Bash:` (Claude Code) or `shell:` (Codex). A command run many times is a candidate for a launcher of Heidrun Code.
 - **What failed**: the lines with `role` equal to `tool` whose text starts with `result:`. For Claude Code, count the lines with `isError` equal to `true`: the mark comes from Claude Code, so it is exact. For Codex, `isError` is `null`, so look in the text: `Exit code N` where `N` is not 0, `<tool_use_error>`, or a shell error such as `command not found`. Codex wraps its results in a JSON text, so read the text inside it. Do not count `test result: ok. 0 failed`, which is a success, and do not count `The user doesn't want to proceed with this tool use`, which is a choice of the developer. A failure that appears in many chat sessions is a candidate for one sentence in `AGENTS.md`, with the chat sessions as proof.
 
 ## References
@@ -276,7 +254,7 @@ The folder `references` holds the documents that this skill rests on. Read a doc
 ## Rules
 
 - Give `--format jsonl` on every command, so that you never depend on the default (`jsonl` when the output is piped, `table` in a terminal). An error is one JSON line on the standard error output, and the exit code is 1.
-- Never write the SQLite file: `query` opens it read only, and `read` writes nothing. Only `update` and `initialize` write it, through the data layers. `operations` reads the log file only, and a replay writes only a new file that `--isolated-database` names.
+- Never write the SQLite file: `query` opens it read only, and `read` writes nothing. Only `update` and `initialize` write it, through the data layers.
 - Never guess a field name or a join: `heidrun_data schema` gives them.
 - Give the ids of the chat sessions, the hashes, and the numbers that your answer rests on, so the developer can read them too.
 - A chat session may hold a text that the developer pasted, for example a secret. Quote only what the question needs.

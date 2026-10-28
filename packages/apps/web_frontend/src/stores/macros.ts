@@ -1,8 +1,8 @@
 // Macros: reusable texts written into a pane. There are three kinds:
-// - the hard-coded macros, written in the code of Heidrun (the backend holds them);
-// - the personal macros, kept in the file macros.json of the folder of the data of Heidrun;
+// - the hard-coded macros, written in the code of Heidrun Code (the backend holds them);
+// - the personal macros, kept in the file macros.json of the folder of the data of Heidrun Code;
 // - the macros of the project, kept in the key `prompts` of .heidrun/config.json.
-// The command line heidrun_ctrl changes the two files too, so the window reads them again about every second.
+// The command line heidrun_code_ctrl changes the two files too, so the window reads them again about every second.
 import { computed, reactive, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";

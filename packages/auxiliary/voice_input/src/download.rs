@@ -1,4 +1,4 @@
-//! The download of a model file. The file is written under a temporary name and renamed when it is complete, so Heidrun never
+//! The download of a model file. The file is written under a temporary name and renamed when it is complete, so Heidrun Code never
 //! reads a broken model.
 
 use crate::error::VoiceError;

@@ -92,6 +92,20 @@ async function languageFor(path: string): Promise<LanguageSupport | Extension | 
   }
 }
 
+/** The lines that the developer selected in the editor, and where the end of the selection sits in the window. */
+export interface EditorSelection {
+  /** The first selected line, from 1. */
+  fromLine: number;
+  /** The last selected line, from 1. */
+  toLine: number;
+  /** The selected text. */
+  text: string;
+  /** The left edge of the end of the selection, in pixels from the left edge of the window. */
+  left: number;
+  /** The bottom edge of the end of the selection, in pixels from the top edge of the window. */
+  bottom: number;
+}
+
 export interface Editor {
   view: EditorView;
   getText(): string;
@@ -107,6 +121,26 @@ export interface Editor {
   destroy(): void;
 }
 
+/** The selected lines of the editor, or null when nothing is selected. */
+function selectionOf(view: EditorView): EditorSelection | null {
+  const range = view.state.selection.main;
+  if (range.empty) {
+    return null;
+  }
+  const text = view.state.sliceDoc(range.from, range.to);
+  if (text.trim() === "") {
+    return null;
+  }
+  const coordinates = view.coordsAtPos(range.head) ?? view.coordsAtPos(range.to);
+  return {
+    fromLine: view.state.doc.lineAt(range.from).number,
+    toLine: view.state.doc.lineAt(range.to).number,
+    text,
+    left: coordinates?.left ?? 0,
+    bottom: coordinates?.bottom ?? 0,
+  };
+}
+
 export async function createEditor(
   parent: HTMLElement,
   opts: {
@@ -118,6 +152,8 @@ export async function createEditor(
     readOnly?: boolean;
     onChange: (text: string) => void;
     onSave: () => void;
+    /** Called when the selection changes: the selected lines, or null when nothing is selected. */
+    onSelectionChange?: (selection: EditorSelection | null) => void;
   },
 ): Promise<Editor> {
   const wrap = new Compartment();
@@ -140,6 +176,9 @@ export async function createEditor(
         lang.of([]),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) opts.onChange(u.state.doc.toString());
+          if ((u.selectionSet || u.focusChanged) && opts.onSelectionChange !== undefined) {
+            opts.onSelectionChange(selectionOf(u.view));
+          }
         }),
       ],
     }),

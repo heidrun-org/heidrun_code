@@ -25,6 +25,10 @@ pub struct FileList {
     pub ignored: Vec<String>,
     /// Submodule folders relative to the project root, without a trailing slash.
     pub submodules: Vec<String>,
+    /// The symbolic links to a folder of the project, without a trailing slash. Git lists such a link as a file, so
+    /// `files` lists it as a folder, with a trailing "/", and its content is read from the disk (issue #923).
+    #[serde(rename = "linkedFolders")]
+    pub linked_folders: Vec<String>,
     /// path → git status letter (M, A, D, R, ?).
     pub status: HashMap<String, String>,
     pub truncated: bool,
@@ -51,15 +55,15 @@ fn acceptable_root(root: &Path) -> Result<(), String> {
     let home = dirs::home_dir().unwrap_or_default();
     let home = std::fs::canonicalize(&home).unwrap_or(home);
     if root == Path::new("/") || home.starts_with(root) {
-        return Err("Dossier trop large : ouvre un projet, pas le dossier personnel".into());
+        return Err("Folder too large: open a project, not the home folder".into());
     }
     let private = [".ssh", ".aws", ".gnupg", ".config", ".kube", ".docker", "Library", ".claude", ".codex"];
     if private.iter().any(|d| root.starts_with(home.join(d))) {
-        return Err("Dossier privé : non ouvert dans l’explorateur".into());
+        return Err("Private folder: not opened in the File explorer".into());
     }
     for sys in ["/etc", "/private", "/System", "/usr", "/bin", "/sbin", "/var", "/Library", "/dev"] {
         if root.starts_with(sys) {
-            return Err("Dossier système : non ouvert dans l’explorateur".into());
+            return Err("System folder: not opened in the File explorer".into());
         }
     }
     Ok(())
@@ -98,7 +102,7 @@ async fn used_by_a_pane(root: &Path) -> Result<(), String> {
     if pane_dirs().await.iter().any(|d| d.starts_with(root)) {
         Ok(())
     } else {
-        Err("Ce dossier n’est le dossier d’aucun panneau : explorateur refusé".into())
+        Err("This folder is not the folder of any pane: the File explorer refuses it".into())
     }
 }
 
@@ -158,11 +162,37 @@ async fn git_listed_files(root: &Path, show_ignored: bool) -> (Vec<String>, Vec<
     (files, ignored_entries)
 }
 
-/// Lists each initialized submodule with its own ignore rules. Gitlinks are folders, never files.
-async fn git_project_files(root: &Path, show_ignored: bool) -> (Vec<String>, Vec<String>, Vec<String>) {
+/// True when `path` is a symbolic link to a folder inside the project `root`, and the folder is neither the root itself
+/// nor inside `.git` (issue #923).
+fn is_linked_folder(root: &Path, path: &Path) -> bool {
+    let Ok(meta) = std::fs::symlink_metadata(path) else { return false };
+    if meta.file_type().is_symlink() == false {
+        return false;
+    }
+    let Ok(real) = std::fs::canonicalize(path) else { return false };
+    let Ok(relative) = real.strip_prefix(root) else { return false };
+    real.is_dir() && relative.as_os_str().is_empty() == false && not_in_git_dir(&relative.to_string_lossy()).is_ok()
+}
+
+/// The files of the project, by repository and submodule.
+struct ProjectFiles {
+    /// The paths of `FileList::files`.
+    files: Vec<String>,
+    /// The paths of `FileList::ignored`.
+    ignored: Vec<String>,
+    /// The paths of `FileList::submodules`.
+    submodules: Vec<String>,
+    /// The paths of `FileList::linked_folders`.
+    linked_folders: Vec<String>,
+}
+
+/// Lists each initialized submodule with its own ignore rules. Gitlinks are folders, never files. A symbolic link to a
+/// folder of the project is a folder, with a trailing "/", never a file (issue #923).
+async fn git_project_files(root: &Path, show_ignored: bool) -> ProjectFiles {
     let mut files = Vec::new();
     let mut ignored = Vec::new();
     let mut submodules = Vec::new();
+    let mut linked_folders = Vec::new();
     let mut pending = vec![(root.to_path_buf(), String::new())];
     while let Some((repository, prefix)) = pending.pop() {
         let (listed, ignored_entries) = git_listed_files(&repository, show_ignored).await;
@@ -173,16 +203,26 @@ async fn git_project_files(root: &Path, show_ignored: bool) -> (Vec<String>, Vec
                 metadata.starts_with("160000 ").then(|| path.to_string())
             })
             .collect();
+        let mut linked_here = std::collections::HashSet::new();
         for path in listed {
             if links.contains(&path) {
                 continue;
             }
-            files.push(format!("{prefix}{path}"));
+            if path.ends_with('/') == false && is_linked_folder(root, &repository.join(&path)) {
+                files.push(format!("{prefix}{path}/"));
+                linked_folders.push(format!("{prefix}{path}"));
+                linked_here.insert(path);
+            } else {
+                files.push(format!("{prefix}{path}"));
+            }
             if files.len() > MAX_FILES {
-                return (files, ignored, submodules);
+                return ProjectFiles { files, ignored, submodules, linked_folders };
             }
         }
-        ignored.extend(ignored_entries.into_iter().map(|path| format!("{prefix}{path}")));
+        ignored.extend(ignored_entries.into_iter().map(|path| {
+            let slash = if linked_here.contains(&path) { "/" } else { "" };
+            format!("{prefix}{path}{slash}")
+        }));
         for path in links {
             // Refuse paths through symbolic links, outside the root, or inside Git's internal data.
             if safe_rel(&path).is_err() || not_in_git_dir(&path).is_err() {
@@ -204,14 +244,15 @@ async fn git_project_files(root: &Path, show_ignored: bool) -> (Vec<String>, Vec
     files.sort();
     files.dedup();
     submodules.sort();
-    (files, ignored, submodules)
+    linked_folders.sort();
+    ProjectFiles { files, ignored, submodules, linked_folders }
 }
 
 /// Files of the project containing `cwd`: the git repository (tracked and new files,
 /// .gitignore respected), or the folder itself when it is not a repository.
 #[tauri::command]
 pub async fn files_list(cwd: String, ignored: Option<bool>) -> Result<FileList, String> {
-    let dir = std::fs::canonicalize(&cwd).map_err(|_| "dossier introuvable".to_string())?;
+    let dir = std::fs::canonicalize(&cwd).map_err(|_| "folder not found".to_string())?;
     let top = run(&dir, &["rev-parse", "--show-toplevel"]).await.map(|b| String::from_utf8_lossy(&b).trim().to_string());
     let Some(root) = top.filter(|t| !t.is_empty()) else {
         acceptable_root(&dir)?;
@@ -227,12 +268,12 @@ pub async fn files_list(cwd: String, ignored: Option<bool>) -> Result<FileList, 
         let root = dir.display().to_string();
         remember_root(&root);
         let truncated = files.len() >= MAX_FILES;
-        return Ok(FileList { root, git: false, files, ignored: Vec::new(), submodules: Vec::new(), status: HashMap::new(), truncated });
+        return Ok(FileList { root, git: false, files, ignored: Vec::new(), submodules: Vec::new(), linked_folders: Vec::new(), status: HashMap::new(), truncated });
     };
     let rootp = std::fs::canonicalize(&root).unwrap_or_else(|_| PathBuf::from(&root));
     acceptable_root(&rootp)?;
     used_by_a_pane(&rootp).await?;
-    let (mut files, ignored_entries, submodules) = git_project_files(&rootp, ignored.unwrap_or(false)).await;
+    let ProjectFiles { mut files, ignored: ignored_entries, submodules, linked_folders } = git_project_files(&rootp, ignored.unwrap_or(false)).await;
     let truncated = files.len() > MAX_FILES;
     files.truncate(MAX_FILES);
     let mut status = HashMap::new();
@@ -256,7 +297,7 @@ pub async fn files_list(cwd: String, ignored: Option<bool>) -> Result<FileList, 
         }
     }
     remember_root(&root);
-    Ok(FileList { root, git: true, files, ignored: ignored_entries, submodules, status, truncated })
+    Ok(FileList { root, git: true, files, ignored: ignored_entries, submodules, linked_folders, status, truncated })
 }
 
 /// The names inside the folder `dir`, one level only: a folder ends with "/", a file does not. A symbolic link is
@@ -281,32 +322,63 @@ fn children_of(dir: &Path) -> Result<Vec<String>, String> {
 
 /// The first level of one folder of the project: the folders (with a trailing "/") and the files directly inside it. The
 /// sidebar section File explorer asks it when the developer unfolds a folder that Git ignores, because Git does not list
-/// the files of such a folder (issue #430). The folder must be inside a known root, must not be a symbolic link, and
-/// must not be inside `.git`.
+/// the files of such a folder (issue #430), and when the developer unfolds a symbolic link to a folder (issue #923). The
+/// folder must be inside a known root and must not be inside `.git`. A symbolic link is accepted only when its real
+/// folder is inside the project and not inside `.git`.
 #[tauri::command(async)]
 pub fn folder_children(root: String, path: String) -> Result<Vec<String>, String> {
     not_in_git_dir(&path)?;
-    let real = full_path(&root, &path)?;
+    let real = folder_path(&root, &path)?;
     if real.is_dir() == false {
         return Err("not a folder".into());
     }
     children_of(&real)
 }
 
-fn full_path(root: &str, path: &str) -> Result<PathBuf, String> {
+/// The real path of a folder of the project. Unlike `full_path`, the folder may be a symbolic link, but its real folder
+/// must be inside the project, must not be the root itself, and must not be inside `.git` (issue #923).
+fn folder_path(root: &str, path: &str) -> Result<PathBuf, String> {
+    known_root(root)?;
+    let rel = safe_rel(path)?;
+    let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
+    let real = std::fs::canonicalize(base.join(rel)).map_err(|_| "folder not found".to_string())?;
+    let relative = real.strip_prefix(&base).map_err(|_| "path outside the project".to_string())?;
+    if relative.as_os_str().is_empty() {
+        return Err("the root of the project: not listed again".into());
+    }
+    not_in_git_dir(&relative.to_string_lossy())?;
+    Ok(real)
+}
+
+pub(crate) fn full_path(root: &str, path: &str) -> Result<PathBuf, String> {
     known_root(root)?;
     let rel = safe_rel(path)?;
     let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let full = base.join(rel);
-    let meta = std::fs::symlink_metadata(&full).map_err(|_| "fichier introuvable".to_string())?;
+    let meta = std::fs::symlink_metadata(&full).map_err(|_| "file not found".to_string())?;
     if meta.file_type().is_symlink() {
-        return Err("lien symbolique : non ouvert".into());
+        return Err("symbolic link: not opened".into());
     }
     let real = std::fs::canonicalize(&full).map_err(|e| e.to_string())?;
     if !real.starts_with(&base) {
-        return Err("chemin hors du projet".into());
+        return Err("path outside the project".into());
     }
     Ok(real)
+}
+
+/// The real path of a file of the project to watch: its real folder, which must be inside the project, and its name.
+/// The file itself may be missing, because a coding agent can delete it and write it again (issue #931).
+pub(crate) fn watch_path(root: &str, path: &str) -> Result<PathBuf, String> {
+    known_root(root)?;
+    let rel = safe_rel(path)?;
+    let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
+    let full = base.join(rel);
+    let parent = full.parent().ok_or("folder not found")?;
+    let parent = std::fs::canonicalize(parent).map_err(|_| "the folder of the file no longer exists".to_string())?;
+    if !parent.starts_with(&base) {
+        return Err("path outside the project".into());
+    }
+    Ok(parent.join(full.file_name().ok_or("invalid name")?))
 }
 
 /// An image of the project as a data URL (8 MB max). Off the main thread.
@@ -322,11 +394,11 @@ pub fn file_image(root: String, path: String) -> Result<String, String> {
         "svg" => "image/svg+xml",
         "ico" => "image/x-icon",
         "bmp" => "image/bmp",
-        _ => return Err("format d’image non pris en charge".into()),
+        _ => return Err("image format not supported".into()),
     };
     let meta = std::fs::metadata(&real).map_err(|e| e.to_string())?;
     if meta.len() > 8 * 1024 * 1024 {
-        return Err(format!("image trop grosse pour l’aperçu ({} Mo)", meta.len() / 1024 / 1024));
+        return Err(format!("image too large for the preview ({} MB)", meta.len() / 1024 / 1024));
     }
     let bytes = std::fs::read(&real).map_err(|e| e.to_string())?;
     Ok(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes)))
@@ -342,19 +414,19 @@ pub struct Resolved {
 /// the path inside it, if the file exists there.
 #[tauri::command]
 pub async fn files_resolve(cwd: String, path: String) -> Result<Resolved, String> {
-    let dir = std::fs::canonicalize(&cwd).map_err(|_| "dossier introuvable".to_string())?;
+    let dir = std::fs::canonicalize(&cwd).map_err(|_| "folder not found".to_string())?;
     let p = Path::new(&path);
     let candidate = if p.is_absolute() { p.to_path_buf() } else { dir.join(p) };
-    let real = std::fs::canonicalize(&candidate).map_err(|_| format!("{path} introuvable depuis {}", dir.display()))?;
+    let real = std::fs::canonicalize(&candidate).map_err(|_| format!("{path} not found from {}", dir.display()))?;
     if !real.is_file() {
-        return Err(format!("{path} n’est pas un fichier"));
+        return Err(format!("{path} is not a file"));
     }
     let top = run(&dir, &["rev-parse", "--show-toplevel"]).await.map(|b| String::from_utf8_lossy(&b).trim().to_string()).filter(|t| !t.is_empty());
     let root = PathBuf::from(top.unwrap_or_else(|| dir.display().to_string()));
     let root = std::fs::canonicalize(&root).unwrap_or(root);
     acceptable_root(&root)?;
     used_by_a_pane(&root).await?;
-    let rel = real.strip_prefix(&root).map_err(|_| "fichier hors du projet".to_string())?;
+    let rel = real.strip_prefix(&root).map_err(|_| "file outside the project".to_string())?;
     let root_s = root.display().to_string();
     remember_root(&root_s);
     Ok(Resolved { root: root_s, path: rel.to_string_lossy().replace('\\', "/") })
@@ -368,10 +440,10 @@ pub fn file_open_external(root: String, path: String) -> Result<(), String> {
     if matches!(vscode, Ok(s) if s.success()) {
         return Ok(());
     }
-    std::process::Command::new("open").arg(&real).status().map_err(|e| e.to_string()).and_then(|s| if s.success() { Ok(()) } else { Err("ouverture impossible".into()) })
+    std::process::Command::new("open").arg(&real).status().map_err(|e| e.to_string()).and_then(|s| if s.success() { Ok(()) } else { Err("cannot open the file".into()) })
 }
 
-/// Absolute path of a project file (for "Voir dans le Finder" / "Copier le chemin").
+/// Absolute path of a project file (for "Copy absolute path").
 #[tauri::command]
 pub fn file_full_path(root: String, path: String) -> Result<String, String> {
     full_path(&root, &path).map(|p| p.display().to_string())
@@ -403,10 +475,10 @@ pub struct FileStamp {
     pub hash: Option<String>,
 }
 
-/// Never inside .git (hooks, config): editing those is not what the explorer is for.
-fn not_in_git_dir(path: &str) -> Result<(), String> {
+/// Never inside .git (hooks, config): editing those is not what a file view pane is for.
+pub(crate) fn not_in_git_dir(path: &str) -> Result<(), String> {
     if Path::new(path).components().any(|c| c.as_os_str() == ".git") {
-        return Err("fichier interne de git : non modifiable ici".into());
+        return Err("internal file of Git: it cannot be changed here".into());
     }
     Ok(())
 }
@@ -417,14 +489,14 @@ pub fn file_read(root: String, path: String) -> Result<FileText, String> {
     let real = full_path(&root, &path)?;
     let meta = std::fs::metadata(&real).map_err(|e| e.to_string())?;
     if meta.len() > MAX_EDIT {
-        return Err(format!("fichier trop gros pour l’édition ({} Ko)", meta.len() / 1024));
+        return Err(format!("file too large to edit ({} KB)", meta.len() / 1024));
     }
     let bytes = std::fs::read(&real).map_err(|e| e.to_string())?;
     if bytes.iter().take(8000).any(|b| *b == 0) {
-        return Err("fichier binaire : non modifiable".into());
+        return Err("binary file: it cannot be edited".into());
     }
     let hash = fingerprint(&bytes);
-    let text = String::from_utf8(bytes).map_err(|_| "fichier qui n’est pas en UTF-8 : non modifiable ici (risque d’abîmer les accents)".to_string())?;
+    let text = String::from_utf8(bytes).map_err(|_| "file not in UTF-8: it cannot be edited here".to_string())?;
     Ok(FileText { text, hash })
 }
 
@@ -455,7 +527,7 @@ pub fn file_write(root: String, path: String, content: String, expected: Option<
     known_root(&root)?;
     let rel = safe_rel(&path)?;
     if content.len() as u64 > MAX_EDIT {
-        return Err("contenu trop gros".into());
+        return Err("content too large".into());
     }
     let base = std::fs::canonicalize(&root).map_err(|e| e.to_string())?;
     let target = base.join(rel);
@@ -465,12 +537,12 @@ pub fn file_write(root: String, path: String, content: String, expected: Option<
     } else {
         // Deleted meanwhile, and the user chose to write it back: its folder must
         // still be inside the project.
-        let parent = target.parent().ok_or("dossier introuvable")?;
-        let parent = std::fs::canonicalize(parent).map_err(|_| "le dossier du fichier n’existe plus".to_string())?;
+        let parent = target.parent().ok_or("folder not found")?;
+        let parent = std::fs::canonicalize(parent).map_err(|_| "the folder of the file no longer exists".to_string())?;
         if !parent.starts_with(&base) {
-            return Err("chemin hors du projet".into());
+            return Err("path outside the project".into());
         }
-        parent.join(target.file_name().ok_or("nom invalide")?)
+        parent.join(target.file_name().ok_or("invalid name")?)
     };
     let current = if exists { Some(fingerprint(&std::fs::read(&real).map_err(|e| e.to_string())?)) } else { None };
     if current != expected {
@@ -480,43 +552,43 @@ pub fn file_write(root: String, path: String, content: String, expected: Option<
     if exists {
         let meta = std::fs::metadata(&real).map_err(|e| e.to_string())?;
         if !meta.is_file() {
-            return Err("ce n’est pas un fichier".into());
+            return Err("not a file".into());
         }
         if meta.permissions().readonly() {
-            return Err("fichier en lecture seule : non modifié".into());
+            return Err("read-only file: not changed".into());
         }
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
             if meta.nlink() > 1 {
-                std::fs::write(&real, bytes).map_err(|e| format!("écriture impossible : {e}"))?;
+                std::fs::write(&real, bytes).map_err(|e| format!("cannot write the file: {e}"))?;
                 return Ok(FileStamp { hash: Some(fingerprint(bytes)) });
             }
         }
-        let dir = real.parent().ok_or("dossier introuvable")?;
+        let dir = real.parent().ok_or("folder not found")?;
         let name = real.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let n = TMP_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let tmp = dir.join(format!(".{name}.heidrun-{}-{n}", std::process::id()));
         {
             use std::io::Write;
-            let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&tmp).map_err(|e| format!("écriture impossible : {e}"))?;
-            f.write_all(bytes).map_err(|e| format!("écriture impossible : {e}"))?;
+            let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&tmp).map_err(|e| format!("cannot write the file: {e}"))?;
+            f.write_all(bytes).map_err(|e| format!("cannot write the file: {e}"))?;
             f.sync_all().ok();
         }
         let _ = std::fs::set_permissions(&tmp, meta.permissions());
         if let Err(e) = std::fs::rename(&tmp, &real) {
             let _ = std::fs::remove_file(&tmp);
-            return Err(format!("enregistrement impossible : {e}"));
+            return Err(format!("cannot save the file: {e}"));
         }
     } else {
         use std::io::Write;
-        let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&real).map_err(|e| format!("écriture impossible : {e}"))?;
-        f.write_all(bytes).map_err(|e| format!("écriture impossible : {e}"))?;
+        let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(&real).map_err(|e| format!("cannot write the file: {e}"))?;
+        f.write_all(bytes).map_err(|e| format!("cannot write the file: {e}"))?;
     }
     Ok(FileStamp { hash: Some(fingerprint(bytes)) })
 }
 
-// ---- Search, create, rename, delete ------------------------------------------------
+// ---- Search and create ---------------------------------------------------------------
 
 #[derive(Serialize, Debug)]
 pub struct GrepHit {
@@ -562,7 +634,7 @@ pub async fn files_grep(root: String, query: String, regex: Option<bool>, case: 
         return Ok(GrepResult { hits: vec![], truncated: false });
     }
     if query.len() > 500 {
-        return Err("recherche trop longue".into());
+        return Err("search text too long".into());
     }
     let regex = regex.unwrap_or(false);
     let case = case.unwrap_or(false);
@@ -592,14 +664,14 @@ pub async fn files_grep(root: String, query: String, regex: Option<bool>, case: 
     cmd.kill_on_drop(true);
     let out = tokio::time::timeout(Duration::from_secs(15), cmd.output())
         .await
-        .map_err(|_| "recherche trop longue (plus de 15 s) : précise-la".to_string())?
+        .map_err(|_| "search too long (more than 15 seconds): make the search text more precise".to_string())?
         .map_err(|e| e.to_string())?;
     // Exit 1: nothing found. 2: bad pattern (or, for grep -r, an unreadable file:
     // the hits found are still good).
     let partial = !is_git && out.status.code() == Some(2) && !out.stdout.is_empty();
     if !partial && !out.status.success() && out.status.code() != Some(1) {
         let err = String::from_utf8_lossy(&out.stderr);
-        return Err(format!("recherche impossible : {}", err.lines().next().unwrap_or("expression invalide")));
+        return Err(format!("search failed: {}", err.lines().next().unwrap_or("invalid expression")));
     }
     Ok(parse_grep(&String::from_utf8_lossy(&out.stdout), None))
 }
@@ -611,13 +683,13 @@ fn new_target(root: &str, path: &str) -> Result<PathBuf, String> {
     not_in_git_dir(rel)?;
     let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let target = base.join(rel);
-    let name = target.file_name().ok_or("nom invalide")?.to_string_lossy().into_owned();
+    let name = target.file_name().ok_or("invalid name")?.to_string_lossy().into_owned();
     if name.is_empty() || name == "." || name.contains('\0') {
-        return Err("nom invalide".into());
+        return Err("invalid name".into());
     }
-    let parent = std::fs::canonicalize(target.parent().ok_or("dossier introuvable")?).map_err(|_| "le dossier n’existe pas".to_string())?;
+    let parent = std::fs::canonicalize(target.parent().ok_or("folder not found")?).map_err(|_| "the folder does not exist".to_string())?;
     if !parent.starts_with(&base) {
-        return Err("chemin hors du projet".into());
+        return Err("path outside the project".into());
     }
     // The real folder too: a symlink "x -> .git/hooks" must not lead into .git.
     not_in_git_dir(&parent.strip_prefix(&base).map_err(|e| e.to_string())?.to_string_lossy())?;
@@ -626,7 +698,7 @@ fn new_target(root: &str, path: &str) -> Result<PathBuf, String> {
 
 fn taken(p: &Path) -> Result<(), String> {
     if std::fs::symlink_metadata(p).is_ok() {
-        return Err("un fichier ou dossier porte déjà ce nom".into());
+        return Err("a file or a folder with this name exists already".into());
     }
     Ok(())
 }
@@ -644,7 +716,7 @@ pub fn file_create(root: String, path: String, dir: bool) -> Result<(), String> 
 }
 
 /// The paths, among `paths`, that are folders of the project today (not symlinks). The sidebar section File explorer asks it
-/// to drop the new empty folders that the developer removed outside Heidrun, because Git does not list empty folders.
+/// to drop the new empty folders that the developer removed outside Heidrun Code, because Git does not list empty folders.
 #[tauri::command(async)]
 pub fn dirs_existing(root: String, paths: Vec<String>) -> Result<Vec<String>, String> {
     known_root(&root)?;
@@ -656,73 +728,6 @@ pub fn dirs_existing(root: String, paths: Vec<String>) -> Result<Vec<String>, St
                 && std::fs::symlink_metadata(base.join(path)).map(|meta| meta.file_type().is_dir()).unwrap_or(false)
         })
         .collect())
-}
-
-/// Existing file or folder of the project (not a symlink, not .git, not the root).
-fn existing(root: &str, path: &str) -> Result<PathBuf, String> {
-    not_in_git_dir(path)?;
-    let real = full_path(root, path)?;
-    let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
-    if real == base {
-        return Err("c’est le dossier du projet".into());
-    }
-    Ok(real)
-}
-
-/// Rename or move inside the project. Never over an existing name.
-#[tauri::command(async)]
-pub fn file_rename(root: String, from: String, to: String) -> Result<(), String> {
-    let src = existing(&root, &from)?;
-    let dst = new_target(&root, &to)?;
-    if dst == src {
-        return Ok(());
-    }
-    if same_file(&src, &dst) {
-        // Case-only rename on a case-insensitive disk (APFS): Foo.ts → foo.ts
-        // "exists" already. Go through a temporary name.
-        let tmp = src.with_file_name(format!(".hd-rename-{}", std::process::id()));
-        taken(&tmp)?;
-        std::fs::rename(&src, &tmp).map_err(|e| e.to_string())?;
-        return std::fs::rename(&tmp, &dst).map_err(|e| {
-            let _ = std::fs::rename(&tmp, &src);
-            e.to_string()
-        });
-    }
-    taken(&dst)?;
-    if dst.starts_with(&src) {
-        return Err("un dossier ne peut pas aller dans lui-même".into());
-    }
-    std::fs::rename(&src, &dst).map_err(|e| e.to_string())
-}
-
-#[cfg(unix)]
-fn same_file(a: &Path, b: &Path) -> bool {
-    use std::os::unix::fs::MetadataExt;
-    match (std::fs::symlink_metadata(a), std::fs::symlink_metadata(b)) {
-        (Ok(x), Ok(y)) => x.dev() == y.dev() && x.ino() == y.ino(),
-        _ => false,
-    }
-}
-
-#[cfg(not(unix))]
-fn same_file(_: &Path, _: &Path) -> bool {
-    false
-}
-
-/// To the macOS Trash (recoverable), never a permanent delete.
-#[tauri::command(async)]
-pub fn file_trash(root: String, path: String) -> Result<(), String> {
-    let real = existing(&root, &path)?;
-    #[allow(unused_mut)]
-    let mut ctx = trash::TrashContext::default();
-    // NSFileManager: no Finder automation prompt (the Finder method would ask
-    // for permission to control the Finder the first time).
-    #[cfg(target_os = "macos")]
-    {
-        use trash::macos::{DeleteMethod, TrashContextExtMacos};
-        ctx.set_delete_method(DeleteMethod::NsFileManager);
-    }
-    ctx.delete(&real).map_err(|e| format!("mise à la Corbeille impossible : {e}"))
 }
 
 #[cfg(test)]
@@ -741,6 +746,23 @@ mod tests {
         assert!(not_in_git_dir(".git/config").is_err());
         assert!(not_in_git_dir("a/.git/hooks/x").is_err());
         assert!(not_in_git_dir("src/.gitignore").is_ok());
+    }
+
+    #[test]
+    fn gives_the_real_path_to_watch_even_for_a_missing_file() {
+        let dir = std::env::temp_dir().join(format!("hd-files-watch-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        std::fs::write(dir.join("src/a.txt"), "un\n").unwrap();
+        let real = std::fs::canonicalize(&dir).unwrap();
+        let root = real.display().to_string();
+        remember_root(&root);
+        assert_eq!(watch_path(&root, "src/a.txt").unwrap(), real.join("src/a.txt"));
+        assert_eq!(watch_path(&root, "src/gone.txt").unwrap(), real.join("src/gone.txt"));
+        assert!(watch_path(&root, "missing/a.txt").is_err());
+        assert!(watch_path(&root, "../a.txt").is_err());
+        assert!(watch_path("/not/a/known/root", "a.txt").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -768,17 +790,13 @@ mod tests {
         assert!(file_write(root.clone(), ".git/config".into(), "".into(), None).is_err());
         assert_eq!(std::fs::read_dir(dir.join("src")).unwrap().count(), 1, "no temp file left");
 
-        // Create, rename, refuse escapes and overwrites.
+        // Create, refuse escapes and overwrites.
         file_create(root.clone(), "src/b.txt".into(), false).unwrap();
         file_create(root.clone(), "src/sub".into(), true).unwrap();
         assert!(file_create(root.clone(), "src/b.txt".into(), false).is_err());
         assert!(file_create(root.clone(), "../evil".into(), false).is_err());
         assert!(file_create(root.clone(), "nope/x.txt".into(), false).is_err());
         assert!(file_create(root.clone(), ".git/x".into(), false).is_err());
-        file_rename(root.clone(), "src/b.txt".into(), "src/sub/c.txt".into()).unwrap();
-        assert!(dir.join("src/sub/c.txt").exists());
-        assert!(file_rename(root.clone(), "src/a.txt".into(), "src/sub/c.txt".into()).is_err());
-        assert!(file_rename(root.clone(), "src".into(), "src/sub/src".into()).is_err());
         // A symlink to .git does not open a way in.
         std::fs::create_dir_all(dir.join(".git/hooks")).unwrap();
         std::os::unix::fs::symlink(dir.join(".git/hooks"), dir.join("hk")).unwrap();
@@ -871,7 +889,7 @@ mod helper_tests {
         std::fs::write(module.join(".env"), "ignored").unwrap();
         std::fs::create_dir_all(module.join(".heidrun/nested")).unwrap();
         std::fs::write(module.join(".heidrun/nested/hidden.txt"), "hidden").unwrap();
-        let (files, ignored, submodules) = git_project_files(&parent, false).await;
+        let ProjectFiles { files, ignored, submodules, .. } = git_project_files(&parent, false).await;
         assert_eq!(submodules, vec!["modules/example"]);
         assert!(files.contains(&"modules/example/src/a.ts".to_string()));
         assert!(!files.contains(&"modules/example".to_string()));
@@ -880,18 +898,18 @@ mod helper_tests {
         let root = parent.display().to_string();
         remember_root(&root);
         assert_eq!(file_read(root.clone(), "modules/example/src/a.ts".into()).unwrap().text, "x");
-        let (shown, ignored, _) = git_project_files(&parent, true).await;
+        let ProjectFiles { files: shown, ignored, .. } = git_project_files(&parent, true).await;
         assert!(shown.contains(&"modules/example/.env".to_string()));
         assert!(ignored.contains(&"modules/example/.heidrun/".to_string()));
         assert_eq!(folder_children(root, "modules/example/.heidrun/nested".into()).unwrap(), vec!["hidden.txt"]);
         assert!(shown.iter().all(|path| !Path::new(path).components().any(|part| part.as_os_str() == ".git")));
         std::fs::write(module.join("src/new.txt"), "new").unwrap();
-        let (refreshed, _, _) = git_project_files(&parent, false).await;
+        let refreshed = git_project_files(&parent, false).await.files;
         assert!(refreshed.contains(&"modules/example/src/new.txt".to_string()));
         // An uninitialized submodule must not list the parent repository as its own contents.
         std::fs::remove_dir_all(&module).unwrap();
         std::fs::create_dir(&module).unwrap();
-        let (uninitialized, _, submodules) = git_project_files(&parent, false).await;
+        let ProjectFiles { files: uninitialized, submodules, .. } = git_project_files(&parent, false).await;
         assert_eq!(submodules, vec!["modules/example"]);
         assert!(uninitialized.iter().all(|path| !path.starts_with("modules/example/")));
         let _ = std::fs::remove_dir_all(parent);
@@ -973,6 +991,46 @@ mod helper_tests {
         assert!(folder_children(root.clone(), "loop".into()).is_err());
         assert!(folder_children("/not/a/known/root".into(), "src".into()).is_err());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Issue #923: Git lists a symbolic link as a file, even when its target is a folder.
+    #[tokio::test]
+    async fn lists_a_symbolic_link_to_a_folder_of_the_project_as_a_folder_that_unfolds_and_refuses_the_other_links() {
+        let dir = std::env::temp_dir().join(format!("hd-linked-folder-{}", std::process::id()));
+        let outside = std::env::temp_dir().join(format!("hd-linked-folder-outside-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&outside);
+        std::fs::create_dir_all(dir.join("packages/skills/feature-status")).unwrap();
+        std::fs::create_dir_all(dir.join("testbed/.agents/skills")).unwrap();
+        std::fs::create_dir_all(&outside).unwrap();
+        std::fs::write(dir.join("packages/skills/feature-status/SKILL.md"), "x").unwrap();
+        std::fs::write(dir.join("packages/a.txt"), "a").unwrap();
+        let skills = dir.join("testbed/.agents/skills");
+        std::os::unix::fs::symlink("../../../packages/skills/feature-status", skills.join("feature-status")).unwrap();
+        std::os::unix::fs::symlink("../../../packages/a.txt", skills.join("file-link.txt")).unwrap();
+        std::os::unix::fs::symlink(&outside, skills.join("outside")).unwrap();
+        std::os::unix::fs::symlink("../../../.git", skills.join("git-link")).unwrap();
+        std::os::unix::fs::symlink("../../..", skills.join("root-link")).unwrap();
+        for args in [vec!["init", "-q"], vec!["add", "."]] {
+            let status = std::process::Command::new("git").arg("-C").arg(&dir).args(args).status().unwrap();
+            assert!(status.success());
+        }
+        let dir = std::fs::canonicalize(&dir).unwrap();
+        let ProjectFiles { files, linked_folders, .. } = git_project_files(&dir, false).await;
+        assert_eq!(linked_folders, vec!["testbed/.agents/skills/feature-status"]);
+        assert!(files.contains(&"testbed/.agents/skills/feature-status/".to_string()));
+        assert!(files.contains(&"testbed/.agents/skills/file-link.txt".to_string()));
+        for link in ["outside", "git-link", "root-link"] {
+            assert!(files.contains(&format!("testbed/.agents/skills/{link}")));
+        }
+        let root = dir.display().to_string();
+        remember_root(&root);
+        assert_eq!(folder_children(root.clone(), "testbed/.agents/skills/feature-status".into()).unwrap(), vec!["SKILL.md"]);
+        assert!(folder_children(root.clone(), "testbed/.agents/skills/outside".into()).is_err());
+        assert!(folder_children(root.clone(), "testbed/.agents/skills/git-link".into()).is_err());
+        assert!(folder_children(root.clone(), "testbed/.agents/skills/root-link".into()).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&outside);
     }
 
     #[test]

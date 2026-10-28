@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const split = vi.hoisted(() => vi.fn());
@@ -12,6 +13,7 @@ const callOrder = vi.hoisted(() => [] as string[]);
 vi.mock('../lib/api', () => ({ split, renamePane, run }));
 vi.mock('./session', () => ({ refresh, selectPane, selectedPane, toast }));
 vi.mock('./workspace_folders', () => ({ WorkspaceFolders: { require: () => '/work/project' } }));
+vi.mock('../i18n/index', () => ({ t: (key: string) => key }));
 
 const NEW_PANE = { pane_id: 'w1:p2', tab_id: 'w1:t1', workspace_id: 'w1' };
 
@@ -81,12 +83,12 @@ describe('FileViewPanes (issue #714)', () => {
 		expect(split).toHaveBeenCalledTimes(1);
 	});
 
-	it('returns false and changes nothing when no pane is selected', async () => {
+	it('returns false, changes nothing, and asks for a pane in a toast when no pane is selected (issue #886)', async () => {
 		selectedPane.value = null;
 		const { FileViewPanes } = await import('./file_view_panes');
 		expect(await FileViewPanes.open('/work/project/README.md')).toBe(false);
 		expect(split).not.toHaveBeenCalled();
-		expect(toast).not.toHaveBeenCalled();
+		expect(toast).toHaveBeenCalledWith('viewPanes.noSelectedPane', 'error');
 	});
 
 	it('returns false and shows the error in a toast when Herdr fails', async () => {
@@ -95,5 +97,48 @@ describe('FileViewPanes (issue #714)', () => {
 		expect(await FileViewPanes.open('/work/project/README.md')).toBe(false);
 		expect(toast).toHaveBeenCalledWith('Error: herdr_unreachable', 'error');
 		expect(selectPane).not.toHaveBeenCalled();
+	});
+
+	it('keeps the line of a file name, so that the file view pane shows it, and forgets it for a file with no line (issue #898)', async () => {
+		const { FileViewPanes, fileViewLineRequests } = await import('./file_view_panes');
+		await FileViewPanes.open('/work/project/src/main.rs', 42);
+		expect(fileViewLineRequests['/work/project/src/main.rs']?.line).toBe(42);
+		const firstSequence = fileViewLineRequests['/work/project/src/main.rs']?.sequence ?? 0;
+		await FileViewPanes.open('/work/project/src/main.rs', 42);
+		expect(fileViewLineRequests['/work/project/src/main.rs']?.sequence).toBeGreaterThan(firstSequence);
+		await FileViewPanes.open('/work/project/src/main.rs');
+		expect(fileViewLineRequests['/work/project/src/main.rs']).toBeUndefined();
+	});
+
+	it('keeps the anchor of a Markdown link, and forgets it for a file with no anchor (issue #928)', async () => {
+		const { FileViewPanes, fileViewAnchorRequests } = await import('./file_view_panes');
+		await FileViewPanes.open('/work/project/docs/rules.md', null, 'the-rules');
+		expect(fileViewAnchorRequests['/work/project/docs/rules.md']).toBe('the-rules');
+		await FileViewPanes.open('/work/project/docs/rules.md');
+		expect(fileViewAnchorRequests['/work/project/docs/rules.md']).toBeUndefined();
+	});
+
+	it('opens a new pane next to a file view pane with unsaved changes, so that the changes stay (issue #899)', async () => {
+		selectedPane.value = { ...selectedPane.value, label: 'Heidrun file view: /work/project/README.md' };
+		const { fileViewEdits } = await import('./file_view_edit_state');
+		fileViewEdits['w1:p1'] = {
+			root: '/work/project',
+			path: 'README.md',
+			original: 'a',
+			hash: 'hash',
+			current: 'a changed',
+			isConflict: false,
+			diskText: null,
+			diskHash: null,
+			isSaving: false,
+		};
+		const { FileViewPanes } = await import('./file_view_panes');
+		await FileViewPanes.open('/work/project/src/main.ts');
+		expect(split).toHaveBeenCalledWith('w1:p1', 'right', '/work/project');
+		expect(renamePane).not.toHaveBeenCalledWith('w1:p1', expect.anything());
+		split.mockClear();
+		await FileViewPanes.open('/work/project/README.md', 3);
+		expect(split).not.toHaveBeenCalled();
+		delete fileViewEdits['w1:p1'];
 	});
 });

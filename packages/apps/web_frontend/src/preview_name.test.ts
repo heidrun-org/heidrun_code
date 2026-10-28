@@ -1,3 +1,4 @@
+// @vitest-environment node
 import Fs from 'node:fs';
 import Path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -15,7 +16,7 @@ describe('PreviewNameTest', () => {
 	 * Reads one language file of the folder `i18n/locales`.
 	 *
 	 * @param language - The folder of the language, for example `en`.
-	 * @param fileName - The name of the file, for example `filesModal.json`.
+	 * @param fileName - The name of the file, for example `fileView.json`.
 	 * @returns The texts of the file.
 	 */
 	function readTexts(language: string, fileName: string): Record<string, string> {
@@ -25,13 +26,11 @@ describe('PreviewNameTest', () => {
 	it.each([
 		['en', 'Preview'],
 		['fr', 'Aperçu'],
-	])('the Files window and the large Git window call the button %s "%s"', (language, expectedText) => {
-		expect(readTexts(language, 'filesModal.json').rendered).toBe(expectedText);
-		expect(readTexts(language, 'gitModal.json').preview).toBe(expectedText);
+	])('the file view pane calls the button %s "%s"', (language, expectedText) => {
+		expect(readTexts(language, 'fileView.json').preview).toBe(expectedText);
 	});
 
-	it('the Files window has no text that goes back to reading', () => {
-		expect(Object.keys(readTexts('en', 'filesModal.json'))).not.toContain('backToReading');
-		expect(readTexts('en', 'filesModal.json').backToPreview).toBe('Go back to the preview');
+	it('the file view pane has no text that goes back to reading', () => {
+		expect(Object.keys(readTexts('en', 'fileView.json'))).not.toContain('backToReading');
 	});
 });

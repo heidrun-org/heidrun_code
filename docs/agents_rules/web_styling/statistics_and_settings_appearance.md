@@ -1,7 +1,7 @@
-# Web styling of Heidrun: appearance of the Statistics window and of the Settings window
+# Web styling of Heidrun Code: appearance of the Statistics window and of the Settings window
 
 - Created: 22 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Shared design rules](shared_design.md), [Charts of the Statistics window](../user_interface/window/statistics_charts.md)

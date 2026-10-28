@@ -11,7 +11,7 @@ interface StatuslineState {
   hidden: boolean;
 }
 
-/** Whether Claude Code's status line reports to Heidrun (see src-tauri/src/claude.rs). */
+/** Whether Claude Code's status line reports to Heidrun Code (see src-tauri/src/claude.rs). */
 export const claudeLink = reactive({
   loaded: false,
   installed: false,

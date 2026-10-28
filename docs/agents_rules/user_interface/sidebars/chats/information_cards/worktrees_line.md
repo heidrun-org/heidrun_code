@@ -1,13 +1,13 @@
 # Past chats sidebar section: the worktrees line
 
 - Created: 14 October 2026
-- Last updated: 14 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../../../glossary/index.md), [The summary of a chat](../chat_summary.md)
+- Related rules: [Glossary of Heidrun Code](../../../../glossary/index.md), [The summary of a chat](../chat_summary.md)
 - Related issue: [issue 386](https://github.com/heidrun-org/heidrun/issues/386)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../../../glossary/index.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../../../glossary/index.md).
 
 - The worktrees line is the fourth line of the summary of a chat. It starts with the icon `folder-symlink`, then the names of the first two worktrees where the coding agent worked, then "+" and how many more, as the files line does. A chat that used no worktree has no worktrees line.
 - The name of a worktree is the folder after `.claude/worktrees/` (Claude Code) or after `.codex/worktrees/` (Codex). The program reads it from the folders where the coding agent ran and from the paths of the files that the coding agent wrote. The name is shown as it is, including the names of four letters and digits that Codex makes, for example `c41f`. The main checkout is not a worktree, so a chat that ran only in the main checkout has no worktrees line. The program does not use `git worktree list`, because most worktrees no longer exist when the chat is read. A worktree name that contains a slash, for example `codex/documentation-experiment-375`, shows as its first folder, `codex`, after the worktree is removed.

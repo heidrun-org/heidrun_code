@@ -1,7 +1,7 @@
 # Evidence for the Heidrun blog series
 
 - Created: 17 October 2026
-- Last updated: 19 October 2026
+- Last updated: 25 October 2026
 - Status: Verified source notes for draft blog articles
 - Related framing: [Series plan](blog_series_plan.md)
 - Related rules: [Project glossary](../agents_rules/glossary/index.md), [Data layer access](../agents_rules/data_layer_access.md)
@@ -181,7 +181,7 @@ This example illustrates a counting-policy decision; it does not establish the c
 
 ## Capabilities and Availability
 
-The articles were checked against the temporary worktree based on `dev_jerome` on 17 October 2026. Sources include [the project README](../../README.md), [pane behavior](../agents_rules/user_interface/workspaces_tabs_and_panes/panes.md), [Past chats](../agents_rules/user_interface/sidebars/chats/chats_list.md), [token usage and cost](../statistics/token_usage_and_cost.md), and [the heidrun_data skill](../../packages/data_layers/heidrun_data/skills/heidrun-data/SKILL.md).
+The articles were checked against the temporary worktree based on `dev_jerome` on 17 October 2026. Sources include [the project README](../../README.md), [pane behavior](../agents_rules/user_interface/workspaces_tabs_and_panes/panes.md), [Past chats](../agents_rules/user_interface/sidebars/chats/chats_list.md), [token usage and cost](../statistics/token_usage_and_cost.md), and [the heidrun_data skill](../../submodules/heidrun_data/packages/heidrun_data/skills/heidrun-data/SKILL.md).
 
 The latest public release checked through GitHub was [v0.2.7](https://github.com/heidrun-org/heidrun/releases/tag/v0.2.7), published on 15 October 2026. The minute-storage merge is not an ancestor of that release. The articles explicitly distinguish the development branch used in the investigation from the public release. Installation currently targets Apple silicon Macs and requires Herdr. Antigravity has no reader for its chat files in the token data layer, so the articles describe the history of Claude Code and Codex.
 

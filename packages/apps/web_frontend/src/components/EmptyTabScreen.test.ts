@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import Fs from "node:fs";
 import Path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -80,10 +81,10 @@ function readTitleSize(wrapper: ReturnType<typeof mountEmptyTabScreen>["wrapper"
 }
 
 describe("EmptyTabScreen", () => {
-  it("shows the baby goat image, the name Heidrun, and the joke", () => {
+  it("shows the baby goat image, the name Heidrun Code, and the joke", () => {
     const { wrapper } = mountEmptyTabScreen();
     expect(wrapper.find("img.empty-tab-image").exists()).toBe(true);
-    expect(wrapper.get(".empty-tab-title").text()).toBe("Heidrun");
+    expect(wrapper.get(".empty-tab-title").text()).toBe("Heidrun Code");
     expect(wrapper.get(".empty-tab-first-line").text()).toBe("How can I help you? In Valhalla my mead never runs out.");
     expect(wrapper.get(".empty-tab-second-line textPath").text()).toBe("Not like your tokens 🙂");
   });

@@ -23,7 +23,7 @@ const emit = defineEmits<{
   select: [topic: string | null];
 }>();
 
-/** The strip that holds the buttons. It never scrolls by itself: only the arrows move it. */
+/** The strip that holds the buttons. It scrolls horizontally with the trackpad and with the arrows, with no scroll bar. */
 const strip = ref<HTMLElement>();
 
 /** True when buttons are hidden before the visible part of the strip. */
@@ -139,34 +139,42 @@ watch(() => props.selected, showSelected);
         {{ topic }}
       </button>
     </div>
-    <button
-      v-if="canShowPrevious"
-      type="button"
-      class="btn icon small topic-arrow is-previous"
-      :title="t('chatsPanel.topicsPreviousTitle')"
-      :aria-label="t('chatsPanel.topicsPreviousTitle')"
-      @click="showPrevious"
-    >
-      <Icon name="chevron-left" />
-    </button>
-    <button
-      v-if="canShowNext"
-      type="button"
-      class="btn icon small topic-arrow is-next"
-      :title="t('chatsPanel.topicsNextTitle')"
-      :aria-label="t('chatsPanel.topicsNextTitle')"
-      @click="showNext"
-    >
-      <Icon name="chevron-right" />
-    </button>
+    <div v-if="canShowPrevious" class="topic-arrow-band is-previous">
+      <button
+        type="button"
+        class="btn icon small topic-arrow is-previous"
+        :title="t('chatsPanel.topicsPreviousTitle')"
+        :aria-label="t('chatsPanel.topicsPreviousTitle')"
+        @click="showPrevious"
+      >
+        <Icon name="chevron-left" />
+      </button>
+    </div>
+    <div v-if="canShowNext" class="topic-arrow-band is-next">
+      <button
+        type="button"
+        class="btn icon small topic-arrow is-next"
+        :title="t('chatsPanel.topicsNextTitle')"
+        :aria-label="t('chatsPanel.topicsNextTitle')"
+        @click="showNext"
+      >
+        <Icon name="chevron-right" />
+      </button>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .topic-bar { position: relative; }
-.topic-strip { position: relative; overflow: hidden; }
+.topic-strip { position: relative; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
 .topic-chip { flex: none; white-space: nowrap; }
-.topic-arrow { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; }
-.topic-arrow.is-previous { left: 0; justify-content: flex-start; }
-.topic-arrow.is-next { right: 0; justify-content: flex-end; }
+/* Each arrow sits in a band that fades from the sidebar background to transparent, so that the cut button under it
+   disappears. The appearance of the round arrow button is in styles.css. */
+.topic-arrow-band {
+  position: absolute; top: 0; bottom: 0; width: 44px; z-index: 1;
+  display: flex; align-items: center; pointer-events: none;
+}
+.topic-arrow-band.is-previous { left: 0; justify-content: flex-start; background: linear-gradient(to right, var(--side) 50%, transparent); }
+.topic-arrow-band.is-next { right: 0; justify-content: flex-end; background: linear-gradient(to left, var(--side) 50%, transparent); }
+.topic-arrow { pointer-events: auto; }
 </style>

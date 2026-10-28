@@ -54,7 +54,7 @@ export class LaunchersScreen {
 		}
 		if (answer.workspaces.length === 0) {
 			const emptyHtmlContent = /* html */`
-				<div class="empty">No launcher. Add a launcher in the Launchers sidebar section of Heidrun.</div>
+				<div class="empty">No launcher. Add a launcher in the Launchers sidebar section of Heidrun Code.</div>
 			`;
 			return emptyHtmlContent;
 		}

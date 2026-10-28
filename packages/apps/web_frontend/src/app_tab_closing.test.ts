@@ -241,17 +241,4 @@ describe('Command-W twice tab closing', () => {
 		await flushPromises();
 		expect(api.closeTab).not.toHaveBeenCalled();
 	});
-
-	it('leaves file closing to the File explorer', async () => {
-		const { api } = await TabClosingTest.mount();
-		const { files } = await import('./stores/files');
-		files.open = true;
-		try {
-			expect(TabClosingTest.press().defaultPrevented).toBe(false);
-			await flushPromises();
-			expect(api.closeTab).not.toHaveBeenCalled();
-		} finally {
-			files.open = false;
-		}
-	});
 });

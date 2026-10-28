@@ -1,4 +1,4 @@
-// Writes the title, the motto, and the description of Heidrun from data/identity.json into the files that show them.
+// Writes the title, the motto, and the description of Heidrun Code from data/identity.json into the files that show them.
 // pnpm docs:identity
 import Fs from 'node:fs';
 import Path from 'node:path';
@@ -7,7 +7,7 @@ const __dirname = import.meta.dirname;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	IdentityTexts — writes the identity texts of Heidrun into the Markdown files
+//	IdentityTexts — writes the identity texts of Heidrun Code into the Markdown files
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -24,7 +24,7 @@ const GENERATED_COMMENT = '<!-- Generated from data/identity.json: pnpm docs:ide
 const REPOSITORY_DIR = Path.resolve(__dirname, '..');
 
 /**
- * Writes the identity texts of Heidrun between the two markers of each Markdown file that shows them.
+ * Writes the identity texts of Heidrun Code between the two markers of each Markdown file that shows them.
  */
 class IdentityTexts {
 	/**

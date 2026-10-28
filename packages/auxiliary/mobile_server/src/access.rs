@@ -23,6 +23,17 @@ pub enum Denial {
 }
 
 impl Denial {
+    /// The name of the denial for the application log, in snake case.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Denial::UnexpectedHost => "unexpected_host",
+            Denial::UnexpectedOrigin => "unexpected_origin",
+            Denial::Off => "off",
+            Denial::TooManyAttempts => "too_many_attempts",
+            Denial::Unpaired => "unpaired",
+        }
+    }
+
     /// The status and the text that the phone receives.
     pub fn status_and_text(&self) -> (StatusCode, &'static str) {
         match self {
@@ -30,7 +41,7 @@ impl Denial {
             Denial::UnexpectedOrigin => (StatusCode::FORBIDDEN, "Origin refused"),
             Denial::Off => (StatusCode::SERVICE_UNAVAILABLE, "Mobile access is off on the computer"),
             Denial::TooManyAttempts => (StatusCode::TOO_MANY_REQUESTS, "Too many attempts: try again in one minute"),
-            Denial::Unpaired => (StatusCode::UNAUTHORIZED, "Pairing needed: scan the QR code in Heidrun"),
+            Denial::Unpaired => (StatusCode::UNAUTHORIZED, "Pairing needed: scan the QR code in Heidrun Code"),
         }
     }
 }
@@ -57,6 +68,11 @@ impl AccessGuard {
     /// Accepts only this host name from now on: the host name of the tunnel, or None when the tunnel is down.
     pub fn set_tunnel_host(&mut self, host: Option<String>) {
         self.tunnel_host = host.map(|host| host.to_ascii_lowercase());
+    }
+
+    /// True while the wrong keys are refused, after ten bad keys in a row.
+    pub fn is_locked(&self, now: Instant) -> bool {
+        self.locked_until.map(|until| now < until).unwrap_or(false)
     }
 
     /// Checks one request. The arguments are the headers of the request.

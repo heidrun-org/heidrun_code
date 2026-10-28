@@ -34,6 +34,7 @@ class SettingsBootstrapTestHelper {
 		'settings/SettingsTextDetectionSample.vue',
 		'settings/SettingsTextDetectionSection.vue',
 		'settings/SettingsVoiceInputSection.vue',
+		'settings/SettingsVoiceWordsEditor.vue',
 	];
 
 	/**

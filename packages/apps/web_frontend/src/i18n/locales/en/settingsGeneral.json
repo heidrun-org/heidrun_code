@@ -21,12 +21,12 @@
   "quitTitle": "Quit",
   "keepAgentsRunning": "Keep agents running after quit",
   "keepAgentsRunningHelpLabel": "What does this setting do?",
-  "keepAgentsRunningHelp": "Off: when you quit Heidrun, Heidrun stops its Herdr session, and the agents stop. On: the agents continue to run, and Heidrun connects to the same session at the next start. The default Herdr session of your terminal is never stopped.",
+  "keepAgentsRunningHelp": "Off: when you quit Heidrun Code, Heidrun Code stops its Herdr session, and the agents stop. On: the agents continue to run, and Heidrun Code connects to the same session at the next start. The default Herdr session of your terminal is never stopped.",
   "gitFetchLabel": "Fetch the remote repository in the background",
   "gitFetchOff": "Off",
   "gitFetch1": "1 minute",
   "gitFetch5": "5 minutes",
   "gitFetch10": "10 minutes",
   "gitFetch30": "30 minutes",
-  "gitFetchHelp": "Heidrun runs git fetch for the repository of the selected workspace, so that the two counts of the Git branch section of the status bar stay true. A fetch that fails shows nothing."
+  "gitFetchHelp": "Heidrun Code runs git fetch for the repository of the selected workspace, so that the two counts of the Git branch section of the status bar stay true. A fetch that fails shows nothing."
 }

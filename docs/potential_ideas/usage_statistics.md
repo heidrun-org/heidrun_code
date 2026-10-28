@@ -6,13 +6,13 @@
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related issue: [issue 78](https://github.com/heidrun-org/heidrun/issues/78), [issue 79](https://github.com/heidrun-org/heidrun/issues/79), [issue 80](https://github.com/heidrun-org/heidrun/issues/80)
 
-Usage statistics is an idea for Heidrun to show numbers about the Git repositories that it knows about, and about the coding agents Codex and Claude Code. This file keeps the content of the three issues above, which are closed.
+Usage statistics is an idea for Heidrun Code to show numbers about the Git repositories that it knows about, and about the coding agents Codex and Claude Code. This file keeps the content of the three issues above, which are closed.
 
 ## Statistics about the issues of a repository
 
 - The number of open issues and the number of closed issues.
 - The time to fix an issue, from its creation to its closing: the average, the median, and the longest time.
-- The topic of each issue, for example "bug", "feature", "documentation", or "test". An agent reads the title and the body of the issue and answers with one topic. Heidrun then counts the issues for each topic.
+- The topic of each issue, for example "bug", "feature", "documentation", or "test". An agent reads the title and the body of the issue and answers with one topic. Heidrun Code then counts the issues for each topic.
 
 ## Statistics about the source code of a repository
 
@@ -35,11 +35,11 @@ Each statistic is shown for Codex and for Claude Code, separately.
 ## Points to decide
 
 - **The source of the issues.** The `gh` command is the first choice.
-- **The topic of an issue.** Where Heidrun keeps it, so that the agent does not classify the same issue twice, and which agent classifies the issues.
-- **Computed or asked.** Whether Heidrun computes the statistics of the source code itself, or asks an agent.
-- **The logs.** Where each coding agent writes its logs, and whether each log file already holds the number of tokens. Heidrun must read the real files on the disk to find the format.
-- **The prices.** Where Heidrun keeps the price of each model, and who updates the price when it changes.
-- **The place on the screen.** Where Heidrun shows the statistics.
+- **The topic of an issue.** Where Heidrun Code keeps it, so that the agent does not classify the same issue twice, and which agent classifies the issues.
+- **Computed or asked.** Whether Heidrun Code computes the statistics of the source code itself, or asks an agent.
+- **The logs.** Where each coding agent writes its logs, and whether each log file already holds the number of tokens. Heidrun Code must read the real files on the disk to find the format.
+- **The prices.** Where Heidrun Code keeps the price of each model, and who updates the price when it changes.
+- **The place on the screen.** Where Heidrun Code shows the statistics.
 
 ## What to prove before the build
 

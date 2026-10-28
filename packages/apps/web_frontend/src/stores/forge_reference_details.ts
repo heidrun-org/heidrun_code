@@ -1,11 +1,11 @@
-// The live reader of an issue or of a pull request: it runs `gh` or `glab` through the Tauri command `forge_cli_cached`, which
-// keeps each answer on the disk for ten minutes.
+// The live reader of an issue or of a pull request: it runs `gh` or `glab` through `runForgeCli`, which keeps each answer
+// on the disk for ten minutes.
 //
 // Two places use it, and both are allowed by docs/agents_rules/data_layer_access.md:
 // - the Code hosting sidebar section, whose lists are live on purpose;
 // - the Past chats sidebar section on GitLab, because the package `data_layer_code_hosting` reads GitHub only (issue 455).
 // The Past chats sidebar section on GitHub, and the Statistics window, never use this file.
-import { invoke } from "@tauri-apps/api/core";
+import { runForgeCli } from "../lib/forge_cli";
 import { chatReferenceTimeOf, githubAvatarUrl, type ChatReference } from "../lib/chat_references";
 import type { Forge } from "../lib/refs";
 import type { ChatReferenceDetails } from "./chat_references";
@@ -36,7 +36,7 @@ async function readGithub(folder: string, reference: ChatReference): Promise<Cha
     ? "title,state,body,labels,author,createdAt"
     : "title,state,body,labels,author,createdAt,headRefName,baseRefName";
   const args = [isIssue ? "issue" : "pr", "view", String(reference.number), "--json", fields];
-  const answer = JSON.parse(await invoke<string>("forge_cli_cached", { cwd: folder, tool: "gh", args })) as {
+  const answer = JSON.parse(await runForgeCli("reference_card", folder, "gh", args)) as {
     title: string;
     state: string;
     body?: string;
@@ -63,7 +63,7 @@ async function readGithub(folder: string, reference: ChatReference): Promise<Cha
 async function readGitlab(folder: string, reference: ChatReference): Promise<ChatReferenceDetails> {
   const kind = reference.kind === "issue" ? "issues" : "merge_requests";
   const args = ["api", `projects/:fullpath/${kind}/${reference.number}`];
-  const answer = JSON.parse(await invoke<string>("forge_cli_cached", { cwd: folder, tool: "glab", args })) as {
+  const answer = JSON.parse(await runForgeCli("reference_card", folder, "glab", args)) as {
     title: string;
     state: string;
     description?: string | null;

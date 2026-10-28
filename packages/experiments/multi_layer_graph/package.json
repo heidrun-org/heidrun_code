@@ -2,7 +2,7 @@
   "name": "multi_layer_graph",
   "private": true,
   "license": "MIT",
-  "version": "0.3.0",
+  "version": "0.3.5",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -10,7 +10,7 @@
   "scripts": {
     "graph:build": "tsx --disable-warning=ExperimentalWarning src/cli.ts",
     "dev": "pnpm graph:build && vite --open",
-    "test": "vitest run --minWorkers=1 --maxWorkers=2"
+    "test": "vitest run --minWorkers=1 --maxWorkers=4"
   },
   "dependencies": {
     "3d-force-graph": "1.80.1",

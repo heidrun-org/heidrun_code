@@ -1,11 +1,15 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TargetPaths } from '../src/target_paths.ts';
 import { WorktreeCreate } from '../src/worktree_create.ts';
 import { TestRepository } from './test_repository.ts';
 
 describe('WorktreeCreate', () => {
+	beforeEach(() => {
+		vi.stubEnv('PATH', TestRepository.pathWithFakePnpm());
+	});
+
 	afterEach(() => {
 		vi.unstubAllEnvs();
 		TestRepository.removeAll();
@@ -101,11 +105,22 @@ describe('WorktreeCreate', () => {
 				name: 'with-bundled-commands',
 			});
 			const bundledCommandsPath = TargetPaths.bundledCommandsPath(result.worktreePath);
-			expect(Fs.readFileSync(Path.join(bundledCommandsPath, 'heidrun_ctrl'), 'utf8')).toBe('heidrun_ctrl');
+			expect(Fs.readFileSync(Path.join(bundledCommandsPath, 'heidrun_code_ctrl'), 'utf8')).toBe('heidrun_code_ctrl');
 			expect(Fs.readFileSync(Path.join(bundledCommandsPath, 'heidrun_data'), 'utf8')).toBe('heidrun_data');
 		});
 
+		it.skipIf(process.platform !== 'darwin')('clones the compiled dependencies of the release folder', () => {
+			const mainCheckoutPath = TestRepository.createWithBuiltTarget();
+			const result = WorktreeCreate.run({
+				workingDirectory: mainCheckoutPath,
+				name: 'with-release',
+			});
+			const clonePath = Path.join(TargetPaths.releasePath(result.worktreePath), 'deps', 'libring.rlib');
+			expect(Fs.readFileSync(clonePath, 'utf8')).toBe('compiled release dependency');
+		});
+
 		it('installs the packages: the new worktree has a folder node_modules', () => {
+			vi.stubEnv('PATH', TestRepository.pathWithRealPnpm());
 			const mainCheckoutPath = TestRepository.create();
 			const result = WorktreeCreate.run({
 				workingDirectory: mainCheckoutPath,
@@ -116,6 +131,7 @@ describe('WorktreeCreate', () => {
 		});
 
 		it('installs the packages from the lockfile and does not change the lockfile', () => {
+			vi.stubEnv('PATH', TestRepository.pathWithRealPnpm());
 			const mainCheckoutPath = TestRepository.create();
 			const result = WorktreeCreate.run({
 				workingDirectory: mainCheckoutPath,
@@ -126,6 +142,7 @@ describe('WorktreeCreate', () => {
 		});
 
 		it('throws with the output of pnpm when the installation fails, and keeps the worktree', () => {
+			vi.stubEnv('PATH', TestRepository.pathWithRealPnpm());
 			const mainCheckoutPath = TestRepository.createWithOutdatedLockfile();
 			const worktreePath = Path.join(mainCheckoutPath, '.claude', 'worktrees', 'bad-lockfile');
 			expect(() => {
@@ -136,6 +153,19 @@ describe('WorktreeCreate', () => {
 			}).toThrow(/was created, but "pnpm install --frozen-lockfile" failed[\s\S]*lockfile/);
 			expect(Fs.existsSync(worktreePath)).toBe(true);
 			expect(Fs.existsSync(Path.join(worktreePath, 'node_modules'))).toBe(false);
+		});
+
+		it('clones nothing with the option isWithoutOptimization, even when the main checkout is built', () => {
+			const mainCheckoutPath = TestRepository.createWithBuiltTarget();
+			const result = WorktreeCreate.run({
+				workingDirectory: mainCheckoutPath,
+				name: 'without-optimization',
+				isWithoutOptimization: true,
+			});
+			expect(result.isTargetCloned).toBe(false);
+			expect(result.skipReason).toBe(WorktreeCreate.withoutOptimizationReason);
+			expect(result.sourceDates.fileCount).toBe(0);
+			expect(Fs.existsSync(TargetPaths.targetPath(result.worktreePath))).toBe(false);
 		});
 
 		it('creates the worktree without a clone when the main checkout has no debug folder', () => {

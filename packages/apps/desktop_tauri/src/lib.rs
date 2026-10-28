@@ -1,17 +1,22 @@
 mod app_data;
+mod application_log;
 mod application_profile;
+mod build_settings;
 mod antigravity;
+mod chat_images;
 mod claude;
 mod clipboard;
 mod coding_agent_models;
 mod durable_storage;
 mod environment_file;
+mod file_watch;
 mod files;
 mod forge_cache;
 mod former_web_view_storage;
 mod git;
 mod git_source_control;
 mod history;
+mod html_preview;
 mod image_preview;
 mod legacy;
 mod login_shell_path;
@@ -27,10 +32,13 @@ mod statistics;
 mod status_item;
 mod status_item_icon;
 mod status_item_picture;
+mod system_sound;
 mod topic_clusters;
 mod usage;
 mod user_activity;
+mod user_launchers;
 mod voice_commands;
+mod voice_words;
 mod worktree_actions;
 mod workspace_folders;
 
@@ -48,7 +56,7 @@ async fn herdr_request(method: String, params: Option<Value>) -> Result<Value, S
     herdr::request(&method, params.unwrap_or_else(|| json!({}))).await
 }
 
-/// Runs the herdr CLI (used for `pane run`, which handles bracketed paste for us), in the session that Heidrun uses.
+/// Runs the herdr CLI (used for `pane run`, which handles bracketed paste for us), in the session that Heidrun Code uses.
 #[tauri::command]
 async fn herdr_cli(args: Vec<String>) -> Result<String, String> {
     let out = tokio::process::Command::new(herdr::herdr_bin())
@@ -80,8 +88,8 @@ async fn herdr_server_start() -> Result<String, String> {
     let mut cmd = std::process::Command::new(shell);
     let mut server_command = herdr::server_shell_command(&herdr::herdr_bin());
     if let Some(user_bin_folder) = skills::bundled::user_bin_folder() {
-        cmd.env("HEIDRUN_USER_BIN", user_bin_folder);
-        server_command = format!("export PATH=\"$HEIDRUN_USER_BIN:$PATH\"; {server_command}");
+        cmd.env("HEIDRUN_CODE_USER_BIN", user_bin_folder);
+        server_command = format!("export PATH=\"$HEIDRUN_CODE_USER_BIN:$PATH\"; {server_command}");
     }
     cmd.arg("-lc")
         .arg(server_command)
@@ -92,11 +100,11 @@ async fn herdr_server_start() -> Result<String, String> {
         cmd.current_dir(home);
     }
     // Every pane inherits the environment of the server. Without this, a coding agent in a pane connects to Visual
-    // Studio Code when the developer started Heidrun from the terminal of Visual Studio Code.
+    // Studio Code when the developer started Heidrun Code from the terminal of Visual Studio Code.
     herdr::remove_editor_variables(&mut cmd);
     #[cfg(unix)]
     {
-        // Own process group: the server is not stopped by a signal sent to Heidrun. Heidrun stops the server itself
+        // Own process group: the server is not stopped by a signal sent to Heidrun Code. Heidrun Code stops the server itself
         // when the user quits, unless the user chose "Keep agents running after quit".
         use std::os::unix::process::CommandExt;
         cmd.process_group(0);
@@ -141,11 +149,11 @@ fn is_system_language_french() -> bool {
 /// close the app instead of reaching our "close pane" shortcut.
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let is_french = is_system_language_french();
-    let about_label = if is_french { "À propos de Heidrun" } else { "About Heidrun" };
-    let quit_label = if is_french { "Quitter Heidrun" } else { "Quit Heidrun" };
+    let about_label = if is_french { "À propos de Heidrun Code" } else { "About Heidrun Code" };
+    let quit_label = if is_french { "Quitter Heidrun Code" } else { "Quit Heidrun Code" };
     let edit_label = if is_french { "Édition" } else { "Edit" };
     let window_label = if is_french { "Fenêtre" } else { "Window" };
-    let app_menu = SubmenuBuilder::new(app, "Heidrun")
+    let app_menu = SubmenuBuilder::new(app, "Heidrun Code")
         // Our own item: the About window is drawn by the web frontend, with an image.
         .item(&tauri::menu::MenuItemBuilder::with_id("hd-about", about_label).build(app)?)
         .separator()
@@ -176,7 +184,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     MenuBuilder::new(app).items(&[&app_menu, &edit, &window]).build()
 }
 
-/// Files edited and not saved: quitting or closing the window asks first.
+/// File view panes with unsaved changes: quitting or closing the window asks first (issue #899).
 static UNSAVED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 #[tauri::command]
@@ -192,7 +200,7 @@ static MAIN_WINDOW_SHOWN: std::sync::atomic::AtomicBool = std::sync::atomic::Ato
 /// tells that the splash image is ready, for example when the web page fails to load.
 const MAIN_WINDOW_SHOW_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
-/// What the window-state plugin saves when Heidrun quits, and puts back when the main window is created: the position,
+/// What the window-state plugin saves when Heidrun Code quits, and puts back when the main window is created: the position,
 /// the size, and the maximized and full screen states. The visible state is not in the list, because the main window
 /// stays hidden until the splash image is ready (see `MAIN_WINDOW_SHOWN`).
 fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
@@ -205,12 +213,14 @@ fn claim_first_show(flag: &std::sync::atomic::AtomicBool) -> bool {
     !flag.swap(true, std::sync::atomic::Ordering::SeqCst)
 }
 
-/// Shows the main window and gives it the keyboard focus. Only the first call does the work.
-fn show_main_window_once(app: &AppHandle) {
+/// Shows the main window and gives it the keyboard focus. Only the first call does the work, and writes in the application log
+/// the time from the start of the application, with `reason`: `splash_image_ready` or `timeout`.
+fn show_main_window_once(app: &AppHandle, reason: &str) {
     use tauri::Manager;
     if !claim_first_show(&MAIN_WINDOW_SHOWN) {
         return;
     }
+    application_log::record_main_window_shown(reason);
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
@@ -221,10 +231,10 @@ fn show_main_window_once(app: &AppHandle) {
 /// in its first frame.
 #[tauri::command]
 fn show_main_window(app: AppHandle) {
-    show_main_window_once(&app);
+    show_main_window_once(&app, "splash_image_ready");
 }
 
-/// The command line option that starts Heidrun without the splash screen. A program that drives Heidrun, for example to
+/// The command line option that starts Heidrun Code without the splash screen. A program that drives Heidrun Code, for example to
 /// take a screenshot, uses it so that it never waits for the splash screen to close.
 const NO_SPLASH_SCREEN_OPTION: &str = "--no-splash-screen";
 
@@ -233,7 +243,7 @@ fn has_option(arguments: &[String], option: &str) -> bool {
     arguments.iter().any(|argument| argument == option)
 }
 
-/// Called by the web page at the start: true when Heidrun was started with the option `--no-splash-screen`. The web
+/// Called by the web page at the start: true when Heidrun Code was started with the option `--no-splash-screen`. The web
 /// page then does not show the splash screen, and shows the main window at once.
 #[tauri::command]
 fn is_splash_screen_disabled() -> bool {
@@ -241,7 +251,7 @@ fn is_splash_screen_disabled() -> bool {
     has_option(&arguments, NO_SPLASH_SCREEN_OPTION)
 }
 
-/// The setting "Keep agents running after quit": when true, quitting Heidrun does not stop the Herdr session `heidrun`.
+/// The setting "Keep agents running after quit": when true, quitting Heidrun Code does not stop the Herdr session `heidrun`.
 /// The web page sends the value at the start and at each change. Until then the value is false, the default.
 static KEEP_AGENTS_RUNNING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
@@ -250,7 +260,7 @@ fn set_keep_agents_running(is_keeping: bool) {
     KEEP_AGENTS_RUNNING.store(is_keeping, std::sync::atomic::Ordering::Relaxed);
 }
 
-/// "Quitter sans enregistrer": the user chose, the app leaves.
+/// "Quit without saving": the developer chose, the application leaves.
 #[tauri::command]
 fn quit_now(app: AppHandle) {
     UNSAVED.store(false, std::sync::atomic::Ordering::Relaxed);
@@ -259,10 +269,10 @@ fn quit_now(app: AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    application_log::mark_application_start();
     let context = tauri::generate_context!();
     application_profile::initialize(&context.config().identifier);
     login_shell_path::apply();
-    data_layer_operation_log::set_default_caller("heidrun");
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -272,12 +282,14 @@ pub fn run() {
         .manage(pty::PtyState::default())
         .manage(herdr::StatusWatcher::default())
         .manage(mobile::MobileState::default())
+        .manage(html_preview::HtmlPreviewState::default())
         .manage(voice_commands::VoiceState::default())
         .manage(status_item::StatusItemState::default())
+        .manage(file_watch::FileWatchState::default())
         .setup(|app| {
             if application_profile::is_development() == false {
-                legacy::migrate_config_dir();
                 claude::migrate_legacy();
+                antigravity::migrate_former_folder();
             }
             voice_commands::open_whisper_log();
             if application_profile::is_development() == false {
@@ -290,7 +302,7 @@ pub fn run() {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(MAIN_WINDOW_SHOW_TIMEOUT).await;
-                show_main_window_once(&handle);
+                show_main_window_once(&handle, "timeout");
             });
             Ok(())
         })
@@ -322,6 +334,7 @@ pub fn run() {
             set_keep_agents_running,
             quit_now,
             show_main_window,
+            application_log::application_log_load_time,
             is_splash_screen_disabled,
             status_item::status_item_update,
             status_item::status_item_set_visible,
@@ -348,6 +361,12 @@ pub fn run() {
             voice_commands::voice_start_recording,
             voice_commands::voice_cancel_recording,
             voice_commands::voice_stop_recording,
+            voice_commands::voice_discard_recording,
+            voice_commands::voice_transcribe_recording,
+            voice_words::voice_words_read,
+            voice_words::voice_words_add,
+            voice_words::voice_words_update,
+            voice_words::voice_words_delete,
             usage::codex_usage,
             project::project_load,
             project::project_package_scripts,
@@ -357,10 +376,15 @@ pub fn run() {
             macros::macros_hard_coded,
             macros::macros_personal_read,
             macros::macros_personal_write,
+            user_launchers::launchers_user_read,
+            user_launchers::launchers_user_write,
+            user_launchers::launcher_folder_exists,
             git::git_status,
             git::git_worktrees,
-            git::forge_cli,
+            git::forge_rate_limit_reset,
+            git::forge_gitlab_rate_limit_reset,
             forge_cache::forge_cli_cached,
+            forge_cache::forge_cli_cached_with_source,
             topic_clusters::topic_clusters_read,
             topic_clusters::topic_clusters_write,
             topic_clusters::coding_agent_ask,
@@ -390,6 +414,8 @@ pub fn run() {
             claude::claude_set_rc_startup,
             claude::claude_commands,
             claude::claude_session_agents,
+            chat_images::chat_images::chat_images_find,
+            chat_images::chat_images::chat_images_find_codex_chat,
             past_chats::chats::chats_synchronize,
             past_chats::chats::chats_list,
             past_chats::chats_files::chats_files_exist,
@@ -412,20 +438,23 @@ pub fn run() {
             files::files_list,
             files::folder_children,
             files::files_resolve,
+            html_preview::html_preview_open,
+            html_preview::html_preview_close,
             files::file_image,
             files::file_open_external,
             files::file_full_path,
             files::file_read,
             files::file_stat,
             files::file_write,
+            file_watch::file_watch_start,
+            file_watch::file_watch_stop,
             files::files_grep,
             files::file_create,
             files::dirs_existing,
-            files::file_rename,
-            files::file_trash,
             mobile::mobile_reply,
             mobile::mobile_status,
             mobile::mobile_push,
+            system_sound::play_system_sound,
             mobile::mobile_enable,
             mobile::mobile_disable,
             mobile::mobile_revoke,
@@ -434,6 +463,8 @@ pub fn run() {
             skills::installed::skills_read,
             skills::installed::skills_delete,
             skills::search::skills_search,
+            skills::search::skills_find_local_folders,
+            skills::search::skills_find_folders,
             skills::install::skills_preview,
             skills::install::skills_install,
             skills::install::skills_preview_folder,
@@ -443,7 +474,7 @@ pub fn run() {
             skills::agent_folders::skills_link_agent,
         ])
         .build(context)
-        .expect("error while running Heidrun")
+        .expect("error while running Heidrun Code")
         .run(|app, event| {
             // ⌘Q with unsaved files: the app stays and shows them.
             if let tauri::RunEvent::ExitRequested { api, code, .. } = &event {
@@ -453,7 +484,7 @@ pub fn run() {
                     let _ = app.emit("quit-blocked", ());
                 }
             }
-            // The app leaves for good: the Herdr session of Heidrun stops with it, like the processes of a normal macOS app.
+            // The app leaves for good: the Herdr session of Heidrun Code stops with it, like the processes of a normal macOS app.
             if let tauri::RunEvent::Exit = event {
                 herdr::stop_session_on_quit(KEEP_AGENTS_RUNNING.load(std::sync::atomic::Ordering::Relaxed));
                 mobile::stop_on_quit(app);

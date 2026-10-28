@@ -24,6 +24,9 @@ export const PANE_MOVE_DESTINATION_ATTRIBUTE = 'data-pane-move-destination';
 /** The attribute of a tab of the tab bar. It holds the identifier of the tab. */
 export const PANE_MOVE_TAB_ATTRIBUTE = 'data-tab-id';
 
+/** The attribute of the plus button of the tab bar. A release on this button moves the dragged pane into a new tab. */
+export const PANE_MOVE_NEW_TAB_ATTRIBUTE = 'data-pane-move-new-tab';
+
 /** One press on a pane header, from the press until the release. */
 type Press = {
 	/** The pane whose header was pressed. */
@@ -48,6 +51,8 @@ export class PaneMoveDrag {
 		side: null as PaneMoveSide | null,
 		/** The half of the destination pane where the dragged pane goes, in the pixels of the window. */
 		previewBox: null as Box | null,
+		/** True while the pointer is over the plus button of the tab bar and a release there moves the dragged pane. */
+		isNewTabTargeted: false,
 	});
 
 	/** The press in progress, or null. */
@@ -103,30 +108,36 @@ export class PaneMoveDrag {
 			destinationPaneId,
 			side,
 		});
-		PaneMoveDrag.isMoveRunning = true;
-		const releaseRefresh = holdRefresh();
-		let failureReason: string | null = null;
-		let doneStepCount = 0;
-		try {
-			for (const step of steps) {
-				await PaneMoveDrag.runStep(step);
-				doneStepCount += 1;
-			}
-		} catch (error) {
-			failureReason = error instanceof Error ? error.message : String(error);
-			await PaneMoveDrag.bringBackToTab(steps, doneStepCount, pane.tab_id, destinationPaneId);
-		} finally {
-			await releaseRefresh();
-			PaneMoveDrag.isMoveRunning = false;
+		await PaneMoveDrag.runSteps(paneId, pane.tab_id, destinationPaneId, steps);
+	}
+
+	/**
+	 * Tells if a pane can move into a new tab. A pane that is alone in its tab cannot, because Herdr would close its tab and
+	 * the result would be the same tab at the end of the tab bar.
+	 * @param paneId The pane to move.
+	 * @returns True when the tab of the pane holds at least one other pane.
+	 */
+	static canMoveToNewTab(paneId: string): boolean {
+		const pane = allPanes.value.find((candidate) => candidate.pane_id === paneId);
+		if (pane === undefined) {
+			return false;
 		}
-		if (failureReason !== null) {
-			toast(t('sessionStore.error.paneMove', { reason: failureReason }), 'error');
+		return allPanes.value.filter((candidate) => candidate.tab_id === pane.tab_id).length > 1;
+	}
+
+	/**
+	 * Moves a pane into a new tab of its workspace. The new tab holds only this pane, and no default command starts in it. The
+	 * pane is selected after the move.
+	 * @param paneId The pane to move.
+	 * @returns Resolves after the move, or after the error message is shown.
+	 */
+	static async movePaneToNewTab(paneId: string): Promise<void> {
+		const pane = allPanes.value.find((candidate) => candidate.pane_id === paneId);
+		if (pane === undefined || PaneMoveDrag.canMoveToNewTab(paneId) === false) {
 			return;
 		}
-		const movedPane = allPanes.value.find((candidate) => candidate.pane_id === paneId);
-		if (movedPane !== undefined) {
-			selectPane(movedPane);
-		}
+		const steps = PaneMove.planNewTab({ paneId, workspaceId: pane.workspace_id });
+		await PaneMoveDrag.runSteps(paneId, pane.tab_id, null, steps);
 	}
 
 	/**
@@ -140,6 +151,7 @@ export class PaneMoveDrag {
 		PaneMoveDrag.state.destinationPaneId = null;
 		PaneMoveDrag.state.side = null;
 		PaneMoveDrag.state.previewBox = null;
+		PaneMoveDrag.state.isNewTabTargeted = false;
 		window.removeEventListener('pointermove', PaneMoveDrag.onPointerMove, true);
 		window.removeEventListener('pointerup', PaneMoveDrag.onPointerUp, true);
 		window.removeEventListener('pointercancel', PaneMoveDrag.cancel, true);
@@ -177,15 +189,24 @@ export class PaneMoveDrag {
 	};
 
 	/**
-	 * Ends the press. A drop on a destination pane moves the pane, and a release anywhere else moves nothing.
+	 * Ends the press. A drop on a destination pane moves the pane, a drop on the plus button of the tab bar moves the pane
+	 * into a new tab, and a release anywhere else moves nothing.
 	 * @returns Nothing.
 	 */
 	private static readonly onPointerUp = (): void => {
 		const press = PaneMoveDrag.press;
 		const destinationPaneId = PaneMoveDrag.state.destinationPaneId;
 		const side = PaneMoveDrag.state.side;
+		const isNewTabTargeted = PaneMoveDrag.state.isNewTabTargeted;
 		PaneMoveDrag.cancel();
-		if (press === null || press.isDrag === false || destinationPaneId === null || side === null) {
+		if (press === null || press.isDrag === false) {
+			return;
+		}
+		if (isNewTabTargeted) {
+			void PaneMoveDrag.movePaneToNewTab(press.paneId);
+			return;
+		}
+		if (destinationPaneId === null || side === null) {
 			return;
 		}
 		void PaneMoveDrag.movePane(press.paneId, destinationPaneId, side);
@@ -203,8 +224,9 @@ export class PaneMoveDrag {
 	};
 
 	/**
-	 * Looks at what is under the pointer. A tab of the tab bar is selected at once, so that the developer chooses the
-	 * destination tab during the drag. A pane of the selected tab, other than the dragged pane, becomes the destination.
+	 * Looks at what is under the pointer. The plus button of the tab bar is marked when a drop there can move the dragged pane
+	 * into a new tab. A tab of the tab bar is selected at once, so that the developer chooses the destination tab during the
+	 * drag. A pane of the selected tab, other than the dragged pane, becomes the destination.
 	 * @param paneId The dragged pane.
 	 * @param x The horizontal position of the pointer, in the pixels of the window.
 	 * @param y The vertical position of the pointer, in the pixels of the window.
@@ -212,6 +234,12 @@ export class PaneMoveDrag {
 	 */
 	private static follow(paneId: string, x: number, y: number): void {
 		const elements = document.elementsFromPoint(x, y);
+		const isOverNewTabButton = elements.some((element) => element.closest(`[${PANE_MOVE_NEW_TAB_ATTRIBUTE}]`) !== null);
+		PaneMoveDrag.state.isNewTabTargeted = isOverNewTabButton && PaneMoveDrag.canMoveToNewTab(paneId);
+		if (isOverNewTabButton) {
+			PaneMoveDrag.clearDestination();
+			return;
+		}
 		for (const element of elements) {
 			const tabElement = element.closest(`[${PANE_MOVE_TAB_ATTRIBUTE}]`);
 			if (tabElement === null) {
@@ -267,6 +295,47 @@ export class PaneMoveDrag {
 	}
 
 	/**
+	 * Runs the steps of a move one after the other. The window reads the layout of Herdr once, after the last step, so it never
+	 * shows the state between two steps. When a step fails, the error message shows the reason. The pane is selected after the move.
+	 * @param paneId The pane to move.
+	 * @param sourceTabId The tab that held the pane before the move.
+	 * @param destinationPaneId The destination pane, or null when the move has no destination pane.
+	 * @param steps The steps of the move.
+	 * @returns Resolves after the move, or after the error message is shown.
+	 */
+	private static async runSteps(
+		paneId: string,
+		sourceTabId: string,
+		destinationPaneId: string | null,
+		steps: PaneMoveStep[],
+	): Promise<void> {
+		PaneMoveDrag.isMoveRunning = true;
+		const releaseRefresh = holdRefresh();
+		let failureReason: string | null = null;
+		let doneStepCount = 0;
+		try {
+			for (const step of steps) {
+				await PaneMoveDrag.runStep(step);
+				doneStepCount += 1;
+			}
+		} catch (error) {
+			failureReason = error instanceof Error ? error.message : String(error);
+			await PaneMoveDrag.bringBackToTab(steps, doneStepCount, sourceTabId, destinationPaneId);
+		} finally {
+			await releaseRefresh();
+			PaneMoveDrag.isMoveRunning = false;
+		}
+		if (failureReason !== null) {
+			toast(t('sessionStore.error.paneMove', { reason: failureReason }), 'error');
+			return;
+		}
+		const movedPane = allPanes.value.find((candidate) => candidate.pane_id === paneId);
+		if (movedPane !== undefined) {
+			selectPane(movedPane);
+		}
+	}
+
+	/**
 	 * Runs one call to Herdr of a move.
 	 * @param step The call.
 	 * @returns Resolves when Herdr moved the pane. Rejects with the reason when Herdr answers that nothing changed.
@@ -304,17 +373,17 @@ export class PaneMoveDrag {
 	 * @param steps The steps of the move.
 	 * @param doneStepCount The number of steps that ended before the failure.
 	 * @param sourceTabId The tab that held the pane before the move.
-	 * @param destinationPaneId The destination pane, which is in the source tab.
+	 * @param destinationPaneId The destination pane, which is in the source tab, or null when the move has none.
 	 * @returns Resolves when the pane is back, or when the attempt failed.
 	 */
 	private static async bringBackToTab(
 		steps: PaneMoveStep[],
 		doneStepCount: number,
 		sourceTabId: string,
-		destinationPaneId: string,
+		destinationPaneId: string | null,
 	): Promise<void> {
 		const isInTemporaryTab = steps[0]?.kind === 'move-to-new-tab' && doneStepCount === 1;
-		if (isInTemporaryTab === false) {
+		if (isInTemporaryTab === false || destinationPaneId === null) {
 			return;
 		}
 		try {

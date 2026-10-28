@@ -1,6 +1,6 @@
-//! The program `ngrok` that an earlier Heidrun left running. A hard stop of Heidrun (Ctrl+C on `pnpm dev`, a restart of
+//! The program `ngrok` that an earlier Heidrun Code left running. A hard stop of Heidrun Code (Ctrl+C on `pnpm dev`, a restart of
 //! `tauri dev`, a crash) does not kill `ngrok`, and the leftover program keeps the fixed address of the account, so the
-//! next tunnel fails with `ERR_NGROK_334` (issue 583). Heidrun records the process id of each `ngrok` that it starts in a
+//! next tunnel fails with `ERR_NGROK_334` (issue 583). Heidrun Code records the process id of each `ngrok` that it starts in a
 //! file of its own, and kills only a recorded process that is still an `ngrok`.
 
 use std::path::{Path, PathBuf};
@@ -13,40 +13,40 @@ const ORPHAN_PARENT: u32 = 1;
 /// How long a killed `ngrok` may take to end.
 const END_WAIT: Duration = Duration::from_secs(3);
 
-/// The records of the `ngrok` of each Heidrun: one file per Heidrun, named after the process id of that Heidrun, that holds
-/// the process id of its `ngrok`. With one file for all, a second Heidrun wrote over the record of the first (issue 585).
+/// The records of the `ngrok` of each Heidrun Code: one file per Heidrun Code, named after the process id of that Heidrun Code, that holds
+/// the process id of its `ngrok`. With one file for all, a second Heidrun Code wrote over the record of the first (issue 585).
 pub struct TunnelRecord {
     /// The folder of the files.
     folder: PathBuf,
-    /// The process id of this Heidrun: the name of its own file.
+    /// The process id of this Heidrun Code: the name of its own file.
     owner_id: u32,
 }
 
 impl TunnelRecord {
-    /// The records in the folder `folder`, for the Heidrun with the process id `owner_id`.
+    /// The records in the folder `folder`, for the Heidrun Code with the process id `owner_id`.
     pub fn new(folder: PathBuf, owner_id: u32) -> Self {
         Self { folder, owner_id }
     }
 
-    /// Writes the process id of the `ngrok` that this Heidrun just started.
+    /// Writes the process id of the `ngrok` that this Heidrun Code just started.
     pub fn save(&self, process_id: u32) {
         let _ = std::fs::create_dir_all(&self.folder);
         let _ = std::fs::write(self.path_of(self.owner_id), process_id.to_string());
     }
 
-    /// Removes the file of this Heidrun, after it killed its `ngrok`.
+    /// Removes the file of this Heidrun Code, after it killed its `ngrok`.
     pub fn clear(&self) {
         let _ = std::fs::remove_file(self.path_of(self.owner_id));
     }
 
-    /// At the start of a tunnel: kills each recorded `ngrok` whose Heidrun ended, so its parent is now the first process of
-    /// the system. An `ngrok` whose Heidrun still runs is not killed. True when a program was killed.
+    /// At the start of a tunnel: kills each recorded `ngrok` whose Heidrun Code ended, so its parent is now the first process of
+    /// the system. An `ngrok` whose Heidrun Code still runs is not killed. True when a program was killed.
     pub fn kill_leftover(&self) -> bool {
         self.kill_each(true, |parent_id| parent_id == ORPHAN_PARENT)
     }
 
-    /// For the button "Stop the old ngrok": kills the recorded `ngrok` of every other Heidrun, whatever its parent, but
-    /// never the `ngrok` of this Heidrun. True when a program was killed. False when the other `ngrok` is not a recorded one.
+    /// For the button "Stop the old ngrok": kills the recorded `ngrok` of every other Heidrun Code, whatever its parent, but
+    /// never the `ngrok` of this Heidrun Code. True when a program was killed. False when the other `ngrok` is not a recorded one.
     pub fn kill_recorded(&self) -> bool {
         self.kill_each(false, |_| true)
     }
@@ -55,7 +55,7 @@ impl TunnelRecord {
         self.folder.join(format!("{owner_id}.pid"))
     }
 
-    /// Each record of the folder: its file and the process id of its `ngrok`. The file of this Heidrun is left out when
+    /// Each record of the folder: its file and the process id of its `ngrok`. The file of this Heidrun Code is left out when
     /// `is_own_included` is false.
     fn records(&self, is_own_included: bool) -> Vec<(PathBuf, u32)> {
         let Ok(entries) = std::fs::read_dir(&self.folder) else {
@@ -154,7 +154,7 @@ mod tests {
         program
     }
 
-    /// Starts `program` through a shell that ends at once, so the program loses its parent, like the `ngrok` of a Heidrun
+    /// Starts `program` through a shell that ends at once, so the program loses its parent, like the `ngrok` of a Heidrun Code
     /// that was stopped hard. Returns its process id.
     fn start_orphan(program: &Path) -> u32 {
         let output = Command::new("/bin/sh")
@@ -170,10 +170,10 @@ mod tests {
         process_id
     }
 
-    /// The process id of this Heidrun, in the tests.
+    /// The process id of this Heidrun Code, in the tests.
     const THIS_HEIDRUN: u32 = 111;
 
-    /// The process id of another Heidrun, in the tests.
+    /// The process id of another Heidrun Code, in the tests.
     const OTHER_HEIDRUN: u32 = 222;
 
     fn records_of(folder: &Path, owner_id: u32) -> TunnelRecord {
@@ -240,7 +240,7 @@ mod tests {
         let program = fake_ngrok(&folder);
         let other = Command::new(&program).arg("600").spawn().unwrap();
         let other_id = other.id();
-        // The parent reaps the ended program, like the other Heidrun does.
+        // The parent reaps the ended program, like the other Heidrun Code does.
         let other_parent = std::thread::spawn(move || {
             let mut other = other;
             other.wait()

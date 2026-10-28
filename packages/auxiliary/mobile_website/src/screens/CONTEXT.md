@@ -4,7 +4,7 @@
 The screens of the mobile website. Each screen is one class with one static method `render` that gives the HTML of the screen, without the bottom bar.
 
 ## Key Exports & Entry Points
-- `welcome_screen.ts`: the welcome page, which is the first page: the baby goat in a big circle, the name, the motto, the description of Heidrun, and the button "Go to the app" at the bottom of the screen. It has no header, no bottom bar, and needs no data from the computer.
+- `welcome_screen.ts`: the welcome page, which is the first page: the baby goat in a big circle, the name, the motto, the description of Heidrun Code, and the button "Go to the app" at the bottom of the screen. It has no header, no bottom bar, and needs no data from the computer.
 - `dashboard_screen.ts`: the Dashboard: the count of coding agents that need the developer, the count that work, and the usage limits. Each count opens a screen.
 - `needs_you_screen.ts`: the coding agents that wait for the developer, and the usage limits.
 - `panes_screen.ts`: every pane, with or without a coding agent, grouped by workspace and by tab.

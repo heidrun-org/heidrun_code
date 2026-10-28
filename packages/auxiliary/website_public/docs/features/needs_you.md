@@ -1,12 +1,12 @@
 ---
-description: "Heidrun shows one card for each coding agent that is blocked, asks a question, or has finished, so that you know which one needs you."
+description: "Heidrun Code shows one card for each coding agent that is blocked, asks a question, or has finished, so that you know which one needs you."
 ---
 
 # The Needs you sidebar section
 
 You run several coding agents at the same time. Each coding agent stops from time to time: it asks for a permission, it asks a question, or it has finished and waits for your review. Without help, you find these coding agents only when you look at their terminals one by one.
 
-## What Heidrun does
+## What Heidrun Code does
 
 The Needs you sidebar section, in the right sidebar, holds one card for each coding agent that needs you:
 
@@ -37,6 +37,6 @@ Under the cards, the Needs you sidebar section lists all your workspaces. Each r
 
 ## Even when the window is hidden
 
-The status item in the macOS menu bar shows the same states: blocked, finished, and working. Click the status item to see the coding agents of each state, or to open Heidrun.
+The status item in the macOS menu bar shows the same states: blocked, finished, and working. Click the status item to see the coding agents of each state, or to open Heidrun Code.
 
-*In Valhalla, nobody waits in line for mead. In Heidrun, no coding agent waits in a terminal that you forgot.*
+*In Valhalla, nobody waits in line for mead. In Heidrun Code, no coding agent waits in a terminal that you forgot.*

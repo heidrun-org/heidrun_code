@@ -9,5 +9,5 @@
   "default.progressDescription": "Five lines on what is done and what remains",
   "default.explainSelectionDescription": "Explain the selected text",
   "personalFileInvalid": "The file of the personal macros cannot be read, so nothing is saved: {reason}",
-  "personalFileNotRead": "Heidrun is still reading the file of the personal macros. Try again in a moment."
+  "personalFileNotRead": "Heidrun Code is still reading the file of the personal macros. Try again in a moment."
 }

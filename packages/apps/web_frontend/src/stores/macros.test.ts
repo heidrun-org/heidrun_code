@@ -107,7 +107,7 @@ describe("the personal macros", () => {
     expect(store.macros.personal).toEqual([macroA]);
   });
 
-  it("show what another program, such as the command line heidrun_ctrl, writes in the file, within one second", async () => {
+  it("show what another program, such as the command line heidrun_code_ctrl, writes in the file, within one second", async () => {
     backend.file = { exists: true, macros: [macroA], error: null };
     const store = await loadStore();
     store.startMacros();

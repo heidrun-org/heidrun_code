@@ -44,6 +44,7 @@ const windowHtmlContent = /* html */`
 		<li id="tab-t1" data-tab-id="w1:t1"></li>
 		<li id="tab-t2" data-tab-id="w1:t2"></li>
 	</ul>
+	<button id="new-tab-button" data-pane-move-new-tab></button>
 	<section id="pane-p1" data-pane-move-destination="w1:p1"><header id="header-p1"><span id="name-p1"></span><button id="button-p1"></button></header></section>
 	<section id="pane-p2" data-pane-move-destination="w1:p2"><header id="header-p2"></header></section>
 	<section id="pane-p3" data-pane-move-destination="w1:p3"><header id="header-p3"></header></section>
@@ -85,6 +86,7 @@ function buildWindow(): void {
 	document.body.innerHTML = windowHtmlContent;
 	place('tab-t1', { left: 0, top: 0, right: 100, bottom: 40 });
 	place('tab-t2', { left: 100, top: 0, right: 200, bottom: 40 });
+	place('new-tab-button', { left: 200, top: 0, right: 234, bottom: 40 });
 	place('pane-p1', { left: 0, top: 50, right: 400, bottom: 350 });
 	place('pane-p2', { left: 400, top: 50, right: 800, bottom: 350 });
 	place('pane-p3', { left: 0, top: 50, right: 800, bottom: 350 });
@@ -382,6 +384,101 @@ describe('PaneMoveDrag: the drop', () => {
 		await settle();
 		expect(snapshotCountAtEachCall).toEqual([0, 0]);
 		expect(mocks.snapshot).toHaveBeenCalledTimes(1);
+	});
+});
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	The plus button of the tab bar
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+describe('PaneMoveDrag: the plus button of the tab bar', () => {
+	it('marks the plus button while the pointer is over it, and has no destination there', () => {
+		press('header-p2', 'w1:p2', 500, 60);
+		moveTo(10, 200);
+		expect(PaneMoveDrag.state.destinationPaneId).toBe('w1:p1');
+		moveTo(215, 20);
+		expect(PaneMoveDrag.state.isNewTabTargeted).toBe(true);
+		expect(PaneMoveDrag.state.destinationPaneId).toBeNull();
+		expect(PaneMoveDrag.state.previewBox).toBeNull();
+		release();
+	});
+
+	it('removes the mark when the pointer leaves the plus button', () => {
+		press('header-p2', 'w1:p2', 500, 60);
+		moveTo(215, 20);
+		moveTo(300, 200);
+		expect(PaneMoveDrag.state.isNewTabTargeted).toBe(false);
+		moveTo(215, 20);
+		moveTo(10, 200);
+		expect(PaneMoveDrag.state.isNewTabTargeted).toBe(false);
+		expect(PaneMoveDrag.state.destinationPaneId).toBe('w1:p1');
+		release();
+	});
+
+	it('removes the mark when the developer presses Escape, and a release then moves nothing', async () => {
+		press('header-p2', 'w1:p2', 500, 60);
+		moveTo(215, 20);
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		expect(PaneMoveDrag.state.isNewTabTargeted).toBe(false);
+		release();
+		await settle();
+		expect(callNames()).toEqual([]);
+	});
+
+	it('removes the mark after the release', () => {
+		press('header-p2', 'w1:p2', 500, 60);
+		moveTo(215, 20);
+		release();
+		expect(PaneMoveDrag.state.isNewTabTargeted).toBe(false);
+	});
+
+	it('never marks the plus button without a drag of a pane', () => {
+		press('header-p2', 'w1:p2', 500, 60);
+		moveTo(503, 62);
+		expect(PaneMoveDrag.state.isNewTabTargeted).toBe(false);
+		release();
+	});
+
+	it('moves the dragged pane into a new tab with one call to Herdr, and selects the pane', async () => {
+		mocks.snapshot.mockResolvedValue({
+			...snapshotWithPaneIn('w1:t2'),
+			panes: [
+				{ pane_id: 'w1:p1', workspace_id: 'w1', tab_id: 'w1:t1', agent_status: 'idle' },
+				{ pane_id: 'w1:p2', workspace_id: 'w1', tab_id: 'w1:t3', agent_status: 'idle' },
+				{ pane_id: 'w1:p3', workspace_id: 'w1', tab_id: 'w1:t2', agent_status: 'idle' },
+			],
+		});
+		press('header-p2', 'w1:p2', 500, 60);
+		moveTo(215, 20);
+		release();
+		await settle();
+		expect(callNames()).toEqual(['move-to-new-tab']);
+		expect(mocks.movePaneToNewTab).toHaveBeenCalledWith('w1:p2', 'w1');
+		expect(mocks.snapshot).toHaveBeenCalledTimes(1);
+		expect(state.selectedPaneId).toBe('w1:p2');
+	});
+
+	it('does not mark the plus button and moves nothing when the dragged pane is alone in its tab', async () => {
+		state.selectedTabId = 'w1:t2';
+		press('header-p3', 'w1:p3', 400, 60);
+		moveTo(215, 20);
+		expect(PaneMoveDrag.state.isNewTabTargeted).toBe(false);
+		release();
+		await settle();
+		expect(callNames()).toEqual([]);
+	});
+
+	it('shows the reason when Herdr refuses the move into a new tab', async () => {
+		mocks.movePaneToNewTab.mockRejectedValue('invalid_request: no such pane');
+		press('header-p2', 'w1:p2', 500, 60);
+		moveTo(215, 20);
+		release();
+		await settle();
+		expect(mocks.movePaneNextToPane).not.toHaveBeenCalled();
+		expect(state.toast).toContain('invalid_request: no such pane');
+		expect(state.toastKind).toBe('error');
 	});
 });
 

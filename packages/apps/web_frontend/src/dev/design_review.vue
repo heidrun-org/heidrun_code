@@ -10,7 +10,7 @@ watchEffect(() => {
 
 <template>
   <main class="h-100 overflow-auto p-4">
-    <h1>Heidrun shared design review</h1>
+    <h1>Heidrun Code shared design review</h1>
     <button class="btn mb-3" :aria-pressed="isLight" @click="isLight = !isLight">{{ isLight ? 'Light theme' : 'Dark theme' }}</button>
     <DesignReviewSamples />
   </main>

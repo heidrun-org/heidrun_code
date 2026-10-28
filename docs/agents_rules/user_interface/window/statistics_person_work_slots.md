@@ -1,10 +1,10 @@
-# User interface of Heidrun: Statistics window, tab "Work of one person", slot length
+# User interface of Heidrun Code: Statistics window, tab "Work of one person", slot length
 
 - Created: 17 October 2026
-- Last updated: 19 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Source "Git history"](statistics_git_history.md), [Source "AI cost"](statistics_ai_cost.md), [Tab "User activity"](statistics_user_activity.md), [Charts](statistics_charts.md)
+- Related rules: [Glossary of Heidrun Code: work of one person](../../glossary/person_work.md), [Tab "Work of one person"](statistics_person_work.md), [Source "Git history"](statistics_git_history.md), [Source "AI cost"](statistics_ai_cost.md), [Tab "User activity"](statistics_user_activity.md), [Charts](statistics_charts.md)
 - Related issue: [issue 616](https://github.com/heidrun-org/heidrun/issues/616), [issue 707](https://github.com/heidrun-org/heidrun/issues/707)
 
 This file is a part of the rules of the tab "Work of one person". The words "slot" and "slot length" are defined in [glossary/person_work.md](../../glossary/person_work.md). The tab "User activity" has a slot length too ([statistics_user_activity.md](statistics_user_activity.md)), and this tab uses the same words, the same buttons, and the same texts.
@@ -13,7 +13,7 @@ This file is a part of the rules of the tab "Work of one person". The words "slo
 
 - The radio button group of the slot length is on the line of the source and of the time range, after the radio button group of the time range, and it has the label "Slot length". It has the same Bootstrap form as the other groups (`btn-group` with `btn-check btn-outline theme-secondary` labels), with an id `statistics-person-slot-<hours>` on each input, and the title "Cut the time range into slots of {slot length}" on each button. Both sources show it.
 - Every time range (the last 3, 7, 14, and 30 days) offers the same buttons, from the shortest to the longest: "1 hour", "6 hours", and "1 day". The slot length "1 day" is chosen at first.
-- A change of the time range keeps the slot length. When a time range does not offer the slot length in use, the tab goes back to "1 day". A change of the slot length never changes the time range, the source, the unit, the workspaces, or the person. Heidrun remembers the slot length and the time range ([statistics_remembered_selections.md](statistics_remembered_selections.md)).
+- A change of the time range keeps the slot length. When a time range does not offer the slot length in use, the tab goes back to "1 day". A change of the slot length never changes the time range, the source, the unit, the workspaces, or the person. Heidrun Code remembers the slot length and the time range ([statistics_remembered_selections.md](statistics_remembered_selections.md)).
 - A change of the slot length reads nothing again, for both sources: the tab cuts the data that it already read. The chart is drawn again at once and never shows the reading text.
 - The totals and the average per day do not depend on the slot length, because they are for the whole time range.
 

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
   ARROW_ZONE,
@@ -8,6 +9,7 @@ import {
   scrollLeftToShow,
   TOPICS_PER_CLICK,
   type TopicChipBox,
+  withoutCommonTopics,
 } from "./dynamic_topic_bar";
 
 /** Ten buttons of 80 pixels, with a gap of 8 pixels between two buttons, in a strip of 700 pixels. */
@@ -161,5 +163,31 @@ describe("previousTopicsScrollLeft", () => {
 
   it("never goes before the start of the strip", () => {
     expect(previousTopicsScrollLeft(tenChips(), 0, VIEW_WIDTH, SCROLL_WIDTH)).toBe(0);
+  });
+});
+
+describe("withoutCommonTopics", () => {
+  /** Six chats: "state" is on four chats, "panel" on three chats, and each chat has one topic of its own. */
+  function sixChats(): Map<string, string[]> {
+    return new Map([
+      ["a", ["state", "panel", "modal"]],
+      ["b", ["state", "panel", "pixel"]],
+      ["c", ["state", "panel", "cache"]],
+      ["d", ["state", "worktree"]],
+      ["e", ["sidebar"]],
+      ["f", ["voice"]],
+    ]);
+  }
+
+  it("hides a topic that more than half of the chats have, and keeps a topic of exactly half of the chats", () => {
+    const topics = withoutCommonTopics(sixChats());
+    expect(topics.get("a")).toEqual(["panel", "modal"]);
+    expect(topics.get("d")).toEqual(["worktree"]);
+    expect(topics.get("e")).toEqual(["sidebar"]);
+  });
+
+  it("keeps every topic of a list of fewer than six chats", () => {
+    const fiveChats = new Map([...sixChats()].slice(0, 5));
+    expect(withoutCommonTopics(fiveChats)).toEqual(fiveChats);
   });
 });

@@ -43,6 +43,13 @@ const CACHE_VERSION = 1;
 /** The most chats that the saved cache keeps. The chats with the oldest last message leave first. */
 const MOST_ENTRIES = 200;
 
+/**
+ * How much newer, in milliseconds, the last message of a chat must be than its topics before the chat is asked again. A
+ * chat that runs gets a new last message every few seconds, and it was asked again at each refresh of the list: about 12
+ * calls in 2 minutes for one chat, each with about 22,000 tokens of input (issue 269).
+ */
+export const REFRESH_AFTER = 30 * 60 * 1000;
+
 /** The error that the Tauri command gives when neither `codex` nor `claude` is installed. */
 const NO_CODING_AGENT = "no_coding_agent";
 
@@ -99,7 +106,7 @@ let isBusy = false;
 /** True when a run was asked while another run was busy: the busy run starts again when it ends. */
 let isRunAgain = false;
 
-/** The chats, with the date of their last message, whose call failed in this run of Heidrun, so a failure does not call again at once. */
+/** The chats, with the date of their last message, whose call failed in this run of Heidrun Code, so a failure does not call again at once. */
 const failedAttempts = new Set<string>();
 
 /** Saves the cache. The chats with the oldest last message leave when the cache holds more than `MOST_ENTRIES` chats. */
@@ -123,11 +130,14 @@ function attemptKey(chat: Chat): string {
   return `${chat.id}|${lastMessageAt(chat)}`;
 }
 
-/** The chats of the list that have no entry, or an entry older than their last message, and that did not fail yet. */
+/**
+ * The chats of the list that have no entry, or an entry older than their last message by `REFRESH_AFTER` or more, and that
+ * did not fail yet.
+ */
 function chatsToAsk(): Chat[] {
   return lastChatList.filter((chat) => {
     const entry = languageModelEntries[chat.id];
-    const isFresh = entry !== undefined && entry.lastAt === lastMessageAt(chat);
+    const isFresh = entry !== undefined && lastMessageAt(chat) - entry.lastAt < REFRESH_AFTER;
     return isFresh === false && failedAttempts.has(attemptKey(chat)) === false;
   });
 }
@@ -199,7 +209,7 @@ async function run(): Promise<void> {
 
 /**
  * Remembers the chats that the list shows, and asks a coding agent for the topics of the chats that have none, or whose
- * last message is newer than their topics. It makes no call when the option "Dynamic topics" is off, when the method is
+ * last message is newer than their topics by `REFRESH_AFTER` or more. It makes no call when the option "Dynamic topics" is off, when the method is
  * not "Language model", and when every chat of the list already has fresh topics. A long list is sent in several calls of at most `MOST_CHATS_PER_CALL` chats.
  * @param chatList - the chats that the list shows
  */

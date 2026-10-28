@@ -1,9 +1,12 @@
 import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Path from 'node:path';
+import { BuildScriptOutputs } from './build_script_outputs.ts';
+import { DirectoryClone } from './directory_clone.ts';
+import { SourceDates } from './source_dates.ts';
 import { TargetPaths } from './target_paths.ts';
 import { WorktreeGit } from './worktree_git.ts';
-import type { WorktreeCreateResult } from './worktree_tools_types.ts';
+import type { SourceDatesResult, WorktreeCreateResult } from './worktree_tools_types.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -13,9 +16,12 @@ import type { WorktreeCreateResult } from './worktree_tools_types.ts';
 
 /**
  * Creates a Git worktree in the folder `.claude/worktrees` of the main checkout. Then, on macOS, it clones the `debug`
- * folder and the bundled command line tools of the Cargo target folder of the main checkout into the worktree, with
- * copy-on-write clones. The first build in the worktree then compiles only the crates of Heidrun, and not every Rust
- * dependency again. Every submodule is initialized at its recorded commit before the compiled files are cloned.
+ * folder and the `release` folder of the Cargo target folder of the main checkout into the worktree, with
+ * copy-on-write clones. The `release` folder holds the bundled command line tools and their compiled dependencies. The first build in the worktree then compiles only the crates of Heidrun Code, and not every Rust
+ * dependency again. After the clone, each file of the worktree that has the same content as in the main checkout gets
+ * the dates of the main checkout, and the cloned build script records name the worktree, so Cargo does not compile
+ * its crate again. Every submodule is initialized at its
+ * recorded commit before the compiled files are cloned.
  * At the end, it installs the packages of the worktree with `pnpm install --frozen-lockfile`, so the worktree has a
  * folder `node_modules` and `pnpm dev` runs at once.
  */
@@ -25,6 +31,15 @@ export class WorktreeCreate {
 
 	/** The commit where the new branch starts when the caller gives none. */
 	static readonly defaultBaseRef = 'HEAD';
+
+	/**
+	 * The built mobile website, relative to the root of a checkout. The package `mobile_server` puts it inside its
+	 * program, and Cargo compiles the application again when a file of it is newer, so the clone keeps its dates.
+	 */
+	static readonly mobileWebsiteDistRelativePath = Path.join('packages', 'auxiliary', 'mobile_website', 'dist');
+
+	/** The reason that the result gives when the caller asked for no optimization. */
+	static readonly withoutOptimizationReason = 'The option --without-optimization was given.';
 
 	/** The arguments of the `pnpm` command that installs the packages of a new worktree. */
 	static readonly installArguments = ['install', '--frozen-lockfile'];
@@ -36,6 +51,9 @@ export class WorktreeCreate {
 	 * @param options.name The name of the new branch, and the name of the folder of the worktree.
 	 * @param options.baseRef The commit, the branch, or the tag where the new branch starts. The default is the
 	 * current commit of the main checkout.
+	 * @param options.isWithoutOptimization True to skip the clones, the copy of the dates, and the change of the build
+	 * script records. The first build in the worktree then compiles everything, which is slow but uses nothing of the
+	 * main checkout. Use it to check whether a problem comes from these optimizations.
 	 * @returns The path of the worktree, and whether the clone happened.
 	 * @throws An error when the name is not a valid branch name, or when the worktree folder or the branch exists. Also
 	 * an error when submodule initialization or the installation of the packages fails: the worktree then exists,
@@ -45,6 +63,7 @@ export class WorktreeCreate {
 		workingDirectory: string;
 		name: string;
 		baseRef?: string;
+		isWithoutOptimization?: boolean;
 	}): WorktreeCreateResult {
 		const mainCheckoutPath = WorktreeGit.findMainCheckoutPath(options.workingDirectory);
 		if (WorktreeGit.isBranchNameValid(mainCheckoutPath, options.name) === false) {
@@ -63,19 +82,34 @@ export class WorktreeCreate {
 		);
 
 		WorktreeGit.initializeSubmodules(worktreePath);
-		const skipReason = WorktreeCreate._cloneTarget(mainCheckoutPath, worktreePath);
+		const skipReason = options.isWithoutOptimization === true
+			? WorktreeCreate.withoutOptimizationReason
+			: WorktreeCreate._cloneTarget(mainCheckoutPath, worktreePath);
+		let sourceDates: SourceDatesResult = {
+			fileCount: 0,
+			folderCount: 0,
+		};
+		let rewrittenBuildScriptOutputCount = 0;
+		if (skipReason === null) {
+			WorktreeCreate._cloneMobileWebsiteDist(mainCheckoutPath, worktreePath);
+			sourceDates = SourceDates.copyFromMainCheckout(mainCheckoutPath, worktreePath);
+			rewrittenBuildScriptOutputCount = BuildScriptOutputs.rewrite(mainCheckoutPath, worktreePath);
+		}
 		WorktreeCreate._installPackages(worktreePath);
 		return {
 			worktreePath,
 			branchName: options.name,
 			isTargetCloned: skipReason === null,
 			skipReason,
+			sourceDates,
+			rewrittenBuildScriptOutputCount,
 		};
 	}
 
 	/**
-	 * Clones the `debug` folder and the bundled command line tools of the Cargo target folder of the main checkout into
-	 * the worktree. Each clone shares the disk blocks with the original, so it uses almost no disk space at the start. A
+	 * Clones the `debug` folder and the `release` folder of the Cargo target folder of the main checkout into the
+	 * worktree. With the compiled dependencies of `release`, a change in a package that the bundled command line tools
+	 * use compiles only the changed packages again. Each clone shares the disk blocks with the original, so it uses almost no disk space at the start. A
 	 * file that Cargo rewrites later becomes a real copy. The worktree is inside the main checkout, so both folders are
 	 * on the same disk.
 	 * @param mainCheckoutPath The absolute path of the main checkout.
@@ -92,8 +126,8 @@ export class WorktreeCreate {
 				destinationPath: TargetPaths.debugPath(worktreePath),
 			},
 			{
-				sourcePath: TargetPaths.bundledCommandsPath(mainCheckoutPath),
-				destinationPath: TargetPaths.bundledCommandsPath(worktreePath),
+				sourcePath: TargetPaths.releasePath(mainCheckoutPath),
+				destinationPath: TargetPaths.releasePath(worktreePath),
 			},
 		];
 		for (const targetFolder of targetFolders) {
@@ -111,19 +145,30 @@ export class WorktreeCreate {
 		}
 		for (const targetFolder of targetFolders) {
 			Fs.mkdirSync(Path.dirname(targetFolder.destinationPath), { recursive: true });
-			const result = ChildProcess.spawnSync(
-				'cp',
-				['-c', '-R', '-p', targetFolder.sourcePath, targetFolder.destinationPath],
-				{
-					encoding: 'utf8',
-				},
-			);
-			if (result.status !== 0) {
+			const errorText = DirectoryClone.clone(targetFolder.sourcePath, targetFolder.destinationPath);
+			if (errorText !== null) {
 				Fs.rmSync(TargetPaths.targetPath(worktreePath), { recursive: true, force: true });
-				return `The clone failed: ${result.stderr.trim()}`;
+				return `The clone failed: ${errorText}`;
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Clones the built mobile website of the main checkout into the worktree, with its dates. Nothing happens when the
+	 * main checkout has no built mobile website: `pnpm dev` builds it.
+	 * @param mainCheckoutPath The absolute path of the main checkout.
+	 * @param worktreePath The absolute path of the new worktree.
+	 * @returns Nothing.
+	 */
+	private static _cloneMobileWebsiteDist(mainCheckoutPath: string, worktreePath: string): void {
+		const sourcePath = Path.join(mainCheckoutPath, WorktreeCreate.mobileWebsiteDistRelativePath);
+		const destinationPath = Path.join(worktreePath, WorktreeCreate.mobileWebsiteDistRelativePath);
+		if (Fs.existsSync(sourcePath) === false || Fs.existsSync(destinationPath) === true) {
+			return;
+		}
+		Fs.mkdirSync(Path.dirname(destinationPath), { recursive: true });
+		DirectoryClone.clone(sourcePath, destinationPath);
 	}
 
 	/**

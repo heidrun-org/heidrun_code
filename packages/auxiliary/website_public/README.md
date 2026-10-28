@@ -1,6 +1,6 @@
 # website_public
 
-The public website and the documentation of [Heidrun](../../../README.md), built with VitePress and published on GitHub Pages.
+The public website and the documentation of [Heidrun Code](../../../README.md), built with VitePress and published on GitHub Pages.
 
 ## What it contains
 

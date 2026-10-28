@@ -1,14 +1,14 @@
 {
-  "name": "heidrun",
+  "name": "heidrun-code",
   "interface": {
-    "displayName": "Heidrun Agent Plugins"
+    "displayName": "Heidrun Code Agent Plugins"
   },
   "plugins": [
     {
-      "name": "heidrun-control",
+      "name": "heidrun-code-control",
       "source": {
         "source": "local",
-        "path": "./packages/auxiliary/heidrun_ctrl"
+        "path": "./packages/auxiliary/heidrun_code_ctrl"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -20,7 +20,7 @@
       "name": "heidrun-data",
       "source": {
         "source": "local",
-        "path": "./packages/data_layers/heidrun_data"
+        "path": "./submodules/heidrun_data/packages/heidrun_data"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -5,11 +5,15 @@ import path from "node:path";
 
 const invokeMock = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const copyMock = vi.hoisted(() => vi.fn(async () => {}));
-// False means that no pane could show the file: the Files window then opens it.
-const openFileViewMock = vi.hoisted(() => vi.fn(async (_absolutePath: string) => false));
+const chatAboutFileMock = vi.hoisted(() => vi.fn(async (_absolutePath: string, _label: string, _folder: string | null) => {}));
+const openFileViewMock = vi.hoisted(() => vi.fn(async (_absolutePath: string) => true));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
 vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
 vi.mock("../lib/clipboard", () => ({ copy: copyMock }));
+vi.mock("../stores/chat_open", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../stores/chat_open")>()),
+  chatAboutFile: chatAboutFileMock,
+}));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 
 import FilesPanel from "./FilesPanel.vue";
@@ -46,7 +50,8 @@ async function mountPanel() {
 
 beforeEach(() => {
   openFileViewMock.mockClear();
-  openFileViewMock.mockResolvedValue(false);
+  chatAboutFileMock.mockClear();
+  openFileViewMock.mockResolvedValue(true);
   invokeMock.mockImplementation(async (command: string, args: { paths: string[]; path: string }) => {
     if (command === "file_full_path") {
       return `/work/heidrun/${args.path}`;
@@ -75,14 +80,11 @@ afterEach(() => {
   state.selectedWorkspaceId = null;
   state.toast = "";
   git.status = {};
-  git.modal.open = false;
-  git.modal.path = null;
-  files.open = false;
-  files.tabs = [];
-  files.active = null;
+  openFileViewMock.mockClear();
   files.root = "";
   files.ignored = [];
   files.submodules = [];
+  files.linkedFolders = [];
   files.expanded = new Set();
   for (const folder of Object.keys(filesPanelIgnoredChildren)) {
     delete filesPanelIgnoredChildren[folder];
@@ -124,8 +126,7 @@ describe("FilesPanel", () => {
 		await submodule.trigger('click');
 		await wrapper.get('[title="modules/example/src"]').trigger('click');
 		await wrapper.get('[title="modules/example/src/main.ts"]').trigger('click');
-		expect(files.active).toBe('modules/example/src/main.ts');
-		expect(files.open).toBe(true);
+		await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith('/work/heidrun/modules/example/src/main.ts'));
 		paths = [...paths, 'modules/example/src/new.txt'];
 		await wrapper.get('[aria-label="Refresh"]').trigger('click');
 		await vi.waitFor(() => expect(wrapper.find('[title="modules/example/src/new.txt"]').exists()).toBe(true));
@@ -142,29 +143,25 @@ describe("FilesPanel", () => {
     expect(wrapper.findAll(".row .name").map((name) => name.text())).toEqual(["src", "README.md"]);
   });
 
-  it("unfolds a folder after a click on it, and does not open the large Git window", async () => {
+  it("unfolds a folder after a click on it, and opens no pane", async () => {
     const wrapper = await mountPanel();
     await wrapper.findAll(".row")[0].trigger("click");
     expect(wrapper.findAll(".row .name").map((name) => name.text())).toEqual(["src", "lib", "main.ts", "README.md"]);
-    expect(git.modal.open).toBe(false);
+    expect(openFileViewMock).not.toHaveBeenCalled();
   });
 
-  it("opens a file in a file view pane, and not in the Files window, after a click on it (issue #714)", async () => {
-    openFileViewMock.mockResolvedValue(true);
+  it("opens a file in a file view pane after a click on it (issue #714)", async () => {
     const wrapper = await mountPanel();
     await wrapper.findAll(".row")[1].trigger("click");
     await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/README.md"));
-    expect(files.open).toBe(false);
-    expect(git.modal.open).toBe(false);
   });
 
-  it("opens a file in the Files window, and not in the large Git window, after a click when no pane can show it", async () => {
+  it("opens nothing else when no pane can show a file (issue #886)", async () => {
+    openFileViewMock.mockResolvedValueOnce(false);
     const wrapper = await mountPanel();
     await wrapper.findAll(".row")[1].trigger("click");
-    await vi.waitFor(() => expect(files.active).toBe("README.md"));
-    expect(files.open).toBe(true);
-    expect(files.tabs).toContain("README.md");
-    expect(git.modal.open).toBe(false);
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledTimes(1));
+    expect(Object.keys(files)).not.toContain("open");
   });
 
   it("shows a status letter on a changed file", async () => {
@@ -194,16 +191,13 @@ describe("FilesPanel", () => {
     expect(wrapper.find("[aria-label='Expand all folders']").exists()).toBe(false);
   });
 
-  it("selects the row that was clicked, a folder or a file, and only that row, and keeps it after the Files window closes", async () => {
+  it("selects the row that was clicked, a folder or a file, and only that row", async () => {
     const wrapper = await mountPanel();
     expect(wrapper.findAll(".row.selected")).toHaveLength(0);
     await wrapper.findAll(".row")[0].trigger("click");
     expect(wrapper.findAll(".row.selected").map((row) => row.text())).toEqual(["src•"]);
     await wrapper.findAll(".row")[3].trigger("click");
     expect(wrapper.findAll(".row.selected").map((row) => row.text())).toEqual(["README.md"]);
-    files.open = false;
-    await wrapper.vm.$nextTick();
-    expect(wrapper.findAll(".row.selected")).toHaveLength(1);
   });
 
   it("selects nothing after a click on the empty space of the section, and then a new file goes to the root", async () => {
@@ -261,8 +255,7 @@ describe("FilesPanel", () => {
     await input.setValue("new_file.ts");
     await input.trigger("keydown", { key: "Enter" });
     await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith("file_create", { root: "/work/heidrun", path: "src/new_file.ts", dir: false }));
-    await vi.waitFor(() => expect(git.modal.path).toBe("src/new_file.ts"));
-    expect(git.modal.open).toBe(true);
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/src/new_file.ts"));
     expect(wrapper.find(".naming-row").exists()).toBe(false);
   });
 
@@ -271,7 +264,6 @@ describe("FilesPanel", () => {
     await wrapper.findAll(".row")[0].trigger("click");
     const mainRow = wrapper.findAll(".row").find((row) => row.text().includes("main.ts"));
     await mainRow?.trigger("click");
-    git.modal.open = false;
     await wrapper.get("[aria-label='New file']").trigger("click");
     await wrapper.get(".naming-row input").setValue("other.ts");
     await wrapper.get(".naming-row input").trigger("keydown", { key: "Enter" });
@@ -285,7 +277,7 @@ describe("FilesPanel", () => {
     await wrapper.get(".naming-row input").setValue("assets");
     await wrapper.get(".naming-row input").trigger("keydown", { key: "Enter" });
     await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith("file_create", { root: "/work/heidrun", path: "src/assets", dir: true }));
-    expect(git.modal.open).toBe(false);
+    expect(openFileViewMock).not.toHaveBeenCalled();
     await vi.waitFor(() => expect(wrapper.findAll(".row .name").map((name) => name.text())).toContain("assets"));
     invokeMock.mockClear();
     const readme = wrapper.findAll(".row").find((row) => row.text().includes("README.md"));
@@ -350,7 +342,7 @@ describe("FilesPanel", () => {
     await wrapper.get(".naming-row input").trigger("keydown", { key: "Enter" });
     await vi.waitFor(() => expect(state.toast).toContain("already exists"));
     expect(wrapper.find(".naming-row").exists()).toBe(true);
-    expect(git.modal.open).toBe(false);
+    expect(openFileViewMock).not.toHaveBeenCalled();
   });
 
   it("gives a row the full width of the sidebar section, so its background is not limited to the file name", () => {
@@ -457,13 +449,19 @@ describe("FilesPanel", () => {
     wrapper.unmount();
   });
 
-  it("opens a context menu with two items after a right click on the row of a file", async () => {
+  it("opens a context menu with two copy items, a separator, and the item Chat about this file after a right click on the row of a file", async () => {
     const wrapper = await mountPanel();
     expect(document.body.querySelector("[role=menu]")).toBeNull();
     await wrapper.findAll(".row")[1].trigger("contextmenu", { clientX: 40, clientY: 60 });
+    const children = Array.from(document.body.querySelector("[role=menu]")?.children ?? []);
+    expect(children.map((child) => child.getAttribute("role"))).toEqual(["menuitem", "menuitem", "separator", "menuitem"]);
     const items = Array.from(document.body.querySelectorAll<HTMLButtonElement>("[role=menu] [role=menuitem]"));
-    expect(items.map((item) => item.textContent?.trim())).toEqual(["Copy absolute path", "Copy relative path"]);
-    expect(git.modal.open).toBe(false);
+    expect(items.map((item) => item.textContent?.trim())).toEqual([
+      "Copy absolute path",
+      "Copy relative path",
+      "Chat about this file",
+    ]);
+    expect(openFileViewMock).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
@@ -476,7 +474,11 @@ describe("FilesPanel", () => {
     await wrapper.vm.$nextTick();
     expect(event.defaultPrevented).toBe(true);
     const items = Array.from(document.body.querySelectorAll<HTMLButtonElement>("[role=menu] [role=menuitem]"));
-    expect(items.map((item) => item.textContent?.trim())).toEqual(["Copy absolute path", "Copy relative path"]);
+    expect(items.map((item) => item.textContent?.trim())).toEqual([
+      "Copy absolute path",
+      "Copy relative path",
+      "Chat about this file",
+    ]);
     wrapper.unmount();
   });
 
@@ -514,6 +516,31 @@ describe("FilesPanel", () => {
     await vi.waitFor(() => expect(copyMock).toHaveBeenCalledWith("src/main.ts"));
     expect(state.toast).toBe("Copied: src/main.ts");
     expect(document.body.querySelector("[role=menu]")).toBeNull();
+    wrapper.unmount();
+  });
+
+  it("starts a chat about the file with the item Chat about this file, and closes the context menu", async () => {
+    const wrapper = await mountPanel();
+    await wrapper.findAll(".row")[0].trigger("click");
+    await wrapper.findAll(".row")[2].trigger("contextmenu");
+    document.body.querySelectorAll<HTMLButtonElement>("[role=menuitem]")[2].click();
+    await vi.waitFor(() => expect(chatAboutFileMock).toHaveBeenCalledWith("/work/heidrun/src/main.ts", "main.ts", "/work/heidrun"));
+    expect(invokeMock).toHaveBeenCalledWith("file_full_path", { root: "/work/heidrun", path: "src/main.ts" });
+    expect(document.body.querySelector("[role=menu]")).toBeNull();
+    expect(copyMock).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("starts a chat about nothing and shows the error when the absolute path cannot be read", async () => {
+    const wrapper = await mountPanel();
+    await wrapper.findAll(".row")[0].trigger("click");
+    await wrapper.findAll(".row")[2].trigger("contextmenu");
+    invokeMock.mockImplementationOnce(async () => {
+      throw new Error("no such file");
+    });
+    document.body.querySelectorAll<HTMLButtonElement>("[role=menuitem]")[2].click();
+    await vi.waitFor(() => expect(state.toast).toContain("no such file"));
+    expect(chatAboutFileMock).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
@@ -648,25 +675,12 @@ describe("FilesPanel, the files and the folders that Git ignores", () => {
   });
 
   it("opens a file inside a folder that Git ignores in a file view pane after a click on it (issue #714)", async () => {
-    openFileViewMock.mockResolvedValue(true);
     settings.filesShowIgnored = true;
     const wrapper = await mountPanel();
     await rowNamed(wrapper, ".heidrun")?.trigger("click");
     await vi.waitFor(() => expect(rowNames(wrapper)).toContain("config.json"));
     await rowNamed(wrapper, "config.json")?.trigger("click");
     await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/.heidrun/config.json"));
-    expect(files.open).toBe(false);
-  });
-
-  it("opens a file inside a folder that Git ignores in the Files window after a click when no pane can show it", async () => {
-    settings.filesShowIgnored = true;
-    const wrapper = await mountPanel();
-    await rowNamed(wrapper, ".heidrun")?.trigger("click");
-    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("config.json"));
-    await rowNamed(wrapper, "config.json")?.trigger("click");
-    await vi.waitFor(() => expect(files.active).toBe(".heidrun/config.json"));
-    expect(files.open).toBe(true);
-    expect(git.modal.open).toBe(false);
   });
 
   it("reads again every unfolded ignored folder after the button Refresh", async () => {
@@ -740,5 +754,89 @@ describe("FilesPanel, the files and the folders that Git ignores", () => {
     await vi.waitFor(() => expect(rowNames(wrapper)).toContain("created"));
     expect(rowNames(wrapper).filter((name) => name === "created")).toHaveLength(1);
     expect(filesPanelNewFolders["/work/heidrun"] ?? []).toEqual([]);
+  });
+});
+
+describe("FilesPanel, a symbolic link to a folder (issue #923)", () => {
+  /** The first level of each folder that the backend reads from the disk. A folder ends with "/". */
+  let diskFolders: Record<string, string[]>;
+
+  beforeEach(() => {
+    diskFolders = {
+      "skills/feature-status": ["SKILL.md", "references/"],
+      "skills/feature-status/references": ["notes.md"],
+    };
+    invokeMock.mockImplementation(async (command: string, args: { path?: string; paths?: string[] }) => {
+      if (command === "files_list") {
+        return {
+          root: "/work/heidrun",
+          git: true,
+          files: ["README.md", "skills/feature-status/", "skills/file-link.md"],
+          ignored: [],
+          submodules: [],
+          linkedFolders: ["skills/feature-status"],
+          status: {},
+          truncated: false,
+        };
+      }
+      if (command === "folder_children") {
+        const children = diskFolders[args.path ?? ""];
+        if (children === undefined) {
+          throw new Error("not a folder");
+        }
+        return children;
+      }
+      if (command === "dirs_existing") {
+        return args.paths;
+      }
+      return null;
+    });
+  });
+
+  /** The row whose name is `name`. */
+  function rowNamed(wrapper: Awaited<ReturnType<typeof mountPanel>>, name: string) {
+    return wrapper.findAll(".row").find((row) => row.get(".name").text() === name);
+  }
+
+  /** The names of the rows, from the top. */
+  function rowNames(wrapper: Awaited<ReturnType<typeof mountPanel>>): string[] {
+    return wrapper.findAll(".row .name").map((name) => name.text());
+  }
+
+  it("shows the link as a folder in the normal color, unfolds it from the disk, and opens a file inside it", async () => {
+    const wrapper = await mountPanel();
+    await rowNamed(wrapper, "skills")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toEqual(["skills", "feature-status", "file-link.md", "README.md"]));
+    const link = rowNamed(wrapper, "feature-status");
+    expect(link?.find(".arrow i").exists()).toBe(true);
+    expect(link?.classes()).not.toContain("ignored");
+    await link?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("SKILL.md"));
+    expect(invokeMock).toHaveBeenCalledWith("folder_children", { root: "/work/heidrun", path: "skills/feature-status" });
+    expect(rowNamed(wrapper, "SKILL.md")?.classes()).not.toContain("ignored");
+    await rowNamed(wrapper, "references")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("notes.md"));
+    await rowNamed(wrapper, "SKILL.md")?.trigger("click");
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/skills/feature-status/SKILL.md"));
+  });
+
+  it("reads the unfolded link again after the button Refresh", async () => {
+    const wrapper = await mountPanel();
+    await rowNamed(wrapper, "skills")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("feature-status"));
+    await rowNamed(wrapper, "feature-status")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("SKILL.md"));
+    diskFolders["skills/feature-status"] = ["SKILL.md", "references/", "created_outside.md"];
+    await wrapper.get("[aria-label='Refresh']").trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("created_outside.md"));
+  });
+
+  it("opens a symbolic link to a file as a file", async () => {
+    const wrapper = await mountPanel();
+    await rowNamed(wrapper, "skills")?.trigger("click");
+    await vi.waitFor(() => expect(rowNames(wrapper)).toContain("file-link.md"));
+    expect(rowNamed(wrapper, "file-link.md")?.find(".arrow i").exists()).toBe(false);
+    await rowNamed(wrapper, "file-link.md")?.trigger("click");
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/skills/file-link.md"));
   });
 });

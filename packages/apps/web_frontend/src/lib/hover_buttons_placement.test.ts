@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { HoverButtonsPlacement, type PlacementGrid } from './hover_buttons_placement';
 

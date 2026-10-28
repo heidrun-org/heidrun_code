@@ -1,7 +1,7 @@
 //! Pure functions on the paths of the files of a GitHub repository.
 
 use std::path::PathBuf;
-use super::types::RepositoryFile;
+use super::types::{RepositoryFile, is_valid_name};
 
 /// The path of `full` inside `dir`, or `None` when the path goes out of `dir` or holds a `..` part.
 pub(super) fn relative_path(dir: &str, full: &str) -> Option<PathBuf> {
@@ -62,9 +62,58 @@ pub(super) fn candidate_dirs(paths: &[String], skill_id: &str) -> Vec<String> {
     dirs.into_iter().map(|dir| dir.to_string()).collect()
 }
 
+/// What a folder of a repository holds, as far as skills go.
+#[derive(Debug, PartialEq)]
+pub(super) enum SkillFolders {
+    /// The folder holds a `SKILL.md` file: the folder is one skill.
+    Itself,
+    /// The names of the direct subfolders that hold a `SKILL.md` file, sorted. Empty when no subfolder holds one.
+    Subfolders(Vec<String>),
+}
+
+/// Reads what a folder holds from the paths of the files below it, each path inside the folder. A `SKILL.md` file at the
+/// top makes the folder one skill, and the subfolders are not read. Otherwise a skill is each direct subfolder with a
+/// `SKILL.md` file and a name that a skill folder can have.
+pub(super) fn find_skill_folders(files: &[RepositoryFile]) -> SkillFolders {
+    if files.iter().any(|file| file.path == "SKILL.md") {
+        return SkillFolders::Itself;
+    }
+    let mut names: Vec<String> = files
+        .iter()
+        .filter_map(|file| file.path.strip_suffix("/SKILL.md"))
+        .filter(|name| is_valid_name(name))
+        .map(str::to_string)
+        .collect();
+    names.sort();
+    names.dedup();
+    SkillFolders::Subfolders(names)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn files(paths: &[&str]) -> Vec<RepositoryFile> {
+        paths.iter().map(|path| RepositoryFile { path: path.to_string(), size: 1 }).collect()
+    }
+
+    #[test]
+    fn takes_a_folder_with_a_skill_file_as_one_skill() {
+        let listed = files(&["SKILL.md", "scripts/a.py", "sub/SKILL.md"]);
+        assert_eq!(find_skill_folders(&listed), SkillFolders::Itself);
+    }
+
+    #[test]
+    fn lists_the_direct_subfolders_with_a_skill_file_sorted() {
+        let listed = files(&["pdf/SKILL.md", "pdf/scripts/a.py", "docx/SKILL.md", "notes/readme.md", "a/b/SKILL.md", ".hidden/SKILL.md", "my skill/SKILL.md"]);
+        assert_eq!(find_skill_folders(&listed), SkillFolders::Subfolders(vec!["docx".into(), "pdf".into()]));
+    }
+
+    #[test]
+    fn lists_no_subfolder_for_a_folder_with_no_skill_file() {
+        assert_eq!(find_skill_folders(&files(&["readme.md", "docs/guide.md"])), SkillFolders::Subfolders(Vec::new()));
+        assert_eq!(find_skill_folders(&[]), SkillFolders::Subfolders(Vec::new()));
+    }
 
     #[test]
     fn gives_the_path_of_a_file_inside_the_skill_folder() {

@@ -1,5 +1,5 @@
-//! The programs of other makers that Heidrun needs on the computer: Herdr, which is required, and ngrok, which is
-//! optional and only for the mobile access. Heidrun installs neither of them. At the start, the web page asks which ones
+//! The programs of other makers that Heidrun Code needs on the computer: Herdr, which is required, and ngrok, which is
+//! optional and only for the mobile access. Heidrun Code installs neither of them. At the start, the web page asks which ones
 //! are installed, and shows a notice with the install command of each missing program (issue 546).
 
 use serde::Serialize;
@@ -12,17 +12,17 @@ use std::process::Stdio;
 pub struct ProgramStatus {
     /// True when the program is on this computer.
     pub is_installed: bool,
-    /// True when the program is on this computer, but its version is older than the version that Heidrun needs.
+    /// True when the program is on this computer, but its version is older than the version that Heidrun Code needs.
     pub is_too_old: bool,
 }
 
-/// The oldest version of Herdr that Heidrun works with, as major and minor numbers.
+/// The oldest version of Herdr that Heidrun Code works with, as major and minor numbers.
 const OLDEST_HERDR_VERSION: (u64, u64) = (0, 9);
 
-/// The state of each program that Heidrun needs.
+/// The state of each program that Heidrun Code needs.
 #[derive(Debug, Serialize, PartialEq)]
 pub struct RequiredProgramsStatus {
-    /// Herdr: required. Heidrun cannot show a terminal without it.
+    /// Herdr: required. Heidrun Code cannot show a terminal without it.
     pub herdr: ProgramStatus,
     /// ngrok: optional. Only the mobile access uses it.
     pub ngrok: ProgramStatus,
@@ -67,7 +67,7 @@ fn coding_agent_ids_from_commands(commands: &str) -> Vec<String> {
 }
 
 /// Tells which programs are installed. Herdr is searched like `herdr::herdr_bin` does, then on the `PATH` of the login
-/// shell, because Heidrun starts the Herdr server through the login shell. ngrok is searched like the mobile server does.
+/// shell, because Heidrun Code starts the Herdr server through the login shell. ngrok is searched like the mobile server does.
 #[tauri::command]
 pub async fn required_programs_status() -> RequiredProgramsStatus {
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
@@ -100,7 +100,7 @@ async fn herdr_version_output(herdr_path: &Path, shell: &str) -> String {
 }
 
 /// True when `version_output` gives a version older than `OLDEST_HERDR_VERSION`. When the output has no version that
-/// Heidrun can read, the version is not called too old, so that a change of the output never blocks the end user.
+/// Heidrun Code can read, the version is not called too old, so that a change of the output never blocks the end user.
 fn is_version_too_old(version_output: &str) -> bool {
     let version = version_output
         .split_whitespace()

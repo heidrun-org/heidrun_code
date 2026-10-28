@@ -69,7 +69,7 @@ async function mountAboutModal() {
   return wrapper;
 }
 
-/** Mounts the splash screen, and waits until Heidrun has told if the command line option `--no-splash-screen` is present. */
+/** Mounts the splash screen, and waits until Heidrun Code has told if the command line option `--no-splash-screen` is present. */
 async function mountSplashScreen() {
   const wrapper = mount(SplashScreen);
   await flushPromises();

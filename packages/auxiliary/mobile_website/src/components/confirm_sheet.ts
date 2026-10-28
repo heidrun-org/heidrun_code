@@ -8,7 +8,7 @@ import { HtmlEscape } from '../html_escape';
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Draws the sheet that the guards of Heidrun ask for. It shows the whole command, and a second tap confirms.
+ * Draws the sheet that the guards of Heidrun Code ask for. It shows the whole command, and a second tap confirms.
  */
 export class ConfirmSheet {
 	/**

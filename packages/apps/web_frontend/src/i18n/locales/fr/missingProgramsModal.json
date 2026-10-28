@@ -1,15 +1,15 @@
 {
-  "title": "Heidrun a besoin de programmes qui ne sont pas installés",
+  "title": "Heidrun Code a besoin de programmes qui ne sont pas installés",
   "required": "Obligatoire",
   "optional": "Facultatif",
   "installWith": "Pour l’installer, lance cette commande dans un terminal :",
   "continue": "Continuer",
   "herdr.name": "Herdr",
-  "herdr.reason": "Heidrun ne peut afficher ni terminal ni agent de code sans Herdr.",
+  "herdr.reason": "Heidrun Code ne peut afficher ni terminal ni agent de code sans Herdr.",
   "herdr.after": "Après l’installation, clique sur « Démarrer Herdr » dans la fenêtre principale.",
-  "herdr.tooOld.reason": "Heidrun a besoin de Herdr 0.9 ou plus récent, et le Herdr de cet ordinateur est plus ancien. Heidrun ne peut afficher ni terminal ni agent de code avec lui.",
-  "herdr.tooOld.after": "Après la mise à jour, quitte Heidrun et ouvre-le de nouveau.",
+  "herdr.tooOld.reason": "Heidrun Code a besoin de Herdr 0.9 ou plus récent, et le Herdr de cet ordinateur est plus ancien. Heidrun Code ne peut afficher ni terminal ni agent de code avec lui.",
+  "herdr.tooOld.after": "Après la mise à jour, quitte Heidrun Code et ouvre-le de nouveau.",
   "ngrok.name": "ngrok",
-  "ngrok.reason": "Seul l’accès mobile utilise ngrok. Toutes les autres parties de Heidrun fonctionnent sans lui.",
+  "ngrok.reason": "Seul l’accès mobile utilise ngrok. Toutes les autres parties de Heidrun Code fonctionnent sans lui.",
   "ngrok.after": "Puis crée un compte gratuit sur ngrok.com, et lance la commande ngrok config add-authtoken suivie de ton jeton. Cet avis ne s’affiche plus pour ngrok."
 }

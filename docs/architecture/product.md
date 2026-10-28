@@ -5,21 +5,21 @@
 - Status: Maintained description of the product
 - Related framing: [Project instructions](../../AGENTS.md)
 
-Heidrun is an integrated development environment for the age of artificial intelligence. It works with many coding agents at the same time, and it is built on top of [Herdr](https://herdr.dev).
+Heidrun Code is an integrated development environment for the age of artificial intelligence. It works with many coding agents at the same time, and it is built on top of [Herdr](https://herdr.dev).
 
-## What Heidrun is not
+## What Heidrun Code is not
 
-- Heidrun is not only a graphical layer on top of Herdr.
-- Heidrun does not rebuild Visual Studio Code.
-- Heidrun does not modify code by hand. The human does not write code in Heidrun. The coding agents write the code.
+- Heidrun Code is not only a graphical layer on top of Herdr.
+- Heidrun Code does not rebuild Visual Studio Code.
+- Heidrun Code does not modify code by hand. The human does not write code in Heidrun Code. The coding agents write the code.
 
-## Why Heidrun is an integrated development environment
+## Why Heidrun Code is an integrated development environment
 
-Today, every coding agent has a textual client, which is a command line interface. Heidrun is the integrated development environment on top of these textual clients.
+Today, every coding agent has a textual client, which is a command line interface. Heidrun Code is the integrated development environment on top of these textual clients.
 
 In the age of artificial intelligence, an integrated development environment is not a place where the developer types and reads code. It is a place where the developer talks, and the coding agents do the work.
 
-## What the user can inspect in Heidrun
+## What the user can inspect in Heidrun Code
 
 The user can only read. The user cannot change the code by hand. The user can:
 
@@ -31,7 +31,7 @@ The user can only read. The user cannot change the code by hand. The user can:
 
 This lets the user keep track of what happens in the project. Artificial intelligence is very good at this tracking work.
 
-## How the developer works with Heidrun
+## How the developer works with Heidrun Code
 
 The developer talks to the integrated development environment. Through the coding agents, the integrated development environment:
 

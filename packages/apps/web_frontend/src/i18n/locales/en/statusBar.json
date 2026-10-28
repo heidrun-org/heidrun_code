@@ -3,7 +3,7 @@
   "estimatedCost": "estimated cost",
   "costValue": "${value}",
   "claudeQuotaUnspecified": "Claude quota: unspecified",
-  "claudeQuotaUnspecifiedTitle": "Heidrun has not received quota figures from Claude Code's status line yet. This does not mean your usage is zero.",
+  "claudeQuotaUnspecifiedTitle": "Heidrun Code has not received quota figures from Claude Code's status line yet. This does not mean your usage is zero.",
   "offline": "offline",
   "expectedNow": "Expected usage now",
   "resetsAt": "Resets at {time}",

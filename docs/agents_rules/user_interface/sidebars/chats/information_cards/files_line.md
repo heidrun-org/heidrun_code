@@ -1,12 +1,12 @@
 # Past chats sidebar section: the files line
 
 - Created: 13 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../../../glossary/index.md)
+- Related rules: [Glossary of Heidrun Code](../../../../glossary/index.md)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../../../glossary/index.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../../../glossary/index.md).
 
 - The files line has an information card. The files line gets a background while the pointer is over it, and the information card opens at the left of the files line on a click, or on the key Enter or the key Space when the files line has the keyboard focus. The width of the background of the files line, and the background of a pressed row, are in [sidebars_appearance.md](../../../../web_styling/sidebars_appearance.md). The information card does not open when the pointer only moves over the files line. The program places the information card again each time its height changes (for example when a row expands) and each time the window changes its size, so the information card never goes out of the window. The information card stays open until a second click on the files line, the key Escape, a click outside, or the loss of the keyboard focus closes it.
 - The information card has a title with the files icon and the number of files written, then one row for each file. A row shows an icon that fits the kind of the file, then two lines: the name of the file in medium weight, and the folders of the file in muted color under it. A file at the root of the repository shows `./` as its folders, so every row has two lines. A line that does not fit shows its beginning with an ellipsis, on one line. While the pointer is over the row, a line that does not fit scrolls to its end, after a short wait, and it shows its beginning again when the pointer leaves. The scroll is a CSS transition of the transform of the text, at a constant speed, so the browser moves the text by fractions of a pixel without JavaScript frames. At the right of the row, a Bootstrap button group holds two buttons that show only an icon: the VS Code icon, and the GitHub or GitLab icon. Each button has a title that says what it does, without the path of the file: "Open in VS Code" and "Open in GitHub". The backgrounds of a row and of a button under the pointer are in [sidebars_appearance.md](../../../../web_styling/sidebars_appearance.md). The information card uses the Bootstrap list group, so its rows are like the rows of the list.

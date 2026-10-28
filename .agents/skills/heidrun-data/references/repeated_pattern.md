@@ -3,8 +3,8 @@
 - Created: 16 October 2026
 - Last updated: 16 October 2026
 - Status: Maintained method and first result
-- Related framing: [Project instructions](https://github.com/heidrun-org/heidrun/blob/dev_jerome/AGENTS.md)
-- Related rules: [Rules for a good metric](https://github.com/heidrun-org/heidrun/blob/dev_jerome/docs/analytics/metrics_rules.md), [The four data layers](https://github.com/heidrun-org/heidrun/blob/dev_jerome/docs/statistics/the_four_data_layers.md)
+- Related framing: [Project instructions](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/AGENTS.md)
+- Related rules: [Rules for a good metric](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/analytics/metrics_rules.md), [The four data layers](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/statistics/the_four_data_layers.md)
 - Related issue: [issue 561](https://github.com/heidrun-org/heidrun/issues/561), [issue 564](https://github.com/heidrun-org/heidrun/issues/564)
 
 This file answers one question: can we learn from the chat sessions, for example find the patterns that the developer repeats, with the current data layer? It gives the answer, the proof on this repository, and the method in three steps.
@@ -32,7 +32,7 @@ A read-only script of 60 lines of Python read the 332 Claude Code chat files of 
 | Error "Permission ... denied by the Claude Code auto mode classifier" | 20 | A rule for `AGENTS.md`, or a permission to add |
 | "[request interrupted by user]" | 61 | A signal: the developer stopped the coding agent 61 times in six days |
 
-The counts are facts, as [the rules for a good metric](https://github.com/heidrun-org/heidrun/blob/dev_jerome/docs/analytics/metrics_rules.md) ask. The column "What it becomes" is a proposal, and the developer decides.
+The counts are facts, as [the rules for a good metric](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/analytics/metrics_rules.md) ask. The column "What it becomes" is a proposal, and the developer decides.
 
 ## The method, in three steps
 

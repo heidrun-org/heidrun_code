@@ -32,7 +32,7 @@ export class VideoRecorder {
 
 	/**
 	 * Finds the window of an application.
-	 * @param owner The name of the application, for example `Heidrun`.
+	 * @param owner The name of the application, for example `Heidrun Code`.
 	 * @returns The identifier and the bounds of the largest visible window of the application.
 	 * @throws An `Error` when the application has no visible window.
 	 */

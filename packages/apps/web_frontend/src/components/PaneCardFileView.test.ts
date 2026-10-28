@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 
@@ -60,7 +61,7 @@ describe("PaneCard with the file view (issue #784)", () => {
     expect(wrapper.findAll("header")).toHaveLength(1);
     const header = wrapper.get("header.head");
     expect(header.find(".btn-group").exists()).toBe(true);
-    expect(header.find(".switch").exists()).toBe(true);
+    expect(header.find(".switch").exists()).toBe(false);
     expect(header.find("button[aria-haspopup='menu']").exists()).toBe(true);
     const fileView = wrapper.get(".file-view");
     expect(fileView.find("button").exists()).toBe(false);
@@ -69,14 +70,13 @@ describe("PaneCard with the file view (issue #784)", () => {
     wrapper.unmount();
   });
 
-  it("orders the header: the name, the short path, Preview and Raw, the switch, the menu, then the buttons of the pane", async () => {
+  it("orders the header: the name, the short path, Preview and Raw, the menu, then the buttons of the pane", async () => {
     const wrapper = await mountFileViewPane();
     const header = wrapper.get("header.head").element;
     const elements = [
       header.querySelector(".name"),
       header.querySelector(".sub"),
       header.querySelector(".btn-group"),
-      header.querySelector(".switch"),
       header.querySelector("button[aria-haspopup='menu']"),
       header.querySelector(".tools"),
     ];

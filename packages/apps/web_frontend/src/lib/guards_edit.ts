@@ -106,7 +106,7 @@ export function isBuiltInGuardEnabled(guards: ProjectGuardsConfig | undefined, k
 
 /**
  * The guards in the new format: the old lists `block` and `confirm` become guards of the key `projectGuards`, and the two old
- * keys are left out. A guard from an old list keeps the name that Heidrun gave it, with " (2)" added when the name is used.
+ * keys are left out. A guard from an old list keeps the name that Heidrun Code gave it, with " (2)" added when the name is used.
  */
 export function migrateGuards(guards: ProjectGuardsConfig | undefined): ProjectGuardsConfig {
   const migrated: ProjectGuard[] = [];

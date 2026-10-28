@@ -2,7 +2,7 @@
   "connection": "Connexion",
   "starting": "Démarrage de Herdr…",
   "notResponding": "Herdr ne répond pas",
-  "intro": "Heidrun peut démarrer le serveur Herdr en arrière-plan, sans terminal. Le serveur s’arrête quand tu quittes Heidrun. Quand le réglage « Garder les agents actifs après avoir quitté » est activé, le serveur continue de tourner jusqu’à {command} ou au redémarrage du Mac.",
+  "intro": "Heidrun Code peut démarrer le serveur Herdr en arrière-plan, sans terminal. Le serveur s’arrête quand tu quittes Heidrun Code. Quand le réglage « Garder les agents actifs après avoir quitté » est activé, le serveur continue de tourner jusqu’à {command} ou au redémarrage du Mac.",
   "start": "Démarrer Herdr",
   "startTitle": "Démarrer Herdr",
   "retry": "Réessayer",

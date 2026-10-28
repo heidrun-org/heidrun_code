@@ -1,9 +1,9 @@
-# The name of Heidrun
+# The name of Heidrun Code
 
 - Created: 13 October 2026
-- Last updated: 13 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
-- Related framing: [Project instructions](../../AGENTS.md) and [Marketing of Heidrun](README.md)
+- Related framing: [Project instructions](../../AGENTS.md) and [Marketing of Heidrun Code](README.md)
 - Related issue: [issue 337](https://github.com/heidrun-org/heidrun/issues/337)
 
 ## The origin of the name
@@ -15,5 +15,5 @@ Heiðrún is a goat in Norse mythology. She stands on top of Valhalla and eats t
 
 ## The name
 
-- Write the name of the application as "Heidrun", without the special letters.
+- Write the name of the application as "Heidrun Code", without the special letters. The whole project is "Heidrun Organization" (see [heidrun_names.md](../agents_rules/glossary/heidrun_names.md)).
 - Write the name of the goat as "Heiðrún", with the special letters, when the text is about the mythology.

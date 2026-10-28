@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { buildStatusItemPayload, type StatusItemInput } from "./status_item";
 
@@ -12,7 +13,7 @@ const input: StatusItemInput = {
   now: 1_000_000 + 2 * 60_000,
   blockedLimitMs: 5 * 60_000,
   titles: { blocked: "Blocked", done: "Finished", working: "Working" },
-  openLabel: "Open Heidrun",
+  openLabel: "Open Heidrun Code",
   emptyLabel: "No agent",
 };
 

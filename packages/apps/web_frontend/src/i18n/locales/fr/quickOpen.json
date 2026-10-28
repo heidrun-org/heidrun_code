@@ -1,0 +1,10 @@
+{
+  "dialogLabel": "Ouvrir un fichier du projet",
+  "inputLabel": "Nom du fichier à ouvrir",
+  "placeholder": "Tape une partie du nom du fichier…",
+  "resultsLabel": "Fichiers du projet",
+  "loading": "Lecture des fichiers du projet…",
+  "noFile": "Aucun fichier ne correspond à « {query} »",
+  "openTitle": "Ouvrir le fichier dans un panneau de fichier",
+  "noFolder": "Sélectionne d’abord un panneau ou un espace de travail : la boîte cherche dans son projet"
+}

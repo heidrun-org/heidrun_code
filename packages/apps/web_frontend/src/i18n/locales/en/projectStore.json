@@ -1,3 +1,4 @@
 {
-  "invalidConfig": "{path} is not valid: {reason}"
+  "invalidConfig": "{path} is not valid: {reason}",
+  "launcherFolderMissing": "The custom launcher {launcher} does not run: the folder {folder} does not exist in the workspace {workspace}."
 }

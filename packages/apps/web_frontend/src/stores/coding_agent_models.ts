@@ -1,7 +1,7 @@
 // The models of each coding agent, as the window Create a custom launcher offers them. A coding agent whose tool can list
 // its models gives them through the Tauri command `coding_agent_models_run`. Until the tool answers, and when it fails
 // (not installed, not signed in, no answer), the window keeps the fixed list of the coding agent. Nothing is saved: the
-// tool is asked again each time that the window opens, so a new model of the tool shows up without an update of Heidrun.
+// tool is asked again each time that the window opens, so a new model of the tool shows up without an update of Heidrun Code.
 import { invoke } from "@tauri-apps/api/core";
 import { reactive } from "vue";
 import type { CodingAgentModel } from "../lib/coding_agent_models";

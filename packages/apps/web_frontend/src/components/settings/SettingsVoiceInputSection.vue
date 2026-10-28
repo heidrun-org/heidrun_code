@@ -2,13 +2,14 @@
 import { computed, onMounted, watch } from "vue";
 import SettingsOptionHelp from "./SettingsOptionHelp.vue";
 import SettingsSwitchRow from "./SettingsSwitchRow.vue";
+import SettingsVoiceWordsEditor from "./SettingsVoiceWordsEditor.vue";
 import { VoiceInput } from "../../lib/voice_input";
 import { settings } from "../../stores/settings";
 import { voiceInput } from "../../stores/voice_input";
 import { locale, t } from "../../i18n/index";
 
-// The Settings section of the voice input (issue 662): the switch, the language of the speech, and the Whisper model with the
-// state of its download.
+// The Settings section of the voice input (issue 662): the switch, the language of the speech, the Whisper model with the
+// state of its download, and the word replacement list (issue 836).
 
 /** The blocks of the information card of the option "Enable voice input", in the order of the card. */
 const ENABLE_HELP_BLOCKS = [
@@ -131,5 +132,7 @@ onMounted(() => {
         </div>
       </template>
     </div>
+
+    <SettingsVoiceWordsEditor />
   </div>
 </template>

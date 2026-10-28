@@ -1,13 +1,13 @@
-# User interface of Heidrun: Statistics window, tab "Work of one person"
+# User interface of Heidrun Code: Statistics window, tab "Work of one person"
 
 - Created: 15 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: work of one person](../../glossary/person_work.md), [Statistics window](statistics_window.md), [layout.md](layout.md), [Source "Git history"](statistics_git_history.md), [Source "AI cost"](statistics_ai_cost.md), [Totals](statistics_totals.md), [Inputs](statistics_person_work_inputs.md), [Legend filter](statistics_person_work_legend_filter.md), [Workspace selector](statistics_person_work_workspace.md), [Slot length](statistics_person_work_slots.md)
+- Related rules: [Glossary of Heidrun Code: work of one person](../../glossary/person_work.md), [Statistics window](statistics_window.md), [layout.md](layout.md), [Source "Git history"](statistics_git_history.md), [Source "AI cost"](statistics_ai_cost.md), [Totals](statistics_totals.md), [Inputs](statistics_person_work_inputs.md), [Legend filter](statistics_person_work_legend_filter.md), [Workspace selector](statistics_person_work_workspace.md), [Slot length](statistics_person_work_slots.md)
 - Related issue: [issue 482](https://github.com/heidrun-org/heidrun/issues/482), [issue 523](https://github.com/heidrun-org/heidrun/issues/523), [issue 559](https://github.com/heidrun-org/heidrun/issues/559), [issue 616](https://github.com/heidrun-org/heidrun/issues/616), [issue 622](https://github.com/heidrun-org/heidrun/issues/622), [issue 629](https://github.com/heidrun-org/heidrun/issues/629), [issue 707](https://github.com/heidrun-org/heidrun/issues/707)
 
-This file is a part of the rules of the window of Heidrun. The words are defined in [glossary/person_work.md](../../glossary/person_work.md). The rules of the source "AI cost" are in [statistics_ai_cost.md](statistics_ai_cost.md).
+This file is a part of the rules of the window of Heidrun Code. The words are defined in [glossary/person_work.md](../../glossary/person_work.md). The rules of the source "AI cost" are in [statistics_ai_cost.md](statistics_ai_cost.md).
 
 ## The tab
 
@@ -31,8 +31,8 @@ This file is a part of the rules of the window of Heidrun. The words are defined
 - Each bar has two colors, one on top of the other (`barmode` is `stack`), and a legend names them. Git history: the two colors that the metric chooses ([statistics_git_history.md](statistics_git_history.md)). AI cost: the cost of Claude Code of the slot below, and the cost of Codex of the slot above. The colors of both sources are in [statistics_and_settings_appearance.md](../../web_styling/statistics_and_settings_appearance.md).
 - The vertical axis starts at 0. For the Git history, it shows whole numbers only, and it goes up one by one while the highest bar is 8 or less. For the AI cost, it shows US dollars with the sign "$", or tokens with one unit for all ticks. A higher bar lets Plotly.js choose the step.
 - Both sources follow [statistics_charts.md](statistics_charts.md): a chart legend above the bars, and a chart information card beside the bar under the pointer. The title of the card is the slot, for example "Monday, October 12" for a day. Git history: the card has no total, and one row for each color of the metric, each with its number, and a color that has 0 has no row. AI cost: the card has the total of the slot, and one row for each coding agent that has a cost or tokens in the slot, with its amount in the unit that is chosen.
-- Heidrun remembers every choice of the inputs ([statistics_remembered_selections.md](statistics_remembered_selections.md)).
-- A click on a name of the chart legend filters the chart, and Heidrun remembers the filter between two runs. The rules are in [statistics_person_work_legend_filter.md](statistics_person_work_legend_filter.md).
+- Heidrun Code remembers every choice of the inputs ([statistics_remembered_selections.md](statistics_remembered_selections.md)).
+- A click on a name of the chart legend filters the chart, and Heidrun Code remembers the filter between two runs. The rules are in [statistics_person_work_legend_filter.md](statistics_person_work_legend_filter.md).
 - The title of the chart gives the name of the person for the Git history ("{person}: commits and pull requests, in slots of 1 day", or "{person}: lines added and lines deleted, in slots of 1 day"), and "AI cost in slots of 1 day, for each coding agent" (or "Tokens in slots of…") for the AI cost.
 
 ## What counts, and where the data comes from

@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress';
 import identity from '../../../../../data/identity.json';
 import { LinkPreviewCards } from './link_preview_cards';
 
-const base = '/heidrun/';
+const base = '/heidrun_code/';
 const siteAddress = `https://heidrun-org.github.io${base}`;
 
 export default defineConfig({
@@ -74,11 +74,28 @@ export default defineConfig({
 				items: [
 					{ text: 'Introduction', link: '/documentation/' },
 					{ text: 'Keyboard shortcuts', link: '/documentation/shortcuts' },
+					{ text: 'Move between panes you have used', link: '/documentation/pane_focus_history' },
+					{ text: 'Work with workspaces, tabs, and panes', link: '/documentation/workspaces_tabs_and_panes' },
+					{ text: 'Open and edit files', link: '/documentation/write_and_review_files' },
+					{ text: 'Find files and project information', link: '/documentation/sidebars_and_search' },
+					{ text: 'Search code hosting issues and pull requests', link: '/documentation/code_hosting' },
+					{ text: 'Find and review past chats', link: '/documentation/past_chats' },
+					{ text: 'Change Heidrun Code settings', link: '/documentation/settings' },
+					{ text: 'Explore activity and work statistics', link: '/documentation/statistics' },
+					{ text: 'Read Statistics charts', link: '/documentation/read_statistics_charts' },
+					{ text: 'Find and install skills', link: '/documentation/find_and_install_skills' },
+					{ text: 'Send images with the composition bar', link: '/documentation/send_images_with_the_composition_bar' },
+					{ text: 'Drop images on a composition bar', link: '/documentation/drop_images_on_a_composition_bar' },
+					{ text: 'Use voice input across panes', link: '/documentation/voice_input_across_panes' },
+					{ text: 'Review recent user activity', link: '/documentation/user_activity' },
+					{ text: 'Run a launcher', link: '/documentation/launchers' },
+					{ text: 'Use Heidrun Code from a phone', link: '/documentation/mobile_access' },
+					{ text: 'Understand the window and status bar', link: '/documentation/window_and_status' },
 				],
 			},
 		],
 		socialLinks: [
-			{ icon: 'github', link: 'https://github.com/heidrun-org/heidrun' },
+			{ icon: 'github', link: 'https://github.com/heidrun-org/heidrun_code' },
 		],
 	},
 });

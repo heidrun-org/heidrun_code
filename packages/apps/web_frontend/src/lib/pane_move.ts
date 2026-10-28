@@ -25,6 +25,14 @@ export type PaneMovePlanInput = {
 	side: PaneMoveSide;
 };
 
+/** What the developer dropped on the plus button of the tab bar. */
+export type PaneMoveNewTabPlanInput = {
+	/** The pane that the developer dragged, for example `w1:p3`. */
+	paneId: string;
+	/** The workspace that holds the dragged pane and gets the new tab. */
+	workspaceId: string;
+};
+
 /** One call to Herdr. The steps run one after the other, in the order of the list. */
 export type PaneMoveStep =
 	| {
@@ -102,6 +110,16 @@ export class PaneMove {
 			case 'right':
 				return { left: middleX, top: box.top, right: box.right, bottom: box.bottom };
 		}
+	}
+
+	/**
+	 * Lists the Herdr steps that move a pane into a new tab: one `pane.move` to a new tab. The terminal of the pane keeps
+	 * running.
+	 * @param input The dragged pane and its workspace.
+	 * @returns The steps, in the order to run them.
+	 */
+	static planNewTab(input: PaneMoveNewTabPlanInput): PaneMoveStep[] {
+		return [{ kind: 'move-to-new-tab', paneId: input.paneId, workspaceId: input.workspaceId }];
 	}
 
 	/**

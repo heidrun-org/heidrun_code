@@ -18,7 +18,7 @@ const text = ref(selectedMacro.value?.text ?? '');
 const inProject = ref(false);
 const isSaving = ref(false);
 
-// Another program, such as heidrun_ctrl, may delete the macro that is open.
+// Another program, such as heidrun_code_ctrl, may delete the macro that is open.
 watch(selectedMacro, (macro) => {
   if (isNew === false && macro === undefined) {
     close();

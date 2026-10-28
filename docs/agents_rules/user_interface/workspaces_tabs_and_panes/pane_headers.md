@@ -1,17 +1,17 @@
-# User interface of Heidrun: pane headers
+# User interface of Heidrun Code: pane headers
 
 - Created: 19 October 2026
 - Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md), [Panes](panes.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Panes](panes.md)
 - Related issue: [issue 345](https://github.com/heidrun-org/heidrun/issues/345), [issue 475](https://github.com/heidrun-org/heidrun/issues/475), [issue 690](https://github.com/heidrun-org/heidrun/issues/690), [issue 733](https://github.com/heidrun-org/heidrun/issues/733), [issue 734](https://github.com/heidrun-org/heidrun/issues/734), [issue 786](https://github.com/heidrun-org/heidrun/issues/786), [issue 810](https://github.com/heidrun-org/heidrun/issues/810), [issue 586](https://github.com/heidrun-org/heidrun/issues/586)
 
 This file gives the rules of the pane header, its buttons, and its usage wheel.
 
 ## Pane header buttons
 
-- Every pane header has a button to enter or leave Zen Mode, including pinned panes and panes without focus. Changing focus does not change the visibility or position of the Zen button. Zen Mode shows one pane across the window and hides the top bar, tab bar, sidebars, sidebar icon bars, and status bar. It preserves pane positions, split sizes, and pins; the pane header and composition bar stay unchanged. Closing the visible pane exits Zen Mode. Heidrun starts in normal mode and never enters macOS full-screen.
+- Every pane header has a button to enter or leave Zen Mode, including pinned panes and panes without focus. Changing focus does not change the visibility or position of the Zen button. Zen Mode shows one pane across the window and hides the top bar, tab bar, sidebars, sidebar icon bars, and status bar. It preserves pane positions, split sizes, and pins; the pane header and composition bar stay unchanged. Closing the visible pane exits Zen Mode. Heidrun Code starts in normal mode and never enters macOS full-screen.
 
 - The buttons and the usage wheel in a pane header appear only while the pointer is anywhere over that pane, including its terminal, header, and composition bar. The same rule applies to every pane, including panes without focus and pinned panes. Moving the pointer between the terminal and the header keeps the buttons visible and usable. Leaving the pane hides the buttons and the usage wheel with a 150 millisecond fade; entering the pane shows them with the same fade. A hidden button and a hidden usage wheel cannot receive pointer clicks or keyboard focus. The header, the title, and the space occupied by the buttons and by the usage wheel remain in place. Changing pane focus alone never changes button visibility ([issue 734](https://github.com/heidrun-org/heidrun/issues/734)). The usage wheel is the first item of the same group as the buttons, so it follows the same rule ([issue 786](https://github.com/heidrun-org/heidrun/issues/786)).
 

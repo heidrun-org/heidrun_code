@@ -27,5 +27,6 @@
   "copied": "Copié : {path}",
   "fileMenu.label": "Menu du fichier ou du dossier",
   "fileMenu.copyAbsolutePath": "Copier le chemin absolu",
-  "fileMenu.copyRelativePath": "Copier le chemin relatif"
+  "fileMenu.copyRelativePath": "Copier le chemin relatif",
+  "fileMenu.chatAboutFile": "Discuter de ce fichier"
 }

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { USER_ACTIVITY_SLOT_LENGTHS, type UserActivitySlotLengthId } from "./user_activity_slots";
 import { UserActivityVerticalAxis } from "./user_activity_vertical_axis";

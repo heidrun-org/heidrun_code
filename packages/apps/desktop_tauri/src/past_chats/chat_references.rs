@@ -9,8 +9,10 @@
 //!
 //! The package reads GitHub only. A repository on GitLab keeps its own path: see `docs/agents_rules/data_layer_access.md`.
 
+use crate::application_log::{data_layer_call, github_points_details, no_details, row_count};
 use data_layer_code_hosting::{
     default_database_path, find_issues_by_numbers, find_pull_requests_by_numbers, refresh_code_hosting, Issue, PullRequest,
+    SynchronizationReport,
 };
 use serde::Serialize;
 use std::path::Path;
@@ -64,13 +66,19 @@ pub async fn chat_references_find(
 type RefreshFn = dyn Fn(&Path, &str) -> Result<(), String>;
 
 fn refresh_code_hosting_for_chats(database_path: &Path, repository: &str) -> Result<(), String> {
-    refresh_code_hosting(database_path, repository).map(|_| ())
+    let refresh = || refresh_code_hosting(database_path, repository);
+    let details = |report: &SynchronizationReport| {
+        let points = report.github_points;
+        github_points_details(points.query_count, points.cost, points.remaining)
+    };
+    data_layer_call("code_hosting", "refresh_code_hosting", refresh, details).map(|_| ())
 }
 
 /// Finds the repository of `folder`, then refreshes its rows with `refresh`. A failure of GitHub does not fail the call: the
 /// stored rows are still read, and the message is in the answer.
 fn synchronize(folder: &Path, database_path: &Path, refresh: &RefreshFn) -> Result<ChatReferencesSynchronization, String> {
-    let repository = data_layer_source_control::find_repository(folder)?;
+    let find = || data_layer_source_control::find_repository(folder);
+    let repository = data_layer_call("source_control", "find_repository", find, no_details)?;
     // Two commands that write the SQLite file at the same time would fail with "database is locked". The command line
     // heidrun_data takes the same lock.
     let _guard = heidrun_data::lock_database(database_path)?;
@@ -81,8 +89,18 @@ fn synchronize(folder: &Path, database_path: &Path, refresh: &RefreshFn) -> Resu
 /// Reads the rows of the numbers asked from the SQLite file at `database_path`.
 fn find(database_path: &Path, repository: &str, issues: &[i64], pull_requests: &[i64]) -> Result<ChatReferenceRows, String> {
     Ok(ChatReferenceRows {
-        issues: find_issues_by_numbers(database_path, repository, issues)?,
-        pull_requests: find_pull_requests_by_numbers(database_path, repository, pull_requests)?,
+        issues: data_layer_call(
+            "code_hosting",
+            "find_issues_by_numbers",
+            || find_issues_by_numbers(database_path, repository, issues),
+            row_count,
+        )?,
+        pull_requests: data_layer_call(
+            "code_hosting",
+            "find_pull_requests_by_numbers",
+            || find_pull_requests_by_numbers(database_path, repository, pull_requests),
+            row_count,
+        )?,
     })
 }
 

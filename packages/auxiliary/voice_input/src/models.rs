@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 /// The address of the folder of the official model files of whisper.cpp on Hugging Face.
 pub const MODELS_BASE_URL: &str = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main";
 
-/// The model that Heidrun proposes first. On the computer of the developer, it changed a sentence of 5 seconds into text in
+/// The model that Heidrun Code proposes first. On the computer of the developer, it changed a sentence of 5 seconds into text in
 /// 0.36 second, and the model `tiny`, which is faster, made a mistake in the sentence (issue 662).
 pub const DEFAULT_MODEL_ID: &str = "base";
 
@@ -18,7 +18,7 @@ pub const LANGUAGES: [&str; 20] = [
     "en", "es", "fr", "de", "it", "pt", "nl", "ru", "zh", "ja", "ko", "ar", "hi", "tr", "pl", "uk", "sv", "fi", "da", "no",
 ];
 
-/// One Whisper model: a file of whisper.cpp that Heidrun downloads on request.
+/// One Whisper model: a file of whisper.cpp that Heidrun Code downloads on request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WhisperModel {
     /// The identifier of the model, for example `base` or `large-v3-turbo`.

@@ -1,8 +1,9 @@
 //! Reads the saved state of the web page from the web view storage of the former application identifier.
 //!
-//! Heidrun 0.2.7 and older used the identifier `dev.edefiez.herdrdesk`. The web view keeps `localStorage` in a folder named
-//! after the identifier, so the next versions, which use `dev.heidrun-org.heidrun`, saw an empty `localStorage` and every
-//! option returned to its default value (issue 772). The former folder stays on the disk, and this file reads it.
+//! Heidrun Code 0.2.7 and older used the identifier `dev.edefiez.herdrdesk`, and Heidrun Code 0.3.0 and older used the identifier
+//! `dev.heidrun-org.heidrun`. The web view keeps `localStorage` in a folder named after the identifier, so a version with a
+//! new identifier sees an empty `localStorage` and every option returns to its default value (issue 772). The former folders
+//! stay on the disk, and this file reads them: the entries of the most recent identifier win.
 //!
 //! The program `/usr/bin/sqlite3` of macOS reads the SQLite file: the desktop application may not depend on an SQLite
 //! library, because only the packages of the data layer open SQLite files in the desktop application. The program reads a
@@ -14,21 +15,22 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-/// The identifier of installed Heidrun before the issue 702.
-const FORMER_IDENTIFIER: &str = "dev.edefiez.herdrdesk";
+/// The identifiers of installed Heidrun Code before the rename to Heidrun Code (issue 837) and before the issue 702, the most recent
+/// first.
+const FORMER_IDENTIFIERS: [&str; 2] = ["dev.heidrun-org.heidrun", "dev.edefiez.herdrdesk"];
 /// The program of macOS that reads an SQLite file.
 const SQLITE3: &str = "/usr/bin/sqlite3";
 /// The name of the SQLite file of the `localStorage` of one origin, and of its two companion files.
 const DATABASE_NAME: &str = "localstorage.sqlite3";
 const COMPANION_SUFFIXES: [&str; 2] = ["-wal", "-shm"];
-/// Only the entries of Heidrun are read.
+/// Only the entries of Heidrun Code are read.
 const KEY_PREFIX: &str = "heidrun.";
 
 /// Gives every call its own temporary folder, so that two reads at the same time do not mix their copies.
 static CALL_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-/// The entries of the `localStorage` of the former installed Heidrun, or no entry when there is none or when it cannot be read.
-/// Heidrun Development never reads the former storage of installed Heidrun: the two keep separate preferences.
+/// The entries of the `localStorage` of the former installed Heidrun Code, or no entry when there is none or when it cannot be read.
+/// Heidrun Code Development never reads the former storage of installed Heidrun Code: the two keep separate preferences.
 #[tauri::command]
 pub async fn former_web_view_storage_read() -> BTreeMap<String, String> {
     if crate::application_profile::is_development() {
@@ -37,8 +39,8 @@ pub async fn former_web_view_storage_read() -> BTreeMap<String, String> {
     let Some(home) = dirs::home_dir() else {
         return BTreeMap::new();
     };
-    let folder = home.join("Library/WebKit").join(FORMER_IDENTIFIER);
-    let result = tauri::async_runtime::spawn_blocking(move || read_entries(&folder)).await;
+    let web_kit_folder = home.join("Library/WebKit");
+    let result = tauri::async_runtime::spawn_blocking(move || read_former_entries(&web_kit_folder, &FORMER_IDENTIFIERS)).await;
     match result {
         Ok(Ok(entries)) => entries,
         Ok(Err(error)) => {
@@ -50,6 +52,18 @@ pub async fn former_web_view_storage_read() -> BTreeMap<String, String> {
             BTreeMap::new()
         }
     }
+}
+
+/// Reads the entries of the web view folders of several former identifiers. A key that two identifiers hold keeps the value of
+/// the first identifier of the list.
+fn read_former_entries(web_kit_folder: &Path, identifiers: &[&str]) -> Result<BTreeMap<String, String>, String> {
+    let mut entries = BTreeMap::new();
+    for identifier in identifiers {
+        for (key, value) in read_entries(&web_kit_folder.join(identifier))? {
+            entries.entry(key).or_insert(value);
+        }
+    }
+    Ok(entries)
 }
 
 /// Reads the entries of every `tauri://localhost` store in the web view folder of one application identifier.
@@ -88,7 +102,7 @@ fn find_databases(identifier_folder: &Path) -> Vec<PathBuf> {
     databases
 }
 
-/// Copies one store with its companion files into a temporary folder, reads the entries of Heidrun, and deletes the copy.
+/// Copies one store with its companion files into a temporary folder, reads the entries of Heidrun Code, and deletes the copy.
 fn read_database(database: &Path) -> Result<Vec<(String, String)>, String> {
     let copy_folder = std::env::temp_dir().join(format!(
         "heidrun-former-storage-{}-{}",
@@ -261,18 +275,37 @@ mod tests {
     }
 
     #[test]
+    fn the_most_recent_former_identifier_wins_and_the_older_one_fills_the_gaps() {
+        let web_kit_folder = test_folder("identifiers");
+        build_store(
+            &web_kit_folder.join("dev.heidrun-org.heidrun"),
+            b"tauri\0localhost\0",
+            &[("heidrun.settings", "blob", utf16_hex("{\"fontSize\":20}"))],
+        );
+        build_store(
+            &web_kit_folder.join("dev.edefiez.herdrdesk"),
+            b"tauri\0localhost\0",
+            &[("heidrun.settings", "blob", utf16_hex("{\"fontSize\":12}")), ("heidrun.notes", "blob", utf16_hex("[]"))],
+        );
+        let entries = read_former_entries(&web_kit_folder, &FORMER_IDENTIFIERS).unwrap();
+        assert_eq!(entries.get("heidrun.settings"), Some(&"{\"fontSize\":20}".to_string()));
+        assert_eq!(entries.get("heidrun.notes"), Some(&"[]".to_string()));
+        let _ = std::fs::remove_dir_all(&web_kit_folder);
+    }
+
+    #[test]
     fn a_folder_that_does_not_exist_gives_no_entry() {
         let folder = test_folder("missing");
         assert!(read_entries(&folder).unwrap().is_empty());
     }
 
-    /// Reads the real folder of the former installed Heidrun. It prints the names and the sizes only, never the values.
+    /// Reads the real folder of the former installed Heidrun Code. It prints the names and the sizes only, never the values.
     /// Run by hand with its full name: `cargo test live_reads_the_real_former_storage -- --ignored --nocapture`. A shorter
     /// filter such as `live_` also runs the other ignored tests of the application.
     #[test]
     #[ignore]
     fn live_reads_the_real_former_storage() {
-        let folder = dirs::home_dir().unwrap().join("Library/WebKit").join(FORMER_IDENTIFIER);
+        let folder = dirs::home_dir().unwrap().join("Library/WebKit").join(FORMER_IDENTIFIERS[0]);
         let entries = read_entries(&folder).unwrap();
         for (key, value) in &entries {
             println!("{key}: {} characters", value.chars().count());

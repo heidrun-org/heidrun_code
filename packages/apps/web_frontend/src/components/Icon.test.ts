@@ -8,7 +8,7 @@ describe("Icon", () => {
     expect(wrapper.classes()).toEqual(["bi", "bi-moon-stars"]);
   });
 
-  it("draws the goat of Heidrun as a vector image that takes the color and the size of the text", () => {
+  it("draws the goat of Heidrun Code as a vector image that takes the color and the size of the text", () => {
     const wrapper = mount(Icon, { props: { name: "heidrun-goat-only" } });
     expect(wrapper.element.tagName.toLowerCase()).toBe("svg");
     expect(wrapper.classes()).toEqual(["bi", "bi-heidrun-goat-only"]);

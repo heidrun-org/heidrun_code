@@ -1,10 +1,10 @@
-# User interface of Heidrun: Statistics window, tab "User activity", the stacked bars
+# User interface of Heidrun Code: Statistics window, tab "User activity", the stacked bars
 
 - Created: 15 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Charts of the Statistics window](statistics_charts.md), [Glossary of Heidrun: user activity](../../glossary/user_activity.md), [Tab "User activity"](statistics_user_activity.md), [Statistics window](statistics_window.md)
+- Related rules: [Charts of the Statistics window](statistics_charts.md), [Glossary of Heidrun Code: user activity](../../glossary/user_activity.md), [Tab "User activity"](statistics_user_activity.md), [Statistics window](statistics_window.md)
 - Related issue: [issue 498](https://github.com/heidrun-org/heidrun/issues/498), [issue 552](https://github.com/heidrun-org/heidrun/issues/552)
 
 This file is a part of the rules of the tab "User activity". It gives the rules of the stacked bars of the histogram of the user activity time: the parts, the colors, the legend, and the chart information card. The other rules of the tab are in [statistics_user_activity.md](statistics_user_activity.md).

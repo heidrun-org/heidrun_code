@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Bootstrap Icons glyph (https://icons.getbootstrap.com/). `name` is the Bootstrap Icons name without the `bi-` prefix.
-// The name `heidrun-goat-only` is the icon of Heidrun, the goat: its paths are the ones of `data/images/heidrun_icon_goat_only.svg`,
+// The name `heidrun-goat-only` is the icon of Heidrun Code, the goat: its paths are the ones of `data/images/heidrun_icon_goat_only.svg`,
 // drawn in the way of the Bootstrap Icons, so it takes the color and the size of the text around it.
 defineProps<{ name: string }>();
 </script>

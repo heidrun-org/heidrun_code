@@ -1,13 +1,13 @@
-# Glossary of Heidrun: pane focus history
+# Glossary of Heidrun Code: pane focus history
 
 - Created: 13 October 2026
-- Last updated: 20 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [User interface of Heidrun: pane focus history](../user_interface/workspaces_tabs_and_panes/pane_focus_history.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: pane focus history](../user_interface/workspaces_tabs_and_panes/pane_focus_history.md)
 - Related issue: [issue 380](https://github.com/heidrun-org/heidrun/issues/380), [issue 405](https://github.com/heidrun-org/heidrun/issues/405)
 
-This document gives one short definition for each word of the navigation through the panes that had the focus. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the navigation through the panes that had the focus. The other words of Heidrun Code are in [index.md](index.md).
 
 ### Top bar
 
@@ -15,7 +15,7 @@ The horizontal row at the very top of the window, above the three frames. From t
 
 ### Pane focus history
 
-The list that Heidrun keeps of the panes that had the focus, in order, with one current entry. It holds panes from every workspace and every tab. The Back button and the Forward button move the current entry. A long press on one of these two buttons opens a list of its entries.
+The list that Heidrun Code keeps of the panes that had the focus, in order, with one current entry. It holds panes from every workspace and every tab. The Back button and the Forward button move the current entry. A long press on one of these two buttons opens a list of its entries.
 
 ### Back button
 

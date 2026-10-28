@@ -1,6 +1,6 @@
 [package]
 name = "voice_input"
-version = "0.3.0"
+version = "0.3.5"
 description = "Records the microphone, downloads a Whisper model, and changes the speech into text on the computer"
 license = "MIT"
 edition = "2021"
@@ -25,13 +25,3 @@ serde = { version = "1", features = ["derive"] }
 [dev-dependencies]
 # The fake server of the download tests
 tokio = { version = "1", features = ["fs", "io-util", "net", "rt", "macros", "time", "sync"] }
-
-# The C++ engine of Whisper runs at full speed in a development build too: a debug build of it is about 30 times slower
-[profile.dev.package.whisper-rs-sys]
-opt-level = 3
-
-[profile.dev.package.whisper-rs]
-opt-level = 3
-
-[profile.dev.package.voice_input]
-opt-level = 3

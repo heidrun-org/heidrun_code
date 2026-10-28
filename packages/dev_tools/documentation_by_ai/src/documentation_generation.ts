@@ -22,11 +22,14 @@ export class DocumentationGeneration {
 	/**
 	 * Generates once and builds once, with no judge, retry or correction pass.
 	 * @param options Explicit settings for this request.
+	 * @param repositoryPath Checkout receiving the output; defaults to the checkout containing this package.
 	 * @returns The run record directory, or undefined for a dry run.
 	 */
-	static async run(options: DocumentationOptions): Promise<string | undefined> {
-		const repositoryPath = DocumentationGeneration.repositoryPath;
-		const packagePath = Path.resolve(__dirname, '..');
+	static async run(
+		options: DocumentationOptions,
+		repositoryPath = DocumentationGeneration.repositoryPath,
+	): Promise<string | undefined> {
+		const packagePath = Path.join(repositoryPath, 'packages/dev_tools/documentation_by_ai');
 		const files = DocumentationInputs.collect(repositoryPath, options);
 		const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${Crypto.randomUUID().slice(0, 8)}`;
 		const runPath = Path.join(packagePath, 'runs', runId);

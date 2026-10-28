@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { singularOf, topicWordsOf } from "./dynamic_topic_words";
 
@@ -7,6 +8,7 @@ describe("singularOf", () => {
     ["branches", "branch"],
     ["fixes", "fix"],
     ["queries", "query"],
+    ["caches", "cache"],
     ["status", "status"],
     ["process", "process"],
     ["analysis", "analysis"],
@@ -32,6 +34,10 @@ describe("topicWordsOf", () => {
       "dossier",
       "barre",
     ]);
+  });
+
+  it("drops the weak words that are not a topic (issue 270)", () => {
+    expect(topicWordsOf("hello, a little better and twice as poor: blah, silly, strange, the whole pound anywhere")).toEqual([]);
   });
 
   it("drops a stop word that shows up only after the plural mark is removed", () => {

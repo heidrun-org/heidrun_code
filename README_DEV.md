@@ -1,6 +1,6 @@
-# Heidrun: guide for developers
+# Heidrun Code: guide for developers
 
-This document is for the developers who work on Heidrun. It explains four tasks: how to build the application, how to launch the application during development, how to test the application, and how to release the application. The file `README.md` describes the application itself, and the file `AGENTS.md` gives the rules for changes to this repository.
+This document is for the developers who work on Heidrun Code. It explains four tasks: how to build the application, how to launch the application during development, how to test the application, and how to release the application. The file `README.md` describes the application itself, and the file `AGENTS.md` gives the rules for changes to this repository.
 
 All commands run in the root folder of the repository, on macOS.
 
@@ -17,14 +17,14 @@ pnpm build
 
 The command `pnpm build` builds the web frontend, then the Rust backend, then packages both into the application. The result is in `packages/apps/desktop_tauri/target/release/bundle/`:
 
-- `macos/Heidrun.app` is the application. Drag it into `/Applications`.
+- `macos/Heidrun Code.app` is the application. Drag it into `/Applications`.
 - `dmg/Heidrun_<version>_<architecture>.dmg` is the disk image.
 
 To build only the web frontend, run `pnpm build:web`.
 
 ## Install the current development version
 
-Quit Heidrun, then build the application from the current source:
+Quit Heidrun Code, then build the application from the current source:
 
 ```bash
 pnpm build
@@ -36,7 +36,7 @@ Open the folder containing the built application:
 open packages/apps/desktop_tauri/target/release/bundle/macos
 ```
 
-Drag `Heidrun.app` into `/Applications` and choose "Replace" when Finder asks. Then open Heidrun from `/Applications`.
+Drag `Heidrun Code.app` into `/Applications` and choose "Replace" when Finder asks. Then open Heidrun Code from `/Applications`.
 
 ## Launch the application during development
 
@@ -46,13 +46,13 @@ pnpm dev
 
 The command starts the web frontend with its development server on `http://localhost:1420`, then opens the application window. When you change a file of the web frontend, the window updates without a restart. When you change a Rust file, the command rebuilds the backend and restarts the window.
 
-To use the installed Heidrun for your daily work while you develop Heidrun, read [application_installations.md](docs/architecture/application_installations.md). It explains Heidrun Development, the separate application that `pnpm dev` starts, the resources that the two applications keep apart, and the commands to use both at the same time.
+To use the installed Heidrun Code for your daily work while you develop Heidrun Code, read [application_installations.md](docs/architecture/application_installations.md). It explains Heidrun Code Development, the separate application that `pnpm dev` starts, the resources that the two applications keep apart, and the commands to use both at the same time.
 
 To work on the web frontend alone, in a browser, run `pnpm dev:web`. Without the application window, the functions of the Rust backend are not available.
 
-To work on the mobile website alone, with no application window and no real computer behind it, run `pnpm --filter mobile_website dev`. The command starts a development server on `http://127.0.0.1:5183`, prints an address with a pairing key, and answers the calls of the page with four made-up coding agents. When you change a file of `packages/auxiliary/mobile_website/src`, the page reloads by itself and stays on the same screen, because the address names the screen. To use the real coding agents instead, start Heidrun once with `pnpm dev -- -- --no-splash-screen`, turn the mobile access on, copy the host name of the address that the section shows (for example `words-of-the-tunnel.ngrok-free.dev`), then run `MOBILE_API_TARGET=http://127.0.0.1:47823 MOBILE_API_HOST=<that host name> pnpm --filter mobile_website dev`. The host name changes each time that Heidrun opens the tunnel. The page then reloads when you change a file of the website, and you start Heidrun again only when the calls between the page and the application change. The development server sends no `Content-Security-Policy` header, so check the strict policy with the mobile server before you finish.
+To work on the mobile website alone, with no application window and no real computer behind it, run `pnpm --filter mobile_website dev`. The command starts a development server on `http://127.0.0.1:5183`, prints an address with a pairing key, and answers the calls of the page with four made-up coding agents. When you change a file of `packages/auxiliary/mobile_website/src`, the page reloads by itself and stays on the same screen, because the address names the screen. To use the real coding agents instead, start Heidrun Code once with `pnpm dev -- -- --no-splash-screen`, turn the mobile access on, copy the host name of the address that the section shows (for example `words-of-the-tunnel.ngrok-free.dev`), then run `MOBILE_API_TARGET=http://127.0.0.1:47823 MOBILE_API_HOST=<that host name> pnpm --filter mobile_website dev`. The host name changes each time that Heidrun Code opens the tunnel. The page then reloads when you change a file of the website, and you start Heidrun Code again only when the calls between the page and the application change. The development server sends no `Content-Security-Policy` header, so check the strict policy with the mobile server before you finish.
 
-To set an environment variable of the application during development, for example `HEIDRUN_DIR`, copy the file `.env.example` to a file named `.env` at the root of the repository, and remove the `#` at the start of the line of the variable. The file `.env.example` explains every variable that the application reads. Git ignores the file `.env`. Only a development build reads it, once at the start, so run `pnpm dev` again after a change. A variable that is already set in your shell keeps the value of the shell.
+To set an environment variable of the application during development, for example `HEIDRUN_CODE_DIR`, copy the file `.env.example` to a file named `.env` at the root of the repository, and remove the `#` at the start of the line of the variable. The file `.env.example` explains every variable that the application reads. Git ignores the file `.env`. Only a development build reads it, once at the start, so run `pnpm dev` again after a change. A variable that is already set in your shell keeps the value of the shell.
 
 ```bash
 cp .env.example .env
@@ -64,24 +64,26 @@ cp .env.example .env
 pnpm test
 ```
 
-The command runs the tests of the six packages, and ends with a non-zero exit code when a test fails. To run the tests of one package:
+The command runs the fast tests, and ends with a non-zero exit code when a test fails. The command `pnpm test:slow` runs the slow tests (the real Whisper model of `voice_input`, and `change_log_generator`). The command `pnpm test:full` runs the fast tests, then the slow tests, and the release steps use it. To run the tests of one package:
 
 | Command | Tests |
 | --- | --- |
+| `pnpm --filter documentation_by_ai test` | Fast documentation update tests: real temporary Git histories, generated ownership, source references, change hints and publication failure handling; no model calls or remote writes. |
 | `pnpm --filter web_frontend test` | The Vitest tests of `packages/apps/web_frontend`. The test files sit next to the code, and are named `*.test.ts`. |
 | `pnpm --filter desktop_tauri test` | Builds `mobile_website`, then runs the `cargo test` tests of `packages/apps/desktop_tauri`. The tests sit in a `#[cfg(test)]` module at the end of each source file. |
 | `pnpm --filter website_public test` | The Vitest tests of `packages/auxiliary/website_public`: the configuration, the pages, and a complete build of the website. The test files sit in the folder `tests`. |
 | `pnpm --filter coding_agent_cli test` | The Rust tests (`cargo test`) of `packages/auxiliary/coding_agent_cli`, with fake `claude` and `codex` commands. The tests of the command line sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
-| `pnpm --filter mobile_website test` | The Vitest tests of `packages/auxiliary/mobile_website`: the three screens, the bottom bar, the confirmation sheet, the pairing key, the address of each screen, the colors of the output, and the rules of a page under a strict content security policy. The tests start the whole page against a fake computer, and one test starts the development server. The test files sit in the folder `tests`. |
+| `pnpm --filter mobile_website test` | The Vitest tests of `packages/auxiliary/mobile_website`: the three screens, the bottom bar, the confirmation sheet, the pairing key, the address of each screen, the colors of the output, the rules of a page under a strict content security policy, and the build plugin that copies into `dist` only the files that changed. The tests start the whole page against a fake computer, and one test starts the development server. The test files sit in the folder `tests`. |
 | `pnpm --filter mobile_server test` | Builds `mobile_website`, then runs the Rust tests (`cargo test`) of `packages/auxiliary/mobile_server`: the checks of a request, the closed list of methods, the routes with a fake handler, the files of the mobile website with their types, the file `mobile.json`, the finding of the program `ngrok`, the reading of the address of the tunnel, the host name check, and the life of the server on the loopback address, with a fake `ngrok` program. The Rust tests sit in a `#[cfg(test)]` module at the end of each source file. One more test opens a real tunnel on the Internet, so it runs only by hand: `cd packages/auxiliary/mobile_server && cargo test live_ -- --ignored --nocapture`. |
-| `pnpm --filter voice_input test` | The Rust tests (`cargo test`) of `packages/auxiliary/voice_input`: the conversion of the audio, the 12 Whisper models, the download with a fake server, the text of Whisper, and a spoken sentence changed into text with the real model `tiny`, which the first run downloads once. |
-| `pnpm --filter data_layer_code_hosting test` | The Rust tests (`cargo test`) of `packages/data_layers/data_layer_code_hosting`: the two JSON schemas, the SQLite file, the reading of the pages of GitHub with a fake GitHub, the modes initialize and update, and the read-only query. The tests of the command line use a fake `gh` command and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
-| `pnpm --filter data_layer_source_control test` | The Rust tests (`cargo test`) of `packages/data_layers/data_layer_source_control`: the JSON schema, the SQLite file, the reading of the commits of a real Git repository, the modes initialize and update, and the read-only query. The tests of the command line use a real Git repository in a temporary folder and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
-| `pnpm --filter data_layer_user_activity test` | The Rust tests (`cargo test`) of `packages/data_layers/data_layer_user_activity`: the JSON schema, the SQLite file, the reading of the file of user activity records, the modes initialize and update, and the read-only query. The tests of the command line use a fake file of user activity records in a temporary folder and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
-| `pnpm --filter data_layer_coding_agents test` | The Rust tests (`cargo test`) of `packages/data_layers/data_layer_coding_agents`: the reading of the chat session files of Claude Code and of Codex, the cache of the scans, the JSON schema, the SQLite file with its link tables, the modes initialize and update, and the read-only query. The tests of the command line use fake folders of the two coding agents and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
-| `pnpm --filter change_log_generator test` | The Vitest tests of `packages/dev_tools/change_log_generator`, the generator of the change log. The test files sit in the folder `tests`. |
+| `pnpm --filter voice_input test:fast` | The fast Rust tests (`cargo test --lib`) of `packages/auxiliary/voice_input`: the conversion of the audio, the 12 Whisper models, the download with a fake server, and the text of Whisper. |
+| `pnpm --filter voice_input test:slow` | The slow Rust tests of `packages/auxiliary/voice_input`: a spoken sentence changed into text with the real model `tiny`, which the first run downloads once. `pnpm --filter voice_input test` runs both. |
+| `cargo test --package data_layer_code_hosting` (at the root) | The Rust tests of `submodules/heidrun_data/packages/data_layer_code_hosting`: the two JSON schemas, the SQLite file, the reading of the pages of GitHub with a fake GitHub, the modes initialize and update, and the read-only query. The tests of the command line use a fake `gh` command and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
+| `cargo test --package data_layer_source_control` (at the root) | The Rust tests of `submodules/heidrun_data/packages/data_layer_source_control`: the JSON schema, the SQLite file, the reading of the commits of a real Git repository, the modes initialize and update, and the read-only query. The tests of the command line use a real Git repository in a temporary folder and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
+| `cargo test --package data_layer_user_activity` (at the root) | The Rust tests of `submodules/heidrun_data/packages/data_layer_user_activity`: the JSON schema, the SQLite file, the reading of the file of user activity records, the modes initialize and update, and the read-only query. The tests of the command line use a fake file of user activity records in a temporary folder and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
+| `cargo test --package data_layer_coding_agents` (at the root) | The Rust tests of `submodules/heidrun_data/packages/data_layer_coding_agents`: the reading of the chat session files of Claude Code and of Codex, the cache of the scans, the JSON schema, the SQLite file with its link tables, the modes initialize and update, and the read-only query. The tests of the command line use fake folders of the two coding agents and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
+| `pnpm --filter change_log_generator test` | The Vitest tests of `packages/dev_tools/change_log_generator`, the generator of the change log. The test files sit in the folder `tests`. These are slow tests: `pnpm test:slow` runs them. |
 | `pnpm --filter install_script_tests test` | The Vitest tests of `packages/dev_tools/install_script_tests`, the tests of the script `scripts/install.sh`. They run the script with a fake `curl`, a fake `hdiutil`, a fake `ditto`, a fake `uname`, and a fake `pgrep`, and install in a temporary folder in place of `/Applications`. The test files sit in the folder `tests`. |
-| `pnpm --filter worktree_tools test` | The Vitest tests of `packages/dev_tools/worktree_tools`, the tools that create a worktree and clean the old target folders. The test files sit in the folder `tests`. |
+| `pnpm --filter worktree_tools test` | The Vitest tests of `packages/dev_tools/worktree_tools`, the tools that create a worktree, clean the old target folders, delete the obsolete files of a target folder, give the unchanged sources of a new worktree the dates of the main checkout, and build the bundled command line tools only when their sources changed. The test files sit in the folder `tests`. |
 
 When you add a feature, add the matching tests in the same change. When you fix a bug, add a test that fails without the fix.
 
@@ -114,34 +116,34 @@ Options:
 
 When the release already exists and you do not use `--recreate`, the command replaces the disk image and rewrites the text of the release. The release keeps its first date.
 
-The command uploads the disk image twice: once with the version in its name, for example `Heidrun_0.2.7_aarch64.dmg`, and once with a name that never changes, `Heidrun_aarch64.dmg`. The second copy gives the web address of the latest disk image, `https://github.com/heidrun-org/heidrun/releases/latest/download/Heidrun_aarch64.dmg`, which the script `scripts/install.sh` uses. The command stops when the build does not give a disk image for Apple silicon (a file that ends with `_aarch64.dmg`).
+The command uploads the disk image twice: once with the version in its name, for example `Heidrun_0.2.7_aarch64.dmg`, and once with a name that never changes, `Heidrun_aarch64.dmg`. The second copy gives the web address of the latest disk image, `https://github.com/heidrun-org/heidrun_code/releases/latest/download/Heidrun_aarch64.dmg`, which the script `scripts/install.sh` uses. The command stops when the build does not give a disk image for Apple silicon (a file that ends with `_aarch64.dmg`).
 
 The disk image is built for the architecture of your machine only, and it is not signed and not notarized.
 
-When someone downloads the disk image with a web browser, the web browser puts a quarantine mark on the file. Then macOS shows the message "“Heidrun” is damaged and can't be opened" when that person opens Heidrun for the first time. Heidrun is not damaged. macOS shows this message because Apple did not notarize the application. To open Heidrun, drag Heidrun to the Applications folder, run this command in a terminal, then open Heidrun again:
+When someone downloads the disk image with a web browser, the web browser puts a quarantine mark on the file. Then macOS shows the message "“Heidrun Code” is damaged and can't be opened" when that person opens Heidrun Code for the first time. Heidrun Code is not damaged. macOS shows this message because Apple did not notarize the application. To open Heidrun Code, drag Heidrun Code to the Applications folder, run this command in a terminal, then open Heidrun Code again:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Heidrun.app
+xattr -dr com.apple.quarantine "/Applications/Heidrun Code.app"
 ```
 
-The file `docs/release_notes/prefix.md` gives the same explanation and the same command in the text of every GitHub release.
+The text of a GitHub release does not mention this message, because the command `curl` of the next section does not put the quarantine mark.
 
 ## Install the application with one command
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/heidrun-org/heidrun/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/heidrun-org/heidrun_code/main/scripts/install.sh | sh
 ```
 
-The script [`scripts/install.sh`](scripts/install.sh) installs the latest release in `/Applications`. A web browser puts the quarantine mark `com.apple.quarantine` on a file that it downloads, and macOS checks the signature of an application only when the application has this mark, so it shows the message "damaged" for Heidrun. The command `curl` does not put the mark, so the application opens with no message. The script does these steps, in this order:
+The script [`scripts/install.sh`](scripts/install.sh) installs the latest release in `/Applications`. A web browser puts the quarantine mark `com.apple.quarantine` on a file that it downloads, and macOS checks the signature of an application only when the application has this mark, so it shows the message "damaged" for Heidrun Code. The command `curl` does not put the mark, so the application opens with no message. The script does these steps, in this order:
 
-1. It stops with a message when the computer is not macOS, when the processor is not Apple silicon, when `/Applications/Heidrun.app` is running, or when the user cannot write in `/Applications`.
+1. It stops with a message when the computer is not macOS, when the processor is not Apple silicon, when `/Applications/Heidrun Code.app` is running, or when the user cannot write in `/Applications`.
 2. It downloads `Heidrun_aarch64.dmg` of the latest release into a temporary folder, with `curl -fL`.
 3. It mounts the disk image with `hdiutil attach -nobrowse -readonly -mountpoint`.
-4. It replaces `/Applications/Heidrun.app` with the copy from the disk image, with `ditto`.
+4. It replaces `/Applications/Heidrun Code.app` with the copy from the disk image, with `ditto`.
 5. It ejects the disk image and deletes the temporary folder, also when a step fails.
 6. It prints the installed version, read from `Contents/Info.plist` of the application.
 
-The environment variable `HEIDRUN_APPLICATIONS_FOLDER` changes the folder that receives `Heidrun.app`. The tests use it, and a developer can use it to try the script with no change to `/Applications`. The tests of the script are the package [`packages/dev_tools/install_script_tests`](packages/dev_tools/install_script_tests). The script cannot work for a release that has no file `Heidrun_aarch64.dmg`: v0.2.7 and the releases before it do not have it.
+The environment variable `HEIDRUN_CODE_APPLICATIONS_FOLDER` changes the folder that receives `Heidrun Code.app`. The tests use it, and a developer can use it to try the script with no change to `/Applications`. The tests of the script are the package [`packages/dev_tools/install_script_tests`](packages/dev_tools/install_script_tests). The script cannot work for a release that has no file `Heidrun_aarch64.dmg`: v0.2.7 and the releases before it do not have it.
 
 ## Work in a Git worktree
 
@@ -165,6 +167,14 @@ pnpm --filter desktop_tauri target:clean
 
 The command lists the target folders of the worktrees that no build has used for 7 days. It deletes nothing. To delete them, add the option `--yes`. To change the number of days, add the option `--days <number>`. The command never touches the main checkout. It does not show the size of the folders, because the clones share their disk blocks, so the command `du` shows a size that is too high.
 
+```bash
+pnpm --filter desktop_tauri target:prune
+```
+
+Cargo never deletes the files of an old build, so the folder `target/debug` grows without end, and the clone of it into a new worktree gets slower. The command asks Cargo which files `cargo build` and `cargo test --no-run` use, and lists all the other files of the folder `target/debug`. It deletes nothing. To delete them, add the option `--yes`. The command runs the two Cargo commands, so it can take minutes when the sources changed. It works on the checkout that holds the current folder. After the deletion, the next `cargo build` and `cargo test --no-run` compile nothing. The next `pnpm dev` can still compile the crate `heidrun_code` once, because `pnpm dev` starts Cargo through the Tauri command line ([issue 864](https://github.com/heidrun-org/heidrun_code/issues/864)).
+
+`pnpm dev` starts with `pnpm bundled_commands:build`. The command builds the bundled command line tools `heidrun_code_ctrl` and `heidrun_data` only when their sources changed since their last build: it compares a fingerprint of the sources with the file `sources.sha256` next to the tools. A new worktree clones the tools and this file from the main checkout, so it builds nothing when the sources of the tools did not change. Add the option `--force` to build them in any case ([issue 864](https://github.com/heidrun-org/heidrun_code/issues/864)).
+
 ## Generate the change log
 
 ```bash
@@ -185,7 +195,7 @@ To choose another range, use the options `--from` and `--to`:
 | `pnpm release:change_log --from start --to v0.2.0` | the start of the history → `v0.2.0` | `## [0.2.0] - <date>` |
 | `pnpm release:change_log --from v0.2.0 --to v0.3.0` | `v0.2.0` → `v0.3.0` | `## [0.3.0] - <date>` |
 
-The date of a release is the date of the commit of its tag. The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The command puts the new section at its place. If the file already has a section with the same version, the command replaces it, so you can run the command again. The other sections never change.
+The date of a release is the date of the commit of its tag. The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The command puts the new section at its place. If the file already has a section with the same version, the command replaces it, so you can run the command again. When the new section is a release and this release is the last release, the command also removes the section `Unreleased`, because its pull requests now belong to this release. The other sections never change.
 
 Without `--ai`, the section is a plain list of the merged pull requests, with the title and the link of each one. The command does not choose a category.
 

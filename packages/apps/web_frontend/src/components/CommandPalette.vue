@@ -22,13 +22,13 @@ import {
 import { NewPane } from "../stores/new_pane";
 import { statusLabel, paneName } from "../lib/format";
 import { FONTS, openSettings, resetZoom, settings, zoom } from "../stores/settings";
-import { currentProject, runLauncher } from "../stores/project";
+import { currentProject, launchersOf, runLauncher } from "../stores/project";
 import { hardCodedMacros, macros, projectMacros, resolveMacroVariables } from "../stores/macros";
 import { insertIntoFocusedPane } from "../stores/input";
 import { search } from "../stores/search";
 import { isPinned, togglePinnedPane } from "../stores/pinned_panes";
-import { openFiles } from "../stores/files";
 import { openThreeJsDemoModal } from "../stores/three_js_demo_modal";
+import { QuickOpen } from "../stores/quick_open";
 import { openFindNewSkillsModal, openInstalledSkillModal } from "../stores/skills";
 import { t } from "../i18n/index";
 
@@ -96,7 +96,7 @@ const items = computed<Item[]>(() => {
   const wsId = state.selectedWorkspaceId;
   const proj = currentProject.value;
   if (wsId && proj) {
-    for (const a of proj.config.launchers.filter((x) => !lower || x.label.toLowerCase().includes(lower) || x.command.toLowerCase().includes(lower))) {
+    for (const a of launchersOf(wsId).filter((x) => !lower || x.label.toLowerCase().includes(lower) || x.command.toLowerCase().includes(lower))) {
       list.push({ section: t("commandPalette.section.projectLaunchers"), label: a.label, hint: a.command, run: () => runLauncher(wsId, a) });
     }
   }
@@ -111,7 +111,7 @@ const items = computed<Item[]>(() => {
     ...(state.selectedTabId ? [{ section: t("commandPalette.section.rename"), label: t("commandPalette.renameTab"), run: () => startRename("tab", state.selectedTabId!) }] : []),
     ...(sel ? [{ section: t("commandPalette.section.rename"), label: t("commandPalette.renamePane"), run: () => startRename("pane", sel.pane_id) }] : []),
     { section: t("commandPalette.section.navigation"), label: t("commandPalette.searchTerminals"), hint: "⇧⌘F", run: () => (search.open = true) },
-    { section: t("commandPalette.section.navigation"), label: t("commandPalette.openFile"), hint: "⌘P", run: () => openFiles(selectedPane.value?.foreground_cwd || selectedPane.value?.cwd, { search: true }) },
+    { section: t("commandPalette.section.navigation"), label: t("commandPalette.openFile"), hint: "⌘P", run: () => QuickOpen.open() },
     { section: t("commandPalette.section.help"), label: t("commandPalette.shortcuts"), hint: "⌘/", run: () => (state.shortcutsOpen = true) },
     { section: t("commandPalette.section.help"), label: t("commandPalette.threeJsDemo"), run: () => openThreeJsDemoModal() },
     { section: t("commandPalette.section.display"), label: t("commandPalette.mobile"), run: () => openSettings("mobileAccess") },

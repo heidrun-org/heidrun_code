@@ -1,10 +1,10 @@
-# Web styling of Heidrun: appearance of the status bar
+# Web styling of Heidrun Code: appearance of the status bar
 
 - Created: 22 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Shared design rules](shared_design.md), [Glossary of Heidrun: status bar](../glossary/status_bar.md)
+- Related rules: [Shared design rules](shared_design.md), [Glossary of Heidrun Code: status bar](../glossary/status_bar.md)
 - Related issue: [issue 324](https://github.com/heidrun-org/heidrun/issues/324), [issue 475](https://github.com/heidrun-org/heidrun/issues/475), [issue 799](https://github.com/heidrun-org/heidrun/issues/799)
 
 This file gives the rules about how the status bar sections of the window look. What each status bar section contains and does is in [status_bar.md](../user_interface/window/status_bar.md) and [status_bar_git.md](../user_interface/window/status_bar_git.md). The status item of the macOS menu bar is not a part of the web page, so its rules stay in [status_bar.md](../user_interface/window/status_bar.md). Each rule names its test, and the paths of the tests start at `packages/apps/web_frontend/src`.

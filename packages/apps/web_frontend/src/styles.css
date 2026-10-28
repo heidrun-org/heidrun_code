@@ -28,6 +28,7 @@
   --fail: #e58a8a;
   --ok: #7ec699;
   --voice-wave: #2cff7a;
+  --voice-wait: #ffa53a;
 
   --accent: #f2a93b;
   --line-modal: #33383e;
@@ -94,6 +95,8 @@
   --search-match-selected: rgba(242, 169, 59, 0.35);
   --image-checker-light: #1a1d21;
   --image-checker-dark: #121417;
+  /* The background of a web page in the HTML preview of the file view pane: white in both themes, as in a browser. */
+  --web-page-bg: #ffffff;
   --reference-open: #1f7430;
   --reference-merged: #7040c1;
   --reference-closed: #b82a28;
@@ -149,6 +152,7 @@
   --fail: #b42f2f;
   --ok: #176b3b;
   --voice-wave: #0b9d3f;
+  --voice-wait: #c46a00;
 
   --accent: #945800;
   --line-modal: #cbcbc4;
@@ -419,7 +423,7 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 .btn:is(.on, .active, [aria-pressed="true"], [aria-selected="true"], [aria-checked="true"]):not(.is-recording), .btn-check:has(input:checked) {
   background: var(--sel); color: var(--text); border-color: var(--focus);
 }
-.btn:disabled:not([aria-busy="true"]):not(.is-transcribing), .btn-check:has(input:disabled) { opacity: 0.45; cursor: default; }
+.btn:disabled:not([aria-busy="true"]):not(.is-waiting):not(.is-transcribing), .btn-check:has(input:disabled) { opacity: 0.45; cursor: default; }
 .btn kbd { font-family: var(--mono); color: inherit; font-size: var(--font-size); }
 .btn.small { height: 24px; --btn-padding-x: 8px; }
 .btn.lg { height: 40px; border-radius: 10px; font-size: var(--font-size); justify-content: center; }
@@ -434,6 +438,15 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 }
 .btn.icon.small { width: 24px; height: 24px; }
 .btn.icon.lg { width: 40px; }
+/* The scroll arrow of the dynamic topic bar is a round button with the sidebar background, and a border and a chevron
+   in the text color, so that it stands out from the topics. */
+.topic-arrow.btn.icon.small {
+  border-radius: 50%; font-size: 0.875rem;
+  --btn-bg: var(--side); --btn-color: var(--text); --btn-border-width: 1.5px; --btn-border-color: var(--text);
+  --btn-hover-bg: var(--hover); --btn-hover-color: var(--text); --btn-hover-border-color: var(--text);
+  --btn-active-bg: var(--sel); --btn-active-color: var(--text); --btn-active-border-color: var(--text);
+}
+.topic-arrow .bi { -webkit-text-stroke: 1px currentColor; }
 /* A menu is a raised surface, and --hover is almost the same color as --raised, so on a menu an icon button takes the
    hover color of the sidebar icon bar. The press keeps the shared pressed color. */
 .menu .btn.icon:not(:active) { --btn-hover-bg: var(--line-strong); }
@@ -463,7 +476,7 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---- Code themes (diff and file viewer) -------------------------------------- */
+/* ---- Code themes (diff pane and file view pane) ---------------------------- */
 .code { --c-bg: #0d1117; --c-fg: #c9d1d9; --c-gutter: #6e7681; --c-add: rgba(46, 160, 67, 0.16); --c-add-strong: rgba(46, 160, 67, 0.4);
   --c-del: rgba(248, 81, 73, 0.14); --c-del-strong: rgba(248, 81, 73, 0.4); --c-hunk: rgba(56, 139, 253, 0.12); --c-hunk-fg: #8b949e;
   --k: #ff7b72; --s: #a5d6ff; --c: #8b949e; --n: #79c0ff; --f: #d2a8ff; --t: #ffa657; --a: #7ee787; --v: #ffa657; --m: #79c0ff;
@@ -486,6 +499,8 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 /* ---- Rendered Markdown (issue preview) ---------------------------------------- */
 .md-doc { max-width: 860px; margin: 0 auto; font: var(--font-size)/1.7 var(--sans); color: var(--text); user-select: text; }
 .md-doc.full { max-width: none; }
+/* About 80 characters of the sans font on a line: the padding stays outside the width of the text (issue 897). */
+.md-doc.wrap-at-80-columns { box-sizing: content-box; max-width: 37em; }
 .md-doc h1, .md-doc h2 { padding-bottom: 0.3em; border-bottom: 1px solid var(--line-strong); }
 .md-doc h1 { font-size: 1.7em; margin: 0.2em 0 0.7em; }
 .md-doc h2 { font-size: 1.35em; margin: 1.5em 0 0.6em; }

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { PaneFocusHistory } from './pane_focus_history';
 
@@ -246,6 +247,47 @@ describe('PaneFocusHistory', () => {
 				before: ['w1:p1'],
 				current: 'w1:p2',
 				after: [],
+			});
+		});
+	});
+
+	describe('findMostRecentPaneId', () => {
+		it('finds the current pane when it passes the test', () => {
+			const paneFocusHistory = PaneFocusHistoryTestHelper.build(['w1:p1', 'w1:p2', 'w1:p3']);
+			expect(paneFocusHistory.findMostRecentPaneId(() => true)).toBe('w1:p3');
+		});
+
+		it('skips every entry that does not pass the test, the latest entries first', () => {
+			const paneFocusHistory = PaneFocusHistoryTestHelper.build(['w1:p1', 'w1:p2', 'w1:p3', 'w1:p4']);
+			expect(paneFocusHistory.findMostRecentPaneId((paneId) => paneId === 'w1:p1' || paneId === 'w1:p2')).toBe('w1:p2');
+		});
+
+		it('searches back from the current entry first, after a move back', () => {
+			const paneFocusHistory = PaneFocusHistoryTestHelper.build(['w1:p1', 'w1:p2', 'w1:p3', 'w1:p4']);
+			paneFocusHistory.goTo(2);
+			expect(paneFocusHistory.findMostRecentPaneId((paneId) => paneId !== 'w1:p3')).toBe('w1:p2');
+		});
+
+		it('searches the entries after the current entry when no entry before passes the test', () => {
+			const paneFocusHistory = PaneFocusHistoryTestHelper.build(['w1:p1', 'w1:p2', 'w1:p3', 'w1:p4']);
+			paneFocusHistory.goTo(1);
+			expect(paneFocusHistory.findMostRecentPaneId((paneId) => paneId === 'w1:p3' || paneId === 'w1:p4')).toBe('w1:p3');
+		});
+
+		it('returns null when no entry passes the test, or when the history is empty', () => {
+			const paneFocusHistory = PaneFocusHistoryTestHelper.build(['w1:p1', 'w1:p2']);
+			expect(paneFocusHistory.findMostRecentPaneId(() => false)).toBeNull();
+			expect(PaneFocusHistoryTestHelper.build([]).findMostRecentPaneId(() => true)).toBeNull();
+		});
+
+		it('does not change the history', () => {
+			const paneFocusHistory = PaneFocusHistoryTestHelper.build(['w1:p1', 'w1:p2', 'w1:p3']);
+			paneFocusHistory.goTo(1);
+			paneFocusHistory.findMostRecentPaneId((paneId) => paneId === 'w1:p3');
+			expect(PaneFocusHistoryTestHelper.read(paneFocusHistory)).toEqual({
+				before: ['w1:p1'],
+				current: 'w1:p2',
+				after: ['w1:p3'],
 			});
 		});
 	});

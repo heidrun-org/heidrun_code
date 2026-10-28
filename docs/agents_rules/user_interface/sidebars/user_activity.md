@@ -1,24 +1,24 @@
-# User interface of Heidrun: User activity sidebar section
+# User interface of Heidrun Code: User activity sidebar section
 
 - Created: 14 October 2026
-- Last updated: 15 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun: user activity](../../glossary/user_activity.md), [Sidebars](sidebars.md), [Status bar](../window/status_bar.md)
+- Related rules: [Glossary of Heidrun Code: user activity](../../glossary/user_activity.md), [Sidebars](sidebars.md), [Status bar](../window/status_bar.md)
 - Related issue: [issue 440](https://github.com/heidrun-org/heidrun/issues/440)
 
-This file is a part of the rules of the sidebars of Heidrun. The words are defined in [glossary/user_activity.md](../../glossary/user_activity.md).
+This file is a part of the rules of the sidebars of Heidrun Code. The words are defined in [glossary/user_activity.md](../../glossary/user_activity.md).
 
 ## Detection
 
-- Heidrun listens on the window, before any component, to the events `keydown`, `mousedown`, `mousemove`, and `wheel`, in the capture phase. A terminal pane that stops an event does not hide it from Heidrun.
-- The developer is active when the Heidrun window has the focus, a workspace is selected, and the last action is less than the cool down ago. The cool down is 5 seconds.
-- An action while the Heidrun window does not have the focus does not count. When the window loses the focus, the active period ends at once.
+- Heidrun Code listens on the window, before any component, to the events `keydown`, `mousedown`, `mousemove`, and `wheel`, in the capture phase. A terminal pane that stops an event does not hide it from Heidrun Code.
+- The developer is active when the Heidrun Code window has the focus, a workspace is selected, and the last action is less than the cool down ago. The cool down is 5 seconds.
+- An action while the Heidrun Code window does not have the focus does not count. When the window loses the focus, the active period ends at once.
 - The code of the detection is in `lib/user_activity.ts` (the rules, with no clock and no timer) and in `stores/user_activity.ts` (the events, the timer, and the file).
 
 ## The user activity records
 
-- Each active period ends with one user activity record, written as one JSON line at the end of the file `~/.config/heidrun/user_activity.jsonl`. The folder `HEIDRUN_DIR` replaces `~/.config/heidrun` when the variable is set, like for the history.
+- Each active period ends with one user activity record, written as one JSON line at the end of the file `~/.config/heidrun_code/user_activity.jsonl`. The folder `HEIDRUN_CODE_DIR` replaces `~/.config/heidrun_code` when the variable is set, like for the history.
 - A record has these fields: `workspaceFolder`, `startedAt`, `lastActionAt`, `endedAt`, `keyboardActionCount`, `mouseActionCount`, and `endReason`.
 - `workspaceFolder` is the folder of the workspace, not its name and not its identifier: the worktree path of the workspace, or else the current working directory of one of its panes.
 - Each time is an ISO 8601 text in the time zone of the computer, with the milliseconds and the offset, for example `2026-10-14T19:52:03.412+02:00`. It is never a number.
@@ -37,4 +37,4 @@ This file is a part of the rules of the sidebars of Heidrun. The words are defin
 
 ## The test aid in the menu bar
 
-- While the environment variable `HEIDRUN_STATUS_ITEM_USER_ACTIVITY` is set, the icon of Heidrun in the status item of the macOS menu bar is faded while the developer is not active, and normal while the developer is active. The rule is in [status_bar.md](../window/status_bar.md).
+- While the environment variable `HEIDRUN_CODE_STATUS_ITEM_USER_ACTIVITY` is set, the icon of Heidrun Code in the status item of the macOS menu bar is faded while the developer is not active, and normal while the developer is active. The rule is in [status_bar.md](../window/status_bar.md).

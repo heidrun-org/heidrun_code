@@ -1,6 +1,6 @@
 [package]
 name = "localai_decisions_candle"
-version = "0.3.0"
+version = "0.3.5"
 description = "Runs the decision model GLiNER2.5-Decide locally with a Rust library and command line tool"
 license = "MIT"
 edition = "2021"

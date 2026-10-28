@@ -3,7 +3,14 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 
 const invoke = vi.fn();
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(...args) }));
+/** The channel of Tauri, which the tab "Work of one person" gives to the command `person_work_synchronize`. */
+const { FakeChannel } = vi.hoisted(() => ({
+  FakeChannel: class<T> {
+    onmessage: (message: T) => void = () => {};
+  },
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(...args), Channel: FakeChannel }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/api/path", () => ({ homeDir: vi.fn(async () => "/home") }));
 vi.mock("@tauri-apps/api/webview", () => ({ getCurrentWebview: () => ({ setZoom: vi.fn(async () => {}) }) }));

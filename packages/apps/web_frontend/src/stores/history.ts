@@ -1,4 +1,4 @@
-// Agents' work history, kept on this Mac (~/.config/heidrun/history.jsonl):
+// Agents' work history, kept on this Mac (~/.config/heidrun_code/history.jsonl):
 // every finished run with its workspace, agent, branch, active time and cost.
 import { computed, reactive, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";

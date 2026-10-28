@@ -15,5 +15,7 @@
   "menu.delete": "Delete",
   "runInTab": "Run in its tab",
   "menu.edit": "Edit",
-  "importTitle": "Import the launchers of the project"
+  "importTitle": "Import the launchers of the project",
+  "levelUser": "User level",
+  "levelUserTitle": "This custom launcher shows in every workspace."
 }

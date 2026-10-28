@@ -23,7 +23,7 @@ export class TypingSheet {
 						Typing on a phone is hard. A mistake can run a command that you did not mean, in a real
 						terminal on your computer.
 					</p>
-					<p>Heidrun checks every command with the guards before it runs, and asks you again when a guard stops it.</p>
+					<p>Heidrun Code checks every command with the guards before it runs, and asks you again when a guard stops it.</p>
 					<div class="actions">
 						<button class="button" data-action="typing-cancel">Cancel</button>
 						<button class="button button-danger" data-action="typing-allow">Yes, let me type</button>

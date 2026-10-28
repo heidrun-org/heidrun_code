@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import type { AiCostAnswer, AiCostHourRow, AiCostSynchronization } from "../lib/ai_cost";
@@ -5,7 +6,14 @@ import type { PersonWorkItems } from "../lib/person_work";
 
 const invoke = vi.fn();
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(...args) }));
+/** The channel of Tauri: a test sends a progress report by calling `onmessage` of the channel that the tab gave. */
+const { FakeChannel } = vi.hoisted(() => ({
+  FakeChannel: class<T> {
+    onmessage: (message: T) => void = () => {};
+  },
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(...args), Channel: FakeChannel }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/api/path", () => ({ homeDir: vi.fn(async () => "/home") }));
 vi.mock("@tauri-apps/api/webview", () => ({ getCurrentWebview: () => ({ setZoom: vi.fn(async () => {}) }) }));
@@ -165,6 +173,21 @@ function sampleAiCostAnswer(): AiCostAnswer {
  * by plain references that every test shares, so a tab that stays mounted reads again when the next test changes them.
  */
 const mountedTabs: VueWrapper[] = [];
+
+/** The text and the state of each stage of the update, in order. */
+function stagesOf(wrapper: VueWrapper): [string, string | undefined][] {
+  return wrapper.findAll("[data-stage]").map((stage) => [stage.get('[data-note="stage-text"]').text(), stage.attributes("data-state")]);
+}
+
+/** Gives a function that sends a progress report through the channel of the last call of the command `person_work_synchronize`. */
+function progressChannel(): (stage: string, doneCount: number, totalCount: number | null, isFinished?: boolean) => void {
+  const calls = personWorkCalls();
+  const call = calls[calls.length - 1];
+  const channel = (call?.[1] as { onProgress: InstanceType<typeof FakeChannel<unknown>> }).onProgress;
+  return (stage, doneCount, totalCount, isFinished = false) => {
+    channel.onmessage({ repository: "heidrun-org/heidrun_code", stage, doneCount, totalCount, isFinished });
+  };
+}
 
 /** Mounts the tab with the items that the commands give, or with an error. A promise that never ends keeps a read pending. */
 async function mountPersonWorkTab(
@@ -336,7 +359,31 @@ function chosenWorkspaceNames(wrapper: Awaited<ReturnType<typeof mountPersonWork
     .map((input) => input.element.closest("label")?.textContent?.trim() ?? "");
 }
 
+/**
+ * The time zone of every test. It changes the clock for summer time, so a test can check the days of 23 and 25 hours, and the
+ * fixed date of the tests gives the same slots on every computer (issue 873).
+ */
+const TEST_TIME_ZONE = "Europe/Paris";
+
+/** The time zone of the computer before the test, given back after the test. */
+let computerTimeZone: string | undefined;
+
+/**
+ * Fixes the date of the tests at 15:00 of the day `day` of the month `monthIndex` 2026, in the time zone of the tests. Only
+ * the date is fake: the timers stay real, so that `vi.waitFor` still checks again.
+ *
+ * @param monthIndex - The month, from 0 for January.
+ * @param day - The day of the month.
+ */
+function setToday(monthIndex: number, day: number): void {
+  vi.setSystemTime(new Date(2026, monthIndex, day, 15));
+}
+
 beforeEach(async () => {
+  computerTimeZone = process.env.TZ;
+  process.env.TZ = TEST_TIME_ZONE;
+  vi.useFakeTimers({ toFake: ["Date"] });
+  setToday(9, 14);
   localStorage.clear();
   vi.resetModules();
   await openWorkspacesAre(WORKSPACES);
@@ -366,13 +413,19 @@ afterEach(() => {
   for (const wrapper of mountedTabs.splice(0)) {
     wrapper.unmount();
   }
+  vi.useRealTimers();
+  if (computerTimeZone === undefined) {
+    delete process.env.TZ;
+  } else {
+    process.env.TZ = computerTimeZone;
+  }
 });
 
 describe("PersonWorkTab", () => {
   it("synchronizes the repository of the selected workspace, then reads the last 30 days from the stored rows", async () => {
     await mountPersonWorkTab();
     expect(personWorkCalls()).toHaveLength(1);
-    expect(personWorkCalls()[0][1]).toEqual({ folder: "/work/heidrun" });
+    expect(personWorkCalls()[0][1]).toEqual({ folder: "/work/heidrun", onProgress: expect.any(FakeChannel) });
     expect(personWorkQueryCalls()).toHaveLength(1);
     const parameters = personWorkQueryCalls()[0][1] as { repository: string; since: string; until: string };
     expect(parameters.repository).toBe("heidrun-org/heidrun");
@@ -762,7 +815,7 @@ describe("PersonWorkTab", () => {
   });
 
   describe("the memory of the filter of the legend", () => {
-    /** Puts what a previous run of Heidrun saved for the legend filters into the settings, before the tab is built. */
+    /** Puts what a previous run of Heidrun Code saved for the legend filters into the settings, before the tab is built. */
     async function rememberFilters(filters: Record<string, string>): Promise<void> {
       const { settings } = await import("../stores/settings");
       settings.statisticsLegendFilters = filters;
@@ -1038,12 +1091,59 @@ describe("PersonWorkTab", () => {
     expect(message.get(".spinner-border").attributes("aria-hidden")).toBe("true");
   });
 
-  it("puts a busy wheel before the message while the commits, the pull requests, and the issues are read", async () => {
+  it("shows a big busy wheel and the six stages, all waiting, while the commits, the pull requests, and the issues are read", async () => {
     const wrapper = await mountPersonWorkTab(new Promise<never>(() => {}));
-    const message = wrapper.get('[role="status"]');
-    expect(message.text()).toBe("Reading the commits, the pull requests, and the issues…");
+    const message = wrapper.get('[data-note="update-stages"]');
+    expect(message.attributes("role")).toBe("status");
     expect(message.element.firstElementChild?.classList.contains("spinner-border")).toBe(true);
+    expect(message.element.firstElementChild?.classList.contains("update-stages-spinner")).toBe(true);
     expect(message.get(".spinner-border").attributes("aria-hidden")).toBe("true");
+    expect(message.text()).toContain("Reading the commits, the pull requests, and the issues…");
+    expect(stagesOf(wrapper)).toEqual([
+      ["Reading the commits of heidrun", "waiting"],
+      ["Writing the commits of heidrun in the SQLite file", "waiting"],
+      ["Reading the issues of heidrun", "waiting"],
+      ["Writing the issues of heidrun in the SQLite file", "waiting"],
+      ["Reading the pull requests of heidrun", "waiting"],
+      ["Writing the pull requests of heidrun in the SQLite file", "waiting"],
+    ]);
+  });
+
+  it("shows the done stages with a check mark, the stage in progress with its progress, and its text under the busy wheel", async () => {
+    const wrapper = await mountPersonWorkTab(new Promise<never>(() => {}));
+    const send = progressChannel();
+    send("readCommits", 0, 1200);
+    send("readCommits", 1200, 1200, true);
+    send("writeCommits", 1200, 1200, true);
+    send("readIssues", 100, 400);
+    await flushPromises();
+    expect(stagesOf(wrapper)).toEqual([
+      ["Reading the commits of heidrun_code", "done"],
+      ["Writing the commits of heidrun_code in the SQLite file", "done"],
+      ["Reading the issues of heidrun_code", "working"],
+      ["Writing the issues of heidrun_code in the SQLite file", "waiting"],
+      ["Reading the pull requests of heidrun_code", "waiting"],
+      ["Writing the pull requests of heidrun_code in the SQLite file", "waiting"],
+    ]);
+    expect(wrapper.findAll('[data-state="done"] .bi-check-circle-fill')).toHaveLength(2);
+    const working = wrapper.get('[data-stage="readIssues"]');
+    expect(working.get('[data-note="count"]').text()).toBe("100 of 400");
+    expect(working.get('[data-note="percent"]').text()).toBe("25 %");
+    expect(working.get(".progress").attributes("aria-valuenow")).toBe("25");
+    expect(working.get(".progress-bar").attributes("style")).toContain("width: 25%");
+    expect(wrapper.get('[data-note="current-stage"]').text()).toBe("Reading the issues of heidrun_code");
+  });
+
+  it("shows a stage in progress with no percent and no progress bar when its total is not known", async () => {
+    const wrapper = await mountPersonWorkTab(new Promise<never>(() => {}));
+    const send = progressChannel();
+    send("readIssues", 100, null);
+    await flushPromises();
+    const working = wrapper.get('[data-stage="readIssues"]');
+    expect(working.attributes("data-state")).toBe("working");
+    expect(working.get('[data-note="count"]').text()).toBe("100 read");
+    expect(working.find('[data-note="percent"]').exists()).toBe(false);
+    expect(working.find(".progress").exists()).toBe(false);
   });
 
   it("shows an error message when the chats cannot be read, and the Git history stays available", async () => {
@@ -1656,6 +1756,51 @@ describe("PersonWorkTab", () => {
       await vi.waitFor(() => expect(lastDrawing().traces[0].x).toHaveLength(120));
       expect(lastDrawing().layout.xaxis.tickvals).toHaveLength(10);
     });
+
+    it("cuts the day of 25 hours, when summer time ends, into 4 slots of 6 hours and a fifth slot of 1 hour", async () => {
+      setToday(9, 25);
+      await use24HourClock();
+      const hours = [1, 6, 12, 18, 23];
+      const wrapper = await mountPersonWorkTab(sampleItems(), aiCostAnswer(hours.map((hour) => hourRow(0, "claude", 1, 1_000, hour))));
+      await chooseAiCost(wrapper);
+      await wrapper.get("#statistics-person-slot-6").setValue(true);
+      await vi.waitFor(() => expect(lastDrawing().traces[0].x).toHaveLength(29));
+      expect(lastDrawing().traces[0].y.slice(24)).toEqual([1, 1, 1, 1, 1]);
+      const titles: (string | undefined)[] = [];
+      for (const index of [24, 25, 26, 27, 28]) {
+        await hoverDay(index);
+        titles.push(cardOf(wrapper)?.title);
+      }
+      expect(titles).toEqual([
+        "Sunday, October 25, 00:00 to 05:00",
+        "Sunday, October 25, 05:00 to 11:00",
+        "Sunday, October 25, 11:00 to 17:00",
+        "Sunday, October 25, 17:00 to 23:00",
+        "Sunday, October 25, 23:00 to 00:00",
+      ]);
+    });
+
+    it("cuts the day of 23 hours, when summer time starts, into 3 slots of 6 hours and a last slot of 5 hours", async () => {
+      setToday(2, 29);
+      await use24HourClock();
+      const hours = [1, 8, 14, 20];
+      const wrapper = await mountPersonWorkTab(sampleItems(), aiCostAnswer(hours.map((hour) => hourRow(0, "claude", 1, 1_000, hour))));
+      await chooseAiCost(wrapper);
+      await wrapper.get("#statistics-person-slot-6").setValue(true);
+      await vi.waitFor(() => expect(lastDrawing().traces[0].x).toHaveLength(28));
+      expect(lastDrawing().traces[0].y.slice(24)).toEqual([1, 1, 1, 1]);
+      const titles: (string | undefined)[] = [];
+      for (const index of [24, 25, 26, 27]) {
+        await hoverDay(index);
+        titles.push(cardOf(wrapper)?.title);
+      }
+      expect(titles).toEqual([
+        "Sunday, March 29, 00:00 to 07:00",
+        "Sunday, March 29, 07:00 to 13:00",
+        "Sunday, March 29, 13:00 to 19:00",
+        "Sunday, March 29, 19:00 to 00:00",
+      ]);
+    });
   });
 });
 
@@ -1685,7 +1830,7 @@ describe("PersonWorkTab: the memory of the choices (issue 707)", () => {
     return mountPersonWorkTab();
   }
 
-  /** Starts Heidrun again: every module is loaded again, and the settings are read from `localStorage`. */
+  /** Starts Heidrun Code again: every module is loaded again, and the settings are read from `localStorage`. */
   async function restart(wrapper: Tab): Promise<Tab> {
     await flushPromises();
     wrapper.unmount();
@@ -1753,7 +1898,7 @@ describe("PersonWorkTab: the memory of the choices (issue 707)", () => {
     expect(aiCostTotalsOf(reopened)).toHaveLength(3);
   });
 
-  it("keeps the choices after Heidrun starts again", async () => {
+  it("keeps the choices after Heidrun Code starts again", async () => {
     const wrapper = await mountPersonWorkTab();
     await wrapper.get("#statistics-person-metric-lines").setValue(true);
     await wrapper.get("#statistics-person").setValue("eric");

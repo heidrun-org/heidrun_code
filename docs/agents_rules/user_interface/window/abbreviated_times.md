@@ -1,13 +1,13 @@
-# User interface of Heidrun: abbreviated times
+# User interface of Heidrun Code: abbreviated times
 
 - Created: 15 October 2026
-- Last updated: 15 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../glossary/index.md)
+- Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
 - Related issue: [issue #499](https://github.com/heidrun-org/heidrun/issues/499)
 
-This file is a part of the rules of the user interface of Heidrun. The words are defined in [glossary/index.md](../../glossary/index.md).
+This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md).
 
 ## Abbreviated times
 

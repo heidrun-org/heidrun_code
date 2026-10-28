@@ -6,16 +6,17 @@
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related issue: [Issue 548](https://github.com/heidrun-org/heidrun/issues/548)
 
-This package is the working folder for promotional marketing videos that an agent makes. It records the web pages of Heidrun with a headless browser (a browser with no window), and it puts an intro, comic words, sound, music, and an outro around the recording with the program `ffmpeg`.
+This package is the working folder for promotional marketing videos that an agent makes. It records the web pages of Heidrun Code with a headless browser (a browser with no window), and it puts an intro, comic words, sound, music, and an outro around the recording with the program `ffmpeg`.
 
 ## The first video
 
-The video `video_game_first` shows the Parallax dino runner game. The dinosaur shoots a rock, changes lanes, and runs into the next rock. The video is about 15 seconds long. The scenario is written in [data/scenarios/video_game_first.scenario.md](data/scenarios/video_game_first.scenario.md).
+The video `video_game_first` shows the game Git Runner, from the Git submodule `submodules/heidrun_git_runner`. The dinosaur shoots a rock, changes lanes, and runs into the next rock. The video is about 15 seconds long. The scenario is written in [data/scenarios/video_game_first.scenario.md](data/scenarios/video_game_first.scenario.md).
 
 ## What you need
 
 - The programs `ffmpeg` and `ffprobe`, with the filters `xfade`, `amix`, and `silencedetect`.
 - Dependencies installed with `pnpm install`, and a Chromium browser for Playwright.
+- The file of the commits of the game, written with `pnpm --filter git_runner commits:build --git-folder <absolute path of a repository>`. Git does not keep it. Without it, the game uses its fallback commits, and the scenario fails.
 - Two music files from Pixabay, saved in the folder `outputs/music` with the names that the scenario document gives. Git does not keep them, because the license of Pixabay does not allow to redistribute a music file alone.
 
 ## Make the video

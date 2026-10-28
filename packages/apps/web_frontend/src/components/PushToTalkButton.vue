@@ -8,7 +8,7 @@ import { t } from "../i18n/index";
 const props = defineProps<{ paneId: string }>();
 
 // The push-to-talk button (issue 662). A long press is push to talk: the developer holds the button, speaks, and releases it.
-// A short press is a click: the recording goes on until the next click. Heidrun changes the speech into text and writes the
+// A short press is a click: the recording goes on until the next click. Heidrun Code changes the speech into text and writes the
 // text in the composition bar. The window hears the pointer release, so a release outside of the button ends a long press too.
 
 // The options tell whether the model is on the disk. They are read once, the first time that a button appears.
@@ -18,15 +18,18 @@ onMounted(() => {
   }
 });
 
-const isRecording = computed(
-  () =>
-    VoiceInput.ownerPaneId() === props.paneId &&
-    (voiceInput.state === "recording" || voiceInput.state === "starting"),
-);
-const isTranscribing = computed(() => VoiceInput.ownerPaneId() === props.paneId && voiceInput.state === "transcribing");
+/** What the voice input does now for this pane. */
+const paneState = computed(() => VoiceInput.paneState(props.paneId));
+const isRecording = computed(() => paneState.value === "recording" || paneState.value === "starting");
+/** The recording of this pane waits for Whisper, which works for another composition bar (issue 868). */
+const isWaiting = computed(() => paneState.value === "waiting");
+const isTranscribing = computed(() => paneState.value === "transcribing");
 const isLatched = computed(() => VoiceInput.ownerPaneId() === props.paneId && voiceInput.isLatched);
 const isModelReady = computed(() => VoiceInput.isModelReady());
 const title = computed(() => {
+  if (isWaiting.value) {
+    return t("voiceInput.titleWaiting");
+  }
   if (isTranscribing.value) {
     return t("voiceInput.titleTranscribing");
   }
@@ -64,18 +67,18 @@ function onKeyUp(event: KeyboardEvent): void {
 <template>
   <button
     type="button"
-    :class="['btn icon lg push-to-talk border-0', { 'is-recording': isRecording, 'is-transcribing': isTranscribing }]"
+    :class="['btn icon lg push-to-talk border-0', { 'is-recording': isRecording, 'is-waiting': isWaiting, 'is-transcribing': isTranscribing }]"
     :aria-pressed="isRecording"
     :aria-label="t('voiceInput.label')"
     :title="title"
-    :disabled="isModelReady === false || isTranscribing"
+    :disabled="isModelReady === false || isWaiting || isTranscribing"
     @mousedown.stop.prevent
     @pointerdown.prevent="onPointerDown"
     @keydown="onKeyDown"
     @keyup="onKeyUp"
     @click.prevent
   >
-    <span v-if="isTranscribing" class="spinner-border spinner-sm" aria-hidden="true"></span>
+    <span v-if="isWaiting || isTranscribing" class="spinner-border spinner-sm" aria-hidden="true"></span>
     <Icon v-else :name="isLatched ? 'stop-fill' : isRecording ? 'mic-fill' : 'mic'" />
   </button>
 </template>
@@ -83,6 +86,9 @@ function onKeyUp(event: KeyboardEvent): void {
 <style scoped>
 /* While the microphone is open, the icon is red: the red of the theme, not the pale red of the Bootstrap emphasis text. */
 .btn.is-recording { --btn-color: var(--danger-fg); --btn-hover-color: var(--danger-fg); --btn-active-color: var(--danger-fg); }
+/* While the recording waits for Whisper, the wheel is orange, like the level bars, and the dimmed look of a disabled button does
+   not fade it (issue 868). */
+.btn.is-waiting { --btn-color: var(--voice-wait); --btn-disabled-color: var(--voice-wait); --btn-disabled-opacity: 1; }
 /* While Whisper changes the speech into text, the wheel is green, and the dimmed look of a disabled button does not fade it. */
 .btn.is-transcribing { --btn-color: var(--success-fg); --btn-disabled-color: var(--success-fg); --btn-disabled-opacity: 1; }
 </style>

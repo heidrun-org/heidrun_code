@@ -1,10 +1,10 @@
-# User interface of Heidrun: Statistics window, tab "User activity", the vertical axis
+# User interface of Heidrun Code: Statistics window, tab "User activity", the vertical axis
 
 - Created: 19 October 2026
-- Last updated: 19 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
-- Related rules: [Charts of the Statistics window](statistics_charts.md), [Tab "User activity"](statistics_user_activity.md), [Stacked bars](statistics_user_activity_stacked_bars.md), [Glossary of Heidrun: user activity](../../glossary/user_activity.md)
+- Related rules: [Charts of the Statistics window](statistics_charts.md), [Tab "User activity"](statistics_user_activity.md), [Stacked bars](statistics_user_activity_stacked_bars.md), [Glossary of Heidrun Code: user activity](../../glossary/user_activity.md)
 - Related issue: [issue 683](https://github.com/heidrun-org/heidrun/issues/683), [issue 498](https://github.com/heidrun-org/heidrun/issues/498)
 
 This file is a part of the rules of the tab "User activity". It gives the rules of the vertical axis of the histogram of the user activity time. The other rules of the tab are in [statistics_user_activity.md](statistics_user_activity.md).

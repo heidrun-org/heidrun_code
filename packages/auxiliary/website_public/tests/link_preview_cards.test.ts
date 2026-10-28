@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { LinkPreviewCards } from '../docs/.vitepress/link_preview_cards';
 import { SiteFiles } from './site_files';
 
-const siteAddress = 'https://heidrun-org.github.io/heidrun/';
+const siteAddress = 'https://heidrun-org.github.io/heidrun_code/';
 const cardImagePath = Path.join(SiteFiles.docsDir, 'public', LinkPreviewCards.imageFileName);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ describe('link preview card tags', () => {
 	it('give the page its own title, description, and address', () => {
 		const tags = LinkPreviewCards.pageTags({
 			siteAddress,
-			title: 'The panes | Heidrun',
+			title: 'The panes | Heidrun Code',
 			description: 'A sentence about the panes.',
 			relativePath: 'features/panes.md',
 		});
@@ -60,7 +60,7 @@ describe('link preview card tags', () => {
 		}]);
 		expect(tags).toContainEqual(['meta', {
 			property: 'og:title',
-			content: 'The panes | Heidrun',
+			content: 'The panes | Heidrun Code',
 		}]);
 		expect(tags).toContainEqual(['meta', {
 			property: 'og:description',
@@ -68,7 +68,7 @@ describe('link preview card tags', () => {
 		}]);
 		expect(tags).toContainEqual(['meta', {
 			name: 'twitter:title',
-			content: 'The panes | Heidrun',
+			content: 'The panes | Heidrun Code',
 		}]);
 		expect(tags).toContainEqual(['meta', {
 			name: 'twitter:description',

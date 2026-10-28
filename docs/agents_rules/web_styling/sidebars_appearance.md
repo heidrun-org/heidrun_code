@@ -1,10 +1,10 @@
-# Web styling of Heidrun: appearance of the sidebars
+# Web styling of Heidrun Code: appearance of the sidebars
 
 - Created: 22 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Shared design rules](shared_design.md), [Colors and scroll bars](colors_and_scroll_bars.md), [Glossary of Heidrun: sidebars](../glossary/sidebars.md)
+- Related rules: [Shared design rules](shared_design.md), [Colors and scroll bars](colors_and_scroll_bars.md), [Glossary of Heidrun Code: sidebars](../glossary/sidebars.md)
 - Related issue: [issue 430](https://github.com/heidrun-org/heidrun/issues/430), [issue 749](https://github.com/heidrun-org/heidrun/issues/749), [issue 799](https://github.com/heidrun-org/heidrun/issues/799)
 
 This file gives the rules about how the sidebar sections and the sidebar icon bar look. What each sidebar section contains and does is in the folder `user_interface/sidebars`. Each rule names its test, and the paths of the tests start at `packages/apps/web_frontend/src`.

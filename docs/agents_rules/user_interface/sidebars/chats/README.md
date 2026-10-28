@@ -1,10 +1,10 @@
 # Rules of the Past chats sidebar section
 
 - Created: 13 October 2026
-- Last updated: 16 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained overview for people
 - Related framing: [Project instructions](../../../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](../../../glossary/index.md)
+- Related rules: [Glossary of Heidrun Code](../../../glossary/index.md)
 - Related issue: [issue 337](https://github.com/heidrun-org/heidrun/issues/337)
 
 This folder holds the rules of the Past chats sidebar section.

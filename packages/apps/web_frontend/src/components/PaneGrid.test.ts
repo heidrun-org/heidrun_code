@@ -313,7 +313,7 @@ describe("PaneGrid without pane", () => {
     mocks.gridPanes.value = [];
     const wrapper = mount(PaneGrid, { props: { outerEdges: NO_OUTER_EDGES } });
     expect(wrapper.find(".empty .empty-tab-screen").exists()).toBe(true);
-    expect(wrapper.get(".empty-tab-title").text()).toBe("Heidrun");
+    expect(wrapper.get(".empty-tab-title").text()).toBe("Heidrun Code");
     expect(wrapper.findAll(".separator").length).toBe(0);
   });
 

@@ -12,7 +12,7 @@ const ACTION_KINDS = {
 	wheel: "mouse",
 } as const satisfies Record<string, UserActivityActionKind>;
 
-/** True while the window of Heidrun is in front and the user did an action less than the cool down ago. */
+/** True while the window of Heidrun Code is in front and the user did an action less than the cool down ago. */
 export const isUserActive = ref(false);
 
 /** The time when the running period started, in milliseconds since 1 January 1970, or `null` when no period runs. */
@@ -26,7 +26,7 @@ export const selectedWorkspaceFolder = computed(() =>
 	state.selectedWorkspaceId === null ? null : workspaceCwd(state.selectedWorkspaceId),
 );
 
-/** A workspace that is open in Heidrun, with the folder of its repository. */
+/** A workspace that is open in Heidrun Code, with the folder of its repository. */
 export type OpenWorkspace = {
 	/** The identifier of the workspace. */
 	workspaceId: string;
@@ -39,7 +39,7 @@ export type OpenWorkspace = {
 /** The identifier of the selected workspace, or `null` when no workspace is selected. */
 export const selectedWorkspaceId = computed(() => state.selectedWorkspaceId);
 
-/** The workspaces that are open in Heidrun, in the order of the list of workspaces. A workspace with no known folder is left out. */
+/** The workspaces that are open in Heidrun Code, in the order of the list of workspaces. A workspace with no known folder is left out. */
 export const openWorkspaces = computed<OpenWorkspace[]>(() =>
 	workspaces.value.flatMap((workspace) => {
 		const folder = workspaceCwd(workspace.workspace_id);
@@ -110,7 +110,7 @@ function cancelTimer(): void {
 }
 
 /**
- * A keyboard action or a mouse action reached the window of Heidrun.
+ * A keyboard action or a mouse action reached the window of Heidrun Code.
  *
  * @param event - The event of the action.
  */
@@ -131,7 +131,7 @@ function onAction(event: Event): void {
 	refresh();
 }
 
-/** The window of Heidrun came to the front or went behind. */
+/** The window of Heidrun Code came to the front or went behind. */
 function onWindowFocusChange(): void {
 	if (userActivity === null) {
 		return;
@@ -161,7 +161,7 @@ function onWindowClose(): void {
 
 /**
  * Starts the detection of the activity of the user: listens to every keyboard action and mouse action that reach the
- * window of Heidrun, before any component sees them, to the focus of the window, and to the selected workspace. Each
+ * window of Heidrun Code, before any component sees them, to the focus of the window, and to the selected workspace. Each
  * active period ends with one record, which goes to the file `user_activity.jsonl` and to the list of today. The
  * status item in the macOS menu bar learns each time `isUserActive` changes. A second call does nothing.
  */

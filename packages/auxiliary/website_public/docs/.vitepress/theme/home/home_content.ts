@@ -10,7 +10,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** One screenshot of the Heidrun window, in the folder `docs/public/screenshots`. */
+/** One screenshot of the Heidrun Code window, in the folder `docs/public/screenshots`. */
 export type HomeScreenshot = {
 	/** The path of the image under the base path of the website, for example `/screenshots/window.png`. */
 	src: string;
@@ -28,7 +28,7 @@ export type HomeFeatureSection = {
 	id: string;
 	/** The title of the section. */
 	title: string;
-	/** The paragraphs that say what Heidrun does. They come before the joke. */
+	/** The paragraphs that say what Heidrun Code does. They come before the joke. */
 	paragraphs: string[];
 	/** The joke of the section, said by the goat after the explanation. */
 	joke: string;
@@ -38,7 +38,7 @@ export type HomeFeatureSection = {
 	readMore: HomeLink;
 };
 
-/** The state of a coding agent, with the color that the Heidrun window gives it. */
+/** The state of a coding agent, with the color that the Heidrun Code window gives it. */
 export type HomeAgentState = 'blocked' | 'question' | 'working' | 'done';
 
 /** One terminal of the illustration of the problem. */
@@ -72,7 +72,7 @@ export type HomeWindowPart = {
 
 /** One item of the section "The whole longhouse in one window". */
 export type HomeLonghouseItem = {
-	/** The name of the part of Heidrun, as the glossary writes it. */
+	/** The name of the part of Heidrun Code, as the glossary writes it. */
 	name: string;
 	/** What the part does for the developer, in one or two sentences. */
 	description: string;
@@ -111,18 +111,18 @@ export type HomeLink = {
 ///////////////////////////////////////////////////////////////////////////////
 
 /** The page of the latest release on GitHub, with the file of the application for macOS. */
-export const DOWNLOAD_URL = 'https://github.com/heidrun-org/heidrun/releases/latest';
+export const DOWNLOAD_URL = 'https://github.com/heidrun-org/heidrun_code/releases/latest';
 
-/** The repository of Heidrun on GitHub. */
-export const REPOSITORY_URL = 'https://github.com/heidrun-org/heidrun';
+/** The repository of Heidrun Code on GitHub. */
+export const REPOSITORY_URL = 'https://github.com/heidrun-org/heidrun_code';
 
-/** The issues of Heidrun on GitHub. */
-export const ISSUES_URL = 'https://github.com/heidrun-org/heidrun/issues';
+/** The issues of Heidrun Code on GitHub. */
+export const ISSUES_URL = 'https://github.com/heidrun-org/heidrun_code/issues';
 
 /** The rules for the contributors, in the repository. */
-export const AGENTS_URL = 'https://github.com/heidrun-org/heidrun/blob/main/AGENTS.md';
+export const AGENTS_URL = 'https://github.com/heidrun-org/heidrun_code/blob/main/AGENTS.md';
 
-/** The website of Herdr, the terminal multiplexer that Heidrun needs. */
+/** The website of Herdr, the terminal multiplexer that Heidrun Code needs. */
 export const HERDR_URL = 'https://herdr.dev';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -140,7 +140,7 @@ export const HERO_NOTE = 'Free and open source, under the MIT license. For macOS
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** The section that explains the problem, before Heidrun. */
+/** The section that explains the problem, before Heidrun Code. */
 export const PROBLEM = {
 	id: 'the-problem',
 	title: 'Five coding agents. Five terminals. One goat.',
@@ -149,7 +149,7 @@ export const PROBLEM = {
 		'Each question waits in a different terminal. You switch, you scroll, you search. The coding agents are fast. The slow part is now you.',
 	],
 	joke: 'The einherjar wait for the feast. Your coding agents wait for you.',
-	caption: 'An illustration of a normal afternoon without Heidrun.',
+	caption: 'An illustration of a normal afternoon without Heidrun Code.',
 	terminals: [
 		{
 			title: 'claude — api',
@@ -190,12 +190,12 @@ export const VALHALLA = {
 	id: 'welcome-to-valhalla',
 	title: 'Welcome to Valhalla',
 	paragraphs: [
-		'Heidrun is an application for macOS. It shows every coding agent and every terminal of your Herdr session in one window. You see the work of all your coding agents at the same time, and the ones that need you stand out.',
+		'Heidrun Code is an application for macOS. It shows every coding agent and every terminal of your Herdr session in one window. You see the work of all your coding agents at the same time, and the ones that need you stand out.',
 	],
 	joke: 'Valhalla has 540 doors, so there is always room for one more terminal.',
 	screenshot: {
 		src: '/screenshots/window.png',
-		alt: 'The Heidrun window in the dark theme: the File explorer sidebar section on the left, three panes with Claude Code and Codex in the middle, and a blocked coding agent in the Needs you sidebar section on the right.',
+		alt: 'The Heidrun Code window in the dark theme: the File explorer sidebar section on the left, three panes with Claude Code and Codex in the middle, and a blocked coding agent in the Needs you sidebar section on the right.',
 		width: 2400,
 		height: 1506,
 	} satisfies HomeScreenshot,
@@ -340,7 +340,7 @@ export const FEATURES: HomeFeatureSection[] = [
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** The section that lists the other parts of Heidrun, grouped by the place where they live in the window. */
+/** The section that lists the other parts of Heidrun Code, grouped by the place where they live in the window. */
 export const LONGHOUSE = {
 	id: 'the-whole-longhouse',
 	title: 'The whole longhouse in one window',
@@ -427,7 +427,7 @@ export const LONGHOUSE = {
 		},
 	] satisfies HomeLonghouseGroup[],
 	aiLink: {
-		text: 'Read where Heidrun uses AI, and what it sends',
+		text: 'Read where Heidrun Code uses AI, and what it sends',
 		href: '/features/ai',
 	} satisfies HomeLink,
 };
@@ -438,14 +438,14 @@ export const LONGHOUSE = {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** The section that tells how to get Heidrun. */
+/** The section that tells how to get Heidrun Code. */
 export const QUICK_START = {
 	id: 'board-the-longship',
 	title: 'Board the longship',
 	joke: 'Four commands. A longship needs more oars than that.',
 	download: {
 		title: 'Download the application',
-		text: 'Download the file for macOS on Apple silicon from the latest release, and drag Heidrun into the folder Applications. First install Herdr 0.9 or later: Heidrun needs it, and does not install it. The program ngrok is optional: only the mobile access uses it.',
+		text: 'Download the file for macOS on Apple silicon from the latest release, and drag Heidrun Code into the folder Applications. First install Herdr 0.9 or later: Heidrun Code needs it, and does not install it. The program ngrok is optional: only the mobile access uses it.',
 		herdrInstallCommand: 'curl -fsSL https://herdr.dev/install.sh | sh',
 		buttonText: 'Download for macOS',
 		herdrLinkText: 'Get Herdr',
@@ -454,7 +454,7 @@ export const QUICK_START = {
 		title: 'Build it from the source',
 		text: 'You need Herdr 0.9 or later, Rust stable, Node.js 20 or later, and pnpm.',
 		commands: [
-			'git clone https://github.com/heidrun-org/heidrun.git',
+			'git clone https://github.com/heidrun-org/heidrun_code.git',
 			'cd heidrun',
 			'pnpm install',
 			'pnpm dev',
@@ -475,7 +475,7 @@ export const OPEN_SOURCE = {
 	id: 'built-by-the-herd',
 	title: 'Built by the herd, for the herd',
 	paragraphs: [
-		'Heidrun is free and open source, under the MIT license. Read the code, change it, and share your change.',
+		'Heidrun Code is free and open source, under the MIT license. Read the code, change it, and share your change.',
 		'The application is written in Rust with Tauri 2. The window is written in TypeScript with Vue 3. To contribute, read the rules of the repository, then open an issue before you start a change.',
 	],
 	links: [
@@ -505,7 +505,7 @@ export const MYTHOLOGY = {
 	id: 'who-is-heidrun',
 	title: 'Who is Heiðrún?',
 	paragraphs: [
-		'Heiðrún is a goat of the Norse mythology. She stands on top of Valhalla, eats the leaves of the tree Læraðr, and gives mead to all the warriors of the hall, every day, without end. Heidrun the application does the same for your coding agents.',
+		'Heiðrún is a goat of the Norse mythology. She stands on top of Valhalla, eats the leaves of the tree Læraðr, and gives mead to all the warriors of the hall, every day, without end. Heidrun Code the application does the same for your coding agents.',
 	],
 	joke: 'We do not talk about Ragnarök before breakfast.',
 	mythHeading: 'In the myth',
@@ -517,7 +517,7 @@ export const MYTHOLOGY = {
 		},
 		{
 			myth: 'Valhalla, the hall of Odin',
-			developer: 'The Heidrun window',
+			developer: 'The Heidrun Code window',
 		},
 		{
 			myth: 'The mead',

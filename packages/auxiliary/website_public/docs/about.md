@@ -2,7 +2,7 @@
 description: "Heiðrún is the goat of Norse mythology whose mead feeds the warriors of Valhalla. Read why the application has her name."
 ---
 
-# About Heidrun
+# About Heidrun Code
 
 ## Who is Heiðrún?
 
@@ -16,7 +16,7 @@ Watch this short video to hear how to say the name. The video is on [YouTube](ht
 
 ## Why this name?
 
-Heiðrún never stops working, and she gives everyone in the hall what they need. Heidrun the application does the same for the coding agents of a developer: it keeps every coding agent and every terminal in one hall, and the developer never runs dry.
+Heiðrún never stops working, and she gives everyone in the hall what they need. Heidrun Code the application does the same for the coding agents of a developer: it keeps every coding agent and every terminal in one hall, and the developer never runs dry.
 
 - The coding agents are the einherjar: they fight all day (they write code), and they feast all night (they wait for the next prompt).
 - The work window is Valhalla: everyone is inside, and there is always room for one more terminal.

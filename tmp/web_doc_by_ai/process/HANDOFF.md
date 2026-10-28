@@ -46,3 +46,16 @@ The user authorised a real GPT-6.1 Sol / high Files-only correction run and then
 ## Repository preservation
 
 Issue 407 separately authorises a commit and pull request for the current experiment in a temporary worktree based on dev_jerome. This authorisation does not permit generator Git publication, merging, production integration, or resuming a model run. The original parked folder remains a recovery copy; the reviewable version is in the temporary worktree. Dependencies and generated build output are not committed.
+
+
+## Files correction on 26 October 2026
+
+A fresh GPT-6.1 Sol / high call resumed the preserved completed outline and corrected both known defects. Browse and open project files now explicitly selects the newly added workspace. Copy a file path and Files sidebar section controls now describe paths relative to the Git repository root, with the repository-subfolder example. The original screenshot assets and the fourth page are unchanged.
+
+Evidence is in `../results/files_correction_20261026`: the exact writing prompt, preserved outline, settings, initial fingerprints, before/after pages, raw writer and judge activity, answers, usage and validated judgement. The fixed version 3 judge used claude-sonnet-5-5 / high. All scores were 5, but the result is needs_review because native tasks and one layout description remain unverified. The judge reported USD 0.5218218. Codex reported token usage but no monetary charge.
+
+All 111 experimental website tests and the website build passed. Chrome loaded the corrected path-copy and browsing pages; the corrected instructions, example and authentic context-menu screenshot were inspected. Other pages were assessed by the judge, not independently inspected in this browser pass.
+
+A captured native build succeeded with the exact identifier dev.heidrun-org.heidrun-code.development. The isolated launch used a separate session and data directory with installed-settings write protection. During window selection, the original process was gone and the computer-use tool launched a new development process without that isolation environment. No input was sent to the development window; the exact relaunched development process was stopped. The displayed workspaces did not establish session isolation. No fresh native task verification is claimed. Do not resume native actions until process, window, session and configuration isolation are established together.
+
+The temporary Cargo workspace manifest and lock used to build the snapshot are preserved as native_Cargo.toml and native_Cargo.lock in the evidence folder; the captured source tree is restored without those temporary files. Normal website changes for the separate one-page test and updater implementation belong to master issue 921, not this Files-only experiment.

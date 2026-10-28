@@ -121,9 +121,9 @@ describe('content of the homepage', () => {
 	});
 
 	it('links to the latest release, the repository, and the issues of GitHub', () => {
-		expect(HomeContent.DOWNLOAD_URL).toBe('https://github.com/heidrun-org/heidrun/releases/latest');
-		expect(HomeContent.REPOSITORY_URL).toBe('https://github.com/heidrun-org/heidrun');
-		expect(HomeContent.ISSUES_URL).toBe('https://github.com/heidrun-org/heidrun/issues');
+		expect(HomeContent.DOWNLOAD_URL).toBe('https://github.com/heidrun-org/heidrun_code/releases/latest');
+		expect(HomeContent.REPOSITORY_URL).toBe('https://github.com/heidrun-org/heidrun_code');
+		expect(HomeContent.ISSUES_URL).toBe('https://github.com/heidrun-org/heidrun_code/issues');
 	});
 
 	it('links to a page of the website that exists', () => {

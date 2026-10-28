@@ -1,19 +1,19 @@
-# Glossary of Heidrun: terminal text detection
+# Glossary of Heidrun Code: terminal text detection
 
 - Created: 22 October 2026
-- Last updated: 22 October 2026
+- Last updated: 23 October 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
-- Related rules: [Glossary of Heidrun](index.md), [User interface of Heidrun: the detection in the text of the terminals](../user_interface/window/terminal_text_detection.md), [User interface of Heidrun: the text detection in the Settings window](../user_interface/window/settings_text_detection.md)
+- Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: the detection in the text of the terminals](../user_interface/window/terminal_text_detection.md), [User interface of Heidrun Code: the text detection in the Settings window](../user_interface/window/settings_text_detection.md)
 - Related issue: [issue 793](https://github.com/heidrun-org/heidrun/issues/793), [issue 638](https://github.com/heidrun-org/heidrun/issues/638)
 
-This document gives one short definition for each word of the detection in the text of the terminals. The other words of Heidrun are in [index.md](index.md).
+This document gives one short definition for each word of the detection in the text of the terminals. The other words of Heidrun Code are in [index.md](index.md).
 
 ## Words
 
 ### Text detection
 
-The part of Heidrun that reads the text of a terminal and finds things that Heidrun can act on: web addresses, references to issues, requests, tickets, and commits, file paths, and the suggestions of a coding agent. It never changes, hides, or blocks the text of the terminal.
+The part of Heidrun Code that reads the text of a terminal and finds things that Heidrun Code can act on: web addresses, references to issues, requests, tickets, and commits, file paths, and the suggestions of a coding agent. It never changes, hides, or blocks the text of the terminal.
 
 ### Detection family
 

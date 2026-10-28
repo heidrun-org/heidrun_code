@@ -14,6 +14,7 @@ import {
   codeHostingGroupTitle,
   forgeOfContext,
   itemPrefix,
+  keptAgeText,
   loadCodeHosting,
   readCodeHostingForge,
   searchCodeHosting,
@@ -49,6 +50,7 @@ beforeEach(() => {
   codeHosting.search = { issues: "", requests: "" };
   codeHosting.listStatus = { issues: "idle", requests: "idle" };
   codeHosting.listError = { issues: "", requests: "" };
+  codeHosting.listNotice = { issues: "", requests: "" };
 });
 
 describe("loadCodeHosting on GitHub", () => {
@@ -89,7 +91,7 @@ describe("loadCodeHosting on GitHub", () => {
     expect(forgeCalls()).toEqual([
       {
         tool: "gh",
-        args: ["issue", "list", "--state", "open", "--limit", "100", "--json", "number,title,url,author,createdAt,labels"],
+        args: ["issue", "list", "--state", "open", "--limit", "30", "--json", "number,title,url,author,createdAt,labels"],
       },
       {
         tool: "gh",
@@ -99,7 +101,7 @@ describe("loadCodeHosting on GitHub", () => {
           "--state",
           "open",
           "--limit",
-          "100",
+          "30",
           "--json",
           "number,title,url,author,createdAt,isDraft,headRefName,baseRefName",
         ],
@@ -117,6 +119,24 @@ describe("loadCodeHosting on GitHub", () => {
     vi.mocked(invoke).mockClear();
     await loadCodeHosting("/work/heidrun", true);
     expect(vi.mocked(invoke).mock.calls.map(([, payload]) => (payload as { refresh: boolean }).refresh)).toEqual([true, true]);
+    expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).toEqual([
+      "forge_cli_cached_with_source",
+      "forge_cli_cached_with_source",
+    ]);
+  });
+
+  it("keeps the answers of the lists until a refresh, whatever their age (issue #870)", async () => {
+    await loadCodeHosting("/work/heidrun");
+    await searchCodeHosting("/work/heidrun", "issues", "label:bug");
+    await loadCodeHosting("/work/heidrun", true);
+    const kept = vi.mocked(invoke).mock.calls.map(([, payload]) => (payload as { keepUntilRefresh: boolean }).keepUntilRefresh);
+    expect(kept).toEqual([true, true, true, true, true]);
+  });
+
+  it("names the Code hosting sidebar section as the caller, for the application log (issue #879)", async () => {
+    await loadCodeHosting("/work/heidrun");
+    const callers = vi.mocked(invoke).mock.calls.map(([, payload]) => (payload as { caller: string }).caller);
+    expect(callers).toEqual(["code_hosting_list", "code_hosting_list"]);
   });
 
   it("keeps the number, the title, the address, the author, the date, the labels, the draft mark, and the branches of each item", async () => {
@@ -197,8 +217,8 @@ describe("loadCodeHosting on GitLab", () => {
     });
     await loadCodeHosting("/work/app");
     expect(forgeCalls()).toEqual([
-      { tool: "glab", args: ["api", "projects/:fullpath/issues?state=opened&per_page=100&with_labels_details=true"] },
-      { tool: "glab", args: ["api", "projects/:fullpath/merge_requests?state=opened&per_page=100"] },
+      { tool: "glab", args: ["api", "projects/:fullpath/issues?state=opened&per_page=30&with_labels_details=true"] },
+      { tool: "glab", args: ["api", "projects/:fullpath/merge_requests?state=opened&per_page=30"] },
     ]);
     expect(codeHosting.forge).toBe("gitlab");
     expect(codeHosting.issues).toEqual([
@@ -241,6 +261,85 @@ describe("loadCodeHosting on GitLab", () => {
   });
 });
 
+describe("loadCodeHosting refresh on GitLab", () => {
+  it("shows the message of a failed refresh when the kept answer of glab replaces the failure (issue #890)", async () => {
+    vi.mocked(refContext).mockResolvedValue(contextOf("gitlab"));
+    vi.mocked(invoke).mockImplementation(async (_command, payload) => {
+      const { args } = payload as { args: string[] };
+      const isIssues = args[1].startsWith("projects/:fullpath/issues");
+      return {
+        output: JSON.stringify(isIssues ? [{ iid: 12, title: "Old", web_url: "https://gitlab.com/t/a/-/issues/12" }] : []),
+        failure: isIssues ? "glab: no network" : null,
+        keptAt: isIssues ? Date.now() - 60_000 : null,
+      };
+    });
+    await loadCodeHosting("/work/app", true);
+    expect(codeHosting.issues.map((item) => item.number)).toEqual([12]);
+    expect(codeHosting.listNotice.issues).toMatch(/^The refresh failed\. This list is 1 minute old, from .+\. glab: no network$/);
+    expect(codeHosting.listNotice.requests).toBe("");
+  });
+
+  it("shows the local time of the reset when the GitLab rate limit is exceeded (issue #872)", async () => {
+    const reset = new Date(2026, 9, 25, 14, 7).getTime() / 1000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 25, 13, 58));
+    vi.mocked(refContext).mockResolvedValue(contextOf("gitlab"));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_gitlab_rate_limit_reset") {
+        return reset;
+      }
+      throw "glab: HTTP 429";
+    });
+    await loadCodeHosting("/work/app");
+    vi.useRealTimers();
+    expect(codeHosting.listError).toEqual({
+      issues: "GitLab rate limit exceeded. Resets at 02:07 PM.",
+      requests: "GitLab rate limit exceeded. Resets at 02:07 PM.",
+    });
+    expect(vi.mocked(invoke).mock.calls).toContainEqual(["forge_gitlab_rate_limit_reset", { cwd: "/work/app" }]);
+    expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).not.toContain("forge_rate_limit_reset");
+  });
+
+  it("gives the GitLab reset time in the message of a failed refresh (issue #872)", async () => {
+    const reset = new Date(2026, 9, 25, 14, 7).getTime() / 1000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 25, 13, 58));
+    vi.mocked(refContext).mockResolvedValue(contextOf("gitlab"));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_gitlab_rate_limit_reset") {
+        return reset;
+      }
+      return {
+        output: "[]",
+        failure: "glab: HTTP 429",
+        keptAt: Date.now() - 60_000,
+      };
+    });
+    await loadCodeHosting("/work/app", true);
+    vi.useRealTimers();
+    expect(codeHosting.listNotice.issues).toMatch(
+      /^The refresh failed\. This list is 1 minute old, from .+\. GitLab rate limit exceeded\. Resets at 02:07 PM\.$/,
+    );
+  });
+
+  it("says to try again in a few minutes when GitLab gives no reset time, and reads no reset time for another failure (issue #872)", async () => {
+    vi.mocked(refContext).mockResolvedValue(contextOf("gitlab"));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_gitlab_rate_limit_reset") {
+        throw "glab: no network";
+      }
+      throw "glab: HTTP 429";
+    });
+    await loadCodeHosting("/work/app");
+    expect(codeHosting.listError.issues).toBe("GitLab rate limit exceeded. Try again in a few minutes.");
+    vi.mocked(invoke).mockClear();
+    vi.mocked(invoke).mockRejectedValue("glab: HTTP 401");
+    await loadCodeHosting("/work/app");
+    expect(codeHosting.listError.issues).toBe("glab: HTTP 401");
+    expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).not.toContain("forge_gitlab_rate_limit_reset");
+  });
+});
+
 describe("searchCodeHosting on GitHub", () => {
   beforeEach(async () => {
     vi.mocked(refContext).mockResolvedValue(contextOf("github"));
@@ -254,7 +353,7 @@ describe("searchCodeHosting on GitHub", () => {
     expect(codeHosting.search.issues).toBe("author:@me -label:bug");
     expect(codeHosting.search.requests).toBe("");
     expect(forgeCalls().map((call) => call.args.slice(0, 8))).toEqual([
-      ["issue", "list", "--state", "open", "--limit", "100", "--search", "author:@me -label:bug"],
+      ["issue", "list", "--state", "open", "--limit", "30", "--search", "author:@me -label:bug"],
     ]);
     expect(forgeCalls()[0].args[8]).toBe("--json");
   });
@@ -264,7 +363,7 @@ describe("searchCodeHosting on GitHub", () => {
     expect(codeHosting.search.requests).toBe("review-requested:@me");
     expect(codeHosting.search.issues).toBe("");
     expect(forgeCalls().map((call) => call.args.slice(0, 8))).toEqual([
-      ["pr", "list", "--state", "open", "--limit", "100", "--search", "review-requested:@me"],
+      ["pr", "list", "--state", "open", "--limit", "30", "--search", "review-requested:@me"],
     ]);
   });
 
@@ -300,7 +399,7 @@ describe("searchCodeHosting on GitHub", () => {
       "--state",
       "open",
       "--limit",
-      "100",
+      "30",
       "--json",
       "number,title,url,author,createdAt,labels",
     ]);
@@ -312,8 +411,8 @@ describe("searchCodeHosting on GitHub", () => {
     vi.mocked(invoke).mockClear();
     await loadCodeHosting("/work/other", true);
     expect(forgeCalls().map((call) => call.args.slice(0, 8))).toEqual([
-      ["issue", "list", "--state", "open", "--limit", "100", "--search", "label:bug"],
-      ["pr", "list", "--state", "open", "--limit", "100", "--search", "review-requested:@me"],
+      ["issue", "list", "--state", "open", "--limit", "30", "--search", "label:bug"],
+      ["pr", "list", "--state", "open", "--limit", "30", "--search", "review-requested:@me"],
     ]);
   });
 
@@ -342,9 +441,91 @@ describe("searchCodeHosting on GitHub", () => {
     vi.mocked(invoke).mockRejectedValue("gh: rate limit\nwait");
     await searchCodeHosting("/work/heidrun", "issues", "label:bug");
     expect(codeHosting.listStatus).toEqual({ issues: "failed", requests: "ready" });
-    expect(codeHosting.listError.issues).toBe("gh: rate limit");
+    expect(codeHosting.listError.issues).toBe("GitHub rate limit exceeded. Try again in a few minutes.");
     expect(codeHosting.listError.requests).toBe("");
     expect(codeHosting.status).toBe("ready");
+  });
+
+  it("shows the local time of the reset when the GitHub rate limit is exceeded", async () => {
+    const reset = new Date(2026, 9, 25, 14, 7).getTime() / 1000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 25, 13, 58));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_rate_limit_reset") {
+        return reset;
+      }
+      throw "GraphQL: API rate limit already exceeded for user ID 252962.";
+    });
+    await searchCodeHosting("/work/heidrun", "issues", "data");
+    vi.useRealTimers();
+    expect(codeHosting.listError.issues).toBe("GitHub rate limit exceeded. Resets at 02:07 PM.");
+    expect(vi.mocked(invoke).mock.calls).toContainEqual(["forge_rate_limit_reset", { cwd: "/work/heidrun" }]);
+  });
+
+  it("shows the old list with a message when a refresh fails and the kept answer replaces the failure (issue #890)", async () => {
+    const keptAt = new Date(2026, 9, 25, 13, 40).getTime();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 25, 13, 58));
+    vi.mocked(invoke).mockImplementation(async (_command, payload) => {
+      const { args } = payload as { args: string[] };
+      const output = JSON.stringify(args[0] === "issue" ? [{ number: 848, title: "Old", url: "https://x/848" }] : []);
+      return {
+        output,
+        failure: args[0] === "issue" ? "gh: no network\nmore" : null,
+        keptAt: args[0] === "issue" ? keptAt : null,
+      };
+    });
+    await loadCodeHosting("/work/heidrun", true);
+    vi.useRealTimers();
+    expect(codeHosting.issues.map((item) => item.number)).toEqual([848]);
+    expect(codeHosting.listStatus.issues).toBe("ready");
+    expect(codeHosting.listNotice.issues).toBe("The refresh failed. This list is 18 minutes old, from 01:40 PM. gh: no network");
+    expect(codeHosting.listNotice.requests).toBe("");
+  });
+
+  it("gives the reset time of the rate limit in the message of a failed refresh, and removes the message after a good refresh", async () => {
+    const keptAt = new Date(2026, 9, 25, 13, 40).getTime();
+    const reset = new Date(2026, 9, 25, 14, 7).getTime() / 1000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 25, 13, 58));
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_rate_limit_reset") {
+        return reset;
+      }
+      return {
+        output: "[]",
+        failure: "GraphQL: API rate limit already exceeded for user ID 252962.",
+        keptAt,
+      };
+    });
+    await loadCodeHosting("/work/heidrun", true);
+    vi.useRealTimers();
+    expect(codeHosting.listNotice.issues).toBe(
+      "The refresh failed. This list is 18 minutes old, from 01:40 PM. GitHub rate limit exceeded. Resets at 02:07 PM.",
+    );
+    vi.mocked(invoke).mockResolvedValue({
+      output: "[]",
+      failure: null,
+      keptAt: null,
+    });
+    await loadCodeHosting("/work/heidrun", true);
+    expect(codeHosting.listNotice).toEqual({ issues: "", requests: "" });
+  });
+
+  it("says to try again in a few minutes when GitHub gives no reset time, as for the secondary rate limit (issue #910)", async () => {
+    vi.mocked(invoke).mockImplementation(async (command) => {
+      if (command === "forge_rate_limit_reset") {
+        return null;
+      }
+      throw "GraphQL: API rate limit already exceeded for user ID 252962.";
+    });
+    await searchCodeHosting("/work/heidrun", "issues", "data");
+    expect(codeHosting.listError.issues).toBe("GitHub rate limit exceeded. Try again in a few minutes.");
+    vi.mocked(invoke).mockClear();
+    vi.mocked(invoke).mockRejectedValue("gh: not logged in");
+    await searchCodeHosting("/work/heidrun", "issues", "data");
+    expect(codeHosting.listError.issues).toBe("gh: not logged in");
+    expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).not.toContain("forge_rate_limit_reset");
   });
 
   it("ignores the answer of an older search of a list that ends after a newer search of the same list", async () => {
@@ -380,7 +561,7 @@ describe("searchCodeHosting on GitLab", () => {
         tool: "glab",
         args: [
           "api",
-          "projects/:fullpath/issues?state=opened&not%5Bauthor_username%5D=eric&labels=bug&per_page=100&with_labels_details=true",
+          "projects/:fullpath/issues?state=opened&not%5Bauthor_username%5D=eric&labels=bug&per_page=30&with_labels_details=true",
         ],
       },
     ]);
@@ -391,7 +572,7 @@ describe("searchCodeHosting on GitLab", () => {
     await answerGitlab();
     await searchCodeHosting("/work/app", "requests", "label:bug");
     expect(forgeCalls()).toEqual([
-      { tool: "glab", args: ["api", "projects/:fullpath/merge_requests?state=opened&labels=bug&per_page=100"] },
+      { tool: "glab", args: ["api", "projects/:fullpath/merge_requests?state=opened&labels=bug&per_page=30"] },
     ]);
   });
 
@@ -399,7 +580,7 @@ describe("searchCodeHosting on GitLab", () => {
     await answerGitlab();
     await searchCodeHosting("/work/app", "issues", "author:@me");
     expect(forgeCalls()[0]).toEqual({ tool: "glab", args: ["api", "user"] });
-    expect(forgeCalls()[1].args[1]).toBe("projects/:fullpath/issues?state=opened&author_username=jerome&per_page=100&with_labels_details=true");
+    expect(forgeCalls()[1].args[1]).toBe("projects/:fullpath/issues?state=opened&author_username=jerome&per_page=30&with_labels_details=true");
     vi.mocked(invoke).mockClear();
     await searchCodeHosting("/work/app", "issues", "label:bug");
     expect(forgeCalls().map((call) => call.args[1])).not.toContain("user");
@@ -430,7 +611,7 @@ describe("searchCodeHosting on GitLab", () => {
     expect(codeHosting.issues).toEqual([]);
     await searchCodeHosting("/work/app", "requests", "review-requested:eric");
     expect(forgeCalls()).toEqual([
-      { tool: "glab", args: ["api", "projects/:fullpath/merge_requests?state=opened&reviewer_username=eric&per_page=100"] },
+      { tool: "glab", args: ["api", "projects/:fullpath/merge_requests?state=opened&reviewer_username=eric&per_page=30"] },
     ]);
   });
 
@@ -553,5 +734,20 @@ describe("codeHostingGroupTitle", () => {
     expect(codeHostingGroupTitle("requests", "github")).toBe("Pull requests");
     expect(codeHostingGroupTitle("requests", "gitlab")).toBe("Merge requests");
     expect(codeHostingGroupTitle("requests", null)).toBe("Pull requests");
+  });
+});
+
+describe("keptAgeText", () => {
+  const now = new Date(2026, 9, 26, 7, 10).getTime();
+
+  it("gives hours up to 48 hours, so that a list from yesterday reads as its hours (issue #910)", () => {
+    expect(keptAgeText(now - 30_000, now)).toBe("less than a minute");
+    expect(keptAgeText(now - 60_000, now)).toBe("1 minute");
+    expect(keptAgeText(now - 59 * 60_000, now)).toBe("59 minutes");
+    expect(keptAgeText(now - 60 * 60_000, now)).toBe("1 hour");
+    expect(keptAgeText(new Date(2026, 9, 25, 5, 3).getTime(), now)).toBe("26 hours");
+    expect(keptAgeText(now - 47 * 3_600_000, now)).toBe("47 hours");
+    expect(keptAgeText(now - 48 * 3_600_000, now)).toBe("2 days");
+    expect(keptAgeText(now + 60_000, now)).toBe("less than a minute");
   });
 });

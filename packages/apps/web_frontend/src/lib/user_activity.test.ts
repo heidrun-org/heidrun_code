@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, describe, expect, it } from "vitest";
 import { USER_ACTIVITY_COOL_DOWN_MS, UserActivity } from "./user_activity";
 
