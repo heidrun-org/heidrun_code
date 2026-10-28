@@ -438,6 +438,15 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 }
 .btn.icon.small { width: 24px; height: 24px; }
 .btn.icon.lg { width: 40px; }
+/* The scroll arrow of the dynamic topic bar is a round button with the sidebar background, and a border and a chevron
+   in the text color, so that it stands out from the topics. */
+.topic-arrow.btn.icon.small {
+  border-radius: 50%; font-size: 0.875rem;
+  --btn-bg: var(--side); --btn-color: var(--text); --btn-border-width: 1.5px; --btn-border-color: var(--text);
+  --btn-hover-bg: var(--hover); --btn-hover-color: var(--text); --btn-hover-border-color: var(--text);
+  --btn-active-bg: var(--sel); --btn-active-color: var(--text); --btn-active-border-color: var(--text);
+}
+.topic-arrow .bi { -webkit-text-stroke: 1px currentColor; }
 /* A menu is a raised surface, and --hover is almost the same color as --raised, so on a menu an icon button takes the
    hover color of the sidebar icon bar. The press keeps the shared pressed color. */
 .menu .btn.icon:not(:active) { --btn-hover-bg: var(--line-strong); }

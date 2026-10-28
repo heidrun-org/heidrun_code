@@ -1,6 +1,6 @@
 [package]
 name = "heidrun_code"
-version = "0.3.0"
+version = "0.3.5"
 description = "Interface graphique pour Herdr"
 license = "MIT"
 edition = "2021"

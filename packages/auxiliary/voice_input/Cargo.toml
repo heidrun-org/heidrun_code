@@ -1,6 +1,6 @@
 [package]
 name = "voice_input"
-version = "0.3.0"
+version = "0.3.5"
 description = "Records the microphone, downloads a Whisper model, and changes the speech into text on the computer"
 license = "MIT"
 edition = "2021"
