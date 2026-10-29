@@ -6,16 +6,18 @@ import {
   canShowMoreChats,
   CHAT_LIMITS,
   chats,
-  chooseChatAgent,
+  chatSortValue,
+  checkChatAgent,
+  checkedChatAgents,
   chooseChatSortKey,
   chooseChatSortOrder,
   loadChats,
   nextChatLimit,
   previousChatLimit,
-  selectedChatAgent,
   shownChats,
   showLessChats,
   showMoreChats,
+  sortChats,
   type Chat,
 } from "./chats";
 import { settings } from "./settings";
@@ -86,7 +88,7 @@ beforeEach(() => {
   chats.folder = null;
   chats.claude = [];
   chats.codex = [];
-  chats.agent = "claude";
+  chats.agents = "claude";
   chats.hasMore = { claude: false, codex: false };
   chats.limit = CHAT_LIMITS[0];
   chats.isShowingMore = false;
@@ -240,13 +242,15 @@ describe("the number of chats", () => {
     expect(invoke).toHaveBeenLastCalledWith("chats_list", { folder: "/work/website", limit: 5, sortKey: "last_updated", order: "descending" });
   });
 
-  it("offers Show more only for the selected coding agent that has more chats", async () => {
+  it("offers Show more only for the checked coding agents that have more chats", async () => {
     listAlways(answerOf([chat("a", "First")], [chat("b", "Second")], { codex: true }));
     await loadChats("/work/app");
-    chats.agent = "claude";
+    chats.agents = "claude";
     expect(canShowMoreChats.value).toBe(false);
-    chats.agent = "codex";
+    chats.agents = "codex";
     expect(canShowMoreChats.value).toBe(true);
+    chats.agents = "none";
+    expect(canShowMoreChats.value).toBe(false);
   });
 
   it("goes back one step for each click on Show less, and never below 5", () => {
@@ -311,46 +315,112 @@ describe("the coding agents of the selector", () => {
     expect(availableChatAgents.value).toEqual(["claude", "codex"]);
   });
 
-  it("shows the coding agent that the developer chose", () => {
+  it("shows the chats of the coding agent that the developer checked", () => {
     chats.claude = [chat("a", "First")];
     chats.codex = [chat("b", "Second")];
-    chats.agent = "codex";
-    expect(selectedChatAgent.value).toBe("codex");
-    expect(shownChats.value).toEqual([chat("b", "Second")]);
+    chats.agents = "codex";
+    expect(checkedChatAgents.value).toEqual(["codex"]);
+    expect(shownChats.value).toEqual([{ ...chat("b", "Second"), agent: "codex" }]);
   });
 
-  it("shows the first coding agent that has a conversation when the chosen one has none", () => {
+  it("shows no chat when no coding agent is checked", () => {
+    chats.claude = [chat("a", "First")];
     chats.codex = [chat("b", "Second")];
-    chats.agent = "claude";
-    expect(selectedChatAgent.value).toBe("codex");
-    expect(shownChats.value).toEqual([chat("b", "Second")]);
+    chats.agents = "none";
+    expect(checkedChatAgents.value).toEqual([]);
+    expect(shownChats.value).toEqual([]);
   });
 
-  it("shows no coding agent and no conversation when there is none", () => {
-    expect(selectedChatAgent.value).toBeNull();
+  it("mixes the chats of Claude and of Codex in the order of the settings when both are checked, each with its coding agent", () => {
+    chats.claude = [{ ...chat("a", "First"), updated_at: 30 }, { ...chat("c", "Third"), updated_at: 10 }];
+    chats.codex = [{ ...chat("b", "Second"), updated_at: 20 }];
+    chats.agents = "both";
+    expect(checkedChatAgents.value).toEqual(["claude", "codex"]);
+    expect(shownChats.value.map((shown) => [shown.id, shown.agent])).toEqual([
+      ["a", "claude"],
+      ["b", "codex"],
+      ["c", "claude"],
+    ]);
+    settings.chatsOrder = "ascending";
+    expect(shownChats.value.map((shown) => shown.id)).toEqual(["c", "b", "a"]);
+  });
+
+  it("keeps at most the limit of chats when both are checked, and can show more when chats are left out", () => {
+    chats.limit = 2;
+    chats.claude = [{ ...chat("a", "First"), updated_at: 30 }, { ...chat("c", "Third"), updated_at: 10 }];
+    chats.codex = [{ ...chat("b", "Second"), updated_at: 20 }];
+    chats.agents = "both";
+    expect(shownChats.value.map((shown) => shown.id)).toEqual(["a", "b"]);
+    expect(canShowMoreChats.value).toBe(true);
+    chats.limit = 5;
+    expect(canShowMoreChats.value).toBe(false);
+    chats.hasMore.codex = true;
+    expect(canShowMoreChats.value).toBe(true);
+  });
+
+  it("shows no conversation when there is none", () => {
     expect(shownChats.value).toEqual([]);
   });
 });
 
-describe("the coding agent that the developer chose", () => {
+describe("the coding agents that the developer checked", () => {
   afterEach(() => {
     localStorage.removeItem("heidrun.settings");
     vi.resetModules();
   });
 
-  it("is saved in the settings when the developer chooses it", () => {
-    chooseChatAgent("codex");
-    expect(chats.agent).toBe("codex");
-    expect(settings.chatsAgent).toBe("codex");
+  it("are saved in the settings each time the developer checks or unchecks one", () => {
+    checkChatAgent("codex", true);
+    expect(chats.agents).toBe("both");
+    expect(settings.chatsAgent).toBe("both");
+    checkChatAgent("claude", false);
+    expect(chats.agents).toBe("codex");
+    checkChatAgent("codex", false);
+    expect(chats.agents).toBe("none");
+    expect(settings.chatsAgent).toBe("none");
+    checkChatAgent("claude", true);
+    expect(chats.agents).toBe("claude");
   });
 
-  it("is the coding agent of the next start, and Claude when the saved value is not a coding agent", async () => {
-    localStorage.setItem("heidrun.settings", JSON.stringify({ chatsAgent: "codex" }));
+  it("are the checked coding agents of the next start, and both when the saved value is not valid", async () => {
+    localStorage.setItem("heidrun.settings", JSON.stringify({ chatsAgent: "none" }));
     vi.resetModules();
-    expect((await import("./chats")).chats.agent).toBe("codex");
+    expect((await import("./chats")).chats.agents).toBe("none");
     localStorage.setItem("heidrun.settings", JSON.stringify({ chatsAgent: "unknown" }));
     vi.resetModules();
-    expect((await import("./chats")).chats.agent).toBe("claude");
+    expect((await import("./chats")).chats.agents).toBe("both");
+  });
+});
+
+describe("the sort of the chats of every coding agent", () => {
+  it("gives the number of each sort key, as the Tauri command chats_list computes it", () => {
+    const sample: Chat = {
+      ...chat("a", "First"),
+      updated_at: 50,
+      meta: {
+        ...chat("a", "First").meta,
+        user_messages: 3,
+        issues: [1, 2],
+        pull_requests: [7],
+        files_written: ["/work/app/a.ts", "/work/app/.claude/worktrees/fix-1/a.ts", "/work/app/b.ts"],
+      },
+    };
+    expect(chatSortValue(sample, "created_on", "/work/app")).toBe(50);
+    expect(chatSortValue({ ...sample, meta: { ...sample.meta, first_at: 40 } }, "created_on", "/work/app")).toBe(40);
+    expect(chatSortValue(sample, "last_updated", "/work/app")).toBe(50);
+    expect(chatSortValue(sample, "messages", "/work/app")).toBe(3);
+    expect(chatSortValue(sample, "issues", "/work/app")).toBe(2);
+    expect(chatSortValue(sample, "pull_requests", "/work/app")).toBe(1);
+    expect(chatSortValue(sample, "files_written", "/work/app")).toBe(2);
+  });
+
+  it("puts the chat with the most recent activity first when two chats have the same value, then sorts by identifier", () => {
+    const list = [
+      { ...chat("b", "Second"), updated_at: 10 },
+      { ...chat("a", "First"), updated_at: 10 },
+      { ...chat("c", "Third"), updated_at: 20 },
+    ];
+    expect(sortChats(list, "messages", "ascending", null).map((sorted) => sorted.id)).toEqual(["c", "a", "b"]);
   });
 });
 

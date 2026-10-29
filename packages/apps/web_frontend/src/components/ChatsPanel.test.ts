@@ -71,6 +71,12 @@ function answer(claudeTitles: string[], codexTitles: string[], hasMore: { claude
   });
 }
 
+/** Checks Codex and unchecks Claude in the selector, so that the list shows the chats of Codex only. */
+async function showOnlyCodex(wrapper: ReturnType<typeof mount>) {
+  await wrapper.get("#chats-agent-codex").setValue(true);
+  await wrapper.get("#chats-agent-claude").setValue(false);
+}
+
 /** How many times the Tauri command `name` ran. */
 function commandCalls(name: string): number {
   return vi.mocked(invoke).mock.calls.filter(([command]) => command === name).length;
@@ -99,7 +105,7 @@ beforeEach(() => {
   chats.folder = null;
   chats.claude = [];
   chats.codex = [];
-  chats.agent = "claude";
+  chats.agents = "claude";
   settings.chatsAgent = "claude";
   settings.chatsView = "compact";
   settings.chatsSortKey = "last_updated";
@@ -158,7 +164,7 @@ describe("ChatsPanel", () => {
     expect(shownTitles(wrapper)).toEqual(["Fix the tab bar", "Add the Chats sidebar section"]);
   });
 
-  it("offers every coding agent in a group of radio buttons, checks Claude, and shows the titles of Codex after the choice", async () => {
+  it("offers every coding agent in a group of checkbox buttons, checks Claude, and adds the chats of Codex when Codex is checked", async () => {
     answer(["Fix the tab bar"], ["Describe image"]);
     const wrapper = mount(ChatsPanel);
     await flushPromises();
@@ -166,29 +172,55 @@ describe("ChatsPanel", () => {
     expect(group.classes()).toContain("btn-group");
     expect(group.findAll("label").map((label) => label.text())).toEqual(["Claude", "Codex"]);
     const inputs = group.findAll("input");
-    expect(inputs.map((input) => input.attributes("type"))).toEqual(["radio", "radio"]);
+    expect(inputs.map((input) => input.attributes("type"))).toEqual(["checkbox", "checkbox"]);
     expect(inputs.map((input) => (input.element as HTMLInputElement).checked)).toEqual([true, false]);
-    await inputs[1].setValue();
-    expect(shownTitles(wrapper)).toEqual(["Describe image"]);
-    expect(inputs.map((input) => (input.element as HTMLInputElement).checked)).toEqual([false, true]);
+    expect(shownTitles(wrapper)).toEqual(["Fix the tab bar"]);
+    await inputs[1].setValue(true);
+    expect(shownTitles(wrapper)).toEqual(["Fix the tab bar", "Describe image"]);
+    expect(inputs.map((input) => (input.element as HTMLInputElement).checked)).toEqual([true, true]);
   });
 
-  it("saves the coding agent that the developer chose, and starts with it the next time", async () => {
+  it("shows the chats of Claude and of Codex in one list when both are checked, each with the icon of its coding agent", async () => {
     answer(["Fix the tab bar"], ["Describe image"]);
     const wrapper = mount(ChatsPanel);
     await flushPromises();
-    await wrapper.get("#chats-agent-codex").setValue();
-    expect(settings.chatsAgent).toBe("codex");
-    expect(chats.agent).toBe("codex");
+    await wrapper.get("#chats-agent-codex").setValue(true);
+    expect(settings.chatsAgent).toBe("both");
+    const appButtons = wrapper.findAll("li .chat-actions button:first-child");
+    expect(appButtons.map((button) => button.attributes("title"))).toEqual(["Open in the Claude app", "Open in the Codex app"]);
+    expect(appButtons.map((button) => button.find(".bi").classes()[1])).toEqual(["bi-claude", "bi-openai"]);
+    await appButtons[1].trigger("click");
+    expect(openUrl).toHaveBeenCalledWith("codex://threads/x0");
   });
 
-  it("shows both coding agents, and disables the one that has no conversation, when only Codex has conversations", async () => {
+  it("shows no chat and says why when the developer unchecks both coding agents, and keeps the selector", async () => {
+    answer(["Fix the tab bar"], ["Describe image"]);
+    const wrapper = mount(ChatsPanel);
+    await flushPromises();
+    await wrapper.get("#chats-agent-claude").setValue(false);
+    expect(settings.chatsAgent).toBe("none");
+    expect(shownTitles(wrapper)).toEqual([]);
+    expect(wrapper.text()).toContain("Check Claude or Codex to see their chats.");
+    expect(wrapper.find('[aria-label="Coding agent"]').exists()).toBe(true);
+  });
+
+  it("saves the coding agents that the developer checked", async () => {
+    answer(["Fix the tab bar"], ["Describe image"]);
+    const wrapper = mount(ChatsPanel);
+    await flushPromises();
+    await showOnlyCodex(wrapper);
+    expect(settings.chatsAgent).toBe("codex");
+    expect(chats.agents).toBe("codex");
+  });
+
+  it("disables the coding agent that has no conversation, when only Codex has conversations", async () => {
+    settings.chatsAgent = "both";
+    chats.agents = "both";
     answer([], ["Describe image"]);
     const wrapper = mount(ChatsPanel);
     await flushPromises();
     const inputs = wrapper.get('[aria-label="Coding agent"]').findAll("input");
     expect(inputs.map((input) => input.attributes("disabled") !== undefined)).toEqual([true, false]);
-    expect(inputs.map((input) => (input.element as HTMLInputElement).checked)).toEqual([false, true]);
     expect(wrapper.get("#chats-agent-claude").element.closest("label")?.getAttribute("title")).toBe(
       "No chat of this coding agent in this workspace.",
     );
@@ -330,7 +362,7 @@ describe("ChatsPanel", () => {
     expect(more.classes()).toContain("btn");
     expect(less.attributes("disabled")).toBeDefined();
     expect(more.attributes("disabled")).toBeUndefined();
-    await wrapper.get("#chats-agent-codex").setValue();
+    await showOnlyCodex(wrapper);
     ({ less, more } = pagerButtons(wrapper));
     expect(less.attributes("disabled")).toBeDefined();
     expect(more.attributes("disabled")).toBeDefined();
@@ -455,11 +487,11 @@ describe("ChatsPanel", () => {
     ]);
   });
 
-  it("uses Bootstrap classes for the radio button groups and the list", async () => {
+  it("uses Bootstrap classes for the button groups and the list", async () => {
     answer(["Fix the tab bar"], []);
     const wrapper = mount(ChatsPanel);
     await flushPromises();
-    expect(wrapper.findAll(".btn-group > label.btn.btn-check > input[type=radio]")).toHaveLength(4);
+    expect(wrapper.findAll(".btn-group > label.btn.btn-check > input")).toHaveLength(4);
     expect(wrapper.get("ul").classes()).toEqual(expect.arrayContaining(["list-group", "list-group-flush"]));
     expect(wrapper.get("li").classes()).toEqual(expect.arrayContaining(["list-group-item", "list-group-item-action"]));
   });
@@ -484,7 +516,7 @@ describe("ChatsPanel", () => {
     await flushPromises();
     await wrapper.get("li .chat-actions button").trigger("click");
     expect(openUrl).toHaveBeenLastCalledWith("claude://code/c0");
-    await wrapper.get("#chats-agent-codex").setValue();
+    await showOnlyCodex(wrapper);
     expect(wrapper.get("li .chat-actions button").attributes("title")).toBe("Open in the Codex app");
     expect(wrapper.get("li .chat-actions button .bi").classes()).toContain("bi-openai");
     await wrapper.get("li .chat-actions button").trigger("click");
@@ -507,7 +539,7 @@ describe("ChatsPanel", () => {
       prompt: "",
       resumeId: "c0",
     });
-    await wrapper.get("#chats-agent-codex").setValue();
+    await showOnlyCodex(wrapper);
     await wrapper.get('li .chat-actions button[title="Open in Heidrun Code"]').trigger("click");
     expect(launchAgent).toHaveBeenLastCalledWith(expect.objectContaining({ tool: "codex", label: "Describe image", resumeId: "x0" }));
   });
@@ -828,13 +860,13 @@ describe("ChatsPanel", () => {
       expect(barButtons(wrapper)).toEqual(["All", "panel", "cache", "sidebar", "tab"]);
     });
 
-    it("forgets the topic when the developer chooses the other coding agent", async () => {
+    it("forgets the topic when the developer checks other coding agents", async () => {
       answer(["Sidebar panel", "Tabs panel", "Cache"], ["Sidebar panel", "Zebra crossing"]);
       const wrapper = mount(ChatsPanel);
       await flushPromises();
       await wrapper.findAll(".topic-chip")[2].trigger("click");
       expect(shownTitles(wrapper)).toEqual(["Cache"]);
-      await wrapper.get("#chats-agent-codex").setValue();
+      await showOnlyCodex(wrapper);
       await flushPromises();
       expect(shownTitles(wrapper)).toEqual(["Sidebar panel", "Zebra crossing"]);
       expect(wrapper.findAll(".topic-chip")[0].attributes("aria-pressed")).toBe("true");
