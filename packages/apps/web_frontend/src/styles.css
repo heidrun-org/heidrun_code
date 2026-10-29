@@ -44,6 +44,8 @@
   --pane-head-line-blocked: #2f1b1a;
   --line-soft: #262a2f;
   --raised: #1b1e22;
+  /* The hover color of a menu item: visible on --raised (issue #964). */
+  --menu-hover: #30353c;
   --toast-bg: #23272c;
   --toast-shadow: rgba(0, 0, 0, 0.5);
   --chip: #1d2024;
@@ -168,6 +170,7 @@
   --pane-head-line-blocked: #f0d2d0;
   --line-soft: #e4e4df;
   --raised: #ffffff;
+  --menu-hover: #e1e1dc;
   --toast-bg: #ffffff;
   --toast-shadow: rgba(0, 0, 0, 0.16);
   --chip: #e9e9e5;
@@ -467,7 +470,7 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 .list-action:disabled, .navigation-action:disabled { opacity: 0.45; cursor: default; }
 .menu { --menu-bg: var(--raised); --menu-color: var(--text); --menu-border-color: var(--line-modal); }
 .menu-item {
-  --menu-item-color: var(--text); --menu-item-hover-color: var(--text); --menu-item-hover-bg: var(--hover);
+  --menu-item-color: var(--text); --menu-item-hover-color: var(--text); --menu-item-hover-bg: var(--menu-hover);
   --menu-item-active-color: var(--text); --menu-item-active-bg: var(--sel);
 }
 .menu-item:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }

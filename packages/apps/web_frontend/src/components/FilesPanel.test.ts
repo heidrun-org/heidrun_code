@@ -7,7 +7,9 @@ const invokeMock = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const copyMock = vi.hoisted(() => vi.fn(async () => {}));
 const chatAboutFileMock = vi.hoisted(() => vi.fn(async (_absolutePath: string, _label: string, _folder: string | null) => {}));
 const openFileViewMock = vi.hoisted(() => vi.fn(async (_absolutePath: string) => true));
+const revealItemInDirMock = vi.hoisted(() => vi.fn(async (_path: string) => {}));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
+vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemInDir: revealItemInDirMock }));
 vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
 vi.mock("../lib/clipboard", () => ({ copy: copyMock }));
 vi.mock("../stores/chat_open", async (importOriginal) => ({
@@ -51,6 +53,7 @@ async function mountPanel() {
 beforeEach(() => {
   openFileViewMock.mockClear();
   chatAboutFileMock.mockClear();
+  revealItemInDirMock.mockClear();
   openFileViewMock.mockResolvedValue(true);
   invokeMock.mockImplementation(async (command: string, args: { paths: string[]; path: string }) => {
     if (command === "file_full_path") {
@@ -449,17 +452,19 @@ describe("FilesPanel", () => {
     wrapper.unmount();
   });
 
-  it("opens a context menu with two copy items, a separator, and the item Chat about this file after a right click on the row of a file", async () => {
+  it("opens a context menu with two copy items, a separator, the item Chat about this file, a separator, Reveal in Finder, and Open with VS Code after a right click on the row of a file", async () => {
     const wrapper = await mountPanel();
     expect(document.body.querySelector("[role=menu]")).toBeNull();
     await wrapper.findAll(".row")[1].trigger("contextmenu", { clientX: 40, clientY: 60 });
     const children = Array.from(document.body.querySelector("[role=menu]")?.children ?? []);
-    expect(children.map((child) => child.getAttribute("role"))).toEqual(["menuitem", "menuitem", "separator", "menuitem"]);
+    expect(children.map((child) => child.getAttribute("role"))).toEqual(["menuitem", "menuitem", "separator", "menuitem", "separator", "menuitem", "menuitem"]);
     const items = Array.from(document.body.querySelectorAll<HTMLButtonElement>("[role=menu] [role=menuitem]"));
     expect(items.map((item) => item.textContent?.trim())).toEqual([
       "Copy absolute path",
       "Copy relative path",
       "Chat about this file",
+      "Reveal in Finder",
+      "Open with VS Code",
     ]);
     expect(openFileViewMock).not.toHaveBeenCalled();
     wrapper.unmount();
@@ -478,6 +483,8 @@ describe("FilesPanel", () => {
       "Copy absolute path",
       "Copy relative path",
       "Chat about this file",
+      "Reveal in Finder",
+      "Open with VS Code",
     ]);
     wrapper.unmount();
   });
@@ -528,6 +535,27 @@ describe("FilesPanel", () => {
     expect(invokeMock).toHaveBeenCalledWith("file_full_path", { root: "/work/heidrun", path: "src/main.ts" });
     expect(document.body.querySelector("[role=menu]")).toBeNull();
     expect(copyMock).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("reveals the file in the Finder with the item Reveal in Finder, and closes the context menu", async () => {
+    const wrapper = await mountPanel();
+    await wrapper.findAll(".row")[0].trigger("click");
+    await wrapper.findAll(".row")[2].trigger("contextmenu");
+    document.body.querySelectorAll<HTMLButtonElement>("[role=menuitem]")[3].click();
+    await vi.waitFor(() => expect(revealItemInDirMock).toHaveBeenCalledWith("/work/heidrun/src/main.ts"));
+    expect(invokeMock).toHaveBeenCalledWith("file_full_path", { root: "/work/heidrun", path: "src/main.ts" });
+    expect(document.body.querySelector("[role=menu]")).toBeNull();
+    wrapper.unmount();
+  });
+
+  it("opens the folder with Visual Studio Code with the item Open with VS Code, and closes the context menu", async () => {
+    const wrapper = await mountPanel();
+    await wrapper.findAll(".row")[0].trigger("contextmenu");
+    document.body.querySelectorAll<HTMLButtonElement>("[role=menuitem]")[4].click();
+    await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith("file_open_external", { root: "/work/heidrun", path: "src" }));
+    expect(revealItemInDirMock).not.toHaveBeenCalled();
+    expect(document.body.querySelector("[role=menu]")).toBeNull();
     wrapper.unmount();
   });
 

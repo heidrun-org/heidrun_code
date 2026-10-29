@@ -13,6 +13,7 @@
 // - issue #854
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import Icon from "./Icon.vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
 import { currentGit } from "../stores/git";
@@ -408,6 +409,37 @@ async function chatAboutRow() {
   await chatAboutFile(absolutePath, relativePath.split("/").pop() ?? relativePath, files.root);
 }
 
+/**
+ * Shows the file or the folder of the row of the context menu in the Finder, and closes the menu.
+ * Issue: https://github.com/heidrun-org/heidrun_code/issues/964
+ */
+async function revealRowInFinder() {
+  const relativePath = fileMenu.value?.path ?? null;
+  closeFileMenu();
+  if (relativePath === null) {
+    return;
+  }
+  try {
+    const absolutePath = await invoke<string>("file_full_path", { root: files.root, path: relativePath });
+    await revealItemInDir(absolutePath);
+  } catch (error) {
+    toast(String(error), "error");
+  }
+}
+
+/**
+ * Opens the file or the folder of the row of the context menu in Visual Studio Code, and closes the menu.
+ * Issue: https://github.com/heidrun-org/heidrun_code/issues/964
+ */
+async function openRowWithVisualStudioCode() {
+  const relativePath = fileMenu.value?.path ?? null;
+  closeFileMenu();
+  if (relativePath === null) {
+    return;
+  }
+  await invoke("file_open_external", { root: files.root, path: relativePath }).catch((error) => toast(String(error), "error"));
+}
+
 onBeforeUnmount(closeFileMenu);
 
 /** The icon of a row: a folder that is closed or open, or the kind of the file. */
@@ -562,6 +594,13 @@ function letterClass(letter: string): string {
         <div class="menu-divider" role="separator"></div>
         <button type="button" class="menu-item" role="menuitem" @click="chatAboutRow()">
           {{ t("filesPanel.fileMenu.chatAboutFile") }}
+        </button>
+        <div class="menu-divider" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" @click="revealRowInFinder()">
+          {{ t("filesPanel.fileMenu.revealInFinder") }}
+        </button>
+        <button type="button" class="menu-item" role="menuitem" @click="openRowWithVisualStudioCode()">
+          {{ t("filesPanel.fileMenu.openWithVisualStudioCode") }}
         </button>
       </div>
     </Teleport>
