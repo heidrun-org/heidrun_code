@@ -4,6 +4,53 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] - 2026-10-28
+
+### Added
+
+- Added a topic timeline to the Chats sidebar section. ([#944](https://github.com/heidrun-org/heidrun_code/pull/944)).
+- Show images from Claude Code and Codex chats in the Clipboard sidebar section, including the image referenced by `[Image #N]` under the pointer. ([#919](https://github.com/heidrun-org/heidrun_code/pull/919), [#939](https://github.com/heidrun-org/heidrun_code/pull/939)).
+- Added HTML previews to the File view pane. ([#936](https://github.com/heidrun-org/heidrun_code/pull/936)).
+- Added file editing, ⌘P, Search in files, and the option to ask a coding agent about selected lines in the File view pane. ([#911](https://github.com/heidrun-org/heidrun_code/pull/911)).
+- Added a read-only pane for viewing the changes to a file. ([#896](https://github.com/heidrun-org/heidrun_code/pull/896)).
+- Added “Chat about this file” to the File explorer context menu and a button to start a chat from an issue information card. ([#856](https://github.com/heidrun-org/heidrun_code/pull/856), [#852](https://github.com/heidrun-org/heidrun_code/pull/852)).
+- Added a word replacement list for correcting voice input. ([#840](https://github.com/heidrun-org/heidrun_code/pull/840)).
+- Added a system notification switch, a sound, and a test button for each kind of notification. ([#858](https://github.com/heidrun-org/heidrun_code/pull/858)).
+- Added application logs for code hosting commands, voice input, data updates, Git operations, the mobile server, application startup, and voice model downloads. Voice recording logs include the model and language. ([#884](https://github.com/heidrun-org/heidrun_code/pull/884), [#907](https://github.com/heidrun-org/heidrun_code/pull/907), [#909](https://github.com/heidrun-org/heidrun_code/pull/909), [#933](https://github.com/heidrun-org/heidrun_code/pull/933)).
+- Added database update stages and progress to the Statistics window. ([#880](https://github.com/heidrun-org/heidrun_code/pull/880)).
+- Added user documentation with screenshots and a command for updating the documentation. ([#927](https://github.com/heidrun-org/heidrun_code/pull/927), [#940](https://github.com/heidrun-org/heidrun_code/pull/940)).
+- Added the option to move a dragged pane into a new tab by dropping the pane on the plus button in the tab bar. ([#830](https://github.com/heidrun-org/heidrun_code/pull/830)).
+
+### Changed
+
+- Renamed the application to Heidrun Code and updated application identifiers, repository links, and the website address. ([#844](https://github.com/heidrun-org/heidrun_code/pull/844), [#846](https://github.com/heidrun-org/heidrun_code/pull/846), [#842](https://github.com/heidrun-org/heidrun_code/pull/842), [#838](https://github.com/heidrun-org/heidrun_code/pull/838)).
+- Made dynamic topics more specific and reduced the cost of generating dynamic topics. ([#942](https://github.com/heidrun-org/heidrun_code/pull/942), [#943](https://github.com/heidrun-org/heidrun_code/pull/943)).
+- Voice input now supports switching tabs and workspaces, with queued transcriptions, a notification, and a recording icon. ([#917](https://github.com/heidrun-org/heidrun_code/pull/917)).
+- Markdown previews now use the full width by default, with a “Wrap at 80 columns” switch. ([#908](https://github.com/heidrun-org/heidrun_code/pull/908)).
+- Code hosting lists now remain cached until refreshed. Lists show up to 30 items, explain refresh failures and rate limits, and show the age of retained results and the local reset time for GitHub and GitLab rate limits. ([#878](https://github.com/heidrun-org/heidrun_code/pull/878), [#891](https://github.com/heidrun-org/heidrun_code/pull/891), [#913](https://github.com/heidrun-org/heidrun_code/pull/913), [#871](https://github.com/heidrun-org/heidrun_code/pull/871), [#918](https://github.com/heidrun-org/heidrun_code/pull/918)).
+- Custom launchers can now belong to the user or to a workspace. ([#859](https://github.com/heidrun-org/heidrun_code/pull/859)).
+- Find new skills now lists every skill in a folder and compares discovered skills with installed skills. ([#866](https://github.com/heidrun-org/heidrun_code/pull/866)).
+- Data updates now write only changed memory files, subagents, and skills. ([#860](https://github.com/heidrun-org/heidrun_code/pull/860)).
+- Release notes are now organized by topic, and the change log generator removes the Unreleased section when writing a release section. ([#834](https://github.com/heidrun-org/heidrun_code/pull/834), [#835](https://github.com/heidrun-org/heidrun_code/pull/835), [#861](https://github.com/heidrun-org/heidrun_code/pull/861)).
+
+### Removed
+
+- Removed the Files window and the large Git window. ([#906](https://github.com/heidrun-org/heidrun_code/pull/906)).
+- Removed command-line links and skills that used former application names. ([#914](https://github.com/heidrun-org/heidrun_code/pull/914)).
+- Removed support for former data folders; the application now uses only `heidrun_code` and `heidrun_code_development`. ([#920](https://github.com/heidrun-org/heidrun_code/pull/920)).
+- Removed the separate data layer operation log; data layer events are recorded in the application log. ([#912](https://github.com/heidrun-org/heidrun_code/pull/912)).
+
+### Fixed
+
+- Made the dynamic topic bar arrows visible and enabled scrolling with a trackpad. ([#947](https://github.com/heidrun-org/heidrun_code/pull/947)).
+- Fixed symbolic links to folders appearing as files in the File explorer. ([#938](https://github.com/heidrun-org/heidrun_code/pull/938)).
+- The File view pane now updates when the file changes on disk. ([#934](https://github.com/heidrun-org/heidrun_code/pull/934)).
+- Fixed the background and internal links in Markdown previews. ([#929](https://github.com/heidrun-org/heidrun_code/pull/929)).
+- Corrected AI cost calculations for several workspaces used during the same hour. ([#895](https://github.com/heidrun-org/heidrun_code/pull/895)).
+- Open the composition bar at startup for coding agents that remained running. ([#867](https://github.com/heidrun-org/heidrun_code/pull/867)).
+- Closing the selected tab now focuses the most recently used pane in another tab. ([#863](https://github.com/heidrun-org/heidrun_code/pull/863)).
+- Fixed blog links that still pointed to the former website address. ([#937](https://github.com/heidrun-org/heidrun_code/pull/937)).
+
 ## [0.3.0] - 2026-10-23
 
 ### Added

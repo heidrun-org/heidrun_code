@@ -1,5 +1,0 @@
-# llama-cpp-sys-2 gives every GGML_* variable to CMake. llama.cpp builds Metal by default on macOS, so
-# the default build turns it off and runs on the processor only. A value set in the shell wins, so
-# `GGML_METAL=ON cargo build --features metal` builds the Metal backend.
-[env]
-GGML_METAL = "OFF"

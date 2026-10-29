@@ -2,7 +2,7 @@
   "name": "install_script_tests",
   "private": true,
   "license": "MIT",
-  "version": "0.3.0",
+  "version": "0.3.5",
   "type": "module",
   "scripts": {
     "test": "vitest run --minWorkers=1 --maxWorkers=4"

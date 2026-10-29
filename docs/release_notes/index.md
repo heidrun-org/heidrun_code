@@ -1,7 +1,7 @@
 # Release notes documentation index
 
 - Created: 13 October 2026
-- Last updated: 23 October 2026
+- Last updated: 28 October 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related issue: [issue 337](https://github.com/heidrun-org/heidrun/issues/337), [issue 818](https://github.com/heidrun-org/heidrun/issues/818), [issue 832](https://github.com/heidrun-org/heidrun/issues/832)
@@ -14,3 +14,4 @@ This file lists the files and the subfolders of this folder, for agents and tool
 - [v0.2.5.md](v0.2.5.md): the notes of the release 0.2.5, added to the GitHub release after the prefix. This file has no metadata header, because the release script copies it into the text of the release.
 - [v0.2.7.md](v0.2.7.md): the notes of the release 0.2.7, added to the GitHub release after the prefix. This file has no metadata header, because the release script copies it into the text of the release.
 - [v0.3.0.md](v0.3.0.md): the notes of the release 0.3.0, added to the GitHub release after the prefix. This file has no metadata header, because the release script copies it into the text of the release.
+- [v0.3.5.md](v0.3.5.md): the notes of the release 0.3.5, added to the GitHub release after the prefix. This file has no metadata header, because the release script copies it into the text of the release.

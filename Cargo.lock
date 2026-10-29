@@ -708,7 +708,7 @@ dependencies = [
 
 [[package]]
 name = "coding_agent_cli"
-version = "0.3.0"
+version = "0.3.5"
 dependencies = [
  "tokio",
 ]
@@ -2062,7 +2062,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "heidrun_code"
-version = "0.3.0"
+version = "0.3.5"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -2098,7 +2098,7 @@ dependencies = [
 
 [[package]]
 name = "heidrun_code_ctrl"
-version = "0.3.0"
+version = "0.3.5"
 dependencies = [
  "dirs 6.0.0",
  "serde",
@@ -3005,7 +3005,7 @@ dependencies = [
 
 [[package]]
 name = "mobile_server"
-version = "0.3.0"
+version = "0.3.5"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -6053,7 +6053,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "voice_input"
-version = "0.3.0"
+version = "0.3.5"
 dependencies = [
  "cpal",
  "reqwest 0.12.28",

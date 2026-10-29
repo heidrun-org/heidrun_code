@@ -331,12 +331,6 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
 
-  packages/experiments/localai_decisions_candle: {}
-
-  packages/experiments/localai_decisions_llamacpp: {}
-
-  packages/experiments/localai_embeddings: {}
-
   packages/experiments/multi_layer_graph:
     dependencies:
       3d-force-graph:

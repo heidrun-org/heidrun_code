@@ -169,18 +169,12 @@ watch(() => props.selected, showSelected);
 .topic-strip { position: relative; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
 .topic-chip { flex: none; white-space: nowrap; }
 /* Each arrow sits in a band that fades from the sidebar background to transparent, so that the cut button under it
-   disappears. The arrow is a round button with the sidebar background, and a border and a chevron in the text color, so that it stands out from the topics. */
+   disappears. The appearance of the round arrow button is in styles.css. */
 .topic-arrow-band {
   position: absolute; top: 0; bottom: 0; width: 44px; z-index: 1;
   display: flex; align-items: center; pointer-events: none;
 }
 .topic-arrow-band.is-previous { left: 0; justify-content: flex-start; background: linear-gradient(to right, var(--side) 50%, transparent); }
 .topic-arrow-band.is-next { right: 0; justify-content: flex-end; background: linear-gradient(to left, var(--side) 50%, transparent); }
-.topic-arrow.btn.icon.small {
-  width: 24px; height: 24px; border-radius: 50%; font-size: 14px; pointer-events: auto;
-  --btn-bg: var(--side); --btn-color: var(--text); --btn-border-width: 1.5px; --btn-border-color: var(--text);
-  --btn-hover-bg: var(--hover); --btn-hover-color: var(--text); --btn-hover-border-color: var(--text);
-  --btn-active-bg: var(--sel); --btn-active-color: var(--text); --btn-active-border-color: var(--text);
-}
-.topic-arrow .bi { -webkit-text-stroke: 1px currentColor; }
+.topic-arrow { pointer-events: auto; }
 </style>
