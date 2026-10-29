@@ -335,6 +335,13 @@ const defaults = {
   statisticsPersonWorkWorkspaces: { isSaved: false, workspaceIds: [] } as StatisticsPersonWorkWorkspaces,
   /** The identifier of the workspace that was selected at the last run: the next start selects it again. Empty: none. */
   selectedWorkspaceId: "",
+  /**
+   * The permanent branches, whose deletion the merge window never offers (issue #570). A name that ends with `*` matches
+   * every branch that starts with the rest of the name.
+   */
+  mergePermanentBranches: ["main", "master", "dev", "dev_*"] as string[],
+  /** The last merge method of the developer on GitHub, by address of the repository: the merge window selects it again. */
+  mergeLastMethods: {} as Record<string, "merge" | "squash" | "rebase">,
 };
 
 /** The values that an option accepts, for the options that have a short list of values. A saved value outside the list is dropped. */

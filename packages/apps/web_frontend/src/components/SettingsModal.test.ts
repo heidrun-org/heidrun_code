@@ -67,7 +67,7 @@ describe("SettingsModal: section Sidebars (issues #442 and #556)", () => {
     settingsModal.section = "sidebars";
     const wrapper = await mountSettings();
     expect(wrapper.get("section h3").text()).toBe("Sidebars");
-    expect(wrapper.findAll("section h4").map((heading) => heading.text())).toEqual(["Needs you", "Past chats", "Source control"]);
+    expect(wrapper.findAll("section h4").map((heading) => heading.text())).toEqual(["Needs you", "Past chats", "Source control", "Code hosting"]);
     wrapper.unmount();
   });
 

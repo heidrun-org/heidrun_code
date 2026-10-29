@@ -13,10 +13,10 @@ export type ForgeTool = "gh" | "glab";
 
 /**
  * The part of the application that asks, written in the application log: the lists of the Code hosting sidebar section,
- * the card of an issue or of a pull request, the issue preview window, or the pull requests of the Source control sidebar
- * section.
+ * the card of an issue or of a pull request, the issue preview window, the pull requests of the Source control sidebar
+ * section, or the merge of a pull request or of a merge request (issue #570).
  */
-export type ForgeCaller = "code_hosting_list" | "reference_card" | "issue_preview" | "source_control";
+export type ForgeCaller = "code_hosting_list" | "reference_card" | "issue_preview" | "source_control" | "merge";
 
 /** How a call uses the answer that the cache keeps. */
 export type ForgeCliOptions = {

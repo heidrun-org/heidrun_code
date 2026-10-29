@@ -14,7 +14,7 @@ The content of each section of the Settings window. The Settings window itself i
 - `SettingsConfirmationsSection.vue`: the headings "Ask before closing" (workspace, tab, pane), "Ask before deleting" (saved search), and "Files outside the workspace folder" (`filesOutsideWorkspace`: Ask, Open in Heidrun Code, Open in the default app, Never open, issue #956).
 - `SettingsGuardsSection.vue`: the project guards, then the built-in guards. It opens `../GuardModal.vue` through `../../stores/guard_window.ts`, and `../../stores/project.ts` writes the changes.
 - `SettingsNotificationsSection.vue`: the notification settings, one row for each kind of notification (system notification, sound, list of sounds, button "Test"), and the switch `showStatusItem`. See [the rules](../../../../../../docs/agents_rules/user_interface/window/settings_notifications.md).
-- `SettingsSidebarsSection.vue`: one heading for each sidebar section: "Needs you", "Past chats", and "Source control".
+- `SettingsSidebarsSection.vue`: one heading for each sidebar section: "Needs you", "Past chats", "Source control", and "Code hosting" (the permanent branches of the merge, `mergePermanentBranches`, issue #570).
 - `SettingsDynamicTopicsSection.vue`: the switches `dynamicTopics` and `clusteredDynamicTopics`, the extraction method, and the button "Rebuild the clusters".
 - `SettingsMobileAccessSection.vue`: the mobile access switch, the switch `mobileTerminalTyping`, the QR code, and the paired devices.
 - `SettingsVoiceInputSection.vue`: the switch `voiceInput`, the language, the Whisper model with the state of its download, and the word replacement list.

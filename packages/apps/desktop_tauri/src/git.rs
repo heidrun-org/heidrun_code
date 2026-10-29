@@ -369,6 +369,11 @@ pub(crate) fn allowed(tool: &str, args: &[String]) -> bool {
                 && (a[1].starts_with("projects/") || a[1] == "user")
         }
         "gh" => {
+            // The settings of the repository, read before a merge: the allowed merge methods and the deletion of the
+            // branch (issue #570). A GET of this one path, with no flag.
+            if a == ["api", "repos/{owner}/{repo}"] {
+                return true;
+            }
             let is_list = matches!(a.get(..2), Some(["pr", "list"]) | Some(["issue", "list"]));
             let read_only = is_list
                 || matches!(a.get(..2), Some(["run", "list"]) | Some(["issue", "view"]) | Some(["pr", "view"]));
@@ -527,9 +532,68 @@ pub(crate) fn gitlab_rate_limit_reset_of(output: &str, now: u64) -> Result<Optio
     Ok(header("ratelimit-reset").or_else(|| header("retry-after").map(|seconds| now + seconds)))
 }
 
-/// Merges a MR / PR, after the user confirmed it in the app. `sha` is the head
-/// commit the user saw: if someone pushed since, the forge refuses the merge.
+/// True when `branch` is one of the permanent branches that are never deleted, for example `main`, `dev`, or `dev_eric`. A
+/// name of the list that ends with `*` matches every branch that starts with the rest of the name (issue #570).
+pub(crate) fn is_permanent_branch(branch: &str, permanent: &[String]) -> bool {
+    permanent.iter().map(|name| name.trim()).filter(|name| !name.is_empty()).any(|name| match name.strip_suffix('*') {
+        Some(prefix) => branch.starts_with(prefix),
+        None => branch == name,
+    })
+}
+
+/// The calls of `gh` or `glab` that merge a pull request or a merge request, in their order. `sha` is the head commit
+/// that the developer saw: if someone pushed since, the hosting service refuses the merge.
+///
+/// GitHub: `gh pr merge` with the method. Never `--delete-branch`: `gh` would also delete the local branch and switch the
+/// working copy under the coding agent that works in it, so the remote branch is deleted through the API after the merge.
+///
+/// GitLab: the merge request API, with `squash` and `should_remove_source_branch` always given, so that the choice of the
+/// developer wins over the defaults of the project. When the branch stays, its flag `force_remove_source_branch` is
+/// cleared first, because GitLab deletes the branch when this flag is set, whatever the merge call says (issue #570). The
+/// method of a project on GitLab is a setting of the project: `method` only says whether the commits are squashed.
+pub(crate) fn merge_calls(
+    forge: &str,
+    number: u64,
+    sha: Option<&str>,
+    method: &str,
+    delete_branch: bool,
+) -> Result<Vec<(&'static str, Vec<String>)>, String> {
+    let mut calls: Vec<(&'static str, Vec<String>)> = Vec::new();
+    match forge {
+        "gitlab" => {
+            let path = format!("projects/:fullpath/merge_requests/{number}");
+            if delete_branch == false {
+                calls.push(("glab", vec!["api".into(), "-X".into(), "PUT".into(), path.clone(), "-F".into(), "remove_source_branch=false".into()]));
+            }
+            let mut merge = vec!["api".to_string(), "-X".into(), "PUT".into(), format!("{path}/merge")];
+            merge.extend(["-F".into(), format!("squash={}", method == "squash")]);
+            merge.extend(["-F".into(), format!("should_remove_source_branch={delete_branch}")]);
+            if let Some(sha) = sha {
+                merge.extend(["-f".into(), format!("sha={sha}")]);
+            }
+            calls.push(("glab", merge));
+        }
+        "github" => {
+            let mut merge = vec!["pr".to_string(), "merge".into(), number.to_string()];
+            merge.push(match method {
+                "squash" => "--squash".into(),
+                "rebase" => "--rebase".into(),
+                _ => "--merge".into(),
+            });
+            if let Some(sha) = sha {
+                merge.extend(["--match-head-commit".into(), sha.to_string()]);
+            }
+            calls.push(("gh", merge));
+        }
+        _ => return Err("unknown hosting service".into()),
+    }
+    Ok(calls)
+}
+
+/// Merges a pull request or a merge request, after the developer confirmed it in the merge window (issue #570). A branch
+/// of `permanent_branches` is never deleted.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn forge_merge(
     root: String,
     forge: String,
@@ -538,56 +602,32 @@ pub async fn forge_merge(
     method: String,
     delete_branch: bool,
     branch: Option<String>,
+    permanent_branches: Option<Vec<String>>,
 ) -> Result<String, String> {
     known_root(&root)?;
     // A branch name as git allows it, nothing that could be read as a path trick.
     let branch = branch.filter(|b| !b.is_empty() && !b.contains("..") && b.chars().all(|c| c.is_ascii_alphanumeric() || "/._-".contains(c)));
     let sha = sha.filter(|s| s.len() >= 7 && s.chars().all(|c| c.is_ascii_hexdigit()));
-    let mut args: Vec<String> = Vec::new();
-    let tool = match forge.as_str() {
-        "gitlab" => {
-            args.extend(["mr", "merge", &number.to_string(), "--yes"].map(String::from));
-            match method.as_str() {
-                "squash" => args.push("--squash".into()),
-                "rebase" => args.push("--rebase".into()),
-                _ => {}
-            }
-            if delete_branch {
-                args.push("--remove-source-branch".into());
-            }
-            if let Some(s) = &sha {
-                args.extend(["--sha".to_string(), s.clone()]);
-            }
-            "glab"
-        }
-        "github" => {
-            args.extend(["pr", "merge", &number.to_string()].map(String::from));
-            args.push(match method.as_str() {
-                "squash" => "--squash".into(),
-                "rebase" => "--rebase".into(),
-                _ => "--merge".into(),
-            });
-            // No --delete-branch: gh would also delete the local branch and switch
-            // the working copy, under the feet of the agent working in it. The remote
-            // branch is deleted through the API below instead.
-            if let Some(s) = &sha {
-                args.extend(["--match-head-commit".to_string(), s.clone()]);
-            }
-            "gh"
-        }
-        _ => return Err("hébergeur inconnu".into()),
-    };
-    let out = run_forge_logged("merge", &root, tool, &args, 60).await?;
+    if delete_branch && branch.as_deref().is_some_and(|b| is_permanent_branch(b, &permanent_branches.unwrap_or_default())) {
+        return Err("permanent branch: it is never deleted".into());
+    }
+    let mut out = String::new();
+    for (tool, args) in merge_calls(&forge, number, sha.as_deref(), &method, delete_branch)? {
+        out = run_forge_logged("merge", &root, tool, &args, 60).await?;
+    }
     if forge == "github" && delete_branch {
         if let Some(b) = branch {
             let path = format!("repos/{{owner}}/{{repo}}/git/refs/heads/{b}");
             let del = ["api", "-X", "DELETE", &path].map(String::from);
             if let Err(e) = run_forge_logged("merge", &root, "gh", &del, 20).await {
-                return Ok(format!("fusionnée, mais la branche distante n’a pas été supprimée : {e}"));
+                // The repository can delete the branch by itself after a merge (setting "Automatically delete head branches").
+                if e.contains("Reference does not exist") == false {
+                    return Ok(format!("merged, but the remote branch was not deleted: {e}"));
+                }
             }
         }
     }
-    Ok(if out.trim().is_empty() { "ok".into() } else { out })
+    Ok(if out.trim().is_empty() || forge == "gitlab" { "ok".into() } else { out })
 }
 
 #[cfg(test)]
@@ -653,6 +693,10 @@ Ratelimit-Remaining: 0\nRatelimit-Reset: 1793012400\nRetry-After: 47\n\nRetry la
         assert!(allowed("glab", &v(&["api", "projects/:fullpath/merge_requests?state=opened"])));
         assert!(!allowed("glab", &v(&["api", "-X", "DELETE", "projects/:fullpath"])));
         assert!(!allowed("glab", &v(&["mr", "merge", "1"])));
+        assert!(allowed("gh", &v(&["api", "repos/{owner}/{repo}"])));
+        assert!(!allowed("gh", &v(&["api", "-X", "PATCH", "repos/{owner}/{repo}"])));
+        assert!(!allowed("gh", &v(&["api", "repos/{owner}/{repo}", "-f", "name=x"])));
+        assert!(!allowed("gh", &v(&["api", "repos/{owner}/{repo}/git/refs/heads/x"])));
         assert!(allowed("gh", &v(&["pr", "list", "--limit", "20", "--json", "number,title"])));
         assert!(allowed("gh", &v(&["issue", "list", "--state", "open", "--limit", "100", "--json", "number,title,url"])));
         assert!(!allowed("gh", &v(&["issue", "list", "--web"])));
@@ -716,5 +760,58 @@ mod path_tests {
         assert!(allowed("gh", &v(&["issue", "view", "5", "--repo", "a/b"])));
         assert!(!allowed("glab", &v(&["api", "projects/1", "extra"])));
         assert!(!allowed("glab", &v(&["api", "users"])));
+    }
+
+    /// The arguments of a call, as owned texts.
+    fn v(x: &[&str]) -> Vec<String> {
+        x.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn recognizes_the_permanent_branches() {
+        let permanent = v(&["main", "dev", "dev_*", " "]);
+        assert!(is_permanent_branch("main", &permanent));
+        assert!(is_permanent_branch("dev", &permanent));
+        assert!(is_permanent_branch("dev_eric", &permanent));
+        assert!(!is_permanent_branch("feature-one", &permanent));
+        assert!(!is_permanent_branch("development", &permanent));
+        assert!(!is_permanent_branch("x", &[]));
+    }
+
+    #[test]
+    fn builds_the_merge_calls_of_github() {
+        let calls = merge_calls("github", 12, Some("abcdef1"), "squash", true).unwrap();
+        assert_eq!(calls, vec![("gh", v(&["pr", "merge", "12", "--squash", "--match-head-commit", "abcdef1"]))]);
+        let calls = merge_calls("github", 12, None, "merge", false).unwrap();
+        assert_eq!(calls, vec![("gh", v(&["pr", "merge", "12", "--merge"]))]);
+        assert_eq!(merge_calls("github", 3, None, "rebase", false).unwrap()[0].1[3], "--rebase");
+    }
+
+    #[test]
+    fn builds_the_merge_calls_of_gitlab_and_keeps_the_branch_when_asked() {
+        let calls = merge_calls("gitlab", 7, Some("abcdef1"), "squash", true).unwrap();
+        assert_eq!(
+            calls,
+            vec![(
+                "glab",
+                v(&["api", "-X", "PUT", "projects/:fullpath/merge_requests/7/merge", "-F", "squash=true", "-F", "should_remove_source_branch=true", "-f", "sha=abcdef1"])
+            )]
+        );
+        let calls = merge_calls("gitlab", 7, None, "merge", false).unwrap();
+        assert_eq!(calls.len(), 2);
+        assert_eq!(calls[0].1, v(&["api", "-X", "PUT", "projects/:fullpath/merge_requests/7", "-F", "remove_source_branch=false"]));
+        assert_eq!(calls[1].1, v(&["api", "-X", "PUT", "projects/:fullpath/merge_requests/7/merge", "-F", "squash=false", "-F", "should_remove_source_branch=false"]));
+        assert!(merge_calls("bitbucket", 1, None, "merge", false).is_err());
+    }
+
+    #[tokio::test]
+    async fn never_deletes_a_permanent_branch() {
+        let root = std::env::temp_dir().join(format!("hd-merge-permanent-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let root = root.display().to_string();
+        remember_root(&root);
+        let answer = forge_merge(root.clone(), "gitlab".into(), 1, None, "merge".into(), true, Some("dev_eric".into()), Some(v(&["dev_*"]))).await;
+        assert_eq!(answer.unwrap_err(), "permanent branch: it is never deleted");
+        let _ = std::fs::remove_dir_all(&root);
     }
 }
