@@ -87,7 +87,7 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Confirmations',
 			component: SettingsConfirmationsSection,
-			optionList: ['confirmWorkspaceClose', 'confirmTabClose', 'confirmPaneClose', 'confirmSavedSearchDelete'],
+			optionList: ['confirmWorkspaceClose', 'confirmTabClose', 'confirmPaneClose', 'confirmSavedSearchDelete', 'filesOutsideWorkspace'],
 		},
 		{
 			name: 'Guards',
