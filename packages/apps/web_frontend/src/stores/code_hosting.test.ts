@@ -36,7 +36,7 @@ function forgeCalls(): { tool: string; args: string[] }[] {
 
 /** An item with only the three fields that every test needs. */
 function itemOf(number: number, title: string, url: string): CodeHostingItem {
-  return { number, title, url, author: null, createdAt: null, labels: [], isDraft: false, headBranch: null, baseBranch: null };
+  return { number, title, url, author: null, createdAt: null, labels: [], isDraft: false, headBranch: null, baseBranch: null, approval: null };
 }
 
 beforeEach(() => {
@@ -103,7 +103,7 @@ describe("loadCodeHosting on GitHub", () => {
           "--limit",
           "30",
           "--json",
-          "number,title,url,author,createdAt,isDraft,headRefName,baseRefName",
+          "number,title,url,author,createdAt,isDraft,headRefName,baseRefName,reviewDecision",
         ],
       },
     ]);
@@ -158,6 +158,7 @@ describe("loadCodeHosting on GitHub", () => {
         isDraft: false,
         headBranch: null,
         baseBranch: null,
+        approval: null,
       },
     ]);
     expect(codeHosting.requests).toEqual([
@@ -171,6 +172,7 @@ describe("loadCodeHosting on GitHub", () => {
         isDraft: true,
         headBranch: "fix-a-thing-371",
         baseBranch: "dev_jerome",
+        approval: null,
       },
     ]);
   });
@@ -179,7 +181,7 @@ describe("loadCodeHosting on GitHub", () => {
     vi.mocked(invoke).mockImplementation(async () => JSON.stringify([{ number: 1, title: "Bare", url: "https://x/1", author: null }]));
     await loadCodeHosting("/work/heidrun");
     expect(codeHosting.issues).toEqual([
-      { number: 1, title: "Bare", url: "https://x/1", author: null, createdAt: null, labels: [], isDraft: false, headBranch: null, baseBranch: null },
+      { number: 1, title: "Bare", url: "https://x/1", author: null, createdAt: null, labels: [], isDraft: false, headBranch: null, baseBranch: null, approval: null },
     ]);
   });
 });
@@ -235,6 +237,7 @@ describe("loadCodeHosting on GitLab", () => {
         isDraft: false,
         headBranch: null,
         baseBranch: null,
+        approval: null,
       },
     ]);
     expect(codeHosting.requests).toEqual([
@@ -248,6 +251,7 @@ describe("loadCodeHosting on GitLab", () => {
         isDraft: true,
         headBranch: "fix-5",
         baseBranch: "main",
+        approval: null,
       },
     ]);
   });

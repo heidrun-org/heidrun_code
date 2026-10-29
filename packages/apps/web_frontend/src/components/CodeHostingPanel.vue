@@ -18,6 +18,7 @@ import CodeHostingSearchHelp from "./CodeHostingSearchHelp.vue";
 import Icon from "./Icon.vue";
 import InformationCard from "./InformationCard.vue";
 import InformationCardTooltip from "./InformationCardTooltip.vue";
+import PullRequestMergeBar from "./PullRequestMergeBar.vue";
 import ScrollingLine from "./ScrollingLine.vue";
 import { codeHostingDetailLines } from "../lib/code_hosting_rows";
 import { referenceLabelStyle, type ChatReference } from "../lib/chat_references";
@@ -26,6 +27,7 @@ import type { Forge } from "../lib/refs";
 import { startScrolling, stopScrolling } from "../lib/scroll_on_hover";
 import type { ChatReferenceDetails as Details, ChatReferenceLabel } from "../stores/chat_references";
 import { loadForgeReferenceDetails } from "../stores/forge_reference_details";
+import { loadMergeFacts, pullRequestMerge, type MergeFacts } from "../stores/pull_request_merge";
 import { shownSavedSearches, type ShownSavedSearch } from "../stores/code_hosting_searches";
 import { currentGit } from "../stores/git";
 import { selectedWorkspace, state } from "../stores/session";
@@ -100,6 +102,12 @@ const sections = computed((): Section[] => {
 
 /** What the forge said about each item that has an open card, by key. A key is missing until the forge answered. */
 const answers = ref<Record<string, Details | null>>({});
+
+/**
+ * The merge facts of each pull request or merge request that has an open card, by key: its approval state and whether it
+ * can be merged now, or null when the hosting service did not answer (issue #570).
+ */
+const mergeFacts = ref<Record<string, MergeFacts | null>>({});
 
 /** The title of a list: "Issues", then "Pull requests" on GitHub or "Merge requests" on GitLab. */
 function groupTitle(group: CodeHostingGroup): string {
@@ -269,9 +277,25 @@ async function readDetails(row: Row) {
   if (folder === undefined) {
     return;
   }
-  const answer = await loadForgeReferenceDetails(folder, forge.value, row.reference);
+  const [answer, facts] = await Promise.all([
+    loadForgeReferenceDetails(folder, forge.value, row.reference),
+    row.reference.kind === "issue" ? Promise.resolve(null) : loadMergeFacts(folder, forge.value, row.item.number).catch(() => null),
+  ]);
   answers.value = { ...answers.value, [row.key]: answer };
+  mergeFacts.value = { ...mergeFacts.value, [row.key]: facts };
 }
+
+// After a merge, the lists are read again from the hosting service, without the kept answers: the merged item leaves the
+// list of the open items, and its card closes with its row (issue #570).
+watch(
+  () => pullRequestMerge.mergeCount,
+  () => {
+    if (currentGit.value !== null) {
+      mergeFacts.value = {};
+      void loadCodeHosting(currentGit.value.root, true);
+    }
+  },
+);
 </script>
 
 <template>
@@ -454,6 +478,15 @@ async function readDetails(row: Row) {
                           :name="row.name"
                           :search="searchTexts[section.group]"
                           @toggle-label="toggleLabel(section.group, $event)"
+                        />
+                        <PullRequestMergeBar
+                          v-if="section.group === 'requests' && mergeFacts[row.key] !== undefined"
+                          class="mt-3"
+                          :facts="mergeFacts[row.key]"
+                          :folder="currentGit.root"
+                          :forge="forge"
+                          :name="row.name"
+                          :web-base="codeHosting.webBase ?? ''"
                         />
                       </div>
                     </template>

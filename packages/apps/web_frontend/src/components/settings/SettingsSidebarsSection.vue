@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import SettingsOptionHelp from "./SettingsOptionHelp.vue";
 import SettingsSwitchRow from "./SettingsSwitchRow.vue";
 import { settings } from "../../stores/settings";
@@ -52,6 +53,23 @@ const GIT_FETCH_HELP_BLOCKS = [
   { titleKey: "settingsHelp.whatTitle", textKey: "settingsHelp.gitFetch.what" },
   { titleKey: "settingsHelp.howTitle", textKey: "settingsGeneral.gitFetchHelp" },
 ] as const;
+
+/** The blocks of the information card of the permanent branches of the merge, in the order of the card (issue #570). */
+const PERMANENT_BRANCHES_HELP_BLOCKS = [
+  { titleKey: "settingsHelp.whatTitle", textKey: "settingsHelp.mergePermanentBranches.what" },
+  { titleKey: "settingsHelp.howTitle", textKey: "settingsHelp.mergePermanentBranches.how" },
+] as const;
+
+/** The permanent branches as one text, the names separated by commas. */
+const permanentBranchesText = computed({
+  get: () => settings.mergePermanentBranches.join(", "),
+  set: (text: string) => {
+    settings.mergePermanentBranches = text
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name !== "");
+  },
+});
 </script>
 
 <template>
@@ -104,6 +122,17 @@ const GIT_FETCH_HELP_BLOCKS = [
             {{ t(choice.labelKey) }}
           </label>
         </div>
+      </div>
+    </div>
+
+    <div class="d-flex flex-column gap-2">
+      <h4 class="form-label m-0">{{ t("settingsSidebars.codeHostingTitle") }}</h4>
+      <div class="d-flex flex-column gap-2" data-option="mergePermanentBranches">
+        <div class="d-flex align-items-center gap-2">
+          <label class="m-0" for="merge-permanent-branches">{{ t("settingsSidebars.mergePermanentBranches") }}</label>
+          <SettingsOptionHelp title-key="settingsSidebars.mergePermanentBranches" :blocks="PERMANENT_BRANCHES_HELP_BLOCKS" />
+        </div>
+        <input id="merge-permanent-branches" v-model.lazy="permanentBranchesText" type="text" class="form-control" spellcheck="false" />
       </div>
     </div>
   </div>

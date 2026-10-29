@@ -24,9 +24,9 @@ function getGroup(wrapper: ReturnType<typeof mount>, label: string) {
 }
 
 describe("SettingsSidebarsSection, the headings (issue #556)", () => {
-  it("shows one heading for each sidebar section: Needs you, then Past chats, then Source control", () => {
+  it("shows one heading for each sidebar section: Needs you, then Past chats, then Source control, then Code hosting", () => {
     const wrapper = mount(SettingsSidebarsSection);
-    expect(wrapper.findAll("h4").map((heading) => heading.text())).toEqual(["Needs you", "Past chats", "Source control"]);
+    expect(wrapper.findAll("h4").map((heading) => heading.text())).toEqual(["Needs you", "Past chats", "Source control", "Code hosting"]);
   });
 
   it("shows, under each heading, the settings of that sidebar section and no other setting", () => {
@@ -134,5 +134,17 @@ describe("SettingsSidebarsSection, the heading Source control, the fetch in the 
     const help = await openCardText(wrapper, "About the option “Fetch the remote repository in the background”");
     expect(help).toContain("the two counts of the Git branch section of the status bar stay true");
     expect(help).toContain("A fetch that fails shows nothing");
+  });
+});
+
+describe("SettingsSidebarsSection, the permanent branches of the merge (issue #570)", () => {
+  it("shows the names separated by commas, and saves the names that the developer writes", async () => {
+    settings.mergePermanentBranches = ["main", "dev_*"];
+    const wrapper = mount(SettingsSidebarsSection);
+    const input = wrapper.get("#merge-permanent-branches");
+    expect((input.element as HTMLInputElement).value).toBe("main, dev_*");
+    await input.setValue(" main , release ,, dev_* ");
+    await input.trigger("change");
+    expect(settings.mergePermanentBranches).toEqual(["main", "release", "dev_*"]);
   });
 });

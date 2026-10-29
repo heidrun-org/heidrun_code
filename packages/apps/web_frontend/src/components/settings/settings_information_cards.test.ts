@@ -110,7 +110,7 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Sidebars',
 			component: SettingsSidebarsSection,
-			optionList: ['showWorkspaces', 'finishedTtl', 'chatsRefreshSeconds', 'gitFetchMinutes'],
+			optionList: ['showWorkspaces', 'finishedTtl', 'chatsRefreshSeconds', 'gitFetchMinutes', 'mergePermanentBranches'],
 		},
 		{
 			name: 'Dynamic topics',

@@ -67,61 +67,6 @@ export const git = reactive({
   loading: false,
 });
 
-// ---- Merge, after confirmation ------------------------------------------------
-
-export const merging = reactive({
-  open: false,
-  req: null as Request | null,
-  wsId: "",
-  forge: "gitlab" as Forge,
-  method: "merge" as "merge" | "squash" | "rebase",
-  removeBranch: false,
-  busy: false,
-  error: "",
-  result: "",
-});
-
-export function askMerge(wsId: string, req: Request) {
-  const f = git.forge[wsId];
-  Object.assign(merging, {
-    open: true,
-    req,
-    wsId,
-    forge: f?.forge ?? "gitlab",
-    method: req.squash ? "squash" : "merge",
-    removeBranch: req.removeBranch,
-    busy: false,
-    error: "",
-  });
-}
-
-export async function confirmMerge(): Promise<boolean> {
-  const r = merging.req;
-  const root = git.status[merging.wsId]?.root;
-  if (!r || !root) return false;
-  merging.busy = true;
-  merging.error = "";
-  try {
-    merging.result = await invoke<string>("forge_merge", {
-      root,
-      forge: merging.forge,
-      number: r.number,
-      sha: r.sha,
-      method: merging.method,
-      deleteBranch: merging.removeBranch,
-      branch: r.branch,
-    });
-    merging.open = false;
-    await refreshGit(merging.wsId);
-    return true;
-  } catch (e) {
-    merging.error = String(e).split("\n").slice(0, 4).join("\n");
-    return false;
-  } finally {
-    merging.busy = false;
-  }
-}
-
 /** The fixed workspace folder saved by the desktop application. */
 export const workspaceCwd = WorkspaceFolders.get;
 

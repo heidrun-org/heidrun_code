@@ -47,6 +47,7 @@
   "referenceNoDescription": "No description provided.",
   "referenceOpenedIssue": "{author} opened this issue",
   "referenceOpenedPullRequest": "{author} opened this pull request",
+  "referenceOpenedMergeRequest": "{author} opened this merge request",
   "stateOpen": "Open",
   "stateClosed": "Closed",
   "stateMerged": "Merged",
