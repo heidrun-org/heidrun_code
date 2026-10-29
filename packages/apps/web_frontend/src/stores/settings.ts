@@ -247,6 +247,12 @@ const defaults = {
   histDecisionMin: 0.5,
   /** File view pane: a Markdown file shows rendered. */
   filesMdRead: true,
+  /**
+   * A click in a terminal on a file outside the project of the pane (issue #956): "ask" opens a confirmation modal, "open"
+   * opens the file at once in a file view pane, "openDefault" opens it at once in the default application of macOS, and
+   * "never" opens nothing.
+   */
+  filesOutsideWorkspace: "ask" as "ask" | "open" | "openDefault" | "never",
   /** Mosaic: only the agents at work (main, recent journal, or in Claude's list). */
   mosaicActiveOnly: true,
   /** Monthly budget per workspace (label → USD); alert at 80 % and 100 %. */
@@ -335,6 +341,7 @@ const defaults = {
 const ALLOWED_VALUES: Record<string, readonly unknown[]> = {
   rightSidebarSection: ["toHandle", "notes", "chats", "userActivity"],
   diffMode: ["unified", "split"],
+  filesOutsideWorkspace: ["ask", "open", "openDefault", "never"],
   filesPanelIndent: ["small", "medium", "large"],
   filesPanelRowHeight: ["compact", "comfortable"],
   agentsActivityScope: ["all", "pane"],

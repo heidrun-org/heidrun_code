@@ -108,6 +108,24 @@ pub(crate) fn known_root(root: &str) -> Result<(), String> {
     }
 }
 
+/// Files outside every project that the developer chose to open, as (folder, name): only this one file of the folder is
+/// readable, never its neighbours, and the folder is never a root (issue #956).
+static OUTSIDE_FILES: std::sync::OnceLock<std::sync::Mutex<std::collections::HashSet<(String, String)>>> = std::sync::OnceLock::new();
+
+pub(crate) fn remember_outside_file(folder: &str, name: &str) {
+    OUTSIDE_FILES.get_or_init(Default::default).lock().unwrap().insert((folder.to_string(), name.to_string()));
+}
+
+/// `path` of `root` may be read: `root` is a known project, or the pair is a file outside the project that the developer
+/// chose to open.
+pub(crate) fn known_file(root: &str, path: &str) -> Result<(), String> {
+    if known_root(root).is_ok() || OUTSIDE_FILES.get_or_init(Default::default).lock().unwrap().contains(&(root.to_string(), path.to_string())) {
+        Ok(())
+    } else {
+        Err("dépôt inconnu".into())
+    }
+}
+
 /// git for diff / show, with paths taken literally (no globs, no pathspec magic).
 fn git_literal(root: &str) -> Command {
     let mut c = Command::new("git");
@@ -290,10 +308,10 @@ pub async fn git_diff(root: String, path: String) -> Result<String, String> {
 /// Content of a file: the working copy, or `rev` ("HEAD") from git.
 #[tauri::command]
 pub async fn git_file(root: String, path: String, rev: Option<String>) -> Result<String, String> {
-    known_root(&root)?;
     let rel = safe_rel(&path)?;
     match rev.as_deref() {
         None => {
+            known_file(&root, &path)?;
             let base = std::fs::canonicalize(&root).map_err(|e| e.to_string())?;
             let full = base.join(rel);
             // No symlinks: one could point anywhere on the disk (~/.ssh…).
@@ -311,6 +329,7 @@ pub async fn git_file(root: String, path: String, rev: Option<String>) -> Result
             as_text(std::fs::read(real).map_err(|e| e.to_string())?)
         }
         Some("HEAD") => {
+            known_root(&root)?;
             let spec = format!("HEAD:{rel}");
             let started = Instant::now();
             let size = git_literal(&root).args(["cat-file", "-s", &spec]).output().await.map_err(|e| e.to_string());

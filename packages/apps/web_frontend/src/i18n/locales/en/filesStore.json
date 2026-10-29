@@ -1,3 +1,9 @@
 {
-  "unknownFolder": "Folder of the pane unknown"
+  "unknownFolder": "Folder of the pane unknown",
+  "outsideQuestion": "This file is outside the workspace folder.\nHow do you want to open it?",
+  "outsideOpenDefault": "Open in the default app",
+  "outsideOpenHeidrun": "Open in Heidrun Code",
+  "outsideNo": "No",
+  "outsideRemember": "Remember my choice",
+  "outsideNever": "File outside the workspace folder: not opened. Change this in Settings, Confirmations, \"Files outside the workspace folder\"."
 }
