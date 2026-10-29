@@ -546,7 +546,7 @@ const SAVED_OPTIONS: [string, unknown, unknown][] = [
   ["searchAgentsOnly", false, true],
   ["searchThisWorkspace", false, true],
   ["notesShowAll", false, true],
-  ["chatsAgent", "claude", "codex"],
+  ["chatsAgent", "both", "codex"],
   ["chatsView", "compact", "expanded"],
   ["chatsRefreshSeconds", 10, 30],
   ["dynamicTopics", true, false],
@@ -650,7 +650,7 @@ describe("a corrupted saved value", () => {
     expect(restarted.settings.agentsActivityScope).toBe("all");
     expect(restarted.settings.historyPeriod).toBe("today");
     expect(restarted.settings.historyGroupBy).toBe("ws");
-    expect(restarted.settings.chatsAgent).toBe("claude");
+    expect(restarted.settings.chatsAgent).toBe("both");
     expect(restarted.settings.chatsView).toBe("compact");
     expect(restarted.settings.dynamicTopicExtraction).toBe("keyword");
     expect(restarted.settings.gitFetchMinutes).toBe(5);

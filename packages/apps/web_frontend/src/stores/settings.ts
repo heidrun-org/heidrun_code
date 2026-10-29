@@ -124,8 +124,8 @@ const defaults = {
   leftSidebarSection: "launchers" as LeftSidebarSection,
   /** Sidebar section that the right sidebar shows. */
   rightSidebarSection: "toHandle" as RightSidebarSection,
-  /** Sidebar section Past chats: the coding agent whose chats the list shows. */
-  chatsAgent: "claude" as "claude" | "codex",
+  /** Sidebar section Past chats: the coding agents whose chats the list shows: both, one, or none (issue #959). */
+  chatsAgent: "both" as "both" | "claude" | "codex" | "none",
   /** Sidebar section Past chats: "compact" keeps the rows tight, and "expanded" gives them more air. */
   chatsView: "compact" as "compact" | "expanded",
   /**
@@ -340,7 +340,7 @@ const ALLOWED_VALUES: Record<string, readonly unknown[]> = {
   agentsActivityScope: ["all", "pane"],
   historyPeriod: ["today", "7", "30", "90", "365"],
   historyGroupBy: ["ws", "feature"],
-  chatsAgent: ["claude", "codex"],
+  chatsAgent: ["both", "claude", "codex", "none"],
   chatsView: ["compact", "expanded"],
   chatsRefreshSeconds: [5, 10, 30, 60],
   dynamicTopicExtraction: ["keyword", "languageModel"],
