@@ -86,6 +86,13 @@ const COMPOSITION_BAR_HELP_BLOCKS = [
   },
 ] as const;
 
+/** The information card of the Claude Code observer of the Mire. */
+const MIRE_CLAUDE_OBSERVER_HELP_BLOCKS = [
+  { titleKey: "settingsHelp.whatTitle", textKey: "settingsHelp.mireClaudeObserver.what" },
+  { titleKey: "settingsHelp.onTitle", textKey: "settingsHelp.mireClaudeObserver.on" },
+  { titleKey: "settingsHelp.offTitle", textKey: "settingsHelp.mireClaudeObserver.off" },
+] as const;
+
 const availableCommands = computed(() =>
   COMMANDS.filter((command) => command.agentId === null || settings.ownedAgents.includes(command.agentId)),
 );
@@ -195,6 +202,14 @@ function onEnter(event: KeyboardEvent, agent: AgentDefinition) {
         title-key="settingsAgents.compositionBarOnAgentStart"
         :blocks="COMPOSITION_BAR_HELP_BLOCKS"
       />
+    </SettingsSwitchRow>
+
+    <SettingsSwitchRow
+      v-model="settings.mireClaudeObserver"
+      :label="t('settingsAgents.mireClaudeObserver')"
+      data-option="mireClaudeObserver"
+    >
+      <SettingsOptionHelp title-key="settingsAgents.mireClaudeObserver" :blocks="MIRE_CLAUDE_OBSERVER_HELP_BLOCKS" />
     </SettingsSwitchRow>
 
     <div class="d-flex flex-column gap-2">

@@ -2,10 +2,10 @@
 
 - Created: 30 October 2026
 - Last updated: 30 October 2026
-- Status: Live investigation and runnable collector, ready for review
+- Status: Live investigation, and the desktop integration of the observation sources
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Workspace glossary](../agents_rules/glossary/workspaces_tabs_and_panes.md), [Chat glossary](../agents_rules/glossary/chats.md), [Status dot](status_dot.md), [Application installations](application_installations.md)
-- Related issue: [issue 966](https://github.com/heidrun-org/heidrun_code/issues/966)
+- Related issue: [issue 966](https://github.com/heidrun-org/heidrun_code/issues/966), [issue 968](https://github.com/heidrun-org/heidrun_code/issues/968), [issue 969](https://github.com/heidrun-org/heidrun_code/issues/969)
 
 ## Result
 
@@ -66,7 +66,11 @@ Claude Code observations older than five seconds become stale; observed status b
 
 Use the Herdr session/socket together with workspace, tab, pane, and terminal identifiers. A verified move changed a pane from `w1:p2` to `w2:p2`, with a different tab/workspace, while preserving its terminal ID. A terminal can also outlive a coding agent process. Refresh the relationship after moves and process replacement.
 
-For Claude Code, map the pane's `hd_sid` to the mod session ID, then use the mod's subagent IDs and parent IDs. For Codex, prefer Herdr's explicit `agent_session` reference. The initial fresh chat lacked that reference; resumed chats supplied it. The existing title/folder fallback remains uncertain when titles collide.
+For Claude Code, the observer mod records `HERDR_PANE_ID` and `HERDR_SOCKET_PATH` of the Claude Code process in each snapshot file. A session belongs to a pane only through this pane identifier on the same Herdr socket, or through the pane's `hd_sid`. Then use the mod's subagent IDs and parent IDs. After `/clear` or `/resume`, the session identifier changes: the mod marks the file of the former session as ended, and writes a new file for the new session.
+
+For Codex, use only Herdr's explicit `agent_session` reference. A fresh `codex` has no `agent_session`. Heidrun Code therefore creates the chat of each new Codex pane first: `thread/start` with the workspace folder, `thread/name/set` with the tab name (the name saves the empty chat), then `codex resume <chat identifier>` in the pane. Herdr reads the chat identifier from the command line only for a coding agent that Herdr starts itself (`herdr agent start`). Heidrun Code types the command into the shell of the pane, so Heidrun Code then reports the chat to Herdr with the socket method `pane.report_agent_session` (`pane_id`, `source: "herdr:codex"`, `agent: "codex"`, an increasing `seq` in nanoseconds, `agent_session_id`). Herdr then gives the correct `agent_session`, before any prompt ([live test](https://github.com/heidrun-org/heidrun_code/issues/968#issuecomment-6516752765)). Herdr silently ignores another source, for example `heidrun:codex`. The Herdr Codex `SessionStart` hook is rejected: with the shared Codex server, the hook runs in the server process and reads the pane of another session. When the shared Codex server is not available, the pane starts plain `codex` and stays unmatched. Never match a pane by a title or a folder.
+
+After `/clear` or `/resume` in a Codex pane, Herdr keeps the old chat identifier. About 60 seconds after `/clear`, the shared Codex server shows the old chat as `notLoaded`, while a chat that stays open in a pane stays loaded, even without activity ([live test](https://github.com/heidrun-org/heidrun_code/issues/969#issuecomment-6516846140)). A root chat that is `notLoaded` while a pane still names it is therefore a stale identifier. The signal comes about 60 seconds late, and it does not give the new chat. The collector reads with `thread/read` and never subscribes to a chat, because a subscription can keep the chat loaded and hide this signal.
 
 Separate current runtime status from the outcome of a turn. Codex can leave a completed child idle. The collector retains the last subagent activity separately, including completion, and does not call idle a failed task. Failed and killed are also distinct outcomes. A permission wait may be handled by an automatic reviewer; only the actual request and reviewer context can establish whether the developer must act.
 
@@ -96,7 +100,13 @@ The experiment is in [mire_live_information](../../packages/experiments/mire_liv
 
 The data layer `subagents` table holds configuration files, not running instances. Do not use it as the live registry. The existing transcript modal's recent-file heuristic is also not a runtime status source.
 
-Desktop integration now needs an explicit choice about loading the optional Claude Code mod, binding newly created Codex panes to chat IDs, and showing coverage/freshness. Recovery after observer reload, interrupted sessions, crashes, and nested/team cases still needs implementation-level tests before claiming reliable unattended operation. Readable Codex message bodies require an upstream observation point that exposes plaintext; the tested public hooks/history do not provide one.
+The desktop integration is in [src/mire](../../packages/apps/desktop_tauri/src/mire/CONTEXT.md), with the observer mod in [resources/mire_claude_observer](../../packages/apps/desktop_tauri/resources/mire_claude_observer/CONTEXT.md):
+
+- The Settings option "Observe Claude Code for the Mire" is off by default. When it is on, each Claude Code that Heidrun Code starts gets `HEIDRUN_MIRE_OBSERVATION_DIR=<folder> claude --plugin-dir <mod folder>`. The mod folder is a copy of the bundled mod in the data folder of Heidrun Code, because Claude Code writes type files beside a mod that it loads. Nothing is installed globally.
+- Each Codex pane that Heidrun Code starts (a free agent pane, a new tab or split, a launcher that starts Codex) goes through the Tauri command `codex_prepare_chat`, then `codex resume <chat identifier>` with the other arguments, then `pane.report_agent_session` for that pane. A failed report does not stop the start; the pane then stays unmatched. A missing server, an error, or 3 seconds without an answer gives the plain command.
+- One shared collector in Rust runs while at least one Mire view is registered, every 2 seconds, and emits `mire://observations`. It reads the newest 200 snapshot files, the Codex panes of the Herdr session of Heidrun Code, and at most 100 descendants for each root chat, with read-only methods only. An unavailable server gives the coverage `unavailable`.
+- A Claude Code snapshot is stale when it is older than 30 seconds, in the future, or ended. The mod writes again every 500 milliseconds while its session runs, so an old file means that the observer stopped.
+- Still not tested: a mod reload during an open request (the request is lost; `observerStartedAtMs` shows when the observation started), nested and team cases, and `/resume` of another chat in a Codex pane.
 
 Official references: [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overview), [mod reference](https://code.claude.com/docs/en/plugins/mods/reference), [Codex App Server](https://learn.chatgpt.com/docs/app-server), and [Codex hooks](https://learn.chatgpt.com/docs/hooks). These references guided the probes; the live evidence establishes what actually worked here.
 

@@ -73,6 +73,16 @@ export class TauriMock {
 					available: false,
 					sessions: {},
 				};
+			case 'mire_subscribe':
+				return TauriMock._buildMireObservations();
+			case 'mire_unsubscribe':
+				return null;
+			case 'mire_claude_observer_mod_path':
+				return null;
+			case 'mire_claude_observation_folder':
+				return '/tmp/heidrun_code/mire_claude_observations';
+			case 'codex_prepare_chat':
+				return null;
 			case 'history_read':
 				return [];
 			case 'chats_synchronize':
@@ -182,6 +192,34 @@ export class TauriMock {
 			default:
 				throw new Error(`mock: the command "${command}" is not available in the browser`);
 		}
+	}
+
+	/**
+	 * Builds the answer of the Tauri command `mire_subscribe` on the fake computer: no Claude Code session, and the shared
+	 * Codex server unavailable, because the fake computer has no live source. The mock never shows fictional data as a
+	 * real observation.
+	 *
+	 * @returns The observations, in the shape of the observation contract of issue 968.
+	 */
+	private static _buildMireObservations(): unknown {
+		return {
+			schemaVersion: 1,
+			observedAtMs: Date.now(),
+			claude: {
+				sessions: [],
+				errors: [],
+			},
+			codex: {
+				coverage: 'unavailable',
+				unavailableReason: 'The development server has no shared Codex server',
+				threads: [],
+				errors: [],
+				limits: {
+					maximumChildrenPerRoot: 100,
+					truncatedRootThreadIds: [],
+				},
+			},
+		};
 	}
 
 	/**

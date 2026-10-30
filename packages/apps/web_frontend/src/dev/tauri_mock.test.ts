@@ -233,6 +233,20 @@ describe('TauriMock', () => {
 		expect(await invoke('file_open_external', { root: '/Users/demo/webwork/heidrun', path: 'docs/a.md' })).toBeNull();
 	});
 
+	it('answers the Mire commands with no observation and an unavailable shared Codex server, never with fictional data', async () => {
+		TauriMock.install();
+		const observations = await invoke<{ claude: { sessions: unknown[] }; codex: { coverage: string; threads: unknown[] } }>(
+			'mire_subscribe',
+			{ viewId: 'modal' },
+		);
+		expect(observations.claude.sessions).toEqual([]);
+		expect(observations.codex.coverage).toBe('unavailable');
+		expect(observations.codex.threads).toEqual([]);
+		expect(await invoke('mire_unsubscribe', { viewId: 'modal' })).toBeNull();
+		expect(await invoke('mire_claude_observer_mod_path')).toBeNull();
+		expect(await invoke('codex_prepare_chat', { cwd: '/work', name: 'Tab', model: null })).toBeNull();
+	});
+
 	it('rejects a Tauri command that it does not list', async () => {
 		TauriMock.install();
 		await expect(invoke('pty_spawn')).rejects.toThrow('pty_spawn');

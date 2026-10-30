@@ -173,6 +173,11 @@ const defaults = {
   newTabCommand: "terminal" as "terminal" | "claude" | "codex" | "agy",
 	/** Show the composition bar initially when a new pane starts directly with a coding agent. */
 	isCompositionBarShownOnAgentStart: false,
+  /**
+   * Settings window, section Coding agents: each Claude Code that Heidrun Code starts loads the observer mod of the Mire,
+   * with `--plugin-dir`, and writes its live observations for the Mire. Off: Claude Code starts without the mod.
+   */
+  mireClaudeObserver: false,
   /** Window Create a custom launcher: the last kind, "commandLine" or "codingAgent". */
   customLauncherKind: "commandLine" as "commandLine" | "codingAgent",
   /** Window Create a custom launcher: the identifier of the last coding agent. */
