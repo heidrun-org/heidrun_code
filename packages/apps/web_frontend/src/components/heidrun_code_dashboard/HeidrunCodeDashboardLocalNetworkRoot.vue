@@ -4,24 +4,19 @@ import Icon from "../Icon.vue";
 import HeidrunCodeDashboardView from "./HeidrunCodeDashboardView.vue";
 import { heidrunCodeDashboardLocalNetworkPageState } from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_local_network_session";
 import { t } from "../../i18n/index";
+import { HeidrunCodeDashboardScreenAwake } from "./heidrun_code_dashboard_screen_awake";
 
 // The page of a phone or a tablet of the local network, for a second screen next to the computer: a thin bar with the
 // button of full screen, and the same Heidrun Code Dashboard view as the desktop application, read-only (issue 978). On a narrow screen,
-// the sidebar goes below the graph. The page asks the device to keep its screen on; a web browser allows it only on
-// HTTPS, so on the plain HTTP of the local network the developer turns off the automatic lock of the device.
-
-/** The part of the Screen Wake Lock interface of the web browser that the page uses. */
-type WakeLockSentinelLike = {
-  /** Lets the screen turn off again. */
-  release: () => Promise<void>;
-};
+// the sidebar goes below the graph. The page keeps the screen of the device on: on the plain HTTP of the local network,
+// with a silent video from the first touch (issue 991).
 
 /** True when the web browser can show the page in full screen. The web browser of an iPhone cannot. */
 const isFullScreenAvailable = ref(document.fullscreenEnabled === true);
 const isFullScreen = ref(document.fullscreenElement !== null && document.fullscreenElement !== undefined);
 
-/** The request that keeps the screen on, or null. */
-let wakeLock: WakeLockSentinelLike | null = null;
+/** Keeps the screen of the device on while the page shows. */
+const screenAwake = new HeidrunCodeDashboardScreenAwake();
 
 async function toggleFullScreen() {
   try {
@@ -39,38 +34,14 @@ function onFullScreenChange() {
   isFullScreen.value = document.fullscreenElement !== null && document.fullscreenElement !== undefined;
 }
 
-/** Asks the device to keep its screen on. The web browser refuses outside HTTPS, and when the page is hidden. */
-async function keepScreenOn() {
-  const wakeLockApi = (navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinelLike> } }).wakeLock;
-  if (wakeLockApi === undefined || wakeLock !== null) {
-    return;
-  }
-  try {
-    wakeLock = await wakeLockApi.request("screen");
-  } catch {
-    wakeLock = null;
-  }
-}
-
-/** The web browser releases the screen when the page hides: ask again when it shows. */
-function onVisibilityChange() {
-  if (document.visibilityState === "visible") {
-    wakeLock = null;
-    void keepScreenOn();
-  }
-}
-
 onMounted(() => {
   document.addEventListener("fullscreenchange", onFullScreenChange);
-  document.addEventListener("visibilitychange", onVisibilityChange);
-  void keepScreenOn();
+  screenAwake.start();
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("fullscreenchange", onFullScreenChange);
-  document.removeEventListener("visibilitychange", onVisibilityChange);
-  void wakeLock?.release().catch(() => undefined);
-  wakeLock = null;
+  screenAwake.stop();
 });
 </script>
 

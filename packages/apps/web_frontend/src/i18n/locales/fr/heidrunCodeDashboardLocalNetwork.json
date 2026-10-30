@@ -8,7 +8,7 @@
   "copied": "L'adresse est copiée.",
   "copyFailed": "L'adresse ne peut pas être copiée.",
   "keySecret": "Le code QR et l'adresse contiennent la clé d'appairage : montrez-les seulement à vos propres appareils.",
-  "screenOn": "La page utilise HTTP simple, donc l'appareil ne peut pas garder son écran allumé tout seul : désactivez le verrouillage automatique de l'appareil.",
+  "screenOn": "La page utilise HTTP simple, donc elle garde l'écran de l'appareil allumé avec une vidéo silencieuse : touchez la page une fois après son ouverture.",
   "firewall": "La première fois, macOS peut demander si Heidrun Code accepte les connexions entrantes : cliquez sur Autoriser.",
   "newKey": "Créer une nouvelle clé d'appairage",
   "newKeyTitle": "L'ancien code QR ne fonctionne plus immédiatement : chaque appareil doit scanner le nouveau code QR",

@@ -66,6 +66,7 @@ describe("SettingsHeidrunCodeDashboardSection, the section Heidrun Code Dashboar
     expect(wrapper.get("[data-heidrun-code-dashboard-local-network-address]").text()).toBe(ADDRESS);
     expect(wrapper.text()).toContain("Address of the page");
     expect(wrapper.text()).toContain("plain HTTP");
+    expect(wrapper.text()).toContain("touch the page once");
   });
 
   it("copies the address with the copy button", async () => {
