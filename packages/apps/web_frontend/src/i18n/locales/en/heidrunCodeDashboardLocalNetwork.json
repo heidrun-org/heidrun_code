@@ -8,7 +8,7 @@
   "copied": "The address is copied.",
   "copyFailed": "The address cannot be copied.",
   "keySecret": "The QR code and the address hold the pairing key: show them only to your own devices.",
-  "screenOn": "The page uses plain HTTP, so the device cannot keep its screen on by itself: turn off the automatic lock of the device.",
+  "screenOn": "The page uses plain HTTP, so it keeps the screen of the device on with a silent video: touch the page once after it opens.",
   "firewall": "The first time, macOS can ask whether Heidrun Code accepts incoming connections: click Allow.",
   "newKey": "Make a new pairing key",
   "newKeyTitle": "The old QR code stops working at once: every device must scan the new QR code",

@@ -5,7 +5,7 @@
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Heidrun Code Dashboard display modes](heidrun_code_dashboard_display_modes.md), [Heidrun Code Dashboard graph and sidebar](heidrun_code_dashboard_graph_and_sidebar.md), [Application log](../../application_log.md)
-- Related issue: [issue 978](https://github.com/heidrun-org/heidrun_code/issues/978)
+- Related issues: [issue 978](https://github.com/heidrun-org/heidrun_code/issues/978), [issue 991](https://github.com/heidrun-org/heidrun_code/issues/991)
 
 This file gives the rules of the Heidrun Code Dashboard on a phone or a tablet of the local network, used as a second screen next to the computer. The device opens the same Heidrun Code Dashboard page in its web browser, read-only.
 
@@ -13,7 +13,7 @@ This file gives the rules of the Heidrun Code Dashboard on a phone or a tablet o
 
 - The section "Heidrun Code Dashboard" of the Settings window comes just after the section "Coding agents". It holds the option "Show the Heidrun Code Dashboard on the local network" (`data-option="heidrunCodeDashboardLocalNetwork"`), off by default.
 - While the server listens, the section shows the address of the page in two forms: a QR code, and the address as text with the label "Address of the page" and a copy button. The button "Make a new pairing key" refuses the old key at once.
-- The section says that the page uses plain HTTP, so the device cannot keep its screen on by itself, and that macOS can ask to accept incoming connections the first time.
+- The section says that the page uses plain HTTP, so it keeps the screen on with a silent video after one touch, and that macOS can ask to accept incoming connections the first time.
 - The errors are `cannotListen` (the port is in use) and `noNetwork` (the computer has no address on a local network).
 
 ## Server
@@ -33,7 +33,8 @@ This file gives the rules of the Heidrun Code Dashboard on a phone or a tablet o
 - `main.ts` starts `start_heidrun_code_dashboard_local_network.ts` when the path is `/heidrun_code_dashboard`. The page has no Tauri bridge, and the Tauri mock of the development server never installs there, so a fake answer never shows.
 - The page reads `/heidrun_code_dashboard/api/state` every second, and every three seconds after a failure, with a message that the connection is lost. The state is the Herdr snapshot, the latest observations of the one shared collector, and the Herdr socket.
 - The page mounts the same `HeidrunCodeDashboardView.vue` with the display mode `localNetwork`. It hides "Open in Heidrun Code", the terminal preview, and the transcript preview, and calls no Tauri command.
-- The button of full screen shows only when the web browser allows full screen. The page asks the web browser to keep the screen on; the web browser allows it only on HTTPS.
+- The button of full screen shows only when the web browser allows full screen.
+- `heidrun_code_dashboard_screen_awake.ts` keeps the screen on. It asks the Screen Wake Lock interface, which exists only on HTTPS. On plain HTTP, or when the interface refuses, it plays a hidden silent video from the first touch. WebKit keeps the display on only while a video plays with a sound track, not muted, and with no `loop` attribute, so the video has a silent sound track and goes back to its start by code ([issue 991](https://github.com/heidrun-org/heidrun_code/issues/991)).
 - Below 760 pixels of width, the sidebar goes below the graph.
 - A release build serves the files that it holds, the same files as its windows. A development build asks the development server of the page; its live reload connection fails on the device, and nothing else.
 
