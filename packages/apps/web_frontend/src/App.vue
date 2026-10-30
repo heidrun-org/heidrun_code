@@ -86,10 +86,10 @@ import MissingProgramsModal from "./components/MissingProgramsModal.vue";
 import ThreeJsDemoModal from "./components/ThreeJsDemoModal.vue";
 import { threeJsDemoModal } from "./stores/three_js_demo_modal";
 import StatisticsModal from "./components/StatisticsModal.vue";
-import MireDialog from "./components/mire/MireDialog.vue";
+import HeidrunCodeDashboardDialog from "./components/heidrun_code_dashboard/HeidrunCodeDashboardDialog.vue";
 import { statisticsModal } from "./stores/statistics_modal";
-import { mireModal } from "./stores/mire/mire_modal";
-import { MireSeparateWindow } from "./stores/mire/mire_separate_window";
+import { heidrunCodeDashboardModal } from "./stores/heidrun_code_dashboard/heidrun_code_dashboard_modal";
+import { HeidrunCodeDashboardSeparateWindow } from "./stores/heidrun_code_dashboard/heidrun_code_dashboard_separate_window";
 import SplashScreen from "./components/SplashScreen.vue";
 import QuickOpenModal from "./components/QuickOpenModal.vue";
 import { quickOpen, QuickOpen } from "./stores/quick_open";
@@ -313,7 +313,7 @@ function onKey(e: KeyboardEvent) {
 }
 
 let unlistenDrop: (() => void) | null = null;
-let unlistenMireOpenRequests: (() => void) | null = null;
+let unlistenHeidrunCodeDashboardOpenRequests: (() => void) | null = null;
 onMounted(async () => {
   // First of all: the detection of the activity of the user must see every action before the other listeners do.
   startUserActivity();
@@ -333,9 +333,9 @@ onMounted(async () => {
   loadClaudeLink();
   loadAntigravityLink();
   startRemoteWatch();
-  // The separate Mire window asks this window to show a pane with "Open in Heidrun Code" (issue 973).
-  void MireSeparateWindow.listenToOpenRequests().then((unlisten) => {
-    unlistenMireOpenRequests = unlisten;
+  // The separate Heidrun Code Dashboard window asks this window to show a pane with "Open in Heidrun Code" (issue 973).
+  void HeidrunCodeDashboardSeparateWindow.listenToOpenRequests().then((unlisten) => {
+    unlistenHeidrunCodeDashboardOpenRequests = unlisten;
   });
   unlistenDrop = await getCurrentWebview().onDragDropEvent((event) => {
     if (event.payload.type === "enter") {
@@ -359,7 +359,7 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
   unlistenDrop?.();
-  unlistenMireOpenRequests?.();
+  unlistenHeidrunCodeDashboardOpenRequests?.();
   window.removeEventListener("keydown", onKey, true);
   window.removeEventListener("resize", onResize);
 });
@@ -419,7 +419,7 @@ onBeforeUnmount(() => {
     <MacroEditor v-if="macroEditor.open" />
     <ThreeJsDemoModal v-if="threeJsDemoModal.open" />
     <StatisticsModal v-if="statisticsModal.open" />
-    <MireDialog v-if="mireModal.isOpen" />
+    <HeidrunCodeDashboardDialog v-if="heidrunCodeDashboardModal.isOpen" />
     <NoteModal v-if="notes.openId" />
     <RcModal v-if="remote.openFor" />
     <MergeModal v-if="merging.open && merging.req" />

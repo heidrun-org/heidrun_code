@@ -44,8 +44,8 @@ dirs = "6"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 # Mobile access (a phone through an ngrok tunnel): the server that serves the mobile website and checks the pairing key
 mobile_server = { path = "../../auxiliary/mobile_server" }
-# The Mire on the local network (a phone or a tablet as a second screen): the server that serves the Mire page and checks the pairing key
-mire_server = { path = "../../auxiliary/mire_server" }
+# The Heidrun Code Dashboard on the local network (a phone or a tablet as a second screen): the server that serves the Heidrun Code Dashboard page and checks the pairing key
+heidrun_code_dashboard_server = { path = "../../auxiliary/heidrun_code_dashboard_server" }
 # Deleting from the file explorer goes to the macOS Trash
 trash = "5"
 # The file view pane shows the new content when a file changes on the disk (issue #931)

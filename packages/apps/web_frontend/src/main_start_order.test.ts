@@ -10,13 +10,13 @@ describe("the start of the application in main.ts (issue 772)", () => {
     expect(staticImports).toEqual([
       "import \"./dev/install_tauri_mock\";",
       "import { DurableStorage } from \"./lib/durable_storage\";",
-      "import { MIRE_LOCAL_NETWORK_PATH } from \"./lib/mire/mire_local_network_path\";",
+      "import { HEIDRUN_CODE_DASHBOARD_LOCAL_NETWORK_PATH } from \"./lib/heidrun_code_dashboard/heidrun_code_dashboard_local_network_path\";",
     ]);
   });
 
-  it("starts only the read-only Mire on the path of the Mire server, before it restores or copies localStorage (issue 978)", () => {
-    const localNetworkIndex = mainText.indexOf("await import(\"./start_mire_local_network\")");
-    expect(localNetworkIndex).toBeGreaterThan(mainText.indexOf("window.location.pathname === MIRE_LOCAL_NETWORK_PATH"));
+  it("starts only the read-only Heidrun Code Dashboard on the path of the Heidrun Code Dashboard server, before it restores or copies localStorage (issue 978)", () => {
+    const localNetworkIndex = mainText.indexOf("await import(\"./start_heidrun_code_dashboard_local_network\")");
+    expect(localNetworkIndex).toBeGreaterThan(mainText.indexOf("window.location.pathname === HEIDRUN_CODE_DASHBOARD_LOCAL_NETWORK_PATH"));
     expect(localNetworkIndex).toBeLessThan(mainText.indexOf("await DurableStorage.restore()"));
   });
 

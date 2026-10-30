@@ -1,7 +1,0 @@
-{
-  "name": "heidrun-mire-observer",
-  "version": "1.0.0",
-  "description": "Observes live subagent states, pending requests, and messages of a Claude Code session for the Mire of Heidrun Code",
-  "author": { "name": "Heidrun Organization" },
-  "license": "MIT"
-}

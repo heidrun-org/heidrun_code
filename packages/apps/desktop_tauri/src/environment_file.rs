@@ -91,6 +91,10 @@ mod tests {
     /// The variables of the system that the application reads and changes, and that a developer never sets in `.env`.
     const SYSTEM_VARIABLES: [&str; 1] = ["PATH"];
 
+    /// The variables that the application gives to another program, and never reads: the Claude Code observer mod reads
+    /// `HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR`, so a developer never sets it in `.env`.
+    const GIVEN_TO_OTHER_PROGRAMS: [&str; 1] = ["HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR"];
+
     /// The path of the file `.env.example`, at the root of the repository.
     fn example_path() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../.env.example")
@@ -159,7 +163,7 @@ mod tests {
             }
             read.extend(read_variable_names(&std::fs::read_to_string(&file).unwrap()));
         }
-        for name in READ_BY_TESTS_ONLY.into_iter().chain(SYSTEM_VARIABLES) {
+        for name in READ_BY_TESTS_ONLY.into_iter().chain(SYSTEM_VARIABLES).chain(GIVEN_TO_OTHER_PROGRAMS) {
             read.remove(name);
         }
         let listed = example_variable_names(&std::fs::read_to_string(example_path()).unwrap());

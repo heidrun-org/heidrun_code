@@ -64,30 +64,30 @@ describe("codexResumeCommandFor", () => {
 });
 
 describe("claudeObserverCommandFor", () => {
-  const MOD = "/Users/me/.config/heidrun_code/mire_claude_observer";
-  const FOLDER = "/Users/me/.config/heidrun_code/mire_claude_observations";
+  const MOD = "/Users/me/.config/heidrun_code/heidrun_code_dashboard_claude_observer";
+  const FOLDER = "/Users/me/.config/heidrun_code/heidrun_code_dashboard_claude_observations";
 
   it("adds the observation folder and the mod to a plain claude", () => {
     expect(claudeObserverCommandFor("claude", MOD, FOLDER)).toBe(
-      `HEIDRUN_MIRE_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}'`,
+      `HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}'`,
     );
   });
 
   it("keeps the other arguments: the agent, the model, the resume identifier, and the prompt", () => {
     expect(claudeObserverCommandFor("claude --agent 'a' --model 'opus'", MOD, FOLDER)).toBe(
-      `HEIDRUN_MIRE_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}' --agent 'a' --model 'opus'`,
+      `HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}' --agent 'a' --model 'opus'`,
     );
     expect(claudeObserverCommandFor(`claude --resume '${CHAT_ID}'`, MOD, FOLDER)).toBe(
-      `HEIDRUN_MIRE_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}' --resume '${CHAT_ID}'`,
+      `HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}' --resume '${CHAT_ID}'`,
     );
     expect(claudeObserverCommandFor("claude 'Hi'", MOD, FOLDER)).toBe(
-      `HEIDRUN_MIRE_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}' 'Hi'`,
+      `HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}' 'Hi'`,
     );
   });
 
   it("quotes a folder with a space and changes no subcommand and no other coding agent", () => {
     expect(claudeObserverCommandFor("claude", "/a b/mod", "/a b/obs")).toBe(
-      `HEIDRUN_MIRE_OBSERVATION_DIR='/a b/obs' claude --plugin-dir '/a b/mod'`,
+      `HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR='/a b/obs' claude --plugin-dir '/a b/mod'`,
     );
     expect(claudeObserverCommandFor("claude mcp list", MOD, FOLDER)).toBeNull();
     expect(claudeObserverCommandFor("codex", MOD, FOLDER)).toBeNull();

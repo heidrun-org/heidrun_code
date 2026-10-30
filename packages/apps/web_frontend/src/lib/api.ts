@@ -46,93 +46,93 @@ export function codexUsage(sessionIds: string[]): Promise<CodexUsage> {
   return invoke("codex_usage", { sessionIds });
 }
 
-// ---- Mire -----------------------------------------------------------------
+// ---- Heidrun Code Dashboard -----------------------------------------------------------------
 
 /**
- * Registers one Mire view in the shared collector, and gives the latest observations. The collector then sends each
- * collection as the event `mire://observations`, every 2 seconds, while at least one view is registered.
+ * Registers one Heidrun Code Dashboard view in the shared collector, and gives the latest observations. The collector then sends each
+ * collection as the event `heidrun_code_dashboard://observations`, every 2 seconds, while at least one view is registered.
  * @param viewId - The identifier of the view: the modal or the separate window.
  * @returns The latest observations, in the shape of the observation contract of issue 968.
  */
-export function mireSubscribe<T = unknown>(viewId: string): Promise<T> {
-  return invoke<T>("mire_subscribe", { viewId });
+export function heidrunCodeDashboardSubscribe<T = unknown>(viewId: string): Promise<T> {
+  return invoke<T>("heidrun_code_dashboard_subscribe", { viewId });
 }
 
 /**
- * Removes one Mire view from the shared collector. Without a view, the collector stops reading.
- * @param viewId - The identifier that `mireSubscribe` received.
+ * Removes one Heidrun Code Dashboard view from the shared collector. Without a view, the collector stops reading.
+ * @param viewId - The identifier that `heidrunCodeDashboardSubscribe` received.
  * @returns A promise that ends when the view is removed.
  */
-export function mireUnsubscribe(viewId: string): Promise<void> {
-  return invoke("mire_unsubscribe", { viewId });
+export function heidrunCodeDashboardUnsubscribe(viewId: string): Promise<void> {
+  return invoke("heidrun_code_dashboard_unsubscribe", { viewId });
 }
 
 /**
- * Opens the separate Mire window, or gives the focus to the Mire window that is already open.
+ * Opens the separate Heidrun Code Dashboard window, or gives the focus to the Heidrun Code Dashboard window that is already open.
  * @returns `opened` for a new window, `focused` when the window was already open.
  */
-export function mireWindowOpen(): Promise<"opened" | "focused"> {
-  return invoke<"opened" | "focused">("mire_window_open");
+export function heidrunCodeDashboardWindowOpen(): Promise<"opened" | "focused"> {
+  return invoke<"opened" | "focused">("heidrun_code_dashboard_window_open");
 }
 
 /**
- * Called by the separate Mire window: asks the main window to show one workspace, one tab, or one pane, and gives the
+ * Called by the separate Heidrun Code Dashboard window: asks the main window to show one workspace, one tab, or one pane, and gives the
  * focus to the main window.
  * @param target - The kind of the target and its Herdr identifier.
  * @param target.kind - `workspace`, `tab`, or `pane`.
  * @param target.id - The Herdr identifier of the workspace, of the tab, or of the pane.
  * @returns A promise that ends when the request is sent.
  */
-export function mireOpenInMainWindow(target: { kind: "workspace" | "tab" | "pane"; id: string }): Promise<void> {
-  return invoke("mire_open_in_main_window", { kind: target.kind, id: target.id });
+export function heidrunCodeDashboardOpenInMainWindow(target: { kind: "workspace" | "tab" | "pane"; id: string }): Promise<void> {
+  return invoke("heidrun_code_dashboard_open_in_main_window", { kind: target.kind, id: target.id });
 }
 
 /**
- * What the section "Mire" of the Settings window shows about the Mire on the local network.
+ * What the section "Heidrun Code Dashboard" of the Settings window shows about the Heidrun Code Dashboard on the local network.
  * @returns The option, and the address and the QR code while the server listens.
  */
-export function mireLocalNetworkStatus<T = unknown>(): Promise<T> {
-  return invoke<T>("mire_local_network_status");
+export function heidrunCodeDashboardLocalNetworkStatus<T = unknown>(): Promise<T> {
+  return invoke<T>("heidrun_code_dashboard_local_network_status");
 }
 
 /**
- * Turns on "Show the Mire on the local network": the server listens on the local network.
+ * Turns on "Show the Heidrun Code Dashboard on the local network": the server listens on the local network.
  * @returns The new status.
  */
-export function mireLocalNetworkEnable<T = unknown>(): Promise<T> {
-  return invoke<T>("mire_local_network_enable");
+export function heidrunCodeDashboardLocalNetworkEnable<T = unknown>(): Promise<T> {
+  return invoke<T>("heidrun_code_dashboard_local_network_enable");
 }
 
 /**
- * Turns off "Show the Mire on the local network": the server stops at once.
+ * Turns off "Show the Heidrun Code Dashboard on the local network": the server stops at once.
  * @returns The new status.
  */
-export function mireLocalNetworkDisable<T = unknown>(): Promise<T> {
-  return invoke<T>("mire_local_network_disable");
+export function heidrunCodeDashboardLocalNetworkDisable<T = unknown>(): Promise<T> {
+  return invoke<T>("heidrun_code_dashboard_local_network_disable");
 }
 
 /**
- * Makes a new pairing key for the Mire on the local network. The old key is refused at once.
+ * Makes a new pairing key for the Heidrun Code Dashboard on the local network. The old key is refused at once.
  * @returns The new status, with the new address and the new QR code.
  */
-export function mireLocalNetworkNewKey<T = unknown>(): Promise<T> {
-  return invoke<T>("mire_local_network_new_key");
+export function heidrunCodeDashboardLocalNetworkNewKey<T = unknown>(): Promise<T> {
+  return invoke<T>("heidrun_code_dashboard_local_network_new_key");
 }
 
 /**
  * The folder of the Claude Code observer mod, ready for `claude --plugin-dir`.
  * @returns The absolute folder, or null when the application has no observer mod.
  */
-export function mireClaudeObserverModPath(): Promise<string | null> {
-  return invoke<string | null>("mire_claude_observer_mod_path");
+export function heidrunCodeDashboardClaudeObserverModPath(): Promise<string | null> {
+  return invoke<string | null>("heidrun_code_dashboard_claude_observer_mod_path");
 }
 
 /**
  * The folder where the Claude Code observer mod writes its snapshot files. The command creates it, private to the user.
  * @returns The absolute folder.
  */
-export function mireClaudeObservationFolder(): Promise<string> {
-  return invoke<string>("mire_claude_observation_folder");
+export function heidrunCodeDashboardClaudeObservationFolder(): Promise<string> {
+  return invoke<string>("heidrun_code_dashboard_claude_observation_folder");
 }
 
 /**

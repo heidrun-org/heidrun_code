@@ -1,0 +1,7 @@
+{
+  "name": "heidrun-code-dashboard-observer",
+  "version": "0.1.0",
+  "description": "Observes live subagent states, requests, and messages for the Heidrun Code Dashboard investigation",
+  "author": { "name": "Heidrun Organization" },
+  "license": "MIT"
+}

@@ -9,7 +9,7 @@ import SettingsConfirmationsSection from './SettingsConfirmationsSection.vue';
 import SettingsDynamicTopicsSection from './SettingsDynamicTopicsSection.vue';
 import SettingsGeneralSection from './SettingsGeneralSection.vue';
 import SettingsGuardsSection from './SettingsGuardsSection.vue';
-import SettingsMireSection from './SettingsMireSection.vue';
+import SettingsHeidrunCodeDashboardSection from './SettingsHeidrunCodeDashboardSection.vue';
 import SettingsMobileAccessSection from './SettingsMobileAccessSection.vue';
 import SettingsNotificationsSection from './SettingsNotificationsSection.vue';
 import SettingsSidebarsSection from './SettingsSidebarsSection.vue';
@@ -83,12 +83,12 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Coding agents',
 			component: SettingsAgentsSection,
-			optionList: ['agent', 'agent', 'agent', 'quotaMonitoring', 'antigravityQuotaTracking', 'newTabCommand', 'compositionBarOnAgentStart', 'mireClaudeObserver', 'keepAgentsRunning'],
+			optionList: ['agent', 'agent', 'agent', 'quotaMonitoring', 'antigravityQuotaTracking', 'newTabCommand', 'compositionBarOnAgentStart', 'heidrunCodeDashboardClaudeObserver', 'keepAgentsRunning'],
 		},
 		{
-			name: 'Mire',
-			component: SettingsMireSection,
-			optionList: ['mireLocalNetwork'],
+			name: 'Heidrun Code Dashboard',
+			component: SettingsHeidrunCodeDashboardSection,
+			optionList: ['heidrunCodeDashboardLocalNetwork'],
 		},
 		{
 			name: 'Confirmations',

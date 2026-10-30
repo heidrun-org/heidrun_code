@@ -2,7 +2,7 @@ import * as api from "../lib/api";
 import { claudeObserverCommandFor, codexResumeCommandFor, startsNewInteractiveSession } from "../lib/launcher_agent_command";
 import { settings } from "./settings";
 
-// The start of a coding agent that Heidrun Code types in a pane: the observer mod of the Mire for Claude Code, and the
+// The start of a coding agent that Heidrun Code types in a pane: the observer mod of the Heidrun Code Dashboard for Claude Code, and the
 // chat prepared on the shared Codex server for Codex (issue 969). Each free agent pane, each new tab or split that starts
 // a coding agent, and each launcher that starts a coding agent goes through `prepareAgentCommand`, then, after the command
 // is typed, through `reportPreparedCodexChat`.
@@ -29,11 +29,11 @@ let lastReportSequence = 0;
 
 /**
  * Prepares the command line of a coding agent that Heidrun Code starts in a pane, just before it is typed.
- * - Claude Code: when the Settings option "Observe Claude Code for the Mire" is on, the command loads the observer mod.
+ * - Claude Code: when the Settings option "Observe Claude Code for the Heidrun Code Dashboard" is on, the command loads the observer mod.
  *   When the mod is missing, Claude Code starts without it.
  * - Codex: Heidrun Code creates and names the chat on the shared Codex server, then the command is
  *   `codex resume '<chat identifier>'` with the other arguments. When the server is not available, the command stays
- *   plain `codex`, and the Mire shows the pane as unmatched.
+ *   plain `codex`, and the Heidrun Code Dashboard shows the pane as unmatched.
  * Every other command, and every subcommand such as `codex resume`, stays as it is.
  * @param command - The command line, already checked by the guards.
  * @param o - The folder of the pane, the tab name, and the model, or null for the default model.
@@ -44,11 +44,11 @@ export async function prepareAgentCommand(
   o: { cwd: string | null; name: string; model: string | null },
 ): Promise<PreparedAgentCommand> {
   const plain = { command, codexChatId: null };
-  if (settings.mireClaudeObserver === true && startsNewInteractiveSession(command, "claude")) {
+  if (settings.heidrunCodeDashboardClaudeObserver === true && startsNewInteractiveSession(command, "claude")) {
     try {
       const [modFolder, observationFolder] = await Promise.all([
-        api.mireClaudeObserverModPath(),
-        api.mireClaudeObservationFolder(),
+        api.heidrunCodeDashboardClaudeObserverModPath(),
+        api.heidrunCodeDashboardClaudeObservationFolder(),
       ]);
       if (typeof modFolder === "string" && typeof observationFolder === "string") {
         return { command: claudeObserverCommandFor(command, modFolder, observationFolder) ?? command, codexChatId: null };
@@ -74,7 +74,7 @@ export async function prepareAgentCommand(
  * Tells Herdr the chat of a pane that started a prepared Codex. Herdr reads the chat identifier from the command line
  * only for a coding agent that Herdr starts itself, and Heidrun Code types the command into the shell of the pane, so
  * Herdr needs this report to give the pane its `agent_session`. A failure of the report never fails the start: the pane
- * then stays unmatched in the Mire.
+ * then stays unmatched in the Heidrun Code Dashboard.
  * @param paneId - The pane where the command was typed.
  * @param prepared - What `prepareAgentCommand` gave.
  * @returns A promise that ends when the report is sent or has failed.

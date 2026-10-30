@@ -2,5 +2,5 @@
   "lead": "Activez les agents de code que vous pouvez utiliser. Activez un agent seulement si vous avez un abonnement valide ou un accès valide pour cet agent.",
   "quotaMonitoring": "Suivre les quotas des comptes",
   "compositionBarOnAgentStart": "Afficher la barre de composition au démarrage d’un agent de programmation",
-  "mireClaudeObserver": "Observer Claude Code pour la Mire"
+  "heidrunCodeDashboardClaudeObserver": "Observer Claude Code pour le Heidrun Code Dashboard"
 }

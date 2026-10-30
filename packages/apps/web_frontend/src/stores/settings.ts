@@ -174,10 +174,10 @@ const defaults = {
 	/** Show the composition bar initially when a new pane starts directly with a coding agent. */
 	isCompositionBarShownOnAgentStart: false,
   /**
-   * Settings window, section Coding agents: each Claude Code that Heidrun Code starts loads the observer mod of the Mire,
-   * with `--plugin-dir`, and writes its live observations for the Mire. Off: Claude Code starts without the mod.
+   * Settings window, section Coding agents: each Claude Code that Heidrun Code starts loads the observer mod of the Heidrun Code Dashboard,
+   * with `--plugin-dir`, and writes its live observations for the Heidrun Code Dashboard. Off: Claude Code starts without the mod.
    */
-  mireClaudeObserver: false,
+  heidrunCodeDashboardClaudeObserver: false,
   /** Window Create a custom launcher: the last kind, "commandLine" or "codingAgent". */
   customLauncherKind: "commandLine" as "commandLine" | "codingAgent",
   /** Window Create a custom launcher: the identifier of the last coding agent. */
@@ -502,6 +502,7 @@ const RENAMED_SETTINGS: Record<string, string> = {
   customScriptAgent: "customLauncherAgent",
   customScriptModel: "customLauncherModel",
   customScriptEffort: "customLauncherEffort",
+  mireClaudeObserver: "heidrunCodeDashboardClaudeObserver",
 };
 
 function load(): typeof defaults {
@@ -670,7 +671,7 @@ export type SettingsSection =
   | "terminal"
   | "textDetection"
   | "agents"
-  | "mire"
+  | "heidrunCodeDashboard"
   | "confirmations"
   | "guards"
   | "notifications"
