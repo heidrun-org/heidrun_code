@@ -8,14 +8,14 @@ import { HeidrunCodeDashboardLocalNetworkSettings, heidrunCodeDashboardLocalNetw
 import { toast } from "../../stores/session";
 import { t } from "../../i18n/index";
 
-// The section "Heidrun Code Dashboard" of the Settings window: the option "Show the Heidrun Code Dashboard on the local network", and, while the server listens,
+// The section "Heidrun Code Dashboard" of the Settings window: the option "Show the dashboard on the local network", and, while the server listens,
 // the QR code and the address of the page with a copy button, for a phone or a tablet used as a second screen (issue 978).
 
 const status = computed(() => heidrunCodeDashboardLocalNetworkSettingsState.status);
 const errorText = computed(() => (status.value?.error ? t(`heidrunCodeDashboardLocalNetwork.error.${status.value.error.kind}`) : ""));
 const isStarting = computed(() => status.value?.enabled === true && status.value.running === false && status.value.error === null);
 
-/** The blocks of the information card of the option "Show the Heidrun Code Dashboard on the local network", in the order of the card. */
+/** The blocks of the information card of the option "Show the dashboard on the local network", in the order of the card. */
 const LOCAL_NETWORK_HELP_BLOCKS = [
   { titleKey: "settingsHelp.whatTitle", textKey: "settingsHelp.heidrunCodeDashboardLocalNetwork.what" },
   { titleKey: "settingsHelp.onTitle", textKey: "settingsHelp.heidrunCodeDashboardLocalNetwork.on" },

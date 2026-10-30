@@ -1,6 +1,6 @@
 {
-  "lead": "Show the Heidrun Code Dashboard on a phone or a tablet of the same local network, as a second screen. The page only shows the Heidrun Code Dashboard: it sends nothing to a pane and changes nothing.",
-  "enable": "Show the Heidrun Code Dashboard on the local network",
+  "lead": "Show the dashboard on a phone or a tablet of the same local network, as a second screen. The page only shows the dashboard: it sends nothing to a pane and changes nothing.",
+  "enable": "Show the dashboard on the local network",
   "scanStep": "Scan this QR code with the phone or the tablet, or open the address below in its web browser.",
   "addressLabel": "Address of the page",
   "copy": "Copy",
