@@ -13,11 +13,19 @@ This document gives one short definition for each word of the Mire. The other wo
 
 ### Mire
 
-The view of Heidrun Code that shows Heidrun at the centre, then every workspace, tab, coding agent, and subagent, with its status. It opens from the item "Mire" of the More menu, as a modal or in a separate window. Every Mire view uses the same Mire model.
+The view of Heidrun Code that shows Heidrun at the centre, then every workspace, tab, coding agent, and subagent, with its status. It opens from the item "Mire" of the More menu, as a modal, in a separate window, or on a device of the local network. Every Mire view uses the same Mire model.
 
 ### Separate Mire window
 
 The Tauri window with the label `mire` that shows the Mire on its own, for a second screen. It opens with the button "Open in a separate window" of the Mire modal. Only one exists at a time.
+
+### Mire on the local network
+
+The Mire shown in the web browser of a phone or a tablet of the same local network, as a second screen, read-only. The option "Show the Mire on the local network" of the section "Mire" of the Settings window turns it on, and the Mire server serves it. The rules are in [mire_local_network.md](../user_interface/mire/mire_local_network.md).
+
+### Mire server
+
+The small server of the package `mire_server` that serves the Mire on the local network, behind a pairing key. It is not the mobile server of Heidrun Code Mobile.
 
 ### Mire model
 

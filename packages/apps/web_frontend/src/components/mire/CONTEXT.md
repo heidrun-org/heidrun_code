@@ -7,6 +7,7 @@ The Mire view: the static radial graph, the right sidebar with the counters, the
 - `MireDialog.vue`: the modal over the main window. `App.vue` mounts it while `mireModal.isOpen` (`../../stores/mire/mire_modal.ts`) is true.
 - `MireDialog.vue` also has the button "Open in a separate window".
 - `MireWindowRoot.vue`: the page of the separate Mire window, mounted by `../../start_mire_window.ts`: the button of full screen, ⌘W, and the same `MireView.vue`.
+- `MireLocalNetworkRoot.vue`: the page of a phone or a tablet of the local network, mounted by `../../start_mire_local_network.ts`: the button of full screen when the web browser allows it, the message of a lost connection, and the same `MireView.vue`, with the sidebar below the graph on a narrow screen.
 - `MireView.vue`: the graph and the sidebar. It opens a `MireViewConnection` when it mounts and closes it when it unmounts, in both display modes. It emits `openedInHeidrunCode`.
 - `MireGraph.vue`: the SVG drawing, with the positions of `../../lib/mire/mire_layout.ts`, the selection by click, the keyboard moves, the pause button, and the animations of `mire_graph_animations.css`.
 - `MireGraphEffects.vue`: the short effects of the real transitions (burst, red flash, travel of a message), with the arcs of `mire_message_arcs.ts`.
@@ -21,9 +22,10 @@ The Mire view: the static radial graph, the right sidebar with the counters, the
 - The terminal preview never attaches to the terminal and never takes the input focus. The preview of a subagent is called "Transcript", never "terminal".
 - Every status shows with a sign or a text next to its color, and every color comes from a theme variable of `styles.css`.
 - An animation never moves a node and runs only under the class `mire-animated`. A message arc joins only two nodes that explicit identifiers resolve, never two names.
+- In the display mode `localNetwork`, nothing here calls a Tauri command: "Open in Heidrun Code", the terminal preview, and the transcript preview do not show.
 - No Approve button and no voice input. "Open in Heidrun Code" reads Herdr again, then selects the pane in the main window and closes the modal; the separate Mire window stays open.
 - `MireWindowRoot.vue` calls only the Tauri window functions that `packages/apps/desktop_tauri/capabilities/mire_window.json` allows.
 
 ## Background
-- The rules of the view are in [mire_graph_and_sidebar.md](../../../../../../docs/agents_rules/user_interface/mire/mire_graph_and_sidebar.md), from [issue 971](https://github.com/heidrun-org/heidrun_code/issues/971) and [issue 972](https://github.com/heidrun-org/heidrun_code/issues/972). The two display modes are in [mire_display_modes.md](../../../../../../docs/agents_rules/user_interface/mire/mire_display_modes.md), from [issue 973](https://github.com/heidrun-org/heidrun_code/issues/973).
+- The rules of the view are in [mire_graph_and_sidebar.md](../../../../../../docs/agents_rules/user_interface/mire/mire_graph_and_sidebar.md), from [issue 971](https://github.com/heidrun-org/heidrun_code/issues/971) and [issue 972](https://github.com/heidrun-org/heidrun_code/issues/972). The two display modes are in [mire_display_modes.md](../../../../../../docs/agents_rules/user_interface/mire/mire_display_modes.md), from [issue 973](https://github.com/heidrun-org/heidrun_code/issues/973). The page of the local network is in [mire_local_network.md](../../../../../../docs/agents_rules/user_interface/mire/mire_local_network.md), from [issue 978](https://github.com/heidrun-org/heidrun_code/issues/978).
 - The rules of the animations are in [mire_animations.md](../../../../../../docs/agents_rules/user_interface/mire/mire_animations.md), from [issue 974](https://github.com/heidrun-org/heidrun_code/issues/974).

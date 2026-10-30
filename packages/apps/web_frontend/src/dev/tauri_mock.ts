@@ -2,6 +2,7 @@ import type { InvokeArgs } from '@tauri-apps/api/core';
 import { mockIPC, mockWindows } from '@tauri-apps/api/mocks';
 import type { ChatSortKey, ChatSortOrder } from '../stores/chats';
 import { TauriMockFixture } from './tauri_mock_fixture';
+import { MIRE_LOCAL_NETWORK_PATH } from '../lib/mire/mire_local_network_path';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,7 @@ type HerdrRequestPayload = {
 export class TauriMock {
 	/**
 	 * Installs the mock when the code runs in the development server and no real Tauri bridge exists.
-	 * Does nothing in a production build, and does nothing inside the Tauri window.
+	 * Does nothing in a production build, inside the Tauri window, and on the Mire page of a device of the local network.
 	 */
 	static install(): void {
 		if (import.meta.env.DEV === false) {
@@ -33,6 +34,10 @@ export class TauriMock {
 		}
 		const tauriWindow = window as unknown as { __TAURI_INTERNALS__?: unknown };
 		if (tauriWindow.__TAURI_INTERNALS__ !== undefined) {
+			return;
+		}
+		// The page of a device of the local network reads the real Mire: a fake answer must never show there.
+		if (window.location.pathname === MIRE_LOCAL_NETWORK_PATH) {
 			return;
 		}
 		mockWindows('main');

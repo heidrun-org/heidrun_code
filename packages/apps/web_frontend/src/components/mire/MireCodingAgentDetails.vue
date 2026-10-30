@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { MireCodingAgentNode } from "../../lib/mire/mire_model_types";
-import { MireStore, mireIndex, mireMessages, mireModel } from "../../stores/mire/mire_store";
+import { MireStore, mireIndex, mireIsOnLocalNetwork, mireMessages, mireModel } from "../../stores/mire/mire_store";
 import MireAttentionList from "./MireAttentionList.vue";
 import MireMessageList from "./MireMessageList.vue";
 import MireNodeNotices from "./MireNodeNotices.vue";
@@ -77,7 +77,7 @@ async function openInHeidrunCode() {
         {{ t("mire.details.observedSince", { time: MireViewTexts.timeText(codingAgent.observedSinceMs) }) }}
       </div>
     </div>
-    <button type="button" class="btn primary align-self-start" :disabled="isOpening" data-open-in-heidrun-code @click="openInHeidrunCode()">
+    <button v-if="mireIsOnLocalNetwork === false" type="button" class="btn primary align-self-start" :disabled="isOpening" data-open-in-heidrun-code @click="openInHeidrunCode()">
       <Icon name="box-arrow-up-right" />
       {{ t("mire.details.openInHeidrunCode") }}
     </button>
@@ -100,7 +100,7 @@ async function openInHeidrunCode() {
       <p v-else-if="isObserved" class="m-0 text-body-secondary">{{ t("mire.details.noSubagent") }}</p>
       <p v-else class="m-0 text-body-secondary" data-unavailable>{{ t("mire.details.unavailableNotObserved") }}</p>
     </section>
-    <section class="d-flex flex-column gap-2" data-section="terminal">
+    <section v-if="mireIsOnLocalNetwork === false" class="d-flex flex-column gap-2" data-section="terminal">
       <div class="eyebrow">{{ t("mire.details.terminal") }}</div>
       <MireTerminalPreview :pane-id="codingAgent.paneId" />
     </section>

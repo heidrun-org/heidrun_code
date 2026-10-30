@@ -12,7 +12,7 @@ Code that only runs in the development server, so that the web frontend shows it
 
 ## Rules
 - Nothing in the production build contains this folder: `TauriMock.install()` returns at once when `import.meta.env.DEV` is false.
-- `TauriMock.install()` does nothing when a real Tauri bridge already exists, so the Tauri window never uses the mock.
+- `TauriMock.install()` does nothing when a real Tauri bridge already exists, so the Tauri window never uses the mock, and nothing on the path `/mire`, the Mire page of a device of the local network, which must never show a fake answer.
 - Nothing outside this folder imports from this folder, except the first import line of `src/main.ts`.
 - A Tauri command that the mock does not list is rejected with an error. Add a command to the mock only when a screen needs it to render.
 - The terminal panel stays without a mock: the commands `pty_spawn`, `pty_write`, `pty_resize`, and `pty_kill` are rejected.

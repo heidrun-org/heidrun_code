@@ -78,11 +78,17 @@ static COLLECTOR: LazyLock<Arc<Mutex<CollectorState>>> = LazyLock::new(|| Arc::n
 /// collection.
 #[tauri::command]
 pub async fn mire_subscribe(app: AppHandle, webview_window: WebviewWindow, view_id: String) -> MireObservations {
+    subscribe_view(app, &view_id, webview_window.label()).await
+}
+
+/// Registers one Mire view with a label: the label of its window, or a label that no window has, for the devices of the
+/// local network. Gives the latest observations.
+pub async fn subscribe_view(app: AppHandle, view_id: &str, label: &str) -> MireObservations {
     let emitter = app.clone();
     subscribe(
         COLLECTOR.clone(),
-        &view_id,
-        webview_window.label(),
+        view_id,
+        label,
         COLLECTION_INTERVAL,
         // Boxed: the future of a whole collection is large, and a worker thread has a small stack (issue 968).
         || Box::pin(collect_once()),
@@ -97,6 +103,11 @@ pub async fn mire_subscribe(app: AppHandle, webview_window: WebviewWindow, view_
 #[tauri::command]
 pub fn mire_unsubscribe(view_id: String) {
     COLLECTOR.lock().unwrap().unsubscribe(&view_id);
+}
+
+/// The latest collection, without a new reading.
+pub fn latest() -> MireObservations {
+    COLLECTOR.lock().unwrap().latest.clone()
 }
 
 /// Removes every Mire view of a closed window. `lib.rs` calls it when a window is destroyed.

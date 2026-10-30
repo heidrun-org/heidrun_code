@@ -7,6 +7,7 @@ members = [
     "packages/apps/desktop_tauri",
     "packages/auxiliary/coding_agent_cli",
     "packages/auxiliary/heidrun_code_ctrl",
+    "packages/auxiliary/mire_server",
     "packages/auxiliary/mobile_server",
     "packages/auxiliary/voice_input",
     "submodules/heidrun_data/packages/data_layer_code_hosting",

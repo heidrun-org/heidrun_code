@@ -1,0 +1,23 @@
+[package]
+name = "mire_server"
+version = "0.3.5"
+description = "The Mire server of Heidrun Code: serves the Mire page on the local network, read-only, behind a pairing key, for a phone or a tablet used as a second screen"
+license = "MIT"
+edition = "2021"
+publish = false
+
+[lib]
+name = "mire_server"
+path = "src/lib.rs"
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+tokio = { version = "1", features = ["net", "rt", "sync", "time"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+dirs = "6"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+tower = { version = "0.5", features = ["util"] }
