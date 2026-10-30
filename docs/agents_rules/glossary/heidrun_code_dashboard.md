@@ -15,7 +15,7 @@ This document gives one short definition for each word of the Heidrun Code Dashb
 
 The view of Heidrun Code that shows Heidrun at the centre, then every workspace, tab, coding agent, and subagent, with its status. It opens from the item "Dashboard" of the More menu, as a modal, in a separate window, or on a device of the local network. Every Heidrun Code Dashboard view uses the same Heidrun Code Dashboard model.
 
-Write "Heidrun Code Dashboard" in full, with spaces, in every text. The one exception is the item "Dashboard" of the More menu, which the developer chose short. The identifier is `heidrun_code_dashboard`. Its former name is "Mire": the code still reads the old saved settings of the Mire once, and nothing else uses this name ([issue 989](https://github.com/heidrun-org/heidrun_code/issues/989)).
+Write "Heidrun Code Dashboard" in full, with spaces, in every text. The exceptions are the item "Dashboard" of the More menu, and the sidebar and the title of the section "Dashboard" of the Settings window, which the developer chose short ([issue 996](https://github.com/heidrun-org/heidrun_code/issues/996)). The identifier is `heidrun_code_dashboard`. Its former name is "Mire": the code still reads the old saved settings of the Mire once, and nothing else uses this name ([issue 989](https://github.com/heidrun-org/heidrun_code/issues/989)).
 
 ### Separate Heidrun Code Dashboard window
 
@@ -23,7 +23,7 @@ The Tauri window with the label `heidrun_code_dashboard` that shows the Heidrun 
 
 ### Heidrun Code Dashboard on the local network
 
-The Heidrun Code Dashboard shown in the web browser of a phone or a tablet of the same local network, as a second screen, read-only. The option "Show the dashboard on the local network" of the section "Heidrun Code Dashboard" of the Settings window turns it on, and the Heidrun Code Dashboard server serves it. The rules are in [heidrun_code_dashboard_local_network.md](../user_interface/heidrun_code_dashboard/heidrun_code_dashboard_local_network.md).
+The Heidrun Code Dashboard shown in the web browser of a phone or a tablet of the same local network, as a second screen, read-only. The option "Show the dashboard on the local network" of the section "Dashboard" of the Settings window turns it on, and the Heidrun Code Dashboard server serves it. The rules are in [heidrun_code_dashboard_local_network.md](../user_interface/heidrun_code_dashboard/heidrun_code_dashboard_local_network.md).
 
 ### Heidrun Code Dashboard server
 

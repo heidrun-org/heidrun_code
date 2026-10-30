@@ -12,7 +12,7 @@ This file gives the rules of the Heidrun Code Dashboard on a phone or a tablet o
 ## Settings
 
 - The section "Heidrun Code Dashboard" of the Settings window comes just after the section "Coding agents". It holds the option "Show the dashboard on the local network" (`data-option="heidrunCodeDashboardLocalNetwork"`), off by default.
-- The title of the section and the sidebar of the Settings window write "Heidrun Code Dashboard" in full. The text under the title, the option, and its information card write "the dashboard", because the title already gives the full name ([issue 993](https://github.com/heidrun-org/heidrun_code/issues/993)).
+- The title of the section and the sidebar of the Settings window write "Dashboard" ([issue 996](https://github.com/heidrun-org/heidrun_code/issues/996)). The text under the title, the option, and its information card write "the dashboard" ([issue 993](https://github.com/heidrun-org/heidrun_code/issues/993)).
 - While the server listens, the section shows the address of the page in two forms: a QR code, and the address as text with the label "Address of the page" and a copy button. The button "Make a new pairing key" refuses the old key at once.
 - The section says that the page uses plain HTTP, so it keeps the screen on with a silent video after one touch, and that macOS can ask to accept incoming connections the first time.
 - The errors are `cannotListen` (the port is in use) and `noNetwork` (the computer has no address on a local network).
