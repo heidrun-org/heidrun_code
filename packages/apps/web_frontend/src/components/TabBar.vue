@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import ConfirmButton from "./ConfirmButton.vue";
 import Icon from "./Icon.vue";
 import InlineRename from "./InlineRename.vue";
@@ -11,6 +11,7 @@ import { useReorder } from "../lib/reorder";
 import { tabIconName } from "../lib/tab_icon";
 import { VoiceInput } from "../lib/voice_input";
 import { NewPane } from "../stores/new_pane";
+import { NewTabCommands, type NewTabCommand } from "../stores/new_tab_commands";
 import { PaneMoveDrag } from "../stores/pane_move";
 import { t } from "../i18n/index";
 
@@ -28,6 +29,105 @@ function iconOf(tabId: string): string {
 function isRemoteControlled(tabId: string): boolean {
   return allPanes.value.some((pane) => pane.tab_id === tabId && remote.byPane[pane.pane_id] === "active");
 }
+
+/** How long the developer presses the plus button, in milliseconds, before the list of the commands of a new tab opens. */
+const LONG_PRESS_MS = 500;
+
+/** True while the list of the commands of a new tab is open. */
+const isCommandListOpen = ref(false);
+const plusButton = ref<HTMLButtonElement>();
+const commandMenu = ref<HTMLElement>();
+/** Where the list sits, in pixels from the top and from the left edge of the window. */
+const commandMenuPosition = ref({ top: 0, left: 0 });
+/** The commands of the list: the terminal, and each coding agent switched on in the Settings window. */
+const commandList = computed(() => NewTabCommands.available());
+
+let pressTimer: ReturnType<typeof setTimeout> | null = null;
+/** True from the moment a long press opens the list until the next press: the click that ends the press is ignored. */
+let isLongPress = false;
+
+/** Stops the wait for a long press. */
+function cancelPress() {
+  if (pressTimer !== null) {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  }
+}
+
+/** Starts the wait for a long press. The list opens when the developer keeps the plus button pressed long enough. */
+function onPlusPointerDown(event: PointerEvent) {
+  isLongPress = false;
+  cancelPress();
+  if (event.button !== 0) {
+    return;
+  }
+  pressTimer = setTimeout(() => {
+    pressTimer = null;
+    isLongPress = true;
+    openCommandList();
+  }, LONG_PRESS_MS);
+}
+
+/** Creates a tab with the default command of a new tab, or a terminal on a shift click, unless the click ends a long press. */
+function onPlusClick(event: MouseEvent) {
+  if (isLongPress) {
+    isLongPress = false;
+    return;
+  }
+  NewPane.onNewPaneClick(event);
+}
+
+/** Opens the list under the plus button, and keeps it inside the window. */
+function openCommandList() {
+  if (plusButton.value === undefined) {
+    return;
+  }
+  const rect = plusButton.value.getBoundingClientRect();
+  commandMenuPosition.value = { top: rect.bottom + 6, left: Math.max(8, rect.left) };
+  isCommandListOpen.value = true;
+  nextTick(() => {
+    const menuWidth = commandMenu.value?.offsetWidth ?? 0;
+    commandMenuPosition.value.left = Math.max(8, Math.min(commandMenuPosition.value.left, window.innerWidth - menuWidth - 8));
+    document.addEventListener("mousedown", onDocumentMouseDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+  });
+}
+
+/** Closes the list. */
+function closeCommandList() {
+  isCommandListOpen.value = false;
+  document.removeEventListener("mousedown", onDocumentMouseDown, true);
+  document.removeEventListener("keydown", onKeyDown, true);
+}
+
+/** Closes the list on a click outside the list and outside the plus button. */
+function onDocumentMouseDown(event: MouseEvent) {
+  const target = event.target as Node;
+  if (commandMenu.value?.contains(target) === true || plusButton.value?.contains(target) === true) {
+    return;
+  }
+  closeCommandList();
+}
+
+/** Closes the list on the key Escape, and gives the keyboard focus back to the plus button. */
+function onKeyDown(event: KeyboardEvent) {
+  if (event.key === "Escape") {
+    event.stopPropagation();
+    closeCommandList();
+    plusButton.value?.focus();
+  }
+}
+
+/** Creates a tab with the chosen command, and closes the list. */
+function chooseCommand(commandId: NewTabCommand["id"]) {
+  closeCommandList();
+  void NewPane.startNewTab(commandId);
+}
+
+onBeforeUnmount(() => {
+  cancelPress();
+  closeCommandList();
+});
 </script>
 
 <template>
@@ -82,13 +182,41 @@ function isRemoteControlled(tabId: string): boolean {
       </li>
     </ul>
     <button
+      ref="plusButton"
       class="btn justify-content-center add"
       :class="PaneMoveDrag.state.isNewTabTargeted ? 'pane-drop-target' : 'border-0'"
       data-pane-move-new-tab
       :title="t('tabBar.newTabTitle')"
       :aria-label="t('tabBar.newTabTitle')"
-      @click="NewPane.onNewPaneClick"
+      @pointerdown="onPlusPointerDown"
+      @pointerup="cancelPress"
+      @pointerleave="cancelPress"
+      @pointercancel="cancelPress"
+      @click="onPlusClick"
     ><Icon name="plus-lg" /></button>
+    <Teleport to="body">
+      <div
+        v-if="isCommandListOpen"
+        ref="commandMenu"
+        class="menu show position-fixed"
+        role="menu"
+        :aria-label="t('tabBar.commandMenuLabel')"
+        :style="{ top: `${commandMenuPosition.top}px`, left: `${commandMenuPosition.left}px` }"
+      >
+        <button
+          v-for="command in commandList"
+          :key="command.id"
+          type="button"
+          class="menu-item"
+          role="menuitem"
+          :data-command="command.id"
+          :title="t(command.titleKey)"
+          @click="chooseCommand(command.id)"
+        >
+          {{ t(command.labelKey) }}
+        </button>
+      </div>
+    </Teleport>
   </div>
 </template>
 

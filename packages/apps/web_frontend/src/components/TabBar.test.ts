@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import Fs from "node:fs";
 import Path from "node:path";
@@ -9,7 +9,7 @@ import { settings } from "../stores/settings";
 
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/api/path", () => ({ homeDir: vi.fn(async () => "/home") }));
-vi.mock("../stores/new_pane", () => ({ NewPane: { onNewPaneClick: vi.fn() } }));
+vi.mock("../stores/new_pane", () => ({ NewPane: { onNewPaneClick: vi.fn(), startNewTab: vi.fn(async () => {}) } }));
 vi.mock("../lib/api", async (importOriginal) => {
   const original = await importOriginal<typeof import("../lib/api")>();
   return {
@@ -203,7 +203,9 @@ describe("TabBar plus button", () => {
   it("is after the last tab, and has an accessible name", async () => {
     const { wrapper } = await mountTabBar();
     const plus = wrapper.get("button.add");
-    expect(plus.attributes("aria-label")).toBe("Create a tab with the default command of a new tab (shift click: start a terminal)");
+    expect(plus.attributes("aria-label")).toBe(
+      "Create a tab with the default command of a new tab (shift click: start a terminal; long press: choose the command)",
+    );
     expect(plus.attributes("title")).toBe(plus.attributes("aria-label"));
     const tabRow = wrapper.get("[role=tablist]").element;
     expect(tabRow.compareDocumentPosition(plus.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -590,5 +592,96 @@ describe("TabBar recording icon (issue 762)", () => {
       voiceInput.transcriptions = [];
       voiceSettings.voiceInput = false;
     }
+  });
+});
+
+describe("TabBar long press on the plus button (issue #980)", () => {
+  /** Presses the plus button for the given time, then releases it with a click. */
+  async function press(wrapper: Awaited<ReturnType<typeof mountTabBar>>["wrapper"], pressedMs: number) {
+    const plus = wrapper.get("button.add");
+    await plus.trigger("pointerdown", { button: 0 });
+    vi.advanceTimersByTime(pressedMs);
+    await flushPromises();
+    await plus.trigger("pointerup");
+    await plus.trigger("click");
+  }
+
+  /** The list of the commands, which is teleported to the body. */
+  function commandMenu(): HTMLElement | null {
+    return document.body.querySelector<HTMLElement>("[role=menu]");
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.mocked(NewPane.onNewPaneClick).mockClear();
+    vi.mocked(NewPane.startNewTab).mockClear();
+    settings.ownedAgents = ["claude", "codex"];
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = "";
+  });
+
+  it("opens the list of the available commands after a press of 500 milliseconds, and creates no tab", async () => {
+    const { wrapper } = await mountTabBar();
+    await press(wrapper, 500);
+    const menu = commandMenu();
+    expect(menu).not.toBeNull();
+    expect(menu?.getAttribute("aria-label")).toBe("Commands of a new tab");
+    const itemList = [...(menu?.querySelectorAll<HTMLElement>("[role=menuitem]") ?? [])];
+    expect(itemList.map((item) => item.textContent?.trim())).toEqual(["Terminal", "Claude Code", "Codex"]);
+    expect(NewPane.onNewPaneClick).not.toHaveBeenCalled();
+    expect(NewPane.startNewTab).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("shows Antigravity only while Antigravity is switched on in the Settings window", async () => {
+    settings.ownedAgents = ["claude", "codex", "antigravity"];
+    const { wrapper } = await mountTabBar();
+    await press(wrapper, 500);
+    const itemList = [...(commandMenu()?.querySelectorAll<HTMLElement>("[role=menuitem]") ?? [])];
+    expect(itemList.map((item) => item.dataset.command)).toEqual(["terminal", "claude", "codex", "agy"]);
+    wrapper.unmount();
+  });
+
+  it("keeps the plain click when the press is shorter than 500 milliseconds", async () => {
+    const { wrapper } = await mountTabBar();
+    await press(wrapper, 499);
+    expect(commandMenu()).toBeNull();
+    expect(NewPane.onNewPaneClick).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it("creates a tab with the chosen command, and closes the list", async () => {
+    const { wrapper } = await mountTabBar();
+    await press(wrapper, 500);
+    commandMenu()?.querySelector<HTMLElement>("[data-command=codex]")?.click();
+    await flushPromises();
+    expect(NewPane.startNewTab).toHaveBeenCalledWith("codex");
+    expect(commandMenu()).toBeNull();
+    wrapper.unmount();
+  });
+
+  it("closes the list with the key Escape, and creates no tab", async () => {
+    const { wrapper } = await mountTabBar();
+    await press(wrapper, 500);
+    await flushPromises();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await flushPromises();
+    expect(commandMenu()).toBeNull();
+    expect(NewPane.startNewTab).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("closes the list on a click outside the list, and creates no tab", async () => {
+    const { wrapper } = await mountTabBar();
+    await press(wrapper, 500);
+    await flushPromises();
+    document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    await flushPromises();
+    expect(commandMenu()).toBeNull();
+    expect(NewPane.startNewTab).not.toHaveBeenCalled();
+    wrapper.unmount();
   });
 });

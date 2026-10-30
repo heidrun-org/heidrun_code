@@ -5,39 +5,12 @@ import InformationCard from "../InformationCard.vue";
 import SettingsOptionHelp from "./SettingsOptionHelp.vue";
 import SettingsSwitchRow from "./SettingsSwitchRow.vue";
 import { settings } from "../../stores/settings";
+import { NEW_TAB_COMMANDS, NewTabCommands } from "../../stores/new_tab_commands";
 import { AGENTS, type AgentDefinition } from "../../lib/agents";
 import { t } from "../../i18n/index";
 import { antigravityLink, disableAntigravityLink, enableAntigravityLink, loadAntigravityLink } from "../../stores/antigravity";
 
 onMounted(loadAntigravityLink);
-
-/** The commands that the pane of a new tab can run, in the order of the buttons. */
-const COMMANDS = [
-  {
-    id: 'terminal',
-    agentId: null,
-    labelKey: 'settingsNewTab.terminalLabel',
-    titleKey: 'settingsNewTab.terminalTitle',
-  },
-  {
-    id: 'claude',
-    agentId: 'claude',
-    labelKey: 'settingsNewTab.claudeLabel',
-    titleKey: 'settingsNewTab.claudeTitle',
-  },
-  {
-    id: 'codex',
-    agentId: 'codex',
-    labelKey: 'settingsNewTab.codexLabel',
-    titleKey: 'settingsNewTab.codexTitle',
-  },
-  {
-    id: 'agy',
-    agentId: 'antigravity',
-    labelKey: 'settingsNewTab.antigravityLabel',
-    titleKey: 'settingsNewTab.antigravityTitle',
-  },
-] as const;
 
 /** The blocks of the information card of a coding agent, in the order of the card. */
 const AGENT_HELP_BLOCKS = [
@@ -93,9 +66,7 @@ const MIRE_CLAUDE_OBSERVER_HELP_BLOCKS = [
   { titleKey: "settingsHelp.offTitle", textKey: "settingsHelp.mireClaudeObserver.off" },
 ] as const;
 
-const availableCommands = computed(() =>
-  COMMANDS.filter((command) => command.agentId === null || settings.ownedAgents.includes(command.agentId)),
-);
+const availableCommands = computed(() => NewTabCommands.available());
 
 const antigravityTracking = computed({
   get: () => antigravityLink.installed,
@@ -117,7 +88,7 @@ function toggleOwned(agent: AgentDefinition) {
   const wasOwned = isOwned(agent);
   settings.ownedAgents = wasOwned ? others : [...others, agent.id];
   settings.ownedAgentsConfigured = true;
-  const command = COMMANDS.find((candidate) => candidate.agentId === agent.id);
+  const command = NEW_TAB_COMMANDS.find((candidate) => candidate.agentId === agent.id);
   if (wasOwned && command !== undefined && settings.newTabCommand === command.id) {
     settings.newTabCommand = "terminal";
   }
