@@ -23,7 +23,7 @@ The Tauri window with the label `heidrun_code_dashboard` that shows the Heidrun 
 
 ### Heidrun Code Dashboard on the local network
 
-The Heidrun Code Dashboard shown in the web browser of a phone or a tablet of the same local network, as a second screen, read-only. The option "Show the Heidrun Code Dashboard on the local network" of the section "Heidrun Code Dashboard" of the Settings window turns it on, and the Heidrun Code Dashboard server serves it. The rules are in [heidrun_code_dashboard_local_network.md](../user_interface/heidrun_code_dashboard/heidrun_code_dashboard_local_network.md).
+The Heidrun Code Dashboard shown in the web browser of a phone or a tablet of the same local network, as a second screen, read-only. The option "Show the dashboard on the local network" of the section "Heidrun Code Dashboard" of the Settings window turns it on, and the Heidrun Code Dashboard server serves it. The rules are in [heidrun_code_dashboard_local_network.md](../user_interface/heidrun_code_dashboard/heidrun_code_dashboard_local_network.md).
 
 ### Heidrun Code Dashboard server
 

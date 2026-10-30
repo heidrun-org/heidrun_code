@@ -52,7 +52,8 @@ describe("SettingsHeidrunCodeDashboardSection, the section Heidrun Code Dashboar
     const wrapper = await mountSection(OFF);
     const input = wrapper.get("[data-option='heidrunCodeDashboardLocalNetwork'] input");
     expect((input.element as HTMLInputElement).checked).toBe(false);
-    expect(wrapper.text()).toContain("Show the Heidrun Code Dashboard on the local network");
+    expect(wrapper.text()).toContain("Show the dashboard on the local network");
+    expect(wrapper.text()).not.toContain("the Heidrun Code Dashboard");
     expect(wrapper.find("[data-heidrun-code-dashboard-local-network-qr]").exists()).toBe(false);
     expect(wrapper.find("[data-heidrun-code-dashboard-local-network-address]").exists()).toBe(false);
   });
