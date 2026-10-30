@@ -11,6 +11,7 @@ The pure model of the Mire and the layout of its radial graph: it builds the hie
 - `mire_messages.ts`: `MireMessages.collect(observations, model)` and `MireMessages.newSince(messages, seenIds)`.
 - `mire_layout.ts`: `MireLayout.compute(model)`, the positions of the static radial graph. It reads only the hierarchy, the identifiers, and the names, so a status change moves nothing.
 - `mire_transitions.ts`: `MireTransitions.compare(previous, model, messages)` gives the real transitions between two successive models (a completion, a new blocked item, a new message) and the next state; `MireTransitions.keyboardPeriodMs(working)`.
+- `mire_local_network_path.ts`: `MIRE_LOCAL_NETWORK_PATH`, the path `/mire` of the page that the Mire server serves to the devices of the local network.
 - `mire_test_fixtures.ts`: fixtures for the test files only.
 - Command to run this folder: `pnpm --dir packages/apps/web_frontend exec vitest run src/lib/mire`
 

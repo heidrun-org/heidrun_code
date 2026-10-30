@@ -85,6 +85,38 @@ export function mireOpenInMainWindow(paneId: string): Promise<void> {
 }
 
 /**
+ * What the section "Mire" of the Settings window shows about the Mire on the local network.
+ * @returns The option, and the address and the QR code while the server listens.
+ */
+export function mireLocalNetworkStatus<T = unknown>(): Promise<T> {
+  return invoke<T>("mire_local_network_status");
+}
+
+/**
+ * Turns on "Show the Mire on the local network": the server listens on the local network.
+ * @returns The new status.
+ */
+export function mireLocalNetworkEnable<T = unknown>(): Promise<T> {
+  return invoke<T>("mire_local_network_enable");
+}
+
+/**
+ * Turns off "Show the Mire on the local network": the server stops at once.
+ * @returns The new status.
+ */
+export function mireLocalNetworkDisable<T = unknown>(): Promise<T> {
+  return invoke<T>("mire_local_network_disable");
+}
+
+/**
+ * Makes a new pairing key for the Mire on the local network. The old key is refused at once.
+ * @returns The new status, with the new address and the new QR code.
+ */
+export function mireLocalNetworkNewKey<T = unknown>(): Promise<T> {
+  return invoke<T>("mire_local_network_new_key");
+}
+
+/**
  * The folder of the Claude Code observer mod, ready for `claude --plugin-dir`.
  * @returns The absolute folder, or null when the application has no observer mod.
  */

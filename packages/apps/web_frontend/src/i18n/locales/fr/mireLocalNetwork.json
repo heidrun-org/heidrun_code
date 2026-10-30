@@ -1,0 +1,18 @@
+{
+  "lead": "Afficher la Mire sur un téléphone ou une tablette du même réseau local, comme second écran. La page affiche seulement la Mire : elle n'envoie rien à un panneau et ne change rien.",
+  "enable": "Afficher la Mire sur le réseau local",
+  "scanStep": "Scannez ce code QR avec le téléphone ou la tablette, ou ouvrez l'adresse ci-dessous dans son navigateur web.",
+  "addressLabel": "Adresse de la page",
+  "copy": "Copier",
+  "copyTitle": "Copier l'adresse de la page",
+  "copied": "L'adresse est copiée.",
+  "copyFailed": "L'adresse ne peut pas être copiée.",
+  "keySecret": "Le code QR et l'adresse contiennent la clé d'appairage : montrez-les seulement à vos propres appareils.",
+  "screenOn": "La page utilise HTTP simple, donc l'appareil ne peut pas garder son écran allumé tout seul : désactivez le verrouillage automatique de l'appareil.",
+  "firewall": "La première fois, macOS peut demander si Heidrun Code accepte les connexions entrantes : cliquez sur Autoriser.",
+  "newKey": "Créer une nouvelle clé d'appairage",
+  "newKeyTitle": "L'ancien code QR ne fonctionne plus immédiatement : chaque appareil doit scanner le nouveau code QR",
+  "starting": "Le serveur démarre…",
+  "error.cannotListen": "Heidrun Code ne peut pas écouter sur son port.",
+  "error.noNetwork": "Cet ordinateur n'a pas d'adresse sur un réseau local. Connectez-le à un réseau Wi-Fi ou à un câble réseau."
+}

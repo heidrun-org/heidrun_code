@@ -22,22 +22,22 @@ beforeEach(() => {
 });
 
 describe("SettingsModal: sections", () => {
-  it("lists the twelve sections in the sidebar, by topic (issues #556, #596, #638, and #662), and without the old sections New tab, Mouse, Finished items, Needs you, and Past chats", async () => {
+  it("lists the thirteen sections in the sidebar, by topic (issues #556, #596, #638, #662, and #978), and without the old sections New tab, Mouse, Finished items, Needs you, and Past chats", async () => {
     const wrapper = await mountSettings();
     const entries = wrapper.findAll("nav .nav-link").map((entry) => entry.text());
-    expect(entries).toEqual(["General", "Color themes", "Terminal", "Text detection", "Coding agents", "Confirmations", "Guards", "Notifications", "Sidebars", "Dynamic topics", "Mobile access", "Voice input"]);
+    expect(entries).toEqual(["General", "Color themes", "Terminal", "Text detection", "Coding agents", "Mire", "Confirmations", "Guards", "Notifications", "Sidebars", "Dynamic topics", "Mobile access", "Voice input"]);
     wrapper.unmount();
   });
 
   it("marks the open section as the active link of the Bootstrap nav, and moves the mark when another link is clicked", async () => {
     const wrapper = await mountSettings();
     const links = wrapper.findAll("nav .nav-link");
-    expect(links.map((link) => link.classes().includes("active"))).toEqual([true, false, false, false, false, false, false, false, false, false, false, false]);
+    expect(links.map((link) => link.classes().includes("active"))).toEqual([true, false, false, false, false, false, false, false, false, false, false, false, false]);
     expect(links[0].attributes("aria-current")).toBe("page");
-    await links[5].trigger("click");
+    await links[6].trigger("click");
     expect(wrapper.get("h3").text()).toBe("Confirmations");
-    expect(links.map((link) => link.classes().includes("active"))).toEqual([false, false, false, false, false, true, false, false, false, false, false, false]);
-    expect(links[5].attributes("aria-current")).toBe("page");
+    expect(links.map((link) => link.classes().includes("active"))).toEqual([false, false, false, false, false, false, true, false, false, false, false, false, false]);
+    expect(links[6].attributes("aria-current")).toBe("page");
     expect(links[0].attributes("aria-current")).toBeUndefined();
     wrapper.unmount();
   });
@@ -215,8 +215,8 @@ describe("SettingsModal: heading Needs you of the section Sidebars (issues #417 
   it("uses a different icon for the section Sidebars than for the section Notifications, because the bell is the icon of the Needs you sidebar section", async () => {
     const wrapper = await mountSettings();
     const icons = wrapper.findAll("nav .nav-link").map((entry) => entry.get("i").classes().find((name) => name.startsWith("bi-")));
-    const sidebarsIcon = icons[8];
-    const notificationsIcon = icons[7];
+    const sidebarsIcon = icons[9];
+    const notificationsIcon = icons[8];
     expect(sidebarsIcon).toBe("bi-layout-sidebar-inset-reverse");
     expect(notificationsIcon).toBe("bi-bell");
     wrapper.unmount();

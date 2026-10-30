@@ -670,6 +670,7 @@ export type SettingsSection =
   | "terminal"
   | "textDetection"
   | "agents"
+  | "mire"
   | "confirmations"
   | "guards"
   | "notifications"

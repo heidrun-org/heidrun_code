@@ -1,7 +1,7 @@
 # Rule: the application log of Heidrun Code
 
 - Created: 25 October 2026
-- Last updated: 26 October 2026
+- Last updated: 30 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](glossary/index.md), [GitHub and GitLab support](github_and_gitlab_support.md)
@@ -41,6 +41,7 @@ This file gives the rules of the application log, the file where Heidrun Code wr
 - `mobile_pairing_locked`: ten bad pairing keys in a row; the wrong keys are refused for one minute.
 - `mobile_tunnel_start`: the program `ngrok` started. `mobile_tunnel_ready`: it announced the address of the tunnel. Field: `duration_ms`.
 - `mobile_tunnel_stop`: the tunnel stopped, or could not start. Fields: `duration_ms`, `error` (the kind of problem, for example `ngrokNotSignedIn`, never the words of `ngrok`, or `null` when the developer turned the access off).
+- `mire_local_network_request_refused`: the Mire server of the local network refused a request. Field: `reason` (`unexpected_host`, `unexpected_origin`, `off`, `too_many_attempts`, or `unpaired`). `mire_local_network_pairing_locked`: ten bad pairing keys in a row; the wrong keys are refused for one minute ([issue 978](https://github.com/heidrun-org/heidrun_code/issues/978)).
 - `main_window_shown`: the first window appears. Fields: `duration_ms` (from the start of the application), `reason` (`splash_image_ready` or `timeout`).
 - `load_time`: the web page loaded the data of one part, measured by the web page. Fields: `part` (`past_chats`, `statistics_user_activity`, `statistics_git_history`, or `statistics_ai_cost`), `duration_ms`, `error`. The Tauri command `application_log_load_time` refuses another `part`.
 

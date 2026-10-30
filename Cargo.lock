@@ -2076,6 +2076,7 @@ dependencies = [
  "dotenvy",
  "heidrun_code_ctrl",
  "heidrun_data",
+ "mire_server",
  "mobile_server",
  "notify",
  "percent-encoding",
@@ -3001,6 +3002,19 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "mire_server"
+version = "0.3.5"
+dependencies = [
+ "axum",
+ "dirs 6.0.0",
+ "qrcode",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower",
 ]
 
 [[package]]

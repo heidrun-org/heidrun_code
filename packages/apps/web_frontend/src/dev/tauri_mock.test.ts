@@ -16,6 +16,15 @@ describe('TauriMock', () => {
 		TauriMockFixture.setSplitRatio([], 0.5);
 	});
 
+	it('installs nothing on the Mire page of a device of the local network, so that no fake answer shows there (issue 978)', () => {
+		window.history.replaceState(null, '', '/mire');
+		TauriMock.install();
+		expect(tauriWindow.__TAURI_INTERNALS__).toBe(undefined);
+		window.history.replaceState(null, '', '/');
+		TauriMock.install();
+		expect(tauriWindow.__TAURI_INTERNALS__).not.toBe(undefined);
+	});
+
 	it('answers the Herdr request session.snapshot with the fake Herdr session', async () => {
 		TauriMock.install();
 		const result = await invoke<{ snapshot: SessionSnapshot }>('herdr_request', {

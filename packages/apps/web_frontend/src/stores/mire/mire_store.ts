@@ -19,8 +19,11 @@ import { MireNavigation, type MireNodeEntry, type MireVisibility } from './mire_
 /** The Tauri event that carries each collection of the live observations. */
 export const MIRE_OBSERVATIONS_EVENT = 'mire://observations';
 
-/** Where the Mire views of this window show: in the modal over the main window, or in the separate Mire window. */
-export type MireDisplayMode = 'modal' | 'window';
+/**
+ * Where the Mire views of this window show: in the modal over the main window, in the separate Mire window, or in the web
+ * browser of a phone or a tablet of the local network (`localNetwork`), which only reads the Mire server (issue 978).
+ */
+export type MireDisplayMode = 'modal' | 'window' | 'localNetwork';
 
 /**
  * What "Open in Heidrun Code" did: `opened` shows the pane in the main window, `gone` found no such pane in the Herdr
@@ -65,6 +68,12 @@ export const mireModel = computed<MireModel>(() => MireModelBuilder.build({
 	herdrSocketPath: mireState.herdrSocketPath,
 	nowMs: mireState.nowMs,
 }));
+
+/**
+ * True on the page of a device of the local network: the page reaches no pane, so "Open in Heidrun Code", the terminal
+ * preview, and the transcript preview do not show.
+ */
+export const mireIsOnLocalNetwork = computed<boolean>(() => mireState.displayMode === 'localNetwork');
 
 /** Every node of the model, by node identifier. */
 export const mireIndex = computed<Map<string, MireNodeEntry>>(() => MireNavigation.index(mireModel.value));
@@ -123,6 +132,10 @@ export class MireViewConnection {
 		this._clockTimer = window.setInterval(() => {
 			mireState.nowMs = Date.now();
 		}, CLOCK_INTERVAL_MS);
+		if (mireState.displayMode === 'localNetwork') {
+			// The page of a device has no Tauri bridge: `MireLocalNetworkSession` reads the Mire server.
+			return;
+		}
 		const unlisten = await listen<MireObservations>(MIRE_OBSERVATIONS_EVENT, (event) => {
 			mireState.observations = event.payload;
 			mireState.nowMs = Date.now();
@@ -323,6 +336,9 @@ export class MireStore {
 	 * @returns What happened.
 	 */
 	private static async _openInHeidrunCode(paneId: string): Promise<MireOpenResult> {
+		if (mireState.displayMode === 'localNetwork') {
+			return 'unavailable';
+		}
 		const isRead = mireState.displayMode === 'window' ? await MireWindowSession.refresh() : await MireStore._refreshMainWindow();
 		if (isRead === false) {
 			return 'unavailable';

@@ -7,7 +7,7 @@
 - Related rules: [Mire graph and sidebar](mire_graph_and_sidebar.md), [Glossary of Heidrun Code: Mire](../../glossary/mire.md), [Window state and start](../window/window_state_and_start.md)
 - Related issue: [issue 968](https://github.com/heidrun-org/heidrun_code/issues/968), [issue 973](https://github.com/heidrun-org/heidrun_code/issues/973)
 
-This file gives the rules of the two display modes of the Mire: the modal over the main window, and the separate Mire window for a second screen. It also gives the rules of the actions that both modes share. Both modes mount the same `MireView.vue`, which follows [mire_graph_and_sidebar.md](mire_graph_and_sidebar.md).
+This file gives the rules of the two display modes of the Mire: the modal over the main window, and the separate Mire window for a second screen. It also gives the rules of the actions that both modes share. Both modes mount the same `MireView.vue`, which follows [mire_graph_and_sidebar.md](mire_graph_and_sidebar.md). A third, read-only display mode, `localNetwork`, shows the same view on a phone or a tablet: its rules are in [mire_local_network.md](mire_local_network.md).
 
 ## Modal
 

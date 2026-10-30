@@ -292,6 +292,7 @@ pub fn run() {
         .manage(pty::PtyState::default())
         .manage(herdr::StatusWatcher::default())
         .manage(mobile::MobileState::default())
+        .manage(mire::local_network::MireLocalNetworkState::default())
         .manage(html_preview::HtmlPreviewState::default())
         .manage(voice_commands::VoiceState::default())
         .manage(status_item::StatusItemState::default())
@@ -308,6 +309,7 @@ pub fn run() {
             app.set_menu(build_menu(app.handle())?)?;
             herdr::spawn_event_loop(app.handle().clone());
             mobile::start_if_enabled(app.handle());
+            mire::local_network::start_if_enabled(app.handle());
             status_item::create(app.handle())?;
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -390,6 +392,10 @@ pub fn run() {
             mire::codex_chat_preparation::codex_prepare_chat,
             mire::mire_window::mire_window_open,
             mire::mire_window::mire_open_in_main_window,
+            mire::local_network::mire_local_network_status,
+            mire::local_network::mire_local_network_enable,
+            mire::local_network::mire_local_network_disable,
+            mire::local_network::mire_local_network_new_key,
             project::project_load,
             project::project_package_scripts,
             project::project_save,
@@ -510,6 +516,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 herdr::stop_session_on_quit(KEEP_AGENTS_RUNNING.load(std::sync::atomic::Ordering::Relaxed));
                 mobile::stop_on_quit(app);
+                mire::local_network::stop_on_quit(app);
             }
         });
 }

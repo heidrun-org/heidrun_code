@@ -197,6 +197,8 @@ importers:
 
   packages/auxiliary/heidrun_code_ctrl: {}
 
+  packages/auxiliary/mire_server: {}
+
   packages/auxiliary/mobile_server: {}
 
   packages/auxiliary/mobile_website:

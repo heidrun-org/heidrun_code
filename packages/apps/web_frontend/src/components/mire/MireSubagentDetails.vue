@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import type { MireSubagentNode } from "../../lib/mire/mire_model_types";
 import { MireLayout } from "../../lib/mire/mire_layout";
-import { MireStore, mireIndex, mireMessages, mireModel } from "../../stores/mire/mire_store";
+import { MireStore, mireIndex, mireIsOnLocalNetwork, mireMessages, mireModel } from "../../stores/mire/mire_store";
 import MireAttentionList from "./MireAttentionList.vue";
 import MireMessageList from "./MireMessageList.vue";
 import MireNodeNotices from "./MireNodeNotices.vue";
@@ -77,7 +77,7 @@ const otherTaskTexts = computed(() => props.subagent.taskTexts.filter((taskText)
         <MireSubagentRows :subagents="subagent.children" :depth="0" />
       </div>
     </section>
-    <section class="d-flex flex-column gap-2" data-section="transcript">
+    <section v-if="mireIsOnLocalNetwork === false" class="d-flex flex-column gap-2" data-section="transcript">
       <div class="eyebrow">{{ t("mire.details.transcript") }}</div>
       <MireTranscriptPreview :subagent="subagent" />
     </section>
