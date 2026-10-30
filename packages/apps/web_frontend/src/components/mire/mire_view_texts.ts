@@ -32,6 +32,12 @@ export type MireBlockedEntry = {
 	item: MireCodingAgentNode | MireSubagentNode;
 };
 
+/** The characters of the icons `claude` and `openai` in the font of Bootstrap Icons (`bootstrap-icons.json`). */
+const AGENT_ICON_GLYPHS = {
+	claude: '\uF914',
+	openai: '\uF915',
+};
+
 /** The texts and the cues of the Mire view. */
 export class MireViewTexts {
 	/**
@@ -50,17 +56,39 @@ export class MireViewTexts {
 	}
 
 	/**
-	 * Gives the badge of a coding agent.
+	 * Gives the Bootstrap Icons name of a coding agent, the same icon as the tabs of Heidrun Code.
 	 * @param agent The coding agent that Herdr detects.
-	 * @returns C for Claude Code, X for Codex, or the first letter of the name.
+	 * @returns `claude` for Claude Code, `openai` for Codex (OpenAI makes Codex), or null for another coding agent.
 	 */
-	static agentBadge(agent: string): string {
+	static agentIcon(agent: string): 'claude' | 'openai' | null {
 		if (agent === 'claude') {
-			return 'C';
+			return 'claude';
 		}
 		if (agent === 'codex') {
-			return 'X';
+			return 'openai';
 		}
+		return null;
+	}
+
+	/**
+	 * Gives the character of the icon of a coding agent in the font of Bootstrap Icons, for the SVG graph.
+	 * @param agent The coding agent that Herdr detects.
+	 * @returns The character of the icon, or the first letter of the name for a coding agent without an icon.
+	 */
+	static agentIconGlyph(agent: string): string {
+		const icon = MireViewTexts.agentIcon(agent);
+		if (icon === null) {
+			return MireViewTexts.agentBadge(agent);
+		}
+		return AGENT_ICON_GLYPHS[icon];
+	}
+
+	/**
+	 * Gives the badge of a coding agent that has no icon.
+	 * @param agent The coding agent that Herdr detects.
+	 * @returns The first letter of the name.
+	 */
+	static agentBadge(agent: string): string {
 		return (agent[0] ?? '?').toUpperCase();
 	}
 

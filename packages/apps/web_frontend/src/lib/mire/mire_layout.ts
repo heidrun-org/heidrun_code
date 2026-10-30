@@ -6,14 +6,23 @@ import type { MireCodingAgentNode, MireModel, MireSubagentNode, MireWorkspaceNod
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** The half size of the square view box of the graph. The graph scales with its view box, so it follows every resize. */
+/**
+ * The largest half size of the square view box of the graph: the farthest place that a message arc may reach. The view
+ * box itself fits the drawn graph, so that the graph fills the window.
+ */
 export const MIRE_LAYOUT_HALF_SIZE = 560;
+
+/** The free space around the drawn graph, inside the view box. */
+const VIEW_MARGIN = 24;
 
 /** The radius of the picture of Heidrun at the centre. */
 export const MIRE_HEIDRUN_RADIUS = 62;
 
+/** The half size of the drawing of Heidrun with its selection circle and its name. */
+const HEIDRUN_DRAWING_HALF_SIZE = MIRE_HEIDRUN_RADIUS + 40;
+
 /** The radius of the first ring: the workspace hexagons. */
-export const MIRE_WORKSPACE_RING = 165;
+export const MIRE_WORKSPACE_RING = 215;
 
 /** The radius of a workspace hexagon. */
 export const MIRE_HEXAGON_RADIUS = 20;
@@ -36,8 +45,32 @@ const LABEL_FONT_SIZE = 11;
 /** The mean width of one character of a label, in units of the view box. */
 const CHARACTER_WIDTH = LABEL_FONT_SIZE * 0.6;
 
+/** The size of the text of the workspace labels, in units of the view box. */
+export const MIRE_WORKSPACE_LABEL_FONT_SIZE = 12;
+
+/** The height of the box of a workspace label. */
+export const MIRE_WORKSPACE_LABEL_HEIGHT = 22;
+
+/** The mean width of one character of a workspace label. */
+const WORKSPACE_LABEL_CHARACTER_WIDTH = MIRE_WORKSPACE_LABEL_FONT_SIZE * 0.6;
+
+/** The space between the text of a workspace label and the left or right border of its box. */
+const WORKSPACE_LABEL_PADDING = 10;
+
+/** The outer radius of Heidrun with the marks of its sight ring. */
+const HEIDRUN_OUTER_RADIUS = MIRE_HEIDRUN_RADIUS + 11;
+
+/** The free space between a workspace label and the hexagon, or Heidrun. */
+const WORKSPACE_LABEL_SPACE = 5;
+
+/**
+ * The inner radius of every workspace sector, near the workspace label, as in the proposal of issue 955: a wide empty
+ * space stays between Heidrun and the sectors, so that the graph is easy to read.
+ */
+const SECTOR_INNER_RADIUS = MIRE_WORKSPACE_RING - 70;
+
 /** The empty angle between two workspace sectors, in radians, when there is room for it. */
-const SECTOR_GAP = 0.05;
+const SECTOR_GAP = 0.24;
 
 /** The smallest angle of a workspace sector, in radians, when there is room for it. */
 const MINIMUM_SECTOR_ANGLE = 0.42;
@@ -54,6 +87,8 @@ export type MireLayoutWorkspace = {
 	startAngle: number;
 	/** The last angle of the sector, in radians. */
 	endAngle: number;
+	/** The outer radius of the sector. */
+	outerRadius: number;
 	/** The SVG path of the sector: the area that selects the workspace. */
 	sectorPath: string;
 	/** The SVG points of the hexagon. */
@@ -62,9 +97,11 @@ export type MireLayoutWorkspace = {
 	labelText: string;
 	/** True when the label is shortened: the full name is then in the title. */
 	isLabelTruncated: boolean;
-	/** The position of the label. */
+	/** The width of the box of the label. */
+	labelWidth: number;
+	/** The centre of the box of the label, on the line between Heidrun and the hexagon. */
 	labelX: number;
-	/** The position of the label. */
+	/** The centre of the box of the label, on the line between Heidrun and the hexagon. */
 	labelY: number;
 };
 
@@ -142,6 +179,13 @@ export type MireLayoutLink = {
 	x2: number;
 	/** The end of the line. */
 	y2: number;
+	/**
+	 * The SVG path of the line, from the parent to the child: straight from Heidrun to a workspace, and a curve from a
+	 * workspace to a coding agent and from a coding agent to a subagent, as in the proposal of issue 955.
+	 */
+	path: string;
+	/** The same line from the child to the parent, for the drops of mead that climb it. */
+	climbPath: string;
 };
 
 /** The positions of every node of the graph. The same model gives the same layout. */
@@ -170,7 +214,7 @@ export class MireLayout {
 	 */
 	static compute(model: MireModel): MireLayoutResult {
 		const result: MireLayoutResult = {
-			viewBox: `${-MIRE_LAYOUT_HALF_SIZE} ${-MIRE_LAYOUT_HALF_SIZE} ${2 * MIRE_LAYOUT_HALF_SIZE} ${2 * MIRE_LAYOUT_HALF_SIZE}`,
+			viewBox: '',
 			workspaces: [],
 			codingAgents: [],
 			subagents: [],
@@ -178,6 +222,7 @@ export class MireLayout {
 		};
 		const workspaceCount = model.workspaces.length;
 		if (workspaceCount === 0) {
+			result.viewBox = MireLayout._viewBox(result);
 			return result;
 		}
 		const gap = workspaceCount === 1 ? SECTOR_GAP : Math.min(SECTOR_GAP, Math.PI / 2 / workspaceCount);
@@ -186,12 +231,15 @@ export class MireLayout {
 		const weights = model.workspaces.map((workspace) => MireLayout.workspaceWeight(workspace));
 		const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
 		const sharedAngle = available - minimumAngle * workspaceCount;
+		// Every sector reaches the same radius: the radius that the deepest workspace needs.
+		const outerRadius = Math.max(...model.workspaces.map((workspace) => MireLayout._outerRadius(workspace)));
 		let angle = -Math.PI / 2 + gap / 2;
 		model.workspaces.forEach((workspace, index) => {
 			const sectorAngle = minimumAngle + sharedAngle * weights[index] / totalWeight;
-			MireLayout._placeWorkspace(workspace, angle, angle + sectorAngle, result);
+			MireLayout._placeWorkspace(workspace, angle, angle + sectorAngle, outerRadius, result);
 			angle += sectorAngle + gap;
 		});
+		result.viewBox = MireLayout._viewBox(result);
 		return result;
 	}
 
@@ -252,52 +300,103 @@ export class MireLayout {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
+	 * Places the label of a workspace on the line between Heidrun and the hexagon, as in the proposal of issue 955: at the
+	 * first third of the line from the hexagon, or nearer to Heidrun when the box would touch the hexagon. The name is
+	 * shortened so that its box fits between the two, whatever the angle of the line.
+	 * @param name The name of the workspace.
+	 * @param angle The angle of the line, in radians.
+	 * @param arcLength The length of the arc of the sector on the workspace ring.
+	 * @returns The text, the width of the box, and the centre of the box.
+	 */
+	private static _placeWorkspaceLabel(
+		name: string,
+		angle: number,
+		arcLength: number,
+	): { text: string; width: number; x: number; y: number } {
+		const innerLimit = HEIDRUN_OUTER_RADIUS + WORKSPACE_LABEL_SPACE;
+		const outerLimit = MIRE_WORKSPACE_RING - MIRE_HEXAGON_RADIUS - WORKSPACE_LABEL_SPACE;
+		const halfRoom = (outerLimit - innerLimit) / 2;
+		const across = Math.abs(Math.cos(angle));
+		const along = Math.abs(Math.sin(angle));
+		// The box reaches `across * halfWidth + along * halfHeight` along a line at this angle.
+		const halfWidthRoom = across < 0.01 ? Infinity : (halfRoom - along * (MIRE_WORKSPACE_LABEL_HEIGHT / 2)) / across;
+		const roomCharacters = Math.floor((2 * halfWidthRoom - 2 * WORKSPACE_LABEL_PADDING) / WORKSPACE_LABEL_CHARACTER_WIDTH);
+		const arcCharacters = Math.floor(arcLength / WORKSPACE_LABEL_CHARACTER_WIDTH);
+		const text = MireLayout.truncate(name, MireLayout._clamp(Math.min(roomCharacters, arcCharacters), 4, 24));
+		const width = MireLayout._round([...text].length * WORKSPACE_LABEL_CHARACTER_WIDTH + 2 * WORKSPACE_LABEL_PADDING);
+		const reach = across * (width / 2) + along * (MIRE_WORKSPACE_LABEL_HEIGHT / 2);
+		const firstThird = MIRE_WORKSPACE_RING - (MIRE_WORKSPACE_RING - MIRE_HEIDRUN_RADIUS) / 3;
+		const centre = MireLayout._point(MireLayout._clamp(firstThird, innerLimit + reach, outerLimit - reach), angle);
+		return {
+			text,
+			width,
+			x: centre.x,
+			y: centre.y,
+		};
+	}
+
+	/**
+	 * Gives the outer radius that the sector of a workspace needs to hold its coding agents and their subagents.
+	 * @param workspace The workspace.
+	 * @returns The radius.
+	 */
+	private static _outerRadius(workspace: MireWorkspaceNode): number {
+		const codingAgents = workspace.tabs.flatMap((tab) => tab.codingAgents);
+		const maximumDepth = Math.max(0, ...codingAgents.map((codingAgent) => MireLayout._depth(codingAgent.subagents)));
+		if (maximumDepth > 0) {
+			return MIRE_SUBAGENT_RING + (Math.min(maximumDepth, MAXIMUM_DRAWN_DEPTH) - 1) * MIRE_NESTED_SUBAGENT_STEP + 34;
+		}
+		return codingAgents.length > 0 ? MIRE_CODING_AGENT_RING + 52 : MIRE_WORKSPACE_RING + 48;
+	}
+
+	/**
 	 * Places one workspace, its coding agents, and their subagents in their sector.
 	 * @param workspace The workspace.
 	 * @param startAngle The first angle of the sector.
 	 * @param endAngle The last angle of the sector.
+	 * @param outerRadius The outer radius of every sector.
 	 * @param result The layout to fill.
 	 */
 	private static _placeWorkspace(
 		workspace: MireWorkspaceNode,
 		startAngle: number,
 		endAngle: number,
+		outerRadius: number,
 		result: MireLayoutResult,
 	): void {
 		const middle = (startAngle + endAngle) / 2;
 		const centre = MireLayout._point(MIRE_WORKSPACE_RING, middle);
 		const arcLength = (endAngle - startAngle) * MIRE_WORKSPACE_RING;
-		const maximumCharacters = MireLayout._clamp(Math.floor(arcLength / CHARACTER_WIDTH), 4, 24);
-		const labelText = MireLayout.truncate(workspace.label, maximumCharacters);
+		const label = MireLayout._placeWorkspaceLabel(workspace.label, middle, arcLength);
 		const codingAgentEntries = workspace.tabs.flatMap((tab) => tab.codingAgents.map((codingAgent) => ({
 			tab,
 			codingAgent,
 		})));
-		const maximumDepth = Math.max(0, ...codingAgentEntries.map((entry) => MireLayout._depth(entry.codingAgent.subagents)));
-		const outerRadius = maximumDepth > 0
-			? MIRE_SUBAGENT_RING + (Math.min(maximumDepth, MAXIMUM_DRAWN_DEPTH) - 1) * MIRE_NESTED_SUBAGENT_STEP + 34
-			: codingAgentEntries.length > 0 ? MIRE_CODING_AGENT_RING + 52 : MIRE_WORKSPACE_RING + 48;
 		result.workspaces.push({
 			nodeId: workspace.nodeId,
 			x: centre.x,
 			y: centre.y,
 			startAngle: MireLayout._round(startAngle),
 			endAngle: MireLayout._round(endAngle),
-			sectorPath: MireLayout._sectorPath(MIRE_HEIDRUN_RADIUS + 34, outerRadius, startAngle, endAngle),
+			outerRadius,
+			sectorPath: MireLayout._sectorPath(SECTOR_INNER_RADIUS, outerRadius, startAngle, endAngle),
 			hexagonPoints: MireLayout.hexagonPoints(centre.x, centre.y, MIRE_HEXAGON_RADIUS),
-			labelText,
-			isLabelTruncated: labelText !== workspace.label,
-			labelX: centre.x,
-			labelY: MireLayout._round(centre.y + MIRE_HEXAGON_RADIUS + 16),
+			labelText: label.text,
+			isLabelTruncated: label.text !== workspace.label,
+			labelWidth: label.width,
+			labelX: label.x,
+			labelY: label.y,
 		});
-		const heidrunEdge = MireLayout._point(MIRE_HEIDRUN_RADIUS, middle);
+		// The line starts at the centre, behind the goat, as in the proposal of issue 955.
 		result.links.push({
 			fromNodeId: 'heidrun',
 			toNodeId: workspace.nodeId,
-			x1: heidrunEdge.x,
-			y1: heidrunEdge.y,
+			x1: 0,
+			y1: 0,
 			x2: centre.x,
 			y2: centre.y,
+			path: `M 0 0 L ${centre.x} ${centre.y}`,
+			climbPath: `M ${centre.x} ${centre.y} L 0 0`,
 		});
 		const totalWeight = Math.max(1, codingAgentEntries.reduce(
 			(sum, entry) => sum + MireLayout._codingAgentWeight(entry.codingAgent),
@@ -369,6 +468,7 @@ export class MireLayout {
 			y1: workspaceCentre.y,
 			x2: centre.x,
 			y2: centre.y,
+			...MireLayout._curvedLinkPaths(workspaceCentre, centre),
 		});
 		const flattened = MireLayout._flatten(codingAgent.subagents, codingAgent.nodeId, 1);
 		if (flattened.length === 0) {
@@ -409,6 +509,7 @@ export class MireLayout {
 				y1: parent.y,
 				x2: point.x,
 				y2: point.y,
+				...MireLayout._curvedLinkPaths(parent, point),
 			});
 		});
 	}
@@ -484,6 +585,44 @@ export class MireLayout {
 			`A ${innerRadius} ${innerRadius} 0 ${isLarge} 0 ${innerStart.x} ${innerStart.y}`,
 			'Z',
 		].join(' ');
+	}
+
+	/**
+	 * Gives the curve between a parent and a child, as in the proposal of issue 955: the curve leaves the parent along
+	 * the ring of the parent, towards the angle of the child, and bends to reach the child along the ray of the child.
+	 * @param parent The centre of the parent.
+	 * @param child The centre of the child.
+	 * @returns The path from the parent to the child, and the same path from the child to the parent.
+	 */
+	private static _curvedLinkPaths(
+		parent: { x: number; y: number },
+		child: { x: number; y: number },
+	): { path: string; climbPath: string } {
+		const bend = MireLayout._point(Math.hypot(parent.x, parent.y), Math.atan2(child.y, child.x));
+		return {
+			path: `M ${parent.x} ${parent.y} Q ${bend.x} ${bend.y} ${child.x} ${child.y}`,
+			climbPath: `M ${child.x} ${child.y} Q ${bend.x} ${bend.y} ${parent.x} ${parent.y}`,
+		};
+	}
+
+	/**
+	 * Gives the square view box that fits the drawn graph with a margin, centred on Heidrun, so that the graph fills the
+	 * window: the sectors, and the labels of the subagents, which can reach past their sector.
+	 * @param result The placed graph.
+	 * @returns The SVG view box.
+	 */
+	private static _viewBox(result: MireLayoutResult): string {
+		let halfSize = HEIDRUN_DRAWING_HALF_SIZE;
+		for (const workspace of result.workspaces) {
+			halfSize = Math.max(halfSize, workspace.outerRadius);
+		}
+		for (const subagent of result.subagents) {
+			const labelWidth = [...subagent.labelText].length * CHARACTER_WIDTH;
+			const labelEnd = subagent.labelAnchor === 'start' ? subagent.labelX + labelWidth : subagent.labelX - labelWidth;
+			halfSize = Math.max(halfSize, Math.abs(labelEnd), Math.abs(subagent.labelY) + LABEL_FONT_SIZE);
+		}
+		halfSize = Math.min(MIRE_LAYOUT_HALF_SIZE, Math.ceil(halfSize + VIEW_MARGIN));
+		return `${-halfSize} ${-halfSize} ${2 * halfSize} ${2 * halfSize}`;
 	}
 
 	/**

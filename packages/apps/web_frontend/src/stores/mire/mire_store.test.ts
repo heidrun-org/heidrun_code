@@ -11,9 +11,20 @@ let observationsHandler: ((event: { payload: MireObservations }) => void) | null
 /** The answer of the fake `mire_subscribe`. */
 let subscribeAnswer: MireObservations | null = null;
 
+/** The Herdr snapshot that the fake `session.snapshot` gives, or null when Herdr does not answer. */
+let herdrSnapshot: SessionSnapshot | null = null;
+
 const invoke = vi.fn(async (command: string, _payload?: unknown): Promise<unknown> => {
 	if (command === 'mire_subscribe') {
 		return subscribeAnswer;
+	}
+	if (command === 'herdr_request' && (_payload as { method?: string } | undefined)?.method === 'session.snapshot') {
+		if (herdrSnapshot === null) {
+			throw new Error('herdr_unreachable');
+		}
+		return {
+			snapshot: herdrSnapshot,
+		};
 	}
 	if (command === 'herdr_paths') {
 		return {
@@ -103,6 +114,8 @@ beforeEach(() => {
 	observationsHandler = null;
 	subscribeAnswer = null;
 	state.snapshot = snapshot();
+	herdrSnapshot = snapshot();
+	mireState.displayMode = 'modal';
 	mireState.observations = null;
 	mireState.filter = null;
 	mireState.selectedPath = ['heidrun'];
@@ -199,11 +212,69 @@ describe('MireStore', () => {
 		await connection.close();
 	});
 
-	it('selects the exact pane in the main window for "Open in Heidrun Code"', () => {
-		expect(MireStore.openInHeidrunCode('p1')).toBe(true);
+	it('selects the exact pane in the main window for "Open in Heidrun Code"', async () => {
+		expect(await MireStore.openInHeidrunCode('p1')).toBe('opened');
 		expect(state.selectedWorkspaceId).toBe('w1');
 		expect(state.selectedTabId).toBe('w1:t1');
 		expect(state.selectedPaneId).toBe('p1');
-		expect(MireStore.openInHeidrunCode('missing')).toBe(false);
+		expect(invoke).toHaveBeenCalledWith('herdr_request', {
+			method: 'session.snapshot',
+			params: {},
+		});
+	});
+
+	it('reads the Herdr snapshot again before "Open in Heidrun Code": a moved pane opens at its current place', async () => {
+		const moved = snapshot();
+		moved.tabs.push(MireTestFixtures.tab('w1:t2', 'w1', 2, 'Moved'));
+		moved.panes = moved.panes.map((pane) => ({
+			...pane,
+			tab_id: 'w1:t2',
+		}));
+		moved.agents = moved.panes;
+		herdrSnapshot = moved;
+		expect(await MireStore.openInHeidrunCode('p1')).toBe('opened');
+		expect(state.selectedTabId).toBe('w1:t2');
+		expect(state.selectedPaneId).toBe('p1');
+	});
+
+	it('does nothing for a pane that is gone, or when Herdr does not answer', async () => {
+		state.selectedPaneId = null;
+		herdrSnapshot = {
+			...snapshot(),
+			panes: [],
+			agents: [],
+		};
+		expect(await MireStore.openInHeidrunCode('p1')).toBe('gone');
+		expect(state.selectedPaneId).toBe(null);
+		herdrSnapshot = null;
+		expect(await MireStore.openInHeidrunCode('p1')).toBe('unavailable');
+		expect(state.selectedPaneId).toBe(null);
+	});
+
+	it('in the separate window, asks the main window after the new reading, and never changes the selection itself', async () => {
+		mireState.displayMode = 'window';
+		state.selectedPaneId = null;
+		expect(await MireStore.openInHeidrunCode('p1')).toBe('opened');
+		expect(invoke).toHaveBeenCalledWith('mire_open_in_main_window', {
+			paneId: 'p1',
+		});
+		expect(state.selectedPaneId).toBe(null);
+		invoke.mockClear();
+		herdrSnapshot = {
+			...snapshot(),
+			panes: [],
+			agents: [],
+		};
+		expect(await MireStore.openInHeidrunCode('p1')).toBe('gone');
+		expect(invoke.mock.calls.some((call) => call[0] === 'mire_open_in_main_window')).toBe(false);
+	});
+
+	it('gives each view of each display mode its own identifier', () => {
+		mireState.displayMode = 'window';
+		const windowView = new MireViewConnection();
+		mireState.displayMode = 'modal';
+		const modalView = new MireViewConnection();
+		expect(windowView.viewId.startsWith('mire_view_window_')).toBe(true);
+		expect(modalView.viewId.startsWith('mire_view_modal_')).toBe(true);
 	});
 });

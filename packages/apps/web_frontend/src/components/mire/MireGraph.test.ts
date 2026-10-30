@@ -59,14 +59,17 @@ describe("MireGraph", () => {
     expect(graph.findAll(".mire-subagent").map((subagent) => subagent.attributes("data-node-id")))
       .toEqual([TEST_NODES.olivier, TEST_NODES.explore, TEST_NODES.bruno]);
     expect(graph.findAll(".mire-sector")).toHaveLength(2);
-    expect(graph.get("svg").attributes("viewBox")).toBe("-560 -560 1120 1120");
+    const [x, y, width, height] = graph.get("svg").attributes("viewBox")!.split(" ").map(Number);
+    expect([x, y, width]).toEqual([-height / 2, -height / 2, height]);
+    expect(width).toBeLessThan(1120);
   });
 
-  it("labels each coding agent with the exact tab name and the badge C or X, side by side for a split tab", async () => {
+  it("labels each coding agent with the exact tab name and the icon of Claude Code or of Codex (OpenAI), side by side for a split tab", async () => {
     const graph = await mountGraph();
     const labels = graph.findAll(".mire-coding-agent [data-tab-label]");
     expect(labels.map((label) => label.get("[data-label]").text())).toEqual(["Claude", "Claude", "DashStock", "a tab name that i…"]);
-    expect(labels.map((label) => label.get("[data-badge]").text())).toEqual(["C", "C", "X", "X"]);
+    expect(labels.map((label) => label.get("[data-badge]").attributes("data-badge"))).toEqual(["claude", "claude", "openai", "openai"]);
+    expect(labels.map((label) => label.get("[data-badge]").text())).toEqual(["\uF914", "\uF914", "\uF915", "\uF915"]);
     expect(node(graph, TEST_NODES.codexUnmatched).get("title").text()).toContain("a tab name that is much too long for the graph");
   });
 
@@ -96,6 +99,24 @@ describe("MireGraph", () => {
     expect(mireSelectedEntry.value.nodeId).toBe("workspace:w2");
     expect(graph.get('[data-sector-id="workspace:w2"]').classes()).toContain("mire-selected");
     expect(node(graph, "workspace:w2").attributes("aria-current")).toBe("true");
+    expect(graph.findAll("[data-selection-ring]")).toHaveLength(1);
+    expect(node(graph, "workspace:w2").find("[data-selection-ring]").exists()).toBe(true);
+    // The dashes move at the speed of the circle of a coding agent: 8 seconds for a radius of 15.5.
+    expect(node(graph, "workspace:w2").get("[data-selection-ring]").attributes("style")).toContain(`--mire-selection-turn: ${(26 / 15.5) * 8}s`);
+  });
+
+  it("draws every sector again as a new element when the selected workspace changes, so no old outline stays on the screen", async () => {
+    const graph = await mountGraph();
+    await graph.get('[data-sector-id="workspace:w2"]').trigger("click");
+    const sectorsBefore = graph.findAll(".mire-sector").map((sector) => sector.element);
+    await graph.get('[data-sector-id="workspace:w1"]').trigger("click");
+    const sectorsAfter = graph.findAll(".mire-sector").map((sector) => sector.element);
+    expect(sectorsAfter).toHaveLength(sectorsBefore.length);
+    for (const sector of sectorsAfter) {
+      expect(sectorsBefore).not.toContain(sector);
+    }
+    expect(graph.get('[data-sector-id="workspace:w1"]').classes()).toContain("mire-selected");
+    expect(graph.get('[data-sector-id="workspace:w2"]').classes()).not.toContain("mire-selected");
   });
 
   it("moves the keyboard focus with the arrow keys, selects with Enter, and selects Heidrun again with Escape", async () => {

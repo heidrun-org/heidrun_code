@@ -209,6 +209,10 @@ fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
     StateFlags::POSITION | StateFlags::SIZE | StateFlags::MAXIMIZED | StateFlags::FULLSCREEN
 }
 
+/// The windows that the window-state plugin never saves: the separate Mire window always opens at a reasonable size on
+/// the screen of the main window (issue 973).
+const WINDOW_STATE_DENYLIST: [&str; 1] = [mire::mire_window::MIRE_WINDOW_LABEL];
+
 /// True for the first call with this flag, false for every later call. The flag is set by the first call.
 fn claim_first_show(flag: &std::sync::atomic::AtomicBool) -> bool {
     !flag.swap(true, std::sync::atomic::Ordering::SeqCst)
@@ -279,7 +283,12 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(window_state_flags()).build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(window_state_flags())
+                .with_denylist(&WINDOW_STATE_DENYLIST)
+                .build(),
+        )
         .manage(pty::PtyState::default())
         .manage(herdr::StatusWatcher::default())
         .manage(mobile::MobileState::default())
@@ -322,12 +331,17 @@ pub fn run() {
             }
         })
         .on_window_event(|window, event| {
+            // Only the main window holds the file views: the separate Mire window always closes (issue 973).
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                if UNSAVED.load(std::sync::atomic::Ordering::Relaxed) {
+                if window.label() == mire::mire_window::MAIN_WINDOW_LABEL && UNSAVED.load(std::sync::atomic::Ordering::Relaxed) {
                     api.prevent_close();
                     use tauri::Emitter;
                     let _ = window.emit("quit-blocked", ());
                 }
+            }
+            if let tauri::WindowEvent::Destroyed = event {
+                use tauri::Manager;
+                mire::mire_window::on_window_destroyed(window.app_handle(), window.label());
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -374,6 +388,8 @@ pub fn run() {
             mire::claude_observer_mod::mire_claude_observer_mod_path,
             mire::claude_observer_mod::mire_claude_observation_folder,
             mire::codex_chat_preparation::codex_prepare_chat,
+            mire::mire_window::mire_window_open,
+            mire::mire_window::mire_open_in_main_window,
             project::project_load,
             project::project_package_scripts,
             project::project_save,
@@ -531,6 +547,11 @@ mod tests {
         let window = &config["app"]["windows"][0];
         assert_eq!(window["width"], json!(1440));
         assert_eq!(window["height"], json!(900));
+    }
+
+    #[test]
+    fn the_window_state_never_saves_the_separate_mire_window() {
+        assert_eq!(WINDOW_STATE_DENYLIST, ["mire"]);
     }
 
     #[test]
