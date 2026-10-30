@@ -2,13 +2,13 @@
 //! collector reads the sources every 2 seconds while at least one view is registered, and reads nothing when no view is
 //! registered. Each collection goes to every window as the event `mire://observations`.
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::future::Future;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 
 use serde_json::json;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, WebviewWindow};
 
 use super::contract::{MireObservations, ObservationError, MAXIMUM_CHILDREN_PER_ROOT, SCHEMA_VERSION};
 use super::{claude_snapshots, codex_connection, codex_threads};
@@ -20,9 +20,10 @@ const CODEX_COLLECTION_TIMEOUT: Duration = Duration::from_secs(10);
 /// The event that carries each collection to the web page.
 pub const OBSERVATIONS_EVENT: &str = "mire://observations";
 
-/// The registered views, the latest collection, and whether the loop of collections runs.
+/// The registered views with the label of their window, the latest collection, and whether the loop of collections
+/// runs.
 pub struct CollectorState {
-    views: HashSet<String>,
+    views: HashMap<String, String>,
     latest: MireObservations,
     is_running: bool,
 }
@@ -30,15 +31,15 @@ pub struct CollectorState {
 impl CollectorState {
     pub fn new() -> Self {
         CollectorState {
-            views: HashSet::new(),
+            views: HashMap::new(),
             latest: MireObservations::empty(now_ms()),
             is_running: false,
         }
     }
 
-    /// Registers a view. Gives true when the loop of collections must start.
-    pub fn subscribe(&mut self, view_id: &str) -> bool {
-        self.views.insert(view_id.to_string());
+    /// Registers a view of the window `window_label`. Gives true when the loop of collections must start.
+    pub fn subscribe(&mut self, view_id: &str, window_label: &str) -> bool {
+        self.views.insert(view_id.to_string(), window_label.to_string());
         if self.is_running {
             return false;
         }
@@ -49,6 +50,11 @@ impl CollectorState {
     /// Removes a view. The loop stops at its next turn when no view remains.
     pub fn unsubscribe(&mut self, view_id: &str) {
         self.views.remove(view_id);
+    }
+
+    /// Removes every view of a window: a closed window never unmounts its views itself.
+    pub fn forget_window(&mut self, window_label: &str) {
+        self.views.retain(|_, label| label != window_label);
     }
 
     /// Called by the loop before each collection: gives false, and marks the loop as stopped, when no view remains.
@@ -71,11 +77,12 @@ static COLLECTOR: LazyLock<Arc<Mutex<CollectorState>>> = LazyLock::new(|| Arc::n
 /// Registers one Mire view and gives the latest observations. The first view starts the collector, and gets a fresh
 /// collection.
 #[tauri::command]
-pub async fn mire_subscribe(app: AppHandle, view_id: String) -> MireObservations {
+pub async fn mire_subscribe(app: AppHandle, webview_window: WebviewWindow, view_id: String) -> MireObservations {
     let emitter = app.clone();
     subscribe(
         COLLECTOR.clone(),
         &view_id,
+        webview_window.label(),
         COLLECTION_INTERVAL,
         // Boxed: the future of a whole collection is large, and a worker thread has a small stack (issue 968).
         || Box::pin(collect_once()),
@@ -92,10 +99,17 @@ pub fn mire_unsubscribe(view_id: String) {
     COLLECTOR.lock().unwrap().unsubscribe(&view_id);
 }
 
-/// Registers a view in `state`. When the loop does not run, runs one collection at once, then starts the loop.
+/// Removes every Mire view of a closed window. `lib.rs` calls it when a window is destroyed.
+pub fn forget_window(window_label: &str) {
+    COLLECTOR.lock().unwrap().forget_window(window_label);
+}
+
+/// Registers a view of a window in `state`. When the loop does not run, runs one collection at once, then starts the
+/// loop.
 pub async fn subscribe<C, F, E>(
     state: Arc<Mutex<CollectorState>>,
     view_id: &str,
+    window_label: &str,
     interval: Duration,
     collect: C,
     emit: E,
@@ -105,7 +119,7 @@ where
     F: Future<Output = MireObservations> + Send + 'static,
     E: Fn(&MireObservations) + Send + Sync + 'static,
 {
-    let must_start = state.lock().unwrap().subscribe(view_id);
+    let must_start = state.lock().unwrap().subscribe(view_id, window_label);
     if must_start == false {
         return state.lock().unwrap().latest.clone();
     }
@@ -201,9 +215,9 @@ mod tests {
     #[test]
     fn the_first_view_starts_the_collector_and_the_others_do_not() {
         let mut state = CollectorState::new();
-        assert!(state.subscribe("modal"));
-        assert!(state.subscribe("window") == false);
-        assert!(state.subscribe("modal") == false);
+        assert!(state.subscribe("modal", "main"));
+        assert!(state.subscribe("window", "mire") == false);
+        assert!(state.subscribe("modal", "main") == false);
         assert_eq!(state.view_count(), 2);
         state.unsubscribe("modal");
         assert!(state.should_continue());
@@ -211,7 +225,7 @@ mod tests {
         state.unsubscribe("unknown");
         assert!(state.should_continue() == false);
         assert!(
-            state.subscribe("modal"),
+            state.subscribe("modal", "main"),
             "a view after the stop starts the collector again"
         );
     }
@@ -248,7 +262,7 @@ mod tests {
         let emitted = Arc::new(AtomicUsize::new(0));
         let emitted_counter = emitted.clone();
         let interval = Duration::from_millis(20);
-        let first = subscribe(state.clone(), "modal", interval, collect, move |_| {
+        let first = subscribe(state.clone(), "modal", "main", interval, collect, move |_| {
             emitted_counter.fetch_add(1, Ordering::SeqCst);
         })
         .await;
@@ -274,11 +288,49 @@ mod tests {
         let state = Arc::new(Mutex::new(CollectorState::new()));
         let (count, collect) = counting_collector();
         let interval = Duration::from_secs(60);
-        subscribe(state.clone(), "modal", interval, collect, |_| {}).await;
+        subscribe(state.clone(), "modal", "main", interval, collect, |_| {}).await;
         let (_, other_collect) = counting_collector();
-        let second = subscribe(state.clone(), "window", interval, other_collect, |_| {}).await;
+        let second = subscribe(state.clone(), "window", "mire", interval, other_collect, |_| {}).await;
         assert_eq!(second.observed_at_ms, 1);
         assert_eq!(count.load(Ordering::SeqCst), 1);
         assert_eq!(state.lock().unwrap().view_count(), 2);
+    }
+
+    #[test]
+    fn closing_the_modal_or_the_window_removes_only_the_views_of_that_mode() {
+        let mut state = CollectorState::new();
+        assert!(state.subscribe("modal_view", "main"));
+        assert!(state.subscribe("window_view", "mire") == false);
+        state.forget_window("mire");
+        assert_eq!(state.view_count(), 1);
+        assert!(state.should_continue(), "the modal keeps the collector");
+        assert!(state.subscribe("window_view_again", "mire") == false, "the running collector is shared");
+        state.unsubscribe("modal_view");
+        assert_eq!(state.view_count(), 1);
+        assert!(state.should_continue(), "the window keeps the collector");
+        state.forget_window("mire");
+        assert!(state.should_continue() == false);
+    }
+
+    #[tokio::test]
+    async fn the_modal_and_the_window_share_one_loop_of_collections() {
+        let state = Arc::new(Mutex::new(CollectorState::new()));
+        let (count, collect) = counting_collector();
+        let (other_count, other_collect) = counting_collector();
+        let interval = Duration::from_millis(20);
+        subscribe(state.clone(), "modal_view", "main", interval, collect, |_| {}).await;
+        subscribe(state.clone(), "window_view", "mire", interval, other_collect, |_| {}).await;
+        tokio::time::sleep(Duration::from_millis(110)).await;
+        let shared = count.load(Ordering::SeqCst);
+        assert!(shared >= 3 && shared <= 7, "{shared} collections in 110 milliseconds: one loop only");
+        assert_eq!(other_count.load(Ordering::SeqCst), 0, "the second view starts no second loop");
+        state.lock().unwrap().unsubscribe("modal_view");
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        assert!(count.load(Ordering::SeqCst) > shared, "the window keeps the collection running");
+        state.lock().unwrap().forget_window("mire");
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        let after_stop = count.load(Ordering::SeqCst);
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        assert_eq!(count.load(Ordering::SeqCst), after_stop, "no reading after both modes close");
     }
 }

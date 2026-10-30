@@ -11,7 +11,7 @@ This file lists the files and the subfolders of this folder, for agents and tool
 
 - [README.md](README.md): the overview of this folder, for people.
 - [heidrun_code_mobile/](heidrun_code_mobile/index.md): the screens of Heidrun Code Mobile, the mobile website on the phone.
-- [mire/](mire/index.md): the Mire, the view of every workspace, tab, coding agent, and subagent with its status: its data, its identities, its statuses, its counters, its messages, its radial graph, its right sidebar, and its filters.
+- [mire/](mire/index.md): the Mire, the view of every workspace, tab, coding agent, and subagent with its status: its data, its identities, its statuses, its counters, its messages, its radial graph, its right sidebar, its filters, its animations, and its two display modes (the modal and the separate Mire window).
 - [sidebars/](sidebars/index.md): the sidebars, the Launchers section, the Source control section, the Code hosting section, and the Past chats section.
 - [window/](window/index.md): the layout, the status bar, the Statistics window, the Settings window, and the state of the window.
 - [workspaces_tabs_and_panes/](workspaces_tabs_and_panes/index.md): the workspace, the tabs, and the panes.

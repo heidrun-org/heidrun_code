@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import type { MireCodingAgentNode } from "../../lib/mire/mire_model_types";
 import { MireStore, mireIndex, mireMessages, mireModel } from "../../stores/mire/mire_store";
 import MireAttentionList from "./MireAttentionList.vue";
@@ -15,7 +15,8 @@ import Icon from "../Icon.vue";
 
 // The details of a coding agent: the status, the texts about the task with their exact labels, the pending question
 // or approval, the subagents, a read-only preview of the terminal of the pane, and the observed messages. The button
-// "Open in Heidrun Code" shows the exact pane in the main window. There is no button to approve.
+// "Open in Heidrun Code" reads the Herdr session again, then shows the exact pane in the main window. When the pane is
+// gone, the sidebar says so. There is no button to approve.
 
 const props = defineProps<{
   /** The coding agent. */
@@ -36,9 +37,21 @@ const attention = computed(() => MireViewTexts.pendingAttentionOf(mireModel.valu
 const nodeIds = computed(() => MireViewTexts.subtreeNodeIds(props.codingAgent));
 const messages = computed(() => MireViewTexts.recentMessages(mireMessages.value, nodeIds.value, MESSAGE_LIMIT));
 
-function openInHeidrunCode() {
-  if (MireStore.openInHeidrunCode(props.codingAgent.paneId)) {
-    emit("openedInHeidrunCode");
+/** True while "Open in Heidrun Code" reads the Herdr session. */
+const isOpening = ref(false);
+
+async function openInHeidrunCode() {
+  if (isOpening.value === true) {
+    return;
+  }
+  isOpening.value = true;
+  try {
+    const result = await MireStore.openInHeidrunCode(props.codingAgent.paneId);
+    if (result === "opened") {
+      emit("openedInHeidrunCode");
+    }
+  } finally {
+    isOpening.value = false;
   }
 }
 </script>
@@ -49,7 +62,8 @@ function openInHeidrunCode() {
       <div class="eyebrow">{{ t("mire.details.codingAgent", { agent: MireViewTexts.agentName(codingAgent.agent) }) }}</div>
       <div class="d-flex align-items-center justify-content-between gap-2">
         <div class="d-flex align-items-center gap-2">
-          <span class="badge theme-secondary font-monospace" data-badge>{{ MireViewTexts.agentBadge(codingAgent.agent) }}</span>
+          <i v-if="MireViewTexts.agentIcon(codingAgent.agent) !== null" class="bi fs-4" :class="`bi-${MireViewTexts.agentIcon(codingAgent.agent)}`" role="img" :aria-label="MireViewTexts.agentName(codingAgent.agent)" :data-badge="MireViewTexts.agentIcon(codingAgent.agent)"></i>
+          <span v-else class="badge theme-secondary font-monospace" :data-badge="MireViewTexts.agentBadge(codingAgent.agent)">{{ MireViewTexts.agentBadge(codingAgent.agent) }}</span>
           <span class="fs-4 fw-semibold text-break" data-tab-name>{{ tabLabel }}</span>
         </div>
         <MireStatusText :status="codingAgent.status" />
@@ -63,7 +77,7 @@ function openInHeidrunCode() {
         {{ t("mire.details.observedSince", { time: MireViewTexts.timeText(codingAgent.observedSinceMs) }) }}
       </div>
     </div>
-    <button type="button" class="btn primary align-self-start" data-open-in-heidrun-code @click="openInHeidrunCode()">
+    <button type="button" class="btn primary align-self-start" :disabled="isOpening" data-open-in-heidrun-code @click="openInHeidrunCode()">
       <Icon name="box-arrow-up-right" />
       {{ t("mire.details.openInHeidrunCode") }}
     </button>

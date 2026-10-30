@@ -89,6 +89,7 @@ import StatisticsModal from "./components/StatisticsModal.vue";
 import MireDialog from "./components/mire/MireDialog.vue";
 import { statisticsModal } from "./stores/statistics_modal";
 import { mireModal } from "./stores/mire/mire_modal";
+import { MireSeparateWindow } from "./stores/mire/mire_separate_window";
 import SplashScreen from "./components/SplashScreen.vue";
 import QuickOpenModal from "./components/QuickOpenModal.vue";
 import { quickOpen, QuickOpen } from "./stores/quick_open";
@@ -312,6 +313,7 @@ function onKey(e: KeyboardEvent) {
 }
 
 let unlistenDrop: (() => void) | null = null;
+let unlistenMireOpenRequests: (() => void) | null = null;
 onMounted(async () => {
   // First of all: the detection of the activity of the user must see every action before the other listeners do.
   startUserActivity();
@@ -331,6 +333,10 @@ onMounted(async () => {
   loadClaudeLink();
   loadAntigravityLink();
   startRemoteWatch();
+  // The separate Mire window asks this window to show a pane with "Open in Heidrun Code" (issue 973).
+  void MireSeparateWindow.listenToOpenRequests().then((unlisten) => {
+    unlistenMireOpenRequests = unlisten;
+  });
   unlistenDrop = await getCurrentWebview().onDragDropEvent((event) => {
     if (event.payload.type === "enter") {
       void DropTarget.measureTopInset(zoomFactor());
@@ -353,6 +359,7 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
   unlistenDrop?.();
+  unlistenMireOpenRequests?.();
   window.removeEventListener("keydown", onKey, true);
   window.removeEventListener("resize", onResize);
 });

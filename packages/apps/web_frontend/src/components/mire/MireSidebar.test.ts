@@ -6,11 +6,17 @@ const invoke = vi.fn(async (command: string, payload?: Record<string, unknown>):
   if (command === "herdr_request" && payload?.method === "pane.read") {
     return { read: { text: "> Synchronize the cards\n  ✓ 48 tests pass\n" } };
   }
+  if (command === "herdr_request" && payload?.method === "session.snapshot") {
+    return { snapshot: herdrSnapshot };
+  }
   if (command === "claude_session_agents") {
     return [{ id: "a1", lines: ["⏺ I draw the menu screen."] }];
   }
   return null;
 });
+
+/** The Herdr snapshot that the fake `session.snapshot` gives. */
+let herdrSnapshot: unknown = null;
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: (command: string, payload?: Record<string, unknown>) => invoke(command, payload) }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
@@ -37,6 +43,7 @@ async function mountSidebar(nodeId: string): Promise<VueWrapper> {
 
 beforeEach(() => {
   invoke.mockClear();
+  herdrSnapshot = MireViewTestSupport.snapshot();
   mireState.filter = null;
   mireState.selectedPath = ["heidrun"];
   mireState.selectedFreshness = null;
@@ -129,7 +136,8 @@ describe("MireSidebar, coding agent selected", () => {
     const sidebar = await mountSidebar(TEST_NODES.claude);
     const details = sidebar.get('[data-mire-details="coding_agent"]');
     expect(details.get("[data-tab-name]").text()).toBe("Claude");
-    expect(details.get("[data-badge]").text()).toBe("C");
+    expect(details.get("[data-badge]").classes()).toContain("bi-claude");
+    expect(details.get("[data-badge]").attributes("aria-label")).toBe("Claude Code");
     expect(details.get("[data-status]").attributes("data-status")).toBe("working");
     expect(details.text()).not.toContain("Current task");
     expect(details.get('[data-section="attention"]').text()).toContain("Two options for the schema");
@@ -153,10 +161,26 @@ describe("MireSidebar, coding agent selected", () => {
   it("shows the exact pane in the main window with the button Open in Heidrun Code", async () => {
     const sidebar = await mountSidebar(TEST_NODES.codex);
     await sidebar.get("[data-open-in-heidrun-code]").trigger("click");
+    await flushPromises();
     expect(state.selectedWorkspaceId).toBe("w1");
     expect(state.selectedTabId).toBe("w1:t2");
     expect(state.selectedPaneId).toBe("p3");
     expect(sidebar.emitted("openedInHeidrunCode")).toHaveLength(1);
+    expect(sidebar.find("[data-open-failure]").exists()).toBe(false);
+  });
+
+  it("says that the pane is gone, and changes nothing, when the new Herdr snapshot has no such pane", async () => {
+    const sidebar = await mountSidebar(TEST_NODES.codex);
+    state.selectedPaneId = null;
+    const snapshot = MireViewTestSupport.snapshot();
+    herdrSnapshot = { ...snapshot, panes: snapshot.panes.filter((pane) => pane.pane_id !== "p3"), agents: [] };
+    await sidebar.get("[data-open-in-heidrun-code]").trigger("click");
+    await flushPromises();
+    expect(state.selectedPaneId).not.toBe("p3");
+    expect(sidebar.emitted("openedInHeidrunCode")).toBeUndefined();
+    expect(sidebar.get("[data-open-failure]").text()).toContain("This pane is gone: nothing was opened.");
+    await sidebar.get("[data-open-failure] button").trigger("click");
+    expect(sidebar.find("[data-open-failure]").exists()).toBe(false);
   });
 });
 

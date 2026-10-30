@@ -1,0 +1,98 @@
+/* The animations of the radial graph of the Mire. `MireGraph.vue` loads this file as a scoped style. Every animation
+   runs only under the class `mire-animated`, which the pause button and the reduced motion setting remove. Each
+   animation changes a transform of its own element, an opacity, a color, or a stroke offset: none moves a node, and
+   none changes the layout. The colors come from the theme variables of styles.css. */
+
+.mire-waves,
+.mire-orbit,
+.mire-drops,
+.mire-keyboard,
+.mire-sight-ring,
+.mire-hexagon-glow { pointer-events: none; }
+
+/* Heidrun at the centre: the golden sight ring and the keyboard. */
+.mire-sight-ring { transform-box: fill-box; transform-origin: center; }
+.mire-sight-circle { fill: none; stroke: var(--heidrun-gold); stroke-width: 1; stroke-opacity: 0.7; }
+.mire-sight-mark { stroke: var(--heidrun-gold); stroke-width: 1; stroke-opacity: 0.7; }
+.mire-animated .mire-sight-ring { animation: mire-turn 40s linear infinite; }
+
+/* The white dashed circle of the selected node turns clockwise. `--mire-selection-turn` grows with the radius, so the
+   dashes of every circle move at the same speed. */
+.mire-selection-ring { transform-box: fill-box; transform-origin: center; }
+.mire-animated .mire-selection-ring { animation: mire-turn var(--mire-selection-turn) linear infinite; }
+
+.mire-keyboard-plate { fill: var(--raised); stroke: var(--heidrun-gold); stroke-opacity: 0.8; stroke-linejoin: round; }
+.mire-keyboard-edge { fill: var(--line-strong); }
+.mire-key { fill: var(--line-strong); }
+.mire-animated .mire-keyboard-active .mire-key {
+  animation: mire-key var(--mire-key-period) linear infinite;
+  animation-delay: calc(var(--mire-key-period) * var(--mire-key-late-share) * -1);
+}
+
+
+/* Blocked: the red glow of the workspace hexagon, and the waves around the dot. */
+.mire-hexagon-glow {
+  fill: var(--blocked);
+  fill-opacity: 0.25;
+  stroke: var(--blocked);
+  stroke-width: 12;
+  stroke-linejoin: round;
+  stroke-opacity: 0.25;
+}
+.mire-animated .mire-hexagon-glow { animation: mire-glow 1.6s ease-in-out infinite alternate; }
+
+.mire-wave {
+  fill: none;
+  stroke: var(--blocked);
+  stroke-width: 2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.mire-animated .mire-wave { animation: mire-wave 2s ease-out infinite; }
+.mire-animated .mire-wave-late { animation-delay: -1s; }
+
+/* Working: the dot breathes, a small dot turns around it, and drops of mead climb the line to its parent. */
+.mire-animated .mire-status-working > .mire-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mire-breathe 2.4s ease-in-out infinite;
+}
+.mire-orbit-turn { transform-box: fill-box; transform-origin: center; }
+.mire-orbit-bounds { fill: none; stroke: none; }
+.mire-orbit-dot { fill: var(--working); }
+.mire-animated .mire-orbit-turn { animation: mire-turn 3s linear infinite; }
+
+.mire-drops {
+  fill: none;
+  stroke: var(--working);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 24.9;
+}
+.mire-animated .mire-drops { animation: mire-drops 1.8s linear infinite; }
+
+@keyframes mire-turn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes mire-key {
+  0%, 18% { fill: var(--working); }
+  19%, 100% { fill: var(--line-strong); }
+}
+@keyframes mire-glow {
+  from { stroke-opacity: 0.1; }
+  to { stroke-opacity: 0.5; }
+}
+@keyframes mire-wave {
+  0% { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.4); }
+}
+@keyframes mire-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+@keyframes mire-drops {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -25; }
+}

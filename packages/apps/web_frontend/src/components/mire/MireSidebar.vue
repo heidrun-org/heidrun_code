@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { MireTabNode, MireWorkspaceNode } from "../../lib/mire/mire_model_types";
-import { mireIndex, mireSelectedEntry } from "../../stores/mire/mire_store";
+import { MireStore, mireIndex, mireSelectedEntry, mireState } from "../../stores/mire/mire_store";
 import MireCodingAgentDetails from "./MireCodingAgentDetails.vue";
 import MireCounters from "./MireCounters.vue";
 import MireCoverageNotices from "./MireCoverageNotices.vue";
@@ -12,7 +12,8 @@ import MireWorkspaceDetails from "./MireWorkspaceDetails.vue";
 import { t } from "../../i18n/index";
 
 // The right sidebar of the Mire: the counters with their filters at the top, the coverage notices, the path of the
-// selection, then the details of the selected node.
+// selection, the message of the last "Open in Heidrun Code" that opened nothing, then the details of the selected node.
+// The message stays here, and not in the details, because a pane that is gone also leaves the graph.
 
 const emit = defineEmits<{
   /** The pane of a coding agent is now shown in the main window. */
@@ -41,6 +42,10 @@ const tab = computed<MireTabNode | null>(() => (node.value.kind === "tab" ? node
     <MireCounters />
     <MireCoverageNotices />
     <MirePath />
+    <div v-if="mireState.openFailure !== null" class="alert theme-danger m-0 p-2 d-flex align-items-start gap-2" role="status" data-open-failure>
+      <span class="me-auto">{{ t(`mire.open.${mireState.openFailure}`) }}</span>
+      <button type="button" class="btn small" :title="t('mire.open.dismiss')" @click="MireStore.clearOpenFailure()">{{ t("mire.open.dismiss") }}</button>
+    </div>
     <MireHeidrunDetails v-if="node.kind === 'heidrun'" />
     <MireWorkspaceDetails v-else-if="workspace !== null" :key="node.nodeId" :workspace="workspace" :tab="tab" />
     <MireCodingAgentDetails

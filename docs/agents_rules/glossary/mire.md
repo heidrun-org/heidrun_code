@@ -15,6 +15,10 @@ This document gives one short definition for each word of the Mire. The other wo
 
 The view of Heidrun Code that shows Heidrun at the centre, then every workspace, tab, coding agent, and subagent, with its status. It opens from the item "Mire" of the More menu, as a modal or in a separate window. Every Mire view uses the same Mire model.
 
+### Separate Mire window
+
+The Tauri window with the label `mire` that shows the Mire on its own, for a second screen. It opens with the button "Open in a separate window" of the Mire modal. Only one exists at a time.
+
 ### Mire model
 
 The data that every Mire view shows: the hierarchy, the facts, the visible statuses, the coverage, and the counters. The code builds it from the Herdr data and the live observations, in the folder `packages/apps/web_frontend/src/lib/mire`.

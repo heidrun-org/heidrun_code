@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type { AgentInfo, TabInfo, WorkspaceInfo } from '../types';
 import {
 	MIRE_CODING_AGENT_RING,
+	MIRE_HEIDRUN_RADIUS,
+	MIRE_HEXAGON_RADIUS,
 	MIRE_LAYOUT_HALF_SIZE,
 	MIRE_SUBAGENT_RING,
+	MIRE_WORKSPACE_LABEL_HEIGHT,
 	MIRE_WORKSPACE_RING,
 	MireLayout,
 } from './mire_layout';
@@ -96,7 +99,33 @@ describe('MireLayout.compute', () => {
 		expect(layout.workspaces).toEqual([]);
 		expect(layout.codingAgents).toEqual([]);
 		expect(layout.links).toEqual([]);
-		expect(layout.viewBox).toBe(`-${MIRE_LAYOUT_HALF_SIZE} -${MIRE_LAYOUT_HALF_SIZE} ${2 * MIRE_LAYOUT_HALF_SIZE} ${2 * MIRE_LAYOUT_HALF_SIZE}`);
+		expect(layout.viewBox).toBe('-126 -126 252 252');
+	});
+
+	it('leaves a wide space between Heidrun and the sectors, and between two sectors', () => {
+		const layout = MireLayout.compute(twoWorkspaces());
+		for (const workspace of layout.workspaces) {
+			const [x, y] = workspace.sectorPath.split(' ').slice(1, 3).map(Number);
+			expect(Math.hypot(x, y)).toBeCloseTo(MIRE_WORKSPACE_RING - 70, 1);
+		}
+		const [first, second] = layout.workspaces;
+		expect(second.startAngle - first.endAngle).toBeCloseTo(0.24, 2);
+	});
+
+	it('gives every sector the same outer radius, the radius of the deepest workspace', () => {
+		const layout = MireLayout.compute(twoWorkspaces());
+		expect(layout.workspaces.map((workspace) => workspace.outerRadius)).toEqual([MIRE_SUBAGENT_RING + 34, MIRE_SUBAGENT_RING + 34]);
+	});
+
+	it('fits the view box to the drawn graph with a margin, so that the graph fills the window', () => {
+		const layout = MireLayout.compute(twoWorkspaces());
+		const halfSize = Math.max(...layout.workspaces.map((workspace) => workspace.outerRadius));
+		const [x, y, width, height] = layout.viewBox.split(' ').map(Number);
+		expect(width).toBe(height);
+		expect(x).toBe(-width / 2);
+		expect(y).toBe(-height / 2);
+		expect(width / 2).toBeGreaterThanOrEqual(halfSize + 24);
+		expect(width / 2).toBeLessThan(MIRE_LAYOUT_HALF_SIZE);
 	});
 
 	it('puts the workspaces on the first ring, the coding agents on the second, and the subagents on the third', () => {
@@ -105,6 +134,17 @@ describe('MireLayout.compute', () => {
 		expect(layout.codingAgents).toHaveLength(4);
 		expect(layout.codingAgents.every((codingAgent) => radius(codingAgent) === MIRE_CODING_AGENT_RING)).toBe(true);
 		expect(layout.subagents.map((subagent) => radius(subagent))).toEqual([MIRE_SUBAGENT_RING, MIRE_SUBAGENT_RING]);
+		const heidrunLinks = layout.links.filter((link) => link.fromNodeId === 'heidrun');
+		expect(heidrunLinks).toHaveLength(2);
+		expect(heidrunLinks.every((link) => link.x1 === 0 && link.y1 === 0)).toBe(true);
+		expect(heidrunLinks.every((link) => link.path === `M 0 0 L ${link.x2} ${link.y2}`)).toBe(true);
+		const otherLinks = layout.links.filter((link) => link.fromNodeId !== 'heidrun');
+		expect(otherLinks.length).toBeGreaterThan(0);
+		for (const link of otherLinks) {
+			// A curve from the parent to the child, and the same curve back for the drops of mead.
+			expect(link.path).toMatch(new RegExp(`^M ${link.x1} ${link.y1} Q .* ${link.x2} ${link.y2}$`));
+			expect(link.climbPath).toMatch(new RegExp(`^M ${link.x2} ${link.y2} Q .* ${link.x1} ${link.y1}$`));
+		}
 	});
 
 	it('gives the same layout for the same model, and moves nothing when only a status changes', () => {
@@ -157,6 +197,32 @@ describe('MireLayout.compute', () => {
 		const layout = MireLayout.compute(model);
 		for (const workspace of layout.workspaces.slice(1)) {
 			expect(workspace.endAngle - workspace.startAngle).toBeGreaterThanOrEqual(0.4);
+		}
+	});
+});
+
+describe('MireLayout.compute, workspace labels', () => {
+	it('puts the box of each workspace label on the line to Heidrun, at the first third from the hexagon, at every angle', () => {
+		const workspaces = Array.from({ length: 7 }, (_, index) => MireTestFixtures.workspace(`w${index}`, index + 1, `a workspace with a long name ${index}`));
+		const layout = MireLayout.compute(MireModelBuilder.build(MireTestFixtures.input({
+			workspaces,
+		})));
+		expect(layout.workspaces).toHaveLength(7);
+		for (const workspace of layout.workspaces) {
+			const distance = Math.hypot(workspace.labelX, workspace.labelY);
+			const cross = workspace.labelX * workspace.y - workspace.labelY * workspace.x;
+			expect(Math.abs(cross) / distance).toBeLessThan(0.05 * MIRE_WORKSPACE_RING);
+			expect(workspace.labelX * workspace.x + workspace.labelY * workspace.y).toBeGreaterThan(0);
+			const across = Math.abs(workspace.labelX / distance);
+			const along = Math.abs(workspace.labelY / distance);
+			const reach = across * (workspace.labelWidth / 2) + along * (MIRE_WORKSPACE_LABEL_HEIGHT / 2);
+			expect(distance - reach).toBeGreaterThanOrEqual(MIRE_HEIDRUN_RADIUS + 11);
+			expect(distance + reach).toBeLessThanOrEqual(MIRE_WORKSPACE_RING - MIRE_HEXAGON_RADIUS);
+			expect(workspace.labelText.length).toBeGreaterThanOrEqual(4);
+			// At the first third of the line from the hexagon, or as near to the hexagon as the box allows.
+			const firstThird = MIRE_WORKSPACE_RING - (MIRE_WORKSPACE_RING - MIRE_HEIDRUN_RADIUS) / 3;
+			const roomToHexagon = MIRE_WORKSPACE_RING - MIRE_HEXAGON_RADIUS - 5 - (distance + reach);
+			expect(Math.min(Math.abs(firstThird - distance), roomToHexagon)).toBeLessThan(0.05);
 		}
 	});
 });

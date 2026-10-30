@@ -37,7 +37,8 @@ defineProps<{
           :data-select-node-id="codingAgent.nodeId"
           @click="MireStore.select(codingAgent.nodeId)"
         >
-          <span class="badge theme-secondary font-monospace">{{ MireViewTexts.agentBadge(codingAgent.agent) }}</span>
+          <i v-if="MireViewTexts.agentIcon(codingAgent.agent) !== null" class="bi" :class="`bi-${MireViewTexts.agentIcon(codingAgent.agent)}`" role="img" :aria-label="MireViewTexts.agentName(codingAgent.agent)" :data-badge="MireViewTexts.agentIcon(codingAgent.agent)"></i>
+          <span v-else class="badge theme-secondary font-monospace" :data-badge="MireViewTexts.agentBadge(codingAgent.agent)">{{ MireViewTexts.agentBadge(codingAgent.agent) }}</span>
           <span class="me-auto text-break">{{ codingAgent.label ?? MireViewTexts.agentName(codingAgent.agent) }}</span>
           <span v-if="MireViewTexts.freshnessText(codingAgent.facts.freshness) !== null" class="badge theme-warning">{{ MireViewTexts.freshnessText(codingAgent.facts.freshness) }}</span>
           <MireStatusText :status="codingAgent.status" />
