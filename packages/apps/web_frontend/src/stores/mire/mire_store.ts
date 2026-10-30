@@ -6,7 +6,8 @@ import { MireMessages } from '../../lib/mire/mire_messages';
 import { MireModelBuilder } from '../../lib/mire/mire_model_builder';
 import type { MireFreshness, MireMessage, MireModel, MireVisibleStatus } from '../../lib/mire/mire_model_types';
 import type { MireObservations } from '../../lib/mire/observation_types';
-import { allPanes, selectPane, state as sessionState } from '../session';
+import { allPanes, refresh as refreshSession, selectPane, state as sessionState } from '../session';
+import { MireWindowSession } from './mire_window_session';
 import { MireNavigation, type MireNodeEntry, type MireVisibility } from './mire_navigation';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -17,6 +18,15 @@ import { MireNavigation, type MireNodeEntry, type MireVisibility } from './mire_
 
 /** The Tauri event that carries each collection of the live observations. */
 export const MIRE_OBSERVATIONS_EVENT = 'mire://observations';
+
+/** Where the Mire views of this window show: in the modal over the main window, or in the separate Mire window. */
+export type MireDisplayMode = 'modal' | 'window';
+
+/**
+ * What "Open in Heidrun Code" did: `opened` shows the pane in the main window, `gone` found no such pane in the Herdr
+ * snapshot read just before, and `unavailable` could not read the Herdr snapshot.
+ */
+export type MireOpenResult = 'opened' | 'gone' | 'unavailable';
 
 /** How often the view checks the age of the observations, in milliseconds, so that a silent collector shows stale. */
 const CLOCK_INTERVAL_MS = 2_000;
@@ -39,6 +49,10 @@ export const mireState = reactive({
 	selectedFreshness: null as MireFreshness | null,
 	/** The status of the active filter, or null for no filter. */
 	filter: null as MireVisibleStatus | null,
+	/** Why the last "Open in Heidrun Code" opened nothing, or null. */
+	openFailure: null as Exclude<MireOpenResult, 'opened'> | null,
+	/** Where the Mire views of this window show. `start_mire_window.ts` sets `window` before it mounts the view. */
+	displayMode: 'modal' as MireDisplayMode,
 });
 
 /** The Mire model, built again when the Herdr data or the observations change. */
@@ -97,7 +111,7 @@ export class MireViewConnection {
 	/** Builds a connection with a new view identifier. */
 	constructor() {
 		connectionCount += 1;
-		this.viewId = `mire_view_${Date.now()}_${connectionCount}`;
+		this.viewId = `mire_view_${mireState.displayMode}_${Date.now()}_${connectionCount}`;
 	}
 
 	/**
@@ -153,6 +167,7 @@ export class MireViewConnection {
 			await api.mireUnsubscribe(this.viewId).catch(() => undefined);
 		}
 		mireState.observations = null;
+		mireState.openFailure = null;
 	}
 
 	/**
@@ -253,17 +268,22 @@ export class MireStore {
 	}
 
 	/**
-	 * Shows the pane of a coding agent in the main window: its workspace, its tab, and the pane itself.
+	 * Shows the pane of a coding agent in the main window: its workspace, its tab, and the pane itself. The Herdr snapshot
+	 * is read again just before, so that a pane that moved opens at its current place, and a pane that is gone opens
+	 * nothing. The separate Mire window asks the main window, which reads the snapshot again before it selects the pane.
 	 * @param paneId The pane identifier.
-	 * @returns True when the pane exists and is selected.
+	 * @returns What happened.
 	 */
-	static openInHeidrunCode(paneId: string): boolean {
-		const pane = allPanes.value.find((candidate) => candidate.pane_id === paneId);
-		if (pane === undefined) {
-			return false;
-		}
-		selectPane(pane);
-		return true;
+	static async openInHeidrunCode(paneId: string): Promise<MireOpenResult> {
+		mireState.openFailure = null;
+		const result = await MireStore._openInHeidrunCode(paneId);
+		mireState.openFailure = result === 'opened' ? null : result;
+		return result;
+	}
+
+	/** Removes the message of the last "Open in Heidrun Code" that opened nothing. */
+	static clearOpenFailure(): void {
+		mireState.openFailure = null;
 	}
 
 	/**
@@ -278,5 +298,48 @@ export class MireStore {
 			lines: 40,
 		});
 		return transcripts.find((transcript) => transcript.id === subagentId)?.lines ?? null;
+	}
+
+	/**
+	 * Sets where the Mire views of this window show. `start_mire_window.ts` calls it with `window`.
+	 * @param displayMode The display mode of this window.
+	 */
+	static useDisplayMode(displayMode: MireDisplayMode): void {
+		mireState.displayMode = displayMode;
+	}
+
+	/**
+	 * Reads the Herdr snapshot of the main window again.
+	 * @returns True when Herdr answered.
+	 */
+	private static async _refreshMainWindow(): Promise<boolean> {
+		await refreshSession();
+		return sessionState.connected;
+	}
+
+	/**
+	 * Reads the Herdr snapshot again, then shows the pane in the main window, or asks the main window to show it.
+	 * @param paneId The pane identifier.
+	 * @returns What happened.
+	 */
+	private static async _openInHeidrunCode(paneId: string): Promise<MireOpenResult> {
+		const isRead = mireState.displayMode === 'window' ? await MireWindowSession.refresh() : await MireStore._refreshMainWindow();
+		if (isRead === false) {
+			return 'unavailable';
+		}
+		const pane = allPanes.value.find((candidate) => candidate.pane_id === paneId);
+		if (pane === undefined) {
+			return 'gone';
+		}
+		if (mireState.displayMode === 'window') {
+			try {
+				await api.mireOpenInMainWindow(paneId);
+			} catch {
+				return 'unavailable';
+			}
+			return 'opened';
+		}
+		selectPane(pane);
+		return 'opened';
 	}
 }

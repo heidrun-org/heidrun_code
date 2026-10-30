@@ -31,6 +31,8 @@
   --voice-wait: #ffa53a;
 
   --accent: #f2a93b;
+  /* The gold of the horns of Heidrun, for Heidrun at the centre of the Mire. */
+  --heidrun-gold: #e0b04f;
   --line-modal: #33383e;
   --pane-ring-selected: #33506f;
   --pane-ring-blocked: #5c2826;
@@ -157,6 +159,7 @@
   --voice-wait: #c46a00;
 
   --accent: #945800;
+  --heidrun-gold: #946200;
   --line-modal: #cbcbc4;
   --pane-ring-selected: #aec3de;
   --pane-ring-blocked: #e6bcb9;

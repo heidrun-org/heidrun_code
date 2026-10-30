@@ -68,6 +68,23 @@ export function mireUnsubscribe(viewId: string): Promise<void> {
 }
 
 /**
+ * Opens the separate Mire window, or gives the focus to the Mire window that is already open.
+ * @returns `opened` for a new window, `focused` when the window was already open.
+ */
+export function mireWindowOpen(): Promise<"opened" | "focused"> {
+  return invoke<"opened" | "focused">("mire_window_open");
+}
+
+/**
+ * Called by the separate Mire window: asks the main window to show one pane, and gives the focus to the main window.
+ * @param paneId - The pane identifier.
+ * @returns A promise that ends when the request is sent.
+ */
+export function mireOpenInMainWindow(paneId: string): Promise<void> {
+  return invoke("mire_open_in_main_window", { paneId });
+}
+
+/**
  * The folder of the Claude Code observer mod, ready for `claude --plugin-dir`.
  * @returns The absolute folder, or null when the application has no observer mod.
  */
