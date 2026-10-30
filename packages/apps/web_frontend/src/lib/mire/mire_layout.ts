@@ -45,17 +45,23 @@ const LABEL_FONT_SIZE = 11;
 /** The mean width of one character of a label, in units of the view box. */
 const CHARACTER_WIDTH = LABEL_FONT_SIZE * 0.6;
 
-/** The size of the text of the workspace labels, in units of the view box. */
+/**
+ * The size of the text of a workspace label that has room, in units of the view box. A longer name gets a smaller text,
+ * so that the full name always shows (issue 982).
+ */
 export const MIRE_WORKSPACE_LABEL_FONT_SIZE = 12;
 
-/** The height of the box of a workspace label. */
-export const MIRE_WORKSPACE_LABEL_HEIGHT = 22;
+/** The smallest size of the text of a workspace label. A name too long for this size makes its box go past its room. */
+export const MIRE_WORKSPACE_LABEL_MINIMUM_FONT_SIZE = 7;
 
-/** The mean width of one character of a workspace label. */
-const WORKSPACE_LABEL_CHARACTER_WIDTH = MIRE_WORKSPACE_LABEL_FONT_SIZE * 0.6;
+/** The mean width of one character of a workspace label, for each unit of the size of its text. */
+const WORKSPACE_LABEL_CHARACTER_SHARE = 0.6;
 
-/** The space between the text of a workspace label and the left or right border of its box. */
-const WORKSPACE_LABEL_PADDING = 10;
+/** The height of the box of a workspace label, for each unit of the size of its text. */
+const WORKSPACE_LABEL_HEIGHT_SHARE = 22 / 12;
+
+/** The space between the text of a workspace label and the left or right border of its box, for each unit of size. */
+const WORKSPACE_LABEL_PADDING_SHARE = 10 / 12;
 
 /** The outer radius of Heidrun with the marks of its sight ring. */
 const HEIDRUN_OUTER_RADIUS = MIRE_HEIDRUN_RADIUS + 11;
@@ -93,12 +99,14 @@ export type MireLayoutWorkspace = {
 	sectorPath: string;
 	/** The SVG points of the hexagon. */
 	hexagonPoints: string;
-	/** The text of the label: the exact name, shortened with an ellipsis when it is too long. */
+	/** The text of the label: the exact and full name, never shortened. */
 	labelText: string;
-	/** True when the label is shortened: the full name is then in the title. */
-	isLabelTruncated: boolean;
+	/** The size of the text of the label: smaller for a long name. */
+	labelFontSize: number;
 	/** The width of the box of the label. */
 	labelWidth: number;
+	/** The height of the box of the label. */
+	labelHeight: number;
 	/** The centre of the box of the label, on the line between Heidrun and the hexagon. */
 	labelX: number;
 	/** The centre of the box of the label, on the line between Heidrun and the hexagon. */
@@ -301,35 +309,49 @@ export class MireLayout {
 
 	/**
 	 * Places the label of a workspace on the line between Heidrun and the hexagon, as in the proposal of issue 955: at the
-	 * first third of the line from the hexagon, or nearer to Heidrun when the box would touch the hexagon. The name is
-	 * shortened so that its box fits between the two, whatever the angle of the line.
+	 * first third of the line from the hexagon, or nearer to Heidrun when the box would touch the hexagon. The full name
+	 * always shows: the text gets smaller so that its box fits between the two, whatever the angle of the line, and fits
+	 * in the arc of the sector. Below the smallest size, the box goes past its room (issue 982).
 	 * @param name The name of the workspace.
 	 * @param angle The angle of the line, in radians.
 	 * @param arcLength The length of the arc of the sector on the workspace ring.
-	 * @returns The text, the width of the box, and the centre of the box.
+	 * @returns The size of the text, the width and the height of the box, and the centre of the box.
 	 */
 	private static _placeWorkspaceLabel(
 		name: string,
 		angle: number,
 		arcLength: number,
-	): { text: string; width: number; x: number; y: number } {
+	): { fontSize: number; width: number; height: number; x: number; y: number } {
 		const innerLimit = HEIDRUN_OUTER_RADIUS + WORKSPACE_LABEL_SPACE;
 		const outerLimit = MIRE_WORKSPACE_RING - MIRE_HEXAGON_RADIUS - WORKSPACE_LABEL_SPACE;
 		const halfRoom = (outerLimit - innerLimit) / 2;
 		const across = Math.abs(Math.cos(angle));
 		const along = Math.abs(Math.sin(angle));
-		// The box reaches `across * halfWidth + along * halfHeight` along a line at this angle.
-		const halfWidthRoom = across < 0.01 ? Infinity : (halfRoom - along * (MIRE_WORKSPACE_LABEL_HEIGHT / 2)) / across;
-		const roomCharacters = Math.floor((2 * halfWidthRoom - 2 * WORKSPACE_LABEL_PADDING) / WORKSPACE_LABEL_CHARACTER_WIDTH);
-		const arcCharacters = Math.floor(arcLength / WORKSPACE_LABEL_CHARACTER_WIDTH);
-		const text = MireLayout.truncate(name, MireLayout._clamp(Math.min(roomCharacters, arcCharacters), 4, 24));
-		const width = MireLayout._round([...text].length * WORKSPACE_LABEL_CHARACTER_WIDTH + 2 * WORKSPACE_LABEL_PADDING);
-		const reach = across * (width / 2) + along * (MIRE_WORKSPACE_LABEL_HEIGHT / 2);
+		const characterCount = [...name].length;
+		// For a text of size 1: the box reaches `across * halfWidth + along * halfHeight` along a line at this angle.
+		const unitWidth = characterCount * WORKSPACE_LABEL_CHARACTER_SHARE + 2 * WORKSPACE_LABEL_PADDING_SHARE;
+		const unitReach = across * (unitWidth / 2) + along * (WORKSPACE_LABEL_HEIGHT_SHARE / 2);
+		const lineFontSize = halfRoom / unitReach;
+		const arcFontSize = arcLength / unitWidth;
+		// Rounded down, so that the rounding never makes the box larger than its room.
+		const fontSize = Math.floor(MireLayout._clamp(
+			Math.min(lineFontSize, arcFontSize),
+			MIRE_WORKSPACE_LABEL_MINIMUM_FONT_SIZE,
+			MIRE_WORKSPACE_LABEL_FONT_SIZE,
+		) * 100) / 100;
+		const width = MireLayout._round(unitWidth * fontSize);
+		const height = MireLayout._round(WORKSPACE_LABEL_HEIGHT_SHARE * fontSize);
+		const reach = across * (width / 2) + along * (height / 2);
 		const firstThird = MIRE_WORKSPACE_RING - (MIRE_WORKSPACE_RING - MIRE_HEIDRUN_RADIUS) / 3;
-		const centre = MireLayout._point(MireLayout._clamp(firstThird, innerLimit + reach, outerLimit - reach), angle);
+		// A box larger than its room stays centred in the room.
+		const distance = reach > halfRoom
+			? innerLimit + halfRoom
+			: MireLayout._clamp(firstThird, innerLimit + reach, outerLimit - reach);
+		const centre = MireLayout._point(distance, angle);
 		return {
-			text,
+			fontSize,
 			width,
+			height,
 			x: centre.x,
 			y: centre.y,
 		};
@@ -381,9 +403,10 @@ export class MireLayout {
 			outerRadius,
 			sectorPath: MireLayout._sectorPath(SECTOR_INNER_RADIUS, outerRadius, startAngle, endAngle),
 			hexagonPoints: MireLayout.hexagonPoints(centre.x, centre.y, MIRE_HEXAGON_RADIUS),
-			labelText: label.text,
-			isLabelTruncated: label.text !== workspace.label,
+			labelText: workspace.label,
+			labelFontSize: label.fontSize,
 			labelWidth: label.width,
+			labelHeight: label.height,
 			labelX: label.x,
 			labelY: label.y,
 		});

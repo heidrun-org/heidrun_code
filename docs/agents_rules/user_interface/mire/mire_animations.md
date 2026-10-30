@@ -5,7 +5,7 @@
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Mire graph and sidebar](mire_graph_and_sidebar.md), [Mire data and statuses](mire_data_and_statuses.md), [Glossary of Heidrun Code: Mire](../../glossary/mire.md)
-- Related issue: [issue 968](https://github.com/heidrun-org/heidrun_code/issues/968), [issue 974](https://github.com/heidrun-org/heidrun_code/issues/974)
+- Related issue: [issue 968](https://github.com/heidrun-org/heidrun_code/issues/968), [issue 974](https://github.com/heidrun-org/heidrun_code/issues/974), [issue 982](https://github.com/heidrun-org/heidrun_code/issues/982)
 
 This file gives the rules of the animations of the radial graph of the Mire, and of the links of the messages. The code is in `packages/apps/web_frontend/src/components/mire` (`MireGraph.vue`, `MireGraphEffects.vue`, `mire_graph_animations.css`, `mire_message_arcs.ts`), `packages/apps/web_frontend/src/stores/mire/mire_animations.ts`, and `packages/apps/web_frontend/src/lib/mire/mire_transitions.ts`.
 
@@ -13,7 +13,7 @@ This file gives the rules of the animations of the radial graph of the Mire, and
 
 The colors are the status colors of Heidrun Code: `--working` purple, `--blocked` red, `--done` green, and `--idle` gray. The glow of a blocked element is red.
 
-- Working: the dot breathes, a small dot turns around it, and drops of mead climb the line from the node to its parent.
+- Working: the dot breathes, a small dot turns around it in 1 second, and drops of mead climb the line from the node to its parent. The drops are 50 units of the drawing apart, and move 50 units in 0.5 second (100 units each second), so they have the same spacing and the same speed on every line ([issue 982](https://github.com/heidrun-org/heidrun_code/issues/982)). The small dot (radius 2.5 around a coding agent, 2 around a subagent) and the drops (4 units wide) are gold (`--heidrun-gold`), with a strong gold glow: an SVG filter of two blurs made 4 and 8 times more opaque, because a CSS drop-shadow on an SVG element did not show in the web view of macOS; the line and the dot of the node keep the color of the status ([issue 982](https://github.com/heidrun-org/heidrun_code/issues/982)).
 - Blocked: waves leave the dot, and the hexagon of the workspace has a red glow.
 - Finished: a single burst for each real completion, then the still Finished look.
 - Idle and unknown: no animation.

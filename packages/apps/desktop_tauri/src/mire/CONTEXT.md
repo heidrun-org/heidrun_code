@@ -5,7 +5,7 @@ The live observation sources of the Mire: the one shared collector that reads th
 
 ## Key Exports & Entry Points
 - `collector.rs`: the Tauri commands `mire_subscribe` and `mire_unsubscribe`, the event `mire://observations`, and `forget_window`, which removes the views of a closed window.
-- `mire_window.rs`: the Tauri commands `mire_window_open` (one window with the label `mire`, or focus) and `mire_open_in_main_window` (the event `mire://open-pane` to the main window only), and `on_window_destroyed`, which `lib.rs` calls.
+- `mire_window.rs`: the Tauri commands `mire_window_open` (one window with the label `mire`, or focus) and `mire_open_in_main_window` (the event `mire://open-in-main-window`, with a workspace, a tab, or a pane, to the main window only), and `on_window_destroyed`, which `lib.rs` calls.
 - `claude_observer_mod.rs`: the Tauri commands `mire_claude_observer_mod_path` (the copy of the bundled mod, ready for `claude --plugin-dir`) and `mire_claude_observation_folder` (the folder for the variable `HEIDRUN_MIRE_OBSERVATION_DIR`).
 - `codex_chat_preparation.rs`: the Tauri command `codex_prepare_chat`, `thread/start` then `thread/name/set`, which gives null when the shared Codex server is not available.
 - `local_network.rs`: the Tauri commands `mire_local_network_status`, `mire_local_network_enable`, `mire_local_network_disable`, and `mire_local_network_new_key`, `start_if_enabled` and `stop_on_quit`, and the handler of the package `mire_server`: the state of the Mire and the files of the page.

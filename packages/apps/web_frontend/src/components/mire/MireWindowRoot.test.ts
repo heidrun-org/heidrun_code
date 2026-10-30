@@ -32,6 +32,7 @@ import MireDialog from "./MireDialog.vue";
 import { state } from "../../stores/session";
 import { MireModal } from "../../stores/mire/mire_modal";
 import { MireStore, mireState } from "../../stores/mire/mire_store";
+import { MIRE_SIDEBAR_WIDTH_KEY } from "../../stores/mire/mire_sidebar_width";
 import { MireViewTestSupport, TEST_NODES } from "./mire_view_test_support";
 
 let wrapper: VueWrapper | null = null;
@@ -102,9 +103,35 @@ describe("MireWindowRoot, the page of the separate Mire window", () => {
     await flushPromises();
     const commands = invoke.mock.calls.map((call) => call[0]);
     expect(commands.lastIndexOf("herdr_request")).toBeLessThan(commands.indexOf("mire_open_in_main_window"));
-    expect(invoke).toHaveBeenCalledWith("mire_open_in_main_window", { paneId: "p3" });
+    expect(invoke).toHaveBeenCalledWith("mire_open_in_main_window", { kind: "pane", id: "p3" });
     expect(state.selectedPaneId).toBe(null);
     expect(wrapper.find("[data-mire-view]").exists()).toBe(true);
+  });
+
+  it("asks the main window to show a workspace, a tab, or a pane with a double click on the graph, and stays open", async () => {
+    wrapper = mount(MireWindowRoot, { attachTo: document.body });
+    await flushPromises();
+    await wrapper.get('[data-node-id="workspace:w2"]').trigger("dblclick");
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledWith("mire_open_in_main_window", { kind: "workspace", id: "w2" });
+    await wrapper.get(`[data-node-id="${TEST_NODES.codex}"] [data-tab-label]`).trigger("dblclick");
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledWith("mire_open_in_main_window", { kind: "tab", id: "w1:t2" });
+    expect(invoke).not.toHaveBeenCalledWith("mire_open_in_main_window", { kind: "pane", id: "p3" });
+    await wrapper.get(`[data-node-id="${TEST_NODES.codex}"]`).trigger("dblclick");
+    await flushPromises();
+    expect(invoke).toHaveBeenCalledWith("mire_open_in_main_window", { kind: "pane", id: "p3" });
+    expect(state.selectedPaneId).toBe(null);
+    expect(wrapper.find("[data-mire-view]").exists()).toBe(true);
+  });
+
+  it("takes the width of the right sidebar chosen in the modal, and has the same drag handle", async () => {
+    localStorage.setItem(MIRE_SIDEBAR_WIDTH_KEY, "500");
+    wrapper = mount(MireWindowRoot, { attachTo: document.body });
+    await flushPromises();
+    expect(wrapper.get("[data-mire-sidebar]").attributes("style")).toContain("width: 500px");
+    expect(wrapper.find("[data-mire-sidebar-resizer]").exists()).toBe(true);
+    localStorage.removeItem(MIRE_SIDEBAR_WIDTH_KEY);
   });
 
   it("shows a terminal preview that never takes the input focus and never resizes a terminal", async () => {

@@ -52,25 +52,31 @@
 .mire-animated .mire-wave { animation: mire-wave 2s ease-out infinite; }
 .mire-animated .mire-wave-late { animation-delay: -1s; }
 
-/* Working: the dot breathes, a small dot turns around it, and drops of mead climb the line to its parent. */
+/* Working: the dot breathes, a small dot turns around it, and drops of mead climb the line to its parent. The small
+   dot and the drops are gold, with a gold glow, and move fast; the line and the dot of the node keep the color of the
+   status. */
 .mire-animated .mire-status-working > .mire-dot {
   transform-box: fill-box;
   transform-origin: center;
   animation: mire-breathe 2.4s ease-in-out infinite;
 }
 .mire-orbit-turn { transform-box: fill-box; transform-origin: center; }
+/* The bounds circle reaches past the small dot, so that the turn stays centred on the node. */
 .mire-orbit-bounds { fill: none; stroke: none; }
-.mire-orbit-dot { fill: var(--working); }
-.mire-animated .mire-orbit-turn { animation: mire-turn 3s linear infinite; }
+.mire-orbit-dot { fill: var(--heidrun-gold); }
+/* The gold glow of the small dot and of the drops is an SVG filter of MireGraph.vue: two blurs of the shape in gold,
+   made 4 and 8 times more opaque, under the shape. A CSS drop-shadow on an SVG element did not show in the web view of macOS. */
+.mire-gold-flood { flood-color: var(--heidrun-gold); flood-opacity: 1; }
+.mire-animated .mire-orbit-turn { animation: mire-turn 1s linear infinite; }
 
 .mire-drops {
   fill: none;
-  stroke: var(--working);
+  stroke: var(--heidrun-gold);
   stroke-width: 4;
   stroke-linecap: round;
-  stroke-dasharray: 0.1 24.9;
+  stroke-dasharray: 0.1 49.9;
 }
-.mire-animated .mire-drops { animation: mire-drops 1.8s linear infinite; }
+.mire-animated .mire-drops { animation: mire-drops 0.5s linear infinite; }
 
 @keyframes mire-turn {
   from { transform: rotate(0deg); }
@@ -92,7 +98,9 @@
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.15); }
 }
+/* The dash pattern and the offset are in units of the drawing, not in parts of the line: the drops are 50 units apart
+   and move 50 units in each cycle of 0.5 second (100 units each second), so they have the same spacing and the same speed on a short and on a long line. */
 @keyframes mire-drops {
   from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -25; }
+  to { stroke-dashoffset: -50; }
 }

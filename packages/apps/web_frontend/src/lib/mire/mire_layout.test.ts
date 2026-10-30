@@ -7,7 +7,8 @@ import {
 	MIRE_HEXAGON_RADIUS,
 	MIRE_LAYOUT_HALF_SIZE,
 	MIRE_SUBAGENT_RING,
-	MIRE_WORKSPACE_LABEL_HEIGHT,
+	MIRE_WORKSPACE_LABEL_FONT_SIZE,
+	MIRE_WORKSPACE_LABEL_MINIMUM_FONT_SIZE,
 	MIRE_WORKSPACE_RING,
 	MireLayout,
 } from './mire_layout';
@@ -203,7 +204,8 @@ describe('MireLayout.compute', () => {
 
 describe('MireLayout.compute, workspace labels', () => {
 	it('puts the box of each workspace label on the line to Heidrun, at the first third from the hexagon, at every angle', () => {
-		const workspaces = Array.from({ length: 7 }, (_, index) => MireTestFixtures.workspace(`w${index}`, index + 1, `a workspace with a long name ${index}`));
+		const names = ['project-management', 'coding_agent_plugin', 'Heidrun Notebook', 'website', 'heidrun_data', 'a', 'promotional_videos'];
+		const workspaces = names.map((name, index) => MireTestFixtures.workspace(`w${index}`, index + 1, name));
 		const layout = MireLayout.compute(MireModelBuilder.build(MireTestFixtures.input({
 			workspaces,
 		})));
@@ -215,15 +217,32 @@ describe('MireLayout.compute, workspace labels', () => {
 			expect(workspace.labelX * workspace.x + workspace.labelY * workspace.y).toBeGreaterThan(0);
 			const across = Math.abs(workspace.labelX / distance);
 			const along = Math.abs(workspace.labelY / distance);
-			const reach = across * (workspace.labelWidth / 2) + along * (MIRE_WORKSPACE_LABEL_HEIGHT / 2);
+			const reach = across * (workspace.labelWidth / 2) + along * (workspace.labelHeight / 2);
 			expect(distance - reach).toBeGreaterThanOrEqual(MIRE_HEIDRUN_RADIUS + 11);
 			expect(distance + reach).toBeLessThanOrEqual(MIRE_WORKSPACE_RING - MIRE_HEXAGON_RADIUS);
-			expect(workspace.labelText.length).toBeGreaterThanOrEqual(4);
+			expect(workspace.labelFontSize).toBeGreaterThan(MIRE_WORKSPACE_LABEL_MINIMUM_FONT_SIZE);
+			expect(workspace.labelFontSize).toBeLessThanOrEqual(MIRE_WORKSPACE_LABEL_FONT_SIZE);
 			// At the first third of the line from the hexagon, or as near to the hexagon as the box allows.
 			const firstThird = MIRE_WORKSPACE_RING - (MIRE_WORKSPACE_RING - MIRE_HEIDRUN_RADIUS) / 3;
 			const roomToHexagon = MIRE_WORKSPACE_RING - MIRE_HEXAGON_RADIUS - 5 - (distance + reach);
 			expect(Math.min(Math.abs(firstThird - distance), roomToHexagon)).toBeLessThan(0.05);
 		}
+		// The full name always shows, never with an ellipsis (issue 982). A long name gets a smaller text.
+		expect(layout.workspaces.map((workspace) => workspace.labelText)).toEqual(names);
+		const shortName = layout.workspaces[names.indexOf('a')];
+		expect(shortName.labelFontSize).toBe(MIRE_WORKSPACE_LABEL_FONT_SIZE);
+		const longName = layout.workspaces[names.indexOf('coding_agent_plugin')];
+		expect(longName.labelFontSize).toBeLessThan(MIRE_WORKSPACE_LABEL_FONT_SIZE);
+	});
+
+	it('keeps the full name of a very long workspace name, at the smallest size of text, in the middle of its room', () => {
+		const name = 'a workspace with a very long name that never fits in the room of its label';
+		const layout = MireLayout.compute(MireModelBuilder.build(MireTestFixtures.input({
+			workspaces: [MireTestFixtures.workspace('w1', 1, name), MireTestFixtures.workspace('w2', 2, 'other')],
+		})));
+		const workspace = layout.workspaces[0];
+		expect(workspace.labelText).toBe(name);
+		expect(workspace.labelFontSize).toBe(MIRE_WORKSPACE_LABEL_MINIMUM_FONT_SIZE);
 	});
 });
 

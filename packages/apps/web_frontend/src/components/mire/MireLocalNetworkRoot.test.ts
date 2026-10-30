@@ -60,6 +60,16 @@ describe("MireLocalNetworkRoot, the Mire page of a phone or a tablet of the loca
     expect(invoke).not.toHaveBeenCalled();
   });
 
+  it("has no drag handle on the right sidebar, which keeps the width of the page, and opens nothing on a double click", async () => {
+    wrapper = mount(MireLocalNetworkRoot, { attachTo: document.body });
+    await flushPromises();
+    expect(wrapper.find("[data-mire-sidebar-resizer]").exists()).toBe(false);
+    expect(wrapper.get("[data-mire-sidebar]").attributes("style")).toBeUndefined();
+    await wrapper.get(`[data-node-id="${TEST_NODES.codex}"]`).trigger("dblclick");
+    await flushPromises();
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
   it("has no transcript preview for a subagent", async () => {
     MireStore.select(TEST_NODES.olivier);
     wrapper = mount(MireLocalNetworkRoot, { attachTo: document.body });

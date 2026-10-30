@@ -46,7 +46,10 @@ async function openInHeidrunCode() {
   }
   isOpening.value = true;
   try {
-    const result = await MireStore.openInHeidrunCode(props.codingAgent.paneId);
+    const result = await MireStore.openInHeidrunCode({
+      kind: "pane",
+      id: props.codingAgent.paneId,
+    });
     if (result === "opened") {
       emit("openedInHeidrunCode");
     }

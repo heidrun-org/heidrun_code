@@ -13,8 +13,10 @@ pub const MIRE_WINDOW_LABEL: &str = "mire";
 pub const MAIN_WINDOW_LABEL: &str = "main";
 /// The page of the separate Mire window: the page of the main window, with the query that `main.ts` reads.
 pub const MIRE_WINDOW_PAGE: &str = "index.html?window=mire";
-/// The event that asks the main window to show one pane. Only the main window receives it.
-pub const OPEN_PANE_EVENT: &str = "mire://open-pane";
+/// The event that asks the main window to show one workspace, one tab, or one pane. Only the main window receives it.
+pub const OPEN_IN_MAIN_WINDOW_EVENT: &str = "mire://open-in-main-window";
+/// The kinds of target that the main window can show.
+const OPEN_TARGET_KINDS: [&str; 3] = ["workspace", "tab", "pane"];
 /// The title of the separate Mire window.
 const MIRE_WINDOW_TITLE: &str = "Mire";
 /// The size that the window takes when the screen has room for it, in logical pixels.
@@ -118,28 +120,29 @@ pub async fn mire_window_open(app: AppHandle) -> Result<MireWindowOpening, Strin
     Ok(MireWindowOpening::Opened)
 }
 
-/// Called by the separate Mire window: asks the main window to show one pane, and gives the focus to the main window.
-/// The main window reads the Herdr session again before it selects the pane, and says when the pane is gone.
+/// Called by the separate Mire window: asks the main window to show one workspace, one tab, or one pane, and gives the
+/// focus to the main window. The main window reads the Herdr session again before it selects the target, and says when
+/// the target is gone.
 #[tauri::command]
-pub fn mire_open_in_main_window(app: AppHandle, pane_id: String) -> Result<(), String> {
+pub fn mire_open_in_main_window(app: AppHandle, kind: String, id: String) -> Result<(), String> {
+    let payload = open_in_main_window_payload(&kind, &id)?;
     let main_window = app
         .get_webview_window(MAIN_WINDOW_LABEL)
         .ok_or_else(|| "main_window_missing".to_string())?;
-    app.emit_to(
-        MAIN_WINDOW_LABEL,
-        OPEN_PANE_EVENT,
-        open_pane_payload(&pane_id),
-    )
-    .map_err(|error| format!("mire_open_in_main_window_failed: {error}"))?;
+    app.emit_to(MAIN_WINDOW_LABEL, OPEN_IN_MAIN_WINDOW_EVENT, payload)
+        .map_err(|error| format!("mire_open_in_main_window_failed: {error}"))?;
     let _ = main_window.unminimize();
     let _ = main_window.show();
     let _ = main_window.set_focus();
     Ok(())
 }
 
-/// The payload of the event `mire://open-pane`.
-fn open_pane_payload(pane_id: &str) -> serde_json::Value {
-    json!({ "paneId": pane_id })
+/// The payload of the event `mire://open-in-main-window`, or an error for an unknown kind of target.
+fn open_in_main_window_payload(kind: &str, id: &str) -> Result<serde_json::Value, String> {
+    if OPEN_TARGET_KINDS.contains(&kind) == false {
+        return Err(format!("mire_open_target_kind_unknown: {kind}"));
+    }
+    Ok(json!({ "kind": kind, "id": id }))
 }
 
 /// Called for every window event: the Mire views of a closed window leave the collector, and the Mire window closes
@@ -216,9 +219,21 @@ mod tests {
     }
 
     #[test]
-    fn the_request_to_open_a_pane_names_the_pane_only() {
-        assert_eq!(open_pane_payload("w1:p3"), json!({ "paneId": "w1:p3" }));
-        assert_eq!(OPEN_PANE_EVENT, "mire://open-pane");
+    fn the_request_to_open_names_the_kind_and_the_identifier_of_the_target() {
+        assert_eq!(
+            open_in_main_window_payload("pane", "w1:p3"),
+            Ok(json!({ "kind": "pane", "id": "w1:p3" }))
+        );
+        assert_eq!(
+            open_in_main_window_payload("tab", "w1:t2"),
+            Ok(json!({ "kind": "tab", "id": "w1:t2" }))
+        );
+        assert_eq!(
+            open_in_main_window_payload("workspace", "w1"),
+            Ok(json!({ "kind": "workspace", "id": "w1" }))
+        );
+        assert!(open_in_main_window_payload("subagent", "a1").is_err());
+        assert_eq!(OPEN_IN_MAIN_WINDOW_EVENT, "mire://open-in-main-window");
     }
 
     #[test]

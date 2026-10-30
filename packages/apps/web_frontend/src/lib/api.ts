@@ -76,12 +76,15 @@ export function mireWindowOpen(): Promise<"opened" | "focused"> {
 }
 
 /**
- * Called by the separate Mire window: asks the main window to show one pane, and gives the focus to the main window.
- * @param paneId - The pane identifier.
+ * Called by the separate Mire window: asks the main window to show one workspace, one tab, or one pane, and gives the
+ * focus to the main window.
+ * @param target - The kind of the target and its Herdr identifier.
+ * @param target.kind - `workspace`, `tab`, or `pane`.
+ * @param target.id - The Herdr identifier of the workspace, of the tab, or of the pane.
  * @returns A promise that ends when the request is sent.
  */
-export function mireOpenInMainWindow(paneId: string): Promise<void> {
-  return invoke("mire_open_in_main_window", { paneId });
+export function mireOpenInMainWindow(target: { kind: "workspace" | "tab" | "pane"; id: string }): Promise<void> {
+  return invoke("mire_open_in_main_window", { kind: target.kind, id: target.id });
 }
 
 /**
