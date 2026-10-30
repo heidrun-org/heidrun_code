@@ -126,7 +126,7 @@ async function onImageSettled(event: Event) {
 .splash-text {
   position: relative;
   width: 100%;
-  padding: 120px 24px 124px;
+  padding: 120px 24px 164px;
   text-align: center;
   color: var(--illustration-text);
   background: linear-gradient(to top, var(--illustration-caption), var(--illustration-fade));
@@ -134,7 +134,7 @@ async function onImageSettled(event: Event) {
 }
 .splash-title {
   margin: 0;
-  font-size: 128px;
+  font-size: 104px;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--illustration-accent);
@@ -145,7 +145,7 @@ async function onImageSettled(event: Event) {
   filter: drop-shadow(0 2px 6px var(--illustration-shadow));
 }
 .splash-motto {
-  font-size: 52px;
+  font-size: 60px;
   font-weight: 500;
   fill: var(--illustration-text);
 }
