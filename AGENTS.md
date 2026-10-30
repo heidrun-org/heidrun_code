@@ -138,6 +138,10 @@ The skill names no detail of this repository: it reads the values of this reposi
 - Chat rename: available in Claude Code only. The identifier of this chat is in the environment variable `CLAUDE_CODE_HOST_SESSION_ID`. Read it with `echo $CLAUDE_CODE_HOST_SESSION_ID`, then give it as `session_id` to the tool `mcp__ccd_session_mgmt__set_session_title`. Never search for this chat in the list of sessions: this chat is often missing from the list. For Codex, or when the variable is empty, the rename is not available.
 - Background: the Issue Fix Review exists because the developer cannot validate a change without the application ([issue 500](https://github.com/heidrun-org/heidrun/issues/500)), it has two separate messages ([issue 526](https://github.com/heidrun-org/heidrun/issues/526)), and the Issue Fix Implementation starts again after each change request ([issue 610](https://github.com/heidrun-org/heidrun/issues/610)).
 
+## Issue Batch Workflow
+
+A batch of related issues (one parent issue with two or more sub-issues) follows the skill [issue_batch_workflow](.agents/skills/issue_batch_workflow/SKILL.md), in place of the Issue Fix Workflow. Read the skill before you start, each time that the developer asks to fix such a batch. The skill uses the section "Issue Fix Workflow values" above.
+
 ## Bug Triage Workflow
 
 The Bug Triage Workflow keeps the list of open issues small. It has four steps: collect the open issues, classify each issue, report to the developer in the chat, and decide. A triage starts only when the developer asks for it in the chat. The coding agent closes an issue only when the developer names the number of the issue. The full steps are in the skill [bug_triage_workflow](.agents/skills/bug_triage_workflow/SKILL.md). Read the skill before you start a triage ([issue 655](https://github.com/heidrun-org/heidrun/issues/655)).
