@@ -1,0 +1,7 @@
+{
+  "name": "heidrun-mire-observer",
+  "version": "0.1.0",
+  "description": "Observes live subagent states, requests, and messages for the Mire investigation",
+  "author": { "name": "Heidrun Organization" },
+  "license": "MIT"
+}

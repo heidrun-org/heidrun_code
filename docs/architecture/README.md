@@ -1,7 +1,7 @@
 # Architecture of Heidrun Code
 
 - Created: 11 October 2026
-- Last updated: 17 October 2026
+- Last updated: 30 October 2026
 - Status: Maintained overview for people
 - Related framing: [Project instructions](../../AGENTS.md)
 
@@ -9,6 +9,7 @@ This folder describes how Heidrun Code is built. Each document in this folder ex
 
 - [product.md](product.md): what the product is, what the product is not, and what the user can inspect.
 - [information_sources.md](information_sources.md): the three sources of information that Heidrun Code reads.
+- [mire_live_information.md](mire_live_information.md): what the Mire can display from live information, with limitations and links to the real test evidence.
 - [technology.md](technology.md): the technology of Heidrun Code, the operating systems, the interface, and the installation.
 - [guards.md](guards.md): the built-in guards that stop a dangerous command, and the key `guards` of the file `.heidrun/config.json`.
 - [guards.md](guards.md): the built-in guards that stop a dangerous command, and the key `guards` of the file `.heidrun/config.json`.
