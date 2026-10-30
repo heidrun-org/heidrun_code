@@ -8,7 +8,7 @@ The Mire view: the static radial graph, the right sidebar with the counters, the
 - `MireDialog.vue` also has the button "Open in a separate window".
 - `MireWindowRoot.vue`: the page of the separate Mire window, mounted by `../../start_mire_window.ts`: the button of full screen, ⌘W, and the same `MireView.vue`.
 - `MireLocalNetworkRoot.vue`: the page of a phone or a tablet of the local network, mounted by `../../start_mire_local_network.ts`: the button of full screen when the web browser allows it, the message of a lost connection, and the same `MireView.vue`, with the sidebar below the graph on a narrow screen.
-- `MireView.vue`: the graph and the sidebar. It opens a `MireViewConnection` when it mounts and closes it when it unmounts, in both display modes. It emits `openedInHeidrunCode`.
+- `MireView.vue`: the graph, the drag handle of the width of the sidebar (`../Resizer.vue`, not on the local network), and the sidebar. It opens a `MireViewConnection` when it mounts and closes it when it unmounts, in both display modes. It emits `openedInHeidrunCode`.
 - `MireGraph.vue`: the SVG drawing, with the positions of `../../lib/mire/mire_layout.ts`, the selection by click, the keyboard moves, the pause button, and the animations of `mire_graph_animations.css`.
 - `MireGraphEffects.vue`: the short effects of the real transitions (burst, red flash, travel of a message), with the arcs of `mire_message_arcs.ts`.
 - `MireSidebar.vue`: the counters (`MireCounters.vue`), the coverage notices, the path (`MirePath.vue`), and one details component for Heidrun, a workspace or a tab, a coding agent, or a subagent.

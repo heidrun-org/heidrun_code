@@ -59,6 +59,7 @@ const tab = computed<MireTabNode | null>(() => (node.value.kind === "tab" ? node
 </template>
 
 <style scoped>
-/* The sidebar keeps its width next to the graph, and scrolls on its own. */
+/* The sidebar keeps its width next to the graph, and scrolls on its own. MireView.vue sets the width that the developer
+   drags; 380px is the default width, and the width on a device of the local network. */
 .mire-sidebar { width: 380px; flex-shrink: 0; min-height: 0; border-left: 1px solid var(--line); background: var(--side); }
 </style>

@@ -23,6 +23,7 @@ import MireDialog from "./MireDialog.vue";
 import { state } from "../../stores/session";
 import { MireModal, mireModal } from "../../stores/mire/mire_modal";
 import { MireStore, mireState } from "../../stores/mire/mire_store";
+import { MIRE_SIDEBAR_WIDTH_KEY } from "../../stores/mire/mire_sidebar_width";
 import { MireViewTestSupport, TEST_NODES } from "./mire_view_test_support";
 
 let wrapper: VueWrapper | null = null;
@@ -99,6 +100,54 @@ describe("MireDialog", () => {
     expect(state.selectedPaneId).toBe("p3");
     expect(mireModal.isOpen).toBe(false);
     expect(document.activeElement).not.toBe(terminal);
+  });
+
+  it("shows a workspace, a tab, or a pane in the main window with a double click on the graph, and closes", async () => {
+    wrapper = mount(MireDialog, { attachTo: document.body });
+    await flushPromises();
+    await wrapper.get('[data-node-id="workspace:w2"]').trigger("dblclick");
+    await flushPromises();
+    expect(state.selectedWorkspaceId).toBe("w2");
+    expect(mireModal.isOpen).toBe(false);
+
+    MireModal.open();
+    await wrapper.get('[data-sector-id="workspace:w1"]').trigger("dblclick");
+    await flushPromises();
+    expect(state.selectedWorkspaceId).toBe("w1");
+
+    MireModal.open();
+    await wrapper.get(`[data-node-id="${TEST_NODES.codex}"] [data-tab-label]`).trigger("dblclick");
+    await flushPromises();
+    expect(state.selectedWorkspaceId).toBe("w1");
+    expect(state.selectedTabId).toBe("w1:t2");
+    expect(mireModal.isOpen).toBe(false);
+
+    MireModal.open();
+    state.selectedPaneId = null;
+    await wrapper.get(`[data-node-id="${TEST_NODES.codexUnmatched}"]`).trigger("dblclick");
+    await flushPromises();
+    expect(state.selectedWorkspaceId).toBe("w2");
+    expect(state.selectedTabId).toBe("w2:t1");
+    expect(state.selectedPaneId).toBe("p4");
+    expect(mireModal.isOpen).toBe(false);
+  });
+
+  it("changes the width of the right sidebar with the drag handle on its left edge, and saves the width", async () => {
+    localStorage.removeItem(MIRE_SIDEBAR_WIDTH_KEY);
+    wrapper = mount(MireDialog, { attachTo: document.body });
+    await flushPromises();
+    const sidebar = wrapper.get("[data-mire-sidebar]");
+    expect(sidebar.attributes("style")).toContain("width: 380px");
+    const resizer = wrapper.get("[data-mire-sidebar-resizer]");
+    expect(resizer.attributes("role")).toBe("separator");
+    await resizer.trigger("keydown", { key: "ArrowLeft", shiftKey: true });
+    expect(sidebar.attributes("style")).toContain("width: 420px");
+    expect(localStorage.getItem(MIRE_SIDEBAR_WIDTH_KEY)).toBe("420");
+    await resizer.trigger("keydown", { key: "ArrowRight" });
+    expect(sidebar.attributes("style")).toContain("width: 410px");
+    await resizer.trigger("dblclick");
+    expect(sidebar.attributes("style")).toContain("width: 380px");
+    localStorage.removeItem(MIRE_SIDEBAR_WIDTH_KEY);
   });
 
   it("opens the separate window with its button, and closes the modal", async () => {

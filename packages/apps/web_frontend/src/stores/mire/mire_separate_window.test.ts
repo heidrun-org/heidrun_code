@@ -47,7 +47,7 @@ vi.mock('@tauri-apps/api/webview', () => ({
 }));
 
 import { state } from '../session';
-import { MIRE_OPEN_PANE_EVENT, MireSeparateWindow } from './mire_separate_window';
+import { MIRE_OPEN_IN_MAIN_WINDOW_EVENT, MireSeparateWindow } from './mire_separate_window';
 import { mireState } from './mire_store';
 
 beforeEach(() => {
@@ -80,9 +80,10 @@ describe('MireSeparateWindow', () => {
 
 	it('shows in the main window the pane that the separate window asks for, after a new reading of Herdr', async () => {
 		await MireSeparateWindow.listenToOpenRequests();
-		handlers.get(MIRE_OPEN_PANE_EVENT)?.({
+		handlers.get(MIRE_OPEN_IN_MAIN_WINDOW_EVENT)?.({
 			payload: {
-				paneId: 'p3',
+				kind: 'pane',
+				id: 'p3',
 			},
 		});
 		await flushPromises();
@@ -102,8 +103,11 @@ describe('MireSeparateWindow', () => {
 			panes: MireViewTestSupport.snapshot().panes.filter((pane) => pane.pane_id !== 'p3'),
 			agents: [],
 		};
-		expect(await MireSeparateWindow.openRequestedPane('p3')).toBe('gone');
+		expect(await MireSeparateWindow.openRequestedTarget({
+			kind: 'pane',
+			id: 'p3',
+		})).toBe('gone');
 		expect(state.selectedPaneId).not.toBe('p3');
-		expect(state.toast).toBe('This pane is gone: nothing was opened.');
+		expect(state.toast).toBe('It is not in the Herdr session any more: nothing was opened.');
 	});
 });

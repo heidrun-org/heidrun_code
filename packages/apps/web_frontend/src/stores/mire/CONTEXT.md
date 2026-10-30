@@ -8,9 +8,10 @@ The state of the Mire views of one window: the live observations, the Mire model
 - `mire_navigation.ts`: `MireNavigation`, the pure index, path, filter visibility, selection fallback, and keyboard moves.
 - `mire_animations.ts`: `mireAnimationState` (the pause and the effects) and `MireAnimations` (start on the mount of the graph, stop on the unmount, toggle the pause, remove an effect). It keeps the state of the previous models and the seen message identifiers of the open view.
 - `mire_modal.ts`: `mireModal` and `MireModal.open()` / `MireModal.close()` (which gives the focus back) / `MireModal.openInSeparateWindow()`.
-- `mire_separate_window.ts`: `MireSeparateWindow`, which opens the separate Mire window, and in the main window shows the pane that the window asks for with the event `mire://open-pane`.
+- `mire_separate_window.ts`: `MireSeparateWindow`, which opens the separate Mire window, and in the main window shows the workspace, the tab, or the pane that the window asks for with the event `mire://open-in-main-window`.
 - `mire_local_network_session.ts`: `MireLocalNetworkSession` and `mireLocalNetworkPageState`, the state of the Mire on the page of a device of the local network, read from the Mire server every second, kept in the session state and in the Mire state.
 - `mire_local_network_settings.ts`: `MireLocalNetworkSettings` and `mireLocalNetworkSettingsState`, the status, the switch, and the new pairing key of the section "Mire" of the Settings window.
+- `mire_sidebar_width.ts`: `mireSidebarWidth` and `MireSidebarWidth` (load, set), the width of the right sidebar, saved in `localStorage` and shared by the modal and the separate Mire window.
 - `mire_window_session.ts`: `MireWindowSession`, the Herdr snapshot of the separate Mire window, kept in the session state.
 - Command to run this folder: `pnpm --dir packages/apps/web_frontend exec vitest run src/stores/mire`
 

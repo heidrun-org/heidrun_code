@@ -6,7 +6,14 @@ import { MireMessages } from '../../lib/mire/mire_messages';
 import { MireModelBuilder } from '../../lib/mire/mire_model_builder';
 import type { MireFreshness, MireMessage, MireModel, MireVisibleStatus } from '../../lib/mire/mire_model_types';
 import type { MireObservations } from '../../lib/mire/observation_types';
-import { allPanes, refresh as refreshSession, selectPane, state as sessionState } from '../session';
+import {
+	allPanes,
+	refresh as refreshSession,
+	selectPane,
+	selectTab,
+	selectWorkspace,
+	state as sessionState,
+} from '../session';
 import { MireWindowSession } from './mire_window_session';
 import { MireNavigation, type MireNodeEntry, type MireVisibility } from './mire_navigation';
 
@@ -26,8 +33,19 @@ export const MIRE_OBSERVATIONS_EVENT = 'mire://observations';
 export type MireDisplayMode = 'modal' | 'window' | 'localNetwork';
 
 /**
- * What "Open in Heidrun Code" did: `opened` shows the pane in the main window, `gone` found no such pane in the Herdr
- * snapshot read just before, and `unavailable` could not read the Herdr snapshot.
+ * What "Open in Heidrun Code" shows in the main window: a workspace, a tab, or the pane of a coding agent. A double click
+ * on the graph opens the three kinds, and the button "Open in Heidrun Code" opens a pane.
+ */
+export type MireOpenTarget = {
+	/** The kind of the target. */
+	kind: 'workspace' | 'tab' | 'pane';
+	/** The Herdr identifier of the workspace, of the tab, or of the pane. */
+	id: string;
+};
+
+/**
+ * What "Open in Heidrun Code" did: `opened` shows the target in the main window, `gone` found no such target in the
+ * Herdr snapshot read just before, and `unavailable` could not read the Herdr snapshot.
  */
 export type MireOpenResult = 'opened' | 'gone' | 'unavailable';
 
@@ -281,15 +299,15 @@ export class MireStore {
 	}
 
 	/**
-	 * Shows the pane of a coding agent in the main window: its workspace, its tab, and the pane itself. The Herdr snapshot
-	 * is read again just before, so that a pane that moved opens at its current place, and a pane that is gone opens
-	 * nothing. The separate Mire window asks the main window, which reads the snapshot again before it selects the pane.
-	 * @param paneId The pane identifier.
+	 * Shows a workspace, a tab, or the pane of a coding agent in the main window. The Herdr snapshot is read again just
+	 * before, so that a pane that moved opens at its current place, and a target that is gone opens nothing. The separate
+	 * Mire window asks the main window, which reads the snapshot again before it selects the target.
+	 * @param target The workspace, the tab, or the pane.
 	 * @returns What happened.
 	 */
-	static async openInHeidrunCode(paneId: string): Promise<MireOpenResult> {
+	static async openInHeidrunCode(target: MireOpenTarget): Promise<MireOpenResult> {
 		mireState.openFailure = null;
-		const result = await MireStore._openInHeidrunCode(paneId);
+		const result = await MireStore._openInHeidrunCode(target);
 		mireState.openFailure = result === 'opened' ? null : result;
 		return result;
 	}
@@ -331,11 +349,11 @@ export class MireStore {
 	}
 
 	/**
-	 * Reads the Herdr snapshot again, then shows the pane in the main window, or asks the main window to show it.
-	 * @param paneId The pane identifier.
+	 * Reads the Herdr snapshot again, then shows the target in the main window, or asks the main window to show it.
+	 * @param target The workspace, the tab, or the pane.
 	 * @returns What happened.
 	 */
-	private static async _openInHeidrunCode(paneId: string): Promise<MireOpenResult> {
+	private static async _openInHeidrunCode(target: MireOpenTarget): Promise<MireOpenResult> {
 		if (mireState.displayMode === 'localNetwork') {
 			return 'unavailable';
 		}
@@ -343,19 +361,57 @@ export class MireStore {
 		if (isRead === false) {
 			return 'unavailable';
 		}
-		const pane = allPanes.value.find((candidate) => candidate.pane_id === paneId);
-		if (pane === undefined) {
+		if (MireStore._exists(target) === false) {
 			return 'gone';
 		}
 		if (mireState.displayMode === 'window') {
 			try {
-				await api.mireOpenInMainWindow(paneId);
+				await api.mireOpenInMainWindow(target);
 			} catch {
 				return 'unavailable';
 			}
 			return 'opened';
 		}
-		selectPane(pane);
+		MireStore._select(target);
 		return 'opened';
+	}
+
+	/**
+	 * Tells whether the target is in the Herdr snapshot.
+	 * @param target The workspace, the tab, or the pane.
+	 * @returns True when the snapshot has the target.
+	 */
+	private static _exists(target: MireOpenTarget): boolean {
+		if (target.kind === 'pane') {
+			return allPanes.value.some((pane) => pane.pane_id === target.id);
+		}
+		if (target.kind === 'tab') {
+			return (sessionState.snapshot?.tabs ?? []).some((tab) => tab.tab_id === target.id);
+		}
+		return (sessionState.snapshot?.workspaces ?? []).some((workspace) => workspace.workspace_id === target.id);
+	}
+
+	/**
+	 * Selects the target in the main window: the workspace, the tab with its workspace, or the pane with its tab and its
+	 * workspace. The target must be in the Herdr snapshot.
+	 * @param target The workspace, the tab, or the pane.
+	 */
+	private static _select(target: MireOpenTarget): void {
+		if (target.kind === 'pane') {
+			const pane = allPanes.value.find((candidate) => candidate.pane_id === target.id);
+			if (pane !== undefined) {
+				selectPane(pane);
+			}
+			return;
+		}
+		if (target.kind === 'tab') {
+			const tab = (sessionState.snapshot?.tabs ?? []).find((candidate) => candidate.tab_id === target.id);
+			if (tab !== undefined) {
+				selectWorkspace(tab.workspace_id);
+				selectTab(tab.tab_id);
+			}
+			return;
+		}
+		selectWorkspace(target.id);
 	}
 }

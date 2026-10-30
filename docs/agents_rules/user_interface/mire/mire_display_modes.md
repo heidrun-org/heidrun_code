@@ -30,10 +30,16 @@ This file gives the rules of the two display modes of the Mire: the modal over t
 - Each mounted view registers with its own view identifier (`mire_view_<mode>_…`), and the collector records the window of each view. Both modes share the one loop of collections.
 - Closing the modal removes only the view of the modal. Closing the Mire window removes only the views of that window, in Rust, because a closed window never unmounts its views.
 
+## Width of the right sidebar
+
+- The developer drags the left edge of the right sidebar to change its width, with `Resizer.vue`, in the modal and in the separate Mire window: 380 pixels by default, 280 at least, and the graph keeps 400 at least. A double click gives the default width back. The width is saved in `localStorage` and shared by the two modes. On a device of the local network, the sidebar has no drag handle.
+- The rule comes from [issue 982](https://github.com/heidrun-org/heidrun_code/issues/982).
+
 ## Actions
 
-- "Open in Heidrun Code" reads the Herdr snapshot again just before it acts. A pane that moved opens at its current workspace and tab. A pane that is gone opens nothing, and the sidebar shows "This pane is gone: nothing was opened." When Herdr does not answer, nothing opens and the sidebar says so.
-- From the Mire window, the action calls `mire_open_in_main_window`: the main window gets the event `mire://open-pane`, reads the snapshot again, selects the pane or shows the message, and takes the focus. The Mire window stays open.
+- "Open in Heidrun Code" shows a target in the main window: the pane of a coding agent (the button of the sidebar, or a double click on the dot), a tab (a double click on the label shaped like a tab), or a workspace (a double click on the hexagon or the sector).
+- "Open in Heidrun Code" reads the Herdr snapshot again just before it acts. A pane that moved opens at its current workspace and tab. A target that is gone opens nothing, and the sidebar shows "It is not in the Herdr session any more: nothing was opened." When Herdr does not answer, nothing opens and the sidebar says so.
+- From the Mire window, the action calls `mire_open_in_main_window` with the kind (`workspace`, `tab`, or `pane`) and the identifier of the target: the main window gets the event `mire://open-in-main-window`, reads the snapshot again, selects the target or shows the message, and takes the focus. The Mire window stays open.
 - No Approve button, and no control operation for a Codex child chat.
 - No voice input in the Mire: the voice input of Heidrun Code writes into the composition bar of the main window, and its owner and its queue live in the memory of the main window only, so the Mire window cannot target a pane with it safely.
 - The terminal preview reads `pane.read` only. It has no input element and no `tabindex`, so it never takes the focus and never resizes a terminal, in both modes.

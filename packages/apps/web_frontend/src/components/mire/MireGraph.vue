@@ -4,8 +4,6 @@ import babyGoatImage from "../../assets/baby_goat.webp";
 import {
   MIRE_HEIDRUN_RADIUS,
   MIRE_HEXAGON_RADIUS,
-  MIRE_WORKSPACE_LABEL_FONT_SIZE,
-  MIRE_WORKSPACE_LABEL_HEIGHT,
   MireLayout,
 } from "../../lib/mire/mire_layout";
 import type {
@@ -18,7 +16,15 @@ import type {
 import { MireTransitions } from "../../lib/mire/mire_transitions";
 import { MireAnimations, mireAnimationState } from "../../stores/mire/mire_animations";
 import { MireNavigation, type MireNavigationKey } from "../../stores/mire/mire_navigation";
-import { MireStore, mireIndex, mireModel, mireSelectedEntry, mireVisibility } from "../../stores/mire/mire_store";
+import {
+  MireStore,
+  mireIndex,
+  mireIsOnLocalNetwork,
+  mireModel,
+  mireSelectedEntry,
+  mireVisibility,
+  type MireOpenTarget,
+} from "../../stores/mire/mire_store";
 import Icon from "../Icon.vue";
 import MireGraphEffects from "./MireGraphEffects.vue";
 import type { MireNodePlace } from "./mire_message_arcs";
@@ -28,8 +34,9 @@ import { t } from "../../i18n/index";
 // The static radial graph of the Mire: Heidrun at the centre, the workspace hexagons on the first ring, one satellite
 // for each coding agent on the second ring, and the subagents on the third ring. The positions come from
 // `MireLayout`, which reads only the hierarchy: a status change never moves a node. A click on a node, on its label,
-// or in the sector of a workspace selects it. Tab and the arrow keys move the keyboard focus, Enter selects, and
-// Escape selects Heidrun again.
+// or in the sector of a workspace selects it. A double click shows the item in Heidrun Code, as "Open in Heidrun Code":
+// a workspace or its sector focuses the workspace, the label shaped like a tab focuses the tab, and a coding agent
+// focuses its pane. Tab and the arrow keys move the keyboard focus, Enter selects, and Escape selects Heidrun again.
 //
 // The animations are CSS animations on the static drawing, so they never move a node and never rebuild the graph:
 // Working breathes, with a small dot in orbit and drops of mead that climb the line to the parent; Blocked sends waves
@@ -38,7 +45,26 @@ import { t } from "../../i18n/index";
 // no status of its own: the lines and the nodes show the statuses. The short effects of the real transitions are in `MireGraphEffects.vue`. The pause button stops every
 // animation, the Mire starts paused when the system asks for reduced motion, and nothing runs after the unmount.
 
+const emit = defineEmits<{
+  /** A double click showed a workspace, a tab, or a pane in the main window: the modal closes. */
+  openedInHeidrunCode: [];
+}>();
+
 const layout = computed(() => MireLayout.compute(mireModel.value));
+
+/**
+ * The region of the glow of the drops, in the units of the drawing: the whole view box. A region measured on the box
+ * of a line would be empty for a straight horizontal or vertical line, and the drops of that line would not show.
+ */
+const dropsGlowRegion = computed(() => {
+  const [x, y, width, height] = layout.value.viewBox.split(" ").map(Number);
+  return {
+    x,
+    y,
+    width,
+    height,
+  };
+});
 const svg = ref<SVGSVGElement>();
 
 /** The number of keys in one row of the keyboard of Heidrun. */
@@ -311,6 +337,20 @@ function select(nodeId: string) {
   MireStore.select(nodeId);
 }
 
+/**
+ * Shows a workspace, a tab, or a pane in the main window, after a double click. On the local network, nothing opens.
+ * @param target The workspace, the tab, or the pane.
+ */
+async function openInHeidrunCode(target: MireOpenTarget) {
+  if (mireIsOnLocalNetwork.value === true) {
+    return;
+  }
+  const result = await MireStore.openInHeidrunCode(target);
+  if (result === "opened") {
+    emit("openedInHeidrunCode");
+  }
+}
+
 function focusNode(nodeId: string) {
   void nextTick(() => {
     const element = svg.value?.querySelector<SVGGElement>(`[data-node-id="${CSS.escape(nodeId)}"]`);
@@ -379,6 +419,49 @@ function onKeyDown(event: KeyboardEvent) {
           <stop offset="0%" class="mire-heidrun-glow-centre" />
           <stop offset="100%" class="mire-heidrun-glow-edge" />
         </radialGradient>
+        <filter id="mire-gold-glow-dot" x="-1000%" y="-1000%" width="2100%" height="2100%" color-interpolation-filters="sRGB" data-gold-glow>
+          <feFlood class="mire-gold-flood" result="gold" />
+          <feComposite in="gold" in2="SourceAlpha" operator="in" result="shape" />
+          <feGaussianBlur in="shape" stdDeviation="2.5" result="nearBlur" />
+          <feComponentTransfer in="nearBlur" result="near">
+            <feFuncA type="linear" slope="4" />
+          </feComponentTransfer>
+          <feGaussianBlur in="shape" stdDeviation="7" result="farBlur" />
+          <feComponentTransfer in="farBlur" result="far">
+            <feFuncA type="linear" slope="8" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode in="far" />
+            <feMergeNode in="near" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter
+          id="mire-gold-glow-drops"
+          filterUnits="userSpaceOnUse"
+          :x="dropsGlowRegion.x"
+          :y="dropsGlowRegion.y"
+          :width="dropsGlowRegion.width"
+          :height="dropsGlowRegion.height"
+          color-interpolation-filters="sRGB"
+          data-gold-glow
+        >
+          <feFlood class="mire-gold-flood" result="gold" />
+          <feComposite in="gold" in2="SourceAlpha" operator="in" result="shape" />
+          <feGaussianBlur in="shape" stdDeviation="2.5" result="nearBlur" />
+          <feComponentTransfer in="nearBlur" result="near">
+            <feFuncA type="linear" slope="4" />
+          </feComponentTransfer>
+          <feGaussianBlur in="shape" stdDeviation="7" result="farBlur" />
+          <feComponentTransfer in="farBlur" result="far">
+            <feFuncA type="linear" slope="8" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode in="far" />
+            <feMergeNode in="near" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       <g :key="sectorsDrawKey" class="mire-sectors">
         <path
@@ -395,6 +478,7 @@ function onKeyDown(event: KeyboardEvent) {
           :d="place.sectorPath"
           :data-sector-id="place.nodeId"
           @click="select(place.nodeId)"
+          @dblclick="openInHeidrunCode({ kind: 'workspace', id: node.workspaceId })"
         >
           <title>{{ node.label }}</title>
         </path>
@@ -412,7 +496,7 @@ function onKeyDown(event: KeyboardEvent) {
             v-if="isAnimated && status === 'working'"
             class="mire-drops"
             :d="link.climbPath"
-            pathLength="100"
+            filter="url(#mire-gold-glow-drops)"
             data-drops
           />
         </template>
@@ -481,6 +565,7 @@ function onKeyDown(event: KeyboardEvent) {
         :aria-label="workspaceDescription(node)"
         :aria-current="selectedNodeId === place.nodeId ? 'true' : undefined"
         @click="select(place.nodeId)"
+        @dblclick="openInHeidrunCode({ kind: 'workspace', id: node.workspaceId })"
       >
         <title>{{ workspaceDescription(node) }}</title>
         <polygon v-if="isAnimated && node.status === 'blocked'" class="mire-hexagon-glow" :points="place.hexagonPoints" data-hexagon-glow />
@@ -490,17 +575,17 @@ function onKeyDown(event: KeyboardEvent) {
         <rect
           class="mire-workspace-label-box"
           :x="place.labelX - place.labelWidth / 2"
-          :y="place.labelY - MIRE_WORKSPACE_LABEL_HEIGHT / 2"
+          :y="place.labelY - place.labelHeight / 2"
           :width="place.labelWidth"
-          :height="MIRE_WORKSPACE_LABEL_HEIGHT"
+          :height="place.labelHeight"
           rx="6"
           data-label-box
         />
         <text
           class="mire-workspace-label"
-          :font-size="MIRE_WORKSPACE_LABEL_FONT_SIZE"
+          :font-size="place.labelFontSize"
           :x="place.labelX"
-          :y="place.labelY + MIRE_WORKSPACE_LABEL_FONT_SIZE * 0.35"
+          :y="place.labelY + place.labelFontSize * 0.35"
           text-anchor="middle"
           data-label
         >{{ place.labelText }}</text>
@@ -516,6 +601,7 @@ function onKeyDown(event: KeyboardEvent) {
         :aria-label="codingAgentDescription(node, place.tabNodeId)"
         :aria-current="selectedNodeId === place.nodeId ? 'true' : undefined"
         @click="select(place.nodeId)"
+        @dblclick="openInHeidrunCode({ kind: 'pane', id: node.paneId })"
       >
         <title>{{ codingAgentDescription(node, place.tabNodeId) }}</title>
         <g v-if="isAnimated && node.status === 'blocked'" class="mire-waves" data-waves>
@@ -525,13 +611,18 @@ function onKeyDown(event: KeyboardEvent) {
         <g v-if="isAnimated && node.status === 'working'" class="mire-orbit" :transform="`translate(${place.x} ${place.y})`" data-orbit>
           <g class="mire-orbit-turn">
             <circle class="mire-orbit-bounds" r="20.5" />
-            <circle class="mire-orbit-dot" cx="18" cy="0" r="2.5" />
+            <circle class="mire-orbit-dot" cx="18" cy="0" r="2.5" filter="url(#mire-gold-glow-dot)" />
           </g>
         </g>
         <circle v-if="selectedNodeId === place.nodeId" class="mire-selection-ring" :cx="place.x" :cy="place.y" :r="CODING_AGENT_SELECTION_RADIUS" :style="selectionTurnStyle(CODING_AGENT_SELECTION_RADIUS)" data-selection-ring />
         <circle class="mire-dot" :cx="place.x" :cy="place.y" r="11" />
         <text class="mire-glyph" font-size="12" :x="place.x" :y="place.y + 4" text-anchor="middle">{{ MireViewTexts.statusGlyph(node.status) }}</text>
-        <g v-if="place.isLabelShown" class="mire-tab-label" data-tab-label>
+        <g
+          v-if="place.isLabelShown"
+          class="mire-tab-label"
+          data-tab-label
+          @dblclick.stop="openInHeidrunCode({ kind: 'tab', id: node.tabId })"
+        >
           <path class="mire-tab-shape" :d="tabShapePath(place.labelX, place.labelY, place.labelWidth)" />
           <line
             class="mire-tab-line"
@@ -581,7 +672,7 @@ function onKeyDown(event: KeyboardEvent) {
         <g v-if="isAnimated && node.status === 'working'" class="mire-orbit" :transform="`translate(${place.x} ${place.y})`" data-orbit>
           <g class="mire-orbit-turn">
             <circle class="mire-orbit-bounds" r="14" />
-            <circle class="mire-orbit-dot" cx="12" cy="0" r="2" />
+            <circle class="mire-orbit-dot" cx="12" cy="0" r="2" filter="url(#mire-gold-glow-dot)" />
           </g>
         </g>
         <circle v-if="selectedNodeId === place.nodeId" class="mire-selection-ring" :cx="place.x" :cy="place.y" :r="SUBAGENT_SELECTION_RADIUS" :style="selectionTurnStyle(SUBAGENT_SELECTION_RADIUS)" data-selection-ring />

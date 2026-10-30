@@ -178,7 +178,7 @@ describe("MireSidebar, coding agent selected", () => {
     await flushPromises();
     expect(state.selectedPaneId).not.toBe("p3");
     expect(sidebar.emitted("openedInHeidrunCode")).toBeUndefined();
-    expect(sidebar.get("[data-open-failure]").text()).toContain("This pane is gone: nothing was opened.");
+    expect(sidebar.get("[data-open-failure]").text()).toContain("It is not in the Herdr session any more: nothing was opened.");
     await sidebar.get("[data-open-failure] button").trigger("click");
     expect(sidebar.find("[data-open-failure]").exists()).toBe(false);
   });

@@ -213,7 +213,10 @@ describe('MireStore', () => {
 	});
 
 	it('selects the exact pane in the main window for "Open in Heidrun Code"', async () => {
-		expect(await MireStore.openInHeidrunCode('p1')).toBe('opened');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'pane',
+			id: 'p1',
+		})).toBe('opened');
 		expect(state.selectedWorkspaceId).toBe('w1');
 		expect(state.selectedTabId).toBe('w1:t1');
 		expect(state.selectedPaneId).toBe('p1');
@@ -221,6 +224,34 @@ describe('MireStore', () => {
 			method: 'session.snapshot',
 			params: {},
 		});
+	});
+
+	it('selects a workspace, or a tab with its workspace, in the main window, and opens nothing when it is gone', async () => {
+		const withTwoTabs = snapshot();
+		withTwoTabs.tabs.push(MireTestFixtures.tab('w1:t2', 'w1', 2, 'Second'));
+		herdrSnapshot = withTwoTabs;
+		state.selectedWorkspaceId = null;
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'workspace',
+			id: 'w1',
+		})).toBe('opened');
+		expect(state.selectedWorkspaceId).toBe('w1');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'tab',
+			id: 'w1:t2',
+		})).toBe('opened');
+		expect(state.selectedWorkspaceId).toBe('w1');
+		expect(state.selectedTabId).toBe('w1:t2');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'tab',
+			id: 'w1:t9',
+		})).toBe('gone');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'workspace',
+			id: 'w9',
+		})).toBe('gone');
+		expect(state.selectedTabId).toBe('w1:t2');
+		expect(mireState.openFailure).toBe('gone');
 	});
 
 	it('reads the Herdr snapshot again before "Open in Heidrun Code": a moved pane opens at its current place', async () => {
@@ -232,7 +263,10 @@ describe('MireStore', () => {
 		}));
 		moved.agents = moved.panes;
 		herdrSnapshot = moved;
-		expect(await MireStore.openInHeidrunCode('p1')).toBe('opened');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'pane',
+			id: 'p1',
+		})).toBe('opened');
 		expect(state.selectedTabId).toBe('w1:t2');
 		expect(state.selectedPaneId).toBe('p1');
 	});
@@ -244,19 +278,29 @@ describe('MireStore', () => {
 			panes: [],
 			agents: [],
 		};
-		expect(await MireStore.openInHeidrunCode('p1')).toBe('gone');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'pane',
+			id: 'p1',
+		})).toBe('gone');
 		expect(state.selectedPaneId).toBe(null);
 		herdrSnapshot = null;
-		expect(await MireStore.openInHeidrunCode('p1')).toBe('unavailable');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'pane',
+			id: 'p1',
+		})).toBe('unavailable');
 		expect(state.selectedPaneId).toBe(null);
 	});
 
 	it('in the separate window, asks the main window after the new reading, and never changes the selection itself', async () => {
 		mireState.displayMode = 'window';
 		state.selectedPaneId = null;
-		expect(await MireStore.openInHeidrunCode('p1')).toBe('opened');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'pane',
+			id: 'p1',
+		})).toBe('opened');
 		expect(invoke).toHaveBeenCalledWith('mire_open_in_main_window', {
-			paneId: 'p1',
+			kind: 'pane',
+			id: 'p1',
 		});
 		expect(state.selectedPaneId).toBe(null);
 		invoke.mockClear();
@@ -265,7 +309,10 @@ describe('MireStore', () => {
 			panes: [],
 			agents: [],
 		};
-		expect(await MireStore.openInHeidrunCode('p1')).toBe('gone');
+		expect(await MireStore.openInHeidrunCode({
+			kind: 'pane',
+			id: 'p1',
+		})).toBe('gone');
 		expect(invoke.mock.calls.some((call) => call[0] === 'mire_open_in_main_window')).toBe(false);
 	});
 

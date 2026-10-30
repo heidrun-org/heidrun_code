@@ -1,3 +1,5 @@
+import Fs from "node:fs";
+import Path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 
@@ -14,6 +16,18 @@ import { state } from "../../stores/session";
 import { mireAnimationState } from "../../stores/mire/mire_animations";
 import { mireState } from "../../stores/mire/mire_store";
 import { MireViewTestSupport, TEST_NODES, TEST_NOW_MS } from "./mire_view_test_support";
+
+const __dirname = import.meta.dirname;
+
+/** The style sheet of the animations of the graph. */
+const ANIMATIONS_CSS = Fs.readFileSync(Path.join(__dirname, "mire_graph_animations.css"), "utf8");
+
+/** Gives the declarations of one rule of the style sheet of the animations. */
+function cssRule(selector: string): string {
+  const start = ANIMATIONS_CSS.indexOf(`${selector} {`);
+  expect(start).toBeGreaterThanOrEqual(0);
+  return ANIMATIONS_CSS.slice(start, ANIMATIONS_CSS.indexOf("}", start));
+}
 
 let wrapper: VueWrapper | null = null;
 
@@ -88,6 +102,18 @@ describe("MireGraph animations", () => {
     const graph = await mountGraph();
     expect(graph.get("svg").classes()).toContain("mire-animated");
     expect(node(graph, TEST_NODES.claude).find("[data-orbit]").exists()).toBe(true);
+    expect(node(graph, TEST_NODES.claude).get(".mire-orbit-dot").attributes("r")).toBe("2.5");
+    expect(node(graph, TEST_NODES.olivier).get(".mire-orbit-dot").attributes("r")).toBe("2");
+    // The gold glow: an SVG filter with two blurs made more opaque, on the small dot and on the drops. The region of the drops is the
+    // whole view box, so that the drops of a straight line still show.
+    expect(node(graph, TEST_NODES.claude).get(".mire-orbit-dot").attributes("filter")).toBe("url(#mire-gold-glow-dot)");
+    expect(graph.get("[data-drops]").attributes("filter")).toBe("url(#mire-gold-glow-drops)");
+    expect(graph.get("[data-drops]").attributes("pathLength")).toBeUndefined();
+    expect(graph.get("#mire-gold-glow-dot").findAll("feGaussianBlur").map((blur) => blur.attributes("stdDeviation"))).toEqual(["2.5", "7"]);
+    expect(graph.get("#mire-gold-glow-dot").findAll("feFuncA").map((alpha) => alpha.attributes("slope"))).toEqual(["4", "8"]);
+    const [x, y, width, height] = graph.get("svg").attributes("viewBox")!.split(" ");
+    const dropsGlow = graph.get("#mire-gold-glow-drops");
+    expect([dropsGlow.attributes("x"), dropsGlow.attributes("y"), dropsGlow.attributes("width"), dropsGlow.attributes("height")]).toEqual([x, y, width, height]);
     expect(node(graph, TEST_NODES.olivier).find("[data-orbit]").exists()).toBe(true);
     expect(node(graph, TEST_NODES.codex).find("[data-waves]").exists()).toBe(true);
     expect(node(graph, TEST_NODES.bruno).find("[data-waves]").exists()).toBe(true);
@@ -102,6 +128,18 @@ describe("MireGraph animations", () => {
     expect(node(graph, "heidrun").find("[data-heidrun-glow]").exists()).toBe(true);
     expect(node(graph, "heidrun").get(".mire-heidrun-ring").attributes("class")).not.toMatch(/status/);
     expect(node(graph, "heidrun").get("[data-keyboard]").attributes("data-key-period-ms")).toBe("1600");
+  });
+
+  it("gives the dots of a working item a gold color with a gold glow and a fast move", () => {
+    expect(cssRule(".mire-orbit-dot")).toContain("fill: var(--heidrun-gold)");
+    expect(cssRule(".mire-gold-flood")).toContain("flood-color: var(--heidrun-gold)");
+    expect(cssRule(".mire-drops")).toContain("stroke: var(--heidrun-gold)");
+    expect(cssRule(".mire-drops")).toContain("stroke-width: 4");
+    // The same spacing and the same speed on every line: 50 units of the drawing, with no length of the line.
+    expect(cssRule(".mire-drops")).toContain("stroke-dasharray: 0.1 49.9");
+    expect(ANIMATIONS_CSS).toContain("to { stroke-dashoffset: -50; }");
+    expect(cssRule(".mire-animated .mire-orbit-turn")).toContain("mire-turn 1s linear");
+    expect(cssRule(".mire-animated .mire-drops")).toContain("mire-drops 0.5s linear");
   });
 
   it("makes the keyboard of Heidrun faster with more working coding agents, and still with none", async () => {
