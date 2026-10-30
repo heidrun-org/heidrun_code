@@ -5,11 +5,12 @@ import { WorkspaceFolders } from './workspace_folders';
 // "Nouvel agent": a tab named after the agent, Claude (or Codex) launched in it,
 // and the starting consigne sent once the agent is ready.
 import * as api from "../lib/api";
-import { allPanes, refresh, selectPane, sendPrompt, toast } from "./session";
+import { allPanes, refresh, selectPane, sendPrompt, tabLabel, toast } from "./session";
 import { resolveMacroVariables } from "./macros";
 import { t } from "../i18n/index";
 import { chatResumeCommand } from "../lib/chat_links";
 import { shellQuote } from "../lib/launcher_agent_command";
+import { prepareAgentCommand, reportPreparedCodexChat, type PreparedAgentCommand } from "./coding_agent_start";
 import type { PaneInfo } from "../lib/types";
 
 // Only plain names reach the shell command line, and quoted ("sonnet[1m]" is a glob for zsh).
@@ -87,8 +88,9 @@ export async function launchAgent(o: {
     return "failed";
   }
   let pane: PaneInfo;
+  let cwd: string | null;
   try {
-    const cwd = o.existingPane === undefined || o.existingPane === null
+    cwd = o.existingPane === undefined || o.existingPane === null
       ? WorkspaceFolders.require(o.workspaceId)
       : o.existingPane.foreground_cwd || o.existingPane.cwd || null;
     if ((await allowCommand(command, cwd, o.label)) === false) {
@@ -111,12 +113,22 @@ export async function launchAgent(o: {
   selectPane(pane);
   // Let the shell print its prompt before typing into it.
   await wait(400);
+  const isNewCodexChat = o.tool === "codex" && (o.resumeId === undefined || o.resumeId === null);
+  let prepared: PreparedAgentCommand = { command, codexChatId: null };
+  if (o.tool === "claude" || isNewCodexChat) {
+    prepared = await prepareAgentCommand(command, {
+      cwd,
+      name: o.label !== "" ? o.label : tabLabel(pane.tab_id),
+      model: o.model,
+    });
+  }
   try {
-    await api.run(pane.pane_id, command);
+    await api.run(pane.pane_id, prepared.command);
   } catch (e) {
     toast(t("agentsStore.launchFailed", { error: String(e) }));
     return "failed";
   }
+  await reportPreparedCodexChat(pane.pane_id, prepared);
   const text = o.prompt.trim();
   if (!text || o.tool === "agy") return "ok";
   const ready = await whenReady(pane.pane_id);

@@ -46,6 +46,55 @@ export function codexUsage(sessionIds: string[]): Promise<CodexUsage> {
   return invoke("codex_usage", { sessionIds });
 }
 
+// ---- Mire -----------------------------------------------------------------
+
+/**
+ * Registers one Mire view in the shared collector, and gives the latest observations. The collector then sends each
+ * collection as the event `mire://observations`, every 2 seconds, while at least one view is registered.
+ * @param viewId - The identifier of the view: the modal or the separate window.
+ * @returns The latest observations, in the shape of the observation contract of issue 968.
+ */
+export function mireSubscribe<T = unknown>(viewId: string): Promise<T> {
+  return invoke<T>("mire_subscribe", { viewId });
+}
+
+/**
+ * Removes one Mire view from the shared collector. Without a view, the collector stops reading.
+ * @param viewId - The identifier that `mireSubscribe` received.
+ * @returns A promise that ends when the view is removed.
+ */
+export function mireUnsubscribe(viewId: string): Promise<void> {
+  return invoke("mire_unsubscribe", { viewId });
+}
+
+/**
+ * The folder of the Claude Code observer mod, ready for `claude --plugin-dir`.
+ * @returns The absolute folder, or null when the application has no observer mod.
+ */
+export function mireClaudeObserverModPath(): Promise<string | null> {
+  return invoke<string | null>("mire_claude_observer_mod_path");
+}
+
+/**
+ * The folder where the Claude Code observer mod writes its snapshot files. The command creates it, private to the user.
+ * @returns The absolute folder.
+ */
+export function mireClaudeObservationFolder(): Promise<string> {
+  return invoke<string>("mire_claude_observation_folder");
+}
+
+/**
+ * Creates and names the chat of a new Codex pane on the shared Codex server, so that the pane starts
+ * `codex resume <identifier>` and Herdr knows its chat at once.
+ * @param cwd - The folder of the chat.
+ * @param name - The name of the chat: the tab name.
+ * @param model - The model, or null for the default model.
+ * @returns The chat identifier, or null when the shared Codex server is not available.
+ */
+export function codexPrepareChat(cwd: string, name: string, model: string | null): Promise<string | null> {
+  return invoke<string | null>("codex_prepare_chat", { cwd, name, model });
+}
+
 // ---- Layout ---------------------------------------------------------------
 
 export async function newTab(workspaceId: string, cwd?: string | null, label?: string): Promise<PaneInfo> {

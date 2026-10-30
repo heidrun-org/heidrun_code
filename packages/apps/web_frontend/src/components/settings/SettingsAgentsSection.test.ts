@@ -246,3 +246,24 @@ describe('composition bar setting (issue #726)', () => {
 		third.wrapper.unmount();
 	});
 });
+
+describe('Claude Code observer of the Mire (issue 969)', () => {
+	it('defaults to off and saves the choice through the switch', async () => {
+		const first = await mountSection();
+		const switchInput = first.wrapper.get('[data-option="mireClaudeObserver"] input[role="switch"]');
+		expect((switchInput.element as HTMLInputElement).checked).toBe(false);
+		expect(first.settings.mireClaudeObserver).toBe(false);
+		await switchInput.setValue(true);
+		await nextTick();
+		expect(JSON.parse(localStorage.getItem('heidrun.settings') ?? '{}').mireClaudeObserver).toBe(true);
+		first.wrapper.unmount();
+		vi.resetModules();
+		const second = await mountSection();
+		const restoredInput = second.wrapper.get('[data-option="mireClaudeObserver"] input[role="switch"]');
+		expect((restoredInput.element as HTMLInputElement).checked).toBe(true);
+		await restoredInput.setValue(false);
+		await nextTick();
+		expect(second.settings.mireClaudeObserver).toBe(false);
+		second.wrapper.unmount();
+	});
+});

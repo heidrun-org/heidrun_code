@@ -22,6 +22,7 @@ mod legacy;
 mod login_shell_path;
 mod herdr;
 mod macros;
+mod mire;
 mod mobile;
 mod past_chats;
 mod project;
@@ -368,6 +369,11 @@ pub fn run() {
             voice_words::voice_words_update,
             voice_words::voice_words_delete,
             usage::codex_usage,
+            mire::collector::mire_subscribe,
+            mire::collector::mire_unsubscribe,
+            mire::claude_observer_mod::mire_claude_observer_mod_path,
+            mire::claude_observer_mod::mire_claude_observation_folder,
+            mire::codex_chat_preparation::codex_prepare_chat,
             project::project_load,
             project::project_package_scripts,
             project::project_save,
