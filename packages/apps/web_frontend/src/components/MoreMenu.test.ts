@@ -11,10 +11,11 @@ async function mountMoreMenu() {
   const { settingsModal } = await import("../stores/settings");
   const { agentsInformationModal } = await import("../stores/agentsInformation");
   const { statisticsModal } = await import("../stores/statistics_modal");
+  const { mireModal } = await import("../stores/mire/mire_modal");
   const { findNewSkillsModal, installedSkillModal } = await import("../stores/skills");
   const { default: MoreMenu } = await import("./MoreMenu.vue");
   const wrapper = mount(MoreMenu, { attachTo: document.body });
-  return { wrapper, state, settingsModal, installedSkillModal, findNewSkillsModal, agentsInformationModal, statisticsModal };
+  return { wrapper, state, settingsModal, installedSkillModal, findNewSkillsModal, agentsInformationModal, statisticsModal, mireModal };
 }
 
 beforeEach(() => {
@@ -31,17 +32,17 @@ describe("MoreMenu", () => {
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);
   });
 
-  it("opens the menu with the entries Shortcuts help, Agents information, Statistics, Installed skill, Find new skills, and Settings when the button is clicked", async () => {
+  it("opens the menu with the entries Shortcuts help, Agents information, Mire, Statistics, Installed skill, Find new skills, and Settings when the button is clicked", async () => {
     const { wrapper } = await mountMoreMenu();
     await wrapper.get("button").trigger("click");
     const labels = wrapper.findAll('[role="menuitem"] .label');
-    expect(labels.map((label) => label.text())).toEqual(["Shortcuts help", "Agents information", "Statistics", "Installed skill", "Find new skills", "Settings"]);
+    expect(labels.map((label) => label.text())).toEqual(["Shortcuts help", "Agents information", "Mire", "Statistics", "Installed skill", "Find new skills", "Settings"]);
   });
 
   it("opens the Settings window and closes the menu when the entry Settings is clicked", async () => {
     const { wrapper, settingsModal } = await mountMoreMenu();
     await wrapper.get("button").trigger("click");
-    await wrapper.findAll('[role="menuitem"]')[5].trigger("click");
+    await wrapper.findAll('[role="menuitem"]')[6].trigger("click");
     expect(settingsModal.open).toBe(true);
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);
   });
@@ -80,14 +81,14 @@ describe("MoreMenu", () => {
     expect(group.get(".heading").text()).toBe("Skills");
     expect(group.findAll('[role="menuitem"] .label').map((label) => label.text())).toEqual(["Installed skill", "Find new skills"]);
     const children = Array.from(wrapper.get('[role="menu"]').element.children).map((child) => child.getAttribute("role"));
-    expect(children).toEqual(["menuitem", "menuitem", "menuitem", "separator", "group", "separator", "menuitem"]);
+    expect(children).toEqual(["menuitem", "menuitem", "menuitem", "menuitem", "separator", "group", "separator", "menuitem"]);
   });
 
   it("puts the entry Statistics in the first group, before the first separator line, with an icon and a title", async () => {
     const { wrapper } = await mountMoreMenu();
     await wrapper.get("button").trigger("click");
     const children = Array.from(wrapper.get('[role="menu"]').element.children);
-    const entry = wrapper.findAll('[role="menuitem"]')[2];
+    const entry = wrapper.findAll('[role="menuitem"]')[3];
     expect(entry.get(".label").text()).toBe("Statistics");
     expect(entry.find("i.bi-bar-chart").exists()).toBe(true);
     expect(entry.attributes("title")).not.toBe("");
@@ -98,16 +99,35 @@ describe("MoreMenu", () => {
     const { wrapper, statisticsModal, settingsModal } = await mountMoreMenu();
     expect(statisticsModal.open).toBe(false);
     await wrapper.get("button").trigger("click");
-    await wrapper.findAll('[role="menuitem"]')[2].trigger("click");
+    await wrapper.findAll('[role="menuitem"]')[3].trigger("click");
     expect(statisticsModal.open).toBe(true);
     expect(settingsModal.open).toBe(false);
+    expect(wrapper.find('[role="menu"]').exists()).toBe(false);
+  });
+
+  it("puts the entry Mire between the entries Agents information and Statistics, with an icon and a title", async () => {
+    const { wrapper } = await mountMoreMenu();
+    await wrapper.get("button").trigger("click");
+    const entry = wrapper.findAll('[role="menuitem"]')[2];
+    expect(entry.get(".label").text()).toBe("Mire");
+    expect(entry.find("i.bi-bullseye").exists()).toBe(true);
+    expect(entry.attributes("title")).toBe("Show every workspace, coding agent, and subagent with its status");
+  });
+
+  it("opens the Mire as a modal and closes the menu when the entry Mire is clicked", async () => {
+    const { wrapper, mireModal, statisticsModal } = await mountMoreMenu();
+    expect(mireModal.isOpen).toBe(false);
+    await wrapper.get("button").trigger("click");
+    await wrapper.findAll('[role="menuitem"]')[2].trigger("click");
+    expect(mireModal.isOpen).toBe(true);
+    expect(statisticsModal.open).toBe(false);
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);
   });
 
   it("opens the window Installed skill and closes the menu when the entry Installed skill is clicked", async () => {
     const { wrapper, installedSkillModal, findNewSkillsModal } = await mountMoreMenu();
     await wrapper.get("button").trigger("click");
-    await wrapper.findAll('[role="menuitem"]')[3].trigger("click");
+    await wrapper.findAll('[role="menuitem"]')[4].trigger("click");
     expect(installedSkillModal.open).toBe(true);
     expect(findNewSkillsModal.open).toBe(false);
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);
@@ -116,7 +136,7 @@ describe("MoreMenu", () => {
   it("opens the window Find new skills and closes the menu when the entry Find new skills is clicked", async () => {
     const { wrapper, installedSkillModal, findNewSkillsModal } = await mountMoreMenu();
     await wrapper.get("button").trigger("click");
-    await wrapper.findAll('[role="menuitem"]')[4].trigger("click");
+    await wrapper.findAll('[role="menuitem"]')[5].trigger("click");
     expect(findNewSkillsModal.open).toBe(true);
     expect(installedSkillModal.open).toBe(false);
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);

@@ -132,7 +132,8 @@ impl CodexConnection {
     }
 
     async fn receive_bytes(&mut self) -> Result<(), String> {
-        let mut chunk = [0u8; 65536];
+        // On the heap: a 64 kilobyte array inside the future overflowed the stack of a worker thread (issue 968).
+        let mut chunk = vec![0u8; 65536];
         let count = self.stream.read(&mut chunk).await.map_err(|error| error.to_string())?;
         if count == 0 {
             return Err("The Codex server closed the connection".into());
@@ -351,7 +352,7 @@ pub mod fake_server {
         F: Fn(&str, &Value) -> Answer + Send + Sync + 'static,
     {
         let mut buffer = Vec::new();
-        let mut chunk = [0u8; 65536];
+        let mut chunk = vec![0u8; 65536];
         while find(&buffer, b"\r\n\r\n").is_none() {
             let count = stream.read(&mut chunk).await.map_err(|error| error.to_string())?;
             if count == 0 {

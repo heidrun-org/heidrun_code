@@ -86,7 +86,9 @@ import MissingProgramsModal from "./components/MissingProgramsModal.vue";
 import ThreeJsDemoModal from "./components/ThreeJsDemoModal.vue";
 import { threeJsDemoModal } from "./stores/three_js_demo_modal";
 import StatisticsModal from "./components/StatisticsModal.vue";
+import MireDialog from "./components/mire/MireDialog.vue";
 import { statisticsModal } from "./stores/statistics_modal";
+import { mireModal } from "./stores/mire/mire_modal";
 import SplashScreen from "./components/SplashScreen.vue";
 import QuickOpenModal from "./components/QuickOpenModal.vue";
 import { quickOpen, QuickOpen } from "./stores/quick_open";
@@ -410,6 +412,7 @@ onBeforeUnmount(() => {
     <MacroEditor v-if="macroEditor.open" />
     <ThreeJsDemoModal v-if="threeJsDemoModal.open" />
     <StatisticsModal v-if="statisticsModal.open" />
+    <MireDialog v-if="mireModal.isOpen" />
     <NoteModal v-if="notes.openId" />
     <RcModal v-if="remote.openFor" />
     <MergeModal v-if="merging.open && merging.req" />

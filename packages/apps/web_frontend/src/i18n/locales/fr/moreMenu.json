@@ -6,6 +6,8 @@
   "shortcutsHelpTitle": "Ouvrir l'aide sur les raccourcis (⌘/)",
   "agentsInformationLabel": "Informations sur les agents",
   "agentsInformationTitle": "Afficher les quotas du compte et l’activité de tous les agents",
+  "mireLabel": "Mire",
+  "mireTitle": "Afficher chaque espace de travail, agent de code et sous-agent avec son statut",
   "statisticsLabel": "Statistiques",
   "statisticsTitle": "Afficher les statistiques : le temps d'activité de l'utilisateur, le travail d'une personne et le coût de l'IA",
   "skillsHeading": "Compétences",
