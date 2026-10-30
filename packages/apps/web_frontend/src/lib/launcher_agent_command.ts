@@ -17,7 +17,7 @@ export function launcherAgentCommand(agent: LauncherAgent): string {
 }
 
 /** The environment variable that gives the Claude Code observer mod the folder of its snapshot files. */
-export const MIRE_OBSERVATION_FOLDER_VARIABLE = "HEIDRUN_MIRE_OBSERVATION_DIR";
+export const HEIDRUN_CODE_DASHBOARD_OBSERVATION_FOLDER_VARIABLE = "HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR";
 
 /**
  * Splits a command line into its executable and the text after it.
@@ -72,11 +72,11 @@ export function codexResumeCommandFor(command: string, chatId: string): string |
 }
 
 /**
- * The command line that starts Claude Code with the observer mod of the Mire:
- * `HEIDRUN_MIRE_OBSERVATION_DIR='<folder>' claude --plugin-dir '<mod folder>'` followed by the other arguments.
+ * The command line that starts Claude Code with the observer mod of the Heidrun Code Dashboard:
+ * `HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR='<folder>' claude --plugin-dir '<mod folder>'` followed by the other arguments.
  * @param command - A command line that starts Claude Code, for example `claude --resume '<id>'`.
- * @param modFolder - The folder that the command `mire_claude_observer_mod_path` gave.
- * @param observationFolder - The folder that the command `mire_claude_observation_folder` gave.
+ * @param modFolder - The folder that the command `heidrun_code_dashboard_claude_observer_mod_path` gave.
+ * @param observationFolder - The folder that the command `heidrun_code_dashboard_claude_observation_folder` gave.
  * @returns The new command line, or null when the command is not an interactive Claude Code.
  */
 export function claudeObserverCommandFor(command: string, modFolder: string, observationFolder: string): string | null {
@@ -85,7 +85,7 @@ export function claudeObserverCommandFor(command: string, modFolder: string, obs
     return null;
   }
   return [
-    `${MIRE_OBSERVATION_FOLDER_VARIABLE}=${shellQuote(observationFolder)}`,
+    `${HEIDRUN_CODE_DASHBOARD_OBSERVATION_FOLDER_VARIABLE}=${shellQuote(observationFolder)}`,
     "claude",
     "--plugin-dir",
     shellQuote(modFolder),

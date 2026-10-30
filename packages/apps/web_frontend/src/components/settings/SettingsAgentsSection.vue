@@ -59,11 +59,11 @@ const COMPOSITION_BAR_HELP_BLOCKS = [
   },
 ] as const;
 
-/** The information card of the Claude Code observer of the Mire. */
-const MIRE_CLAUDE_OBSERVER_HELP_BLOCKS = [
-  { titleKey: "settingsHelp.whatTitle", textKey: "settingsHelp.mireClaudeObserver.what" },
-  { titleKey: "settingsHelp.onTitle", textKey: "settingsHelp.mireClaudeObserver.on" },
-  { titleKey: "settingsHelp.offTitle", textKey: "settingsHelp.mireClaudeObserver.off" },
+/** The information card of the Claude Code observer of the Heidrun Code Dashboard. */
+const HEIDRUN_CODE_DASHBOARD_CLAUDE_OBSERVER_HELP_BLOCKS = [
+  { titleKey: "settingsHelp.whatTitle", textKey: "settingsHelp.heidrunCodeDashboardClaudeObserver.what" },
+  { titleKey: "settingsHelp.onTitle", textKey: "settingsHelp.heidrunCodeDashboardClaudeObserver.on" },
+  { titleKey: "settingsHelp.offTitle", textKey: "settingsHelp.heidrunCodeDashboardClaudeObserver.off" },
 ] as const;
 
 const availableCommands = computed(() => NewTabCommands.available());
@@ -176,11 +176,11 @@ function onEnter(event: KeyboardEvent, agent: AgentDefinition) {
     </SettingsSwitchRow>
 
     <SettingsSwitchRow
-      v-model="settings.mireClaudeObserver"
-      :label="t('settingsAgents.mireClaudeObserver')"
-      data-option="mireClaudeObserver"
+      v-model="settings.heidrunCodeDashboardClaudeObserver"
+      :label="t('settingsAgents.heidrunCodeDashboardClaudeObserver')"
+      data-option="heidrunCodeDashboardClaudeObserver"
     >
-      <SettingsOptionHelp title-key="settingsAgents.mireClaudeObserver" :blocks="MIRE_CLAUDE_OBSERVER_HELP_BLOCKS" />
+      <SettingsOptionHelp title-key="settingsAgents.heidrunCodeDashboardClaudeObserver" :blocks="HEIDRUN_CODE_DASHBOARD_CLAUDE_OBSERVER_HELP_BLOCKS" />
     </SettingsSwitchRow>
 
     <div class="d-flex flex-column gap-2">

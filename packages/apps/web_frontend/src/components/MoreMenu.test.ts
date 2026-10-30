@@ -11,11 +11,11 @@ async function mountMoreMenu() {
   const { settingsModal } = await import("../stores/settings");
   const { agentsInformationModal } = await import("../stores/agentsInformation");
   const { statisticsModal } = await import("../stores/statistics_modal");
-  const { mireModal } = await import("../stores/mire/mire_modal");
+  const { heidrunCodeDashboardModal } = await import("../stores/heidrun_code_dashboard/heidrun_code_dashboard_modal");
   const { findNewSkillsModal, installedSkillModal } = await import("../stores/skills");
   const { default: MoreMenu } = await import("./MoreMenu.vue");
   const wrapper = mount(MoreMenu, { attachTo: document.body });
-  return { wrapper, state, settingsModal, installedSkillModal, findNewSkillsModal, agentsInformationModal, statisticsModal, mireModal };
+  return { wrapper, state, settingsModal, installedSkillModal, findNewSkillsModal, agentsInformationModal, statisticsModal, heidrunCodeDashboardModal };
 }
 
 beforeEach(() => {
@@ -32,11 +32,11 @@ describe("MoreMenu", () => {
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);
   });
 
-  it("opens the menu with the entries Shortcuts help, Agents information, Mire, Statistics, Installed skill, Find new skills, and Settings when the button is clicked", async () => {
+  it("opens the menu with the entries Shortcuts help, Agents information, Dashboard, Statistics, Installed skill, Find new skills, and Settings when the button is clicked", async () => {
     const { wrapper } = await mountMoreMenu();
     await wrapper.get("button").trigger("click");
     const labels = wrapper.findAll('[role="menuitem"] .label');
-    expect(labels.map((label) => label.text())).toEqual(["Shortcuts help", "Agents information", "Mire", "Statistics", "Installed skill", "Find new skills", "Settings"]);
+    expect(labels.map((label) => label.text())).toEqual(["Shortcuts help", "Agents information", "Dashboard", "Statistics", "Installed skill", "Find new skills", "Settings"]);
   });
 
   it("opens the Settings window and closes the menu when the entry Settings is clicked", async () => {
@@ -105,21 +105,21 @@ describe("MoreMenu", () => {
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);
   });
 
-  it("puts the entry Mire between the entries Agents information and Statistics, with an icon and a title", async () => {
+  it("puts the entry Dashboard between the entries Agents information and Statistics, with an icon and a title", async () => {
     const { wrapper } = await mountMoreMenu();
     await wrapper.get("button").trigger("click");
     const entry = wrapper.findAll('[role="menuitem"]')[2];
-    expect(entry.get(".label").text()).toBe("Mire");
+    expect(entry.get(".label").text()).toBe("Dashboard");
     expect(entry.find("i.bi-bullseye").exists()).toBe(true);
     expect(entry.attributes("title")).toBe("Show every workspace, coding agent, and subagent with its status");
   });
 
-  it("opens the Mire as a modal and closes the menu when the entry Mire is clicked", async () => {
-    const { wrapper, mireModal, statisticsModal } = await mountMoreMenu();
-    expect(mireModal.isOpen).toBe(false);
+  it("opens the Heidrun Code Dashboard as a modal and closes the menu when the entry Heidrun Code Dashboard is clicked", async () => {
+    const { wrapper, heidrunCodeDashboardModal, statisticsModal } = await mountMoreMenu();
+    expect(heidrunCodeDashboardModal.isOpen).toBe(false);
     await wrapper.get("button").trigger("click");
     await wrapper.findAll('[role="menuitem"]')[2].trigger("click");
-    expect(mireModal.isOpen).toBe(true);
+    expect(heidrunCodeDashboardModal.isOpen).toBe(true);
     expect(statisticsModal.open).toBe(false);
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);
   });

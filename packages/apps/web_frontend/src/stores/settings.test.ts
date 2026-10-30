@@ -486,6 +486,16 @@ describe("options of the window Create a custom launcher that were called custom
   });
 });
 
+describe("option of the Heidrun Code Dashboard that was called mireClaudeObserver (issue 989)", () => {
+  it("keeps the saved value under the name heidrunCodeDashboardClaudeObserver", async () => {
+    localStorage.setItem("heidrun.settings", JSON.stringify({ mireClaudeObserver: true }));
+    vi.resetModules();
+    const restarted = await import("./settings");
+    expect(restarted.settings.heidrunCodeDashboardClaudeObserver).toBe(true);
+    expect("mireClaudeObserver" in restarted.settings).toBe(false);
+  });
+});
+
 describe("sidebar section of the left sidebar that held the workspaces", () => {
   it.each(["workspaces", "workspacesAndTabs"])("shows the sidebar section Launchers when the saved sidebar section was %s, because the workspaces left the left sidebar", async (savedName) => {
     localStorage.setItem("heidrun.settings", JSON.stringify({ leftSidebarSection: savedName }));

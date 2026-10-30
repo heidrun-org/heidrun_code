@@ -8,7 +8,7 @@ import SettingsDynamicTopicsSection from "./settings/SettingsDynamicTopicsSectio
 import SettingsDesignSection from './settings/settings_design_section.vue';
 import SettingsGeneralSection from "./settings/SettingsGeneralSection.vue";
 import SettingsGuardsSection from "./settings/SettingsGuardsSection.vue";
-import SettingsMireSection from "./settings/SettingsMireSection.vue";
+import SettingsHeidrunCodeDashboardSection from "./settings/SettingsHeidrunCodeDashboardSection.vue";
 import SettingsMobileAccessSection from "./settings/SettingsMobileAccessSection.vue";
 import SettingsNotificationsSection from "./settings/SettingsNotificationsSection.vue";
 import SettingsSidebarsSection from "./settings/SettingsSidebarsSection.vue";
@@ -25,7 +25,7 @@ const SECTIONS: { id: SettingsSection; icon: string; labelKey: string }[] = [
   { id: "terminal", icon: "terminal", labelKey: "settingsModal.terminal" },
   { id: "textDetection", icon: "regex", labelKey: "settingsModal.textDetection" },
   { id: "agents", icon: "robot", labelKey: "settingsModal.agents" },
-  { id: "mire", icon: "bullseye", labelKey: "settingsModal.mire" },
+  { id: "heidrunCodeDashboard", icon: "bullseye", labelKey: "settingsModal.heidrunCodeDashboard" },
   { id: "confirmations", icon: "shield-check", labelKey: "settingsModal.confirmations" },
   { id: "guards", icon: "shield-exclamation", labelKey: "settingsModal.guards" },
   { id: "notifications", icon: "bell", labelKey: "settingsModal.notifications" },
@@ -86,7 +86,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
           <SettingsTerminalSection v-else-if="settingsModal.section === 'terminal'" />
           <SettingsTextDetectionSection v-else-if="settingsModal.section === 'textDetection'" />
           <SettingsAgentsSection v-else-if="settingsModal.section === 'agents'" />
-          <SettingsMireSection v-else-if="settingsModal.section === 'mire'" />
+          <SettingsHeidrunCodeDashboardSection v-else-if="settingsModal.section === 'heidrunCodeDashboard'" />
           <SettingsConfirmationsSection v-else-if="settingsModal.section === 'confirmations'" />
           <SettingsGuardsSection v-else-if="settingsModal.section === 'guards'" />
           <SettingsNotificationsSection v-else-if="settingsModal.section === 'notifications'" />

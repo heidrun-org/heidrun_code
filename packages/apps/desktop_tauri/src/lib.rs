@@ -22,7 +22,7 @@ mod legacy;
 mod login_shell_path;
 mod herdr;
 mod macros;
-mod mire;
+mod heidrun_code_dashboard;
 mod mobile;
 mod past_chats;
 mod project;
@@ -209,9 +209,9 @@ fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
     StateFlags::POSITION | StateFlags::SIZE | StateFlags::MAXIMIZED | StateFlags::FULLSCREEN
 }
 
-/// The windows that the window-state plugin never saves: the separate Mire window always opens at a reasonable size on
+/// The windows that the window-state plugin never saves: the separate Heidrun Code Dashboard window always opens at a reasonable size on
 /// the screen of the main window (issue 973).
-const WINDOW_STATE_DENYLIST: [&str; 1] = [mire::mire_window::MIRE_WINDOW_LABEL];
+const WINDOW_STATE_DENYLIST: [&str; 1] = [heidrun_code_dashboard::heidrun_code_dashboard_window::HEIDRUN_CODE_DASHBOARD_WINDOW_LABEL];
 
 /// True for the first call with this flag, false for every later call. The flag is set by the first call.
 fn claim_first_show(flag: &std::sync::atomic::AtomicBool) -> bool {
@@ -292,7 +292,7 @@ pub fn run() {
         .manage(pty::PtyState::default())
         .manage(herdr::StatusWatcher::default())
         .manage(mobile::MobileState::default())
-        .manage(mire::local_network::MireLocalNetworkState::default())
+        .manage(heidrun_code_dashboard::local_network::HeidrunCodeDashboardLocalNetworkState::default())
         .manage(html_preview::HtmlPreviewState::default())
         .manage(voice_commands::VoiceState::default())
         .manage(status_item::StatusItemState::default())
@@ -309,7 +309,7 @@ pub fn run() {
             app.set_menu(build_menu(app.handle())?)?;
             herdr::spawn_event_loop(app.handle().clone());
             mobile::start_if_enabled(app.handle());
-            mire::local_network::start_if_enabled(app.handle());
+            heidrun_code_dashboard::local_network::start_if_enabled(app.handle());
             status_item::create(app.handle())?;
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -333,9 +333,9 @@ pub fn run() {
             }
         })
         .on_window_event(|window, event| {
-            // Only the main window holds the file views: the separate Mire window always closes (issue 973).
+            // Only the main window holds the file views: the separate Heidrun Code Dashboard window always closes (issue 973).
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                if window.label() == mire::mire_window::MAIN_WINDOW_LABEL && UNSAVED.load(std::sync::atomic::Ordering::Relaxed) {
+                if window.label() == heidrun_code_dashboard::heidrun_code_dashboard_window::MAIN_WINDOW_LABEL && UNSAVED.load(std::sync::atomic::Ordering::Relaxed) {
                     api.prevent_close();
                     use tauri::Emitter;
                     let _ = window.emit("quit-blocked", ());
@@ -343,7 +343,7 @@ pub fn run() {
             }
             if let tauri::WindowEvent::Destroyed = event {
                 use tauri::Manager;
-                mire::mire_window::on_window_destroyed(window.app_handle(), window.label());
+                heidrun_code_dashboard::heidrun_code_dashboard_window::on_window_destroyed(window.app_handle(), window.label());
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -385,17 +385,17 @@ pub fn run() {
             voice_words::voice_words_update,
             voice_words::voice_words_delete,
             usage::codex_usage,
-            mire::collector::mire_subscribe,
-            mire::collector::mire_unsubscribe,
-            mire::claude_observer_mod::mire_claude_observer_mod_path,
-            mire::claude_observer_mod::mire_claude_observation_folder,
-            mire::codex_chat_preparation::codex_prepare_chat,
-            mire::mire_window::mire_window_open,
-            mire::mire_window::mire_open_in_main_window,
-            mire::local_network::mire_local_network_status,
-            mire::local_network::mire_local_network_enable,
-            mire::local_network::mire_local_network_disable,
-            mire::local_network::mire_local_network_new_key,
+            heidrun_code_dashboard::collector::heidrun_code_dashboard_subscribe,
+            heidrun_code_dashboard::collector::heidrun_code_dashboard_unsubscribe,
+            heidrun_code_dashboard::claude_observer_mod::heidrun_code_dashboard_claude_observer_mod_path,
+            heidrun_code_dashboard::claude_observer_mod::heidrun_code_dashboard_claude_observation_folder,
+            heidrun_code_dashboard::codex_chat_preparation::codex_prepare_chat,
+            heidrun_code_dashboard::heidrun_code_dashboard_window::heidrun_code_dashboard_window_open,
+            heidrun_code_dashboard::heidrun_code_dashboard_window::heidrun_code_dashboard_open_in_main_window,
+            heidrun_code_dashboard::local_network::heidrun_code_dashboard_local_network_status,
+            heidrun_code_dashboard::local_network::heidrun_code_dashboard_local_network_enable,
+            heidrun_code_dashboard::local_network::heidrun_code_dashboard_local_network_disable,
+            heidrun_code_dashboard::local_network::heidrun_code_dashboard_local_network_new_key,
             project::project_load,
             project::project_package_scripts,
             project::project_save,
@@ -516,7 +516,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 herdr::stop_session_on_quit(KEEP_AGENTS_RUNNING.load(std::sync::atomic::Ordering::Relaxed));
                 mobile::stop_on_quit(app);
-                mire::local_network::stop_on_quit(app);
+                heidrun_code_dashboard::local_network::stop_on_quit(app);
             }
         });
 }
@@ -557,8 +557,8 @@ mod tests {
     }
 
     #[test]
-    fn the_window_state_never_saves_the_separate_mire_window() {
-        assert_eq!(WINDOW_STATE_DENYLIST, ["mire"]);
+    fn the_window_state_never_saves_the_separate_heidrun_code_dashboard_window() {
+        assert_eq!(WINDOW_STATE_DENYLIST, ["heidrun_code_dashboard"]);
     }
 
     #[test]

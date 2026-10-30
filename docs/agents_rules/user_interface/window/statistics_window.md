@@ -11,7 +11,7 @@ This file is a part of the rules of the window of Heidrun Code. The words are de
 
 ## The item in the More menu
 
-- The More menu has the item "Statistics", with the icon `bar-chart` and a title (the tooltip). The item is in the first group of the menu, after the item "Mire" and before the first separator line.
+- The More menu has the item "Statistics", with the icon `bar-chart` and a title (the tooltip). The item is in the first group of the menu, after the item "Dashboard" and before the first separator line.
 - A click on the item opens the Statistics window and closes the More menu.
 
 ## The window

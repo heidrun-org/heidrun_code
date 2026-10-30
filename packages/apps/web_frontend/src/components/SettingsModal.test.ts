@@ -25,7 +25,7 @@ describe("SettingsModal: sections", () => {
   it("lists the thirteen sections in the sidebar, by topic (issues #556, #596, #638, #662, and #978), and without the old sections New tab, Mouse, Finished items, Needs you, and Past chats", async () => {
     const wrapper = await mountSettings();
     const entries = wrapper.findAll("nav .nav-link").map((entry) => entry.text());
-    expect(entries).toEqual(["General", "Color themes", "Terminal", "Text detection", "Coding agents", "Mire", "Confirmations", "Guards", "Notifications", "Sidebars", "Dynamic topics", "Mobile access", "Voice input"]);
+    expect(entries).toEqual(["General", "Color themes", "Terminal", "Text detection", "Coding agents", "Heidrun Code Dashboard", "Confirmations", "Guards", "Notifications", "Sidebars", "Dynamic topics", "Mobile access", "Voice input"]);
     wrapper.unmount();
   });
 

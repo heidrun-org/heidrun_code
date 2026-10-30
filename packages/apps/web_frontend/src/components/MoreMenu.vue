@@ -5,7 +5,7 @@ import { state } from "../stores/session";
 import { openAgentsInformationModal } from "../stores/agentsInformation";
 import { openSettings } from "../stores/settings";
 import { openStatisticsModal } from "../stores/statistics_modal";
-import { MireModal } from "../stores/mire/mire_modal";
+import { HeidrunCodeDashboardModal } from "../stores/heidrun_code_dashboard/heidrun_code_dashboard_modal";
 import { openFindNewSkillsModal, openInstalledSkillModal } from "../stores/skills";
 import { t } from "../i18n/index";
 
@@ -22,9 +22,9 @@ function chooseAgentsInformation() {
   openAgentsInformationModal();
 }
 
-function chooseMire() {
+function chooseHeidrunCodeDashboard() {
   open.value = false;
-  MireModal.open();
+  HeidrunCodeDashboardModal.open();
 }
 
 function chooseStatistics() {
@@ -79,9 +79,9 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocClick));
         <Icon name="people" />
         <span class="label">{{ t("moreMenu.agentsInformationLabel") }}</span>
       </button>
-      <button class="menu-item item" role="menuitem" :title="t('moreMenu.mireTitle')" @click="chooseMire()">
+      <button class="menu-item item" role="menuitem" :title="t('moreMenu.heidrunCodeDashboardTitle')" @click="chooseHeidrunCodeDashboard()">
         <Icon name="bullseye" />
-        <span class="label">{{ t("moreMenu.mireLabel") }}</span>
+        <span class="label">{{ t("moreMenu.heidrunCodeDashboardLabel") }}</span>
       </button>
       <button class="menu-item item" role="menuitem" :title="t('moreMenu.statisticsTitle')" @click="chooseStatistics()">
         <Icon name="bar-chart" />
