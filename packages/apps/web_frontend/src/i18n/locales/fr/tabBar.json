@@ -6,5 +6,6 @@
   "remoteControlBadge": "RC",
   "closeConfirm": "Fermer",
   "close": "Fermer l’onglet {name}",
-  "newTabTitle": "Créer un onglet avec la commande par défaut d’un nouvel onglet (clic avec majuscule : démarrer un terminal)"
+  "newTabTitle": "Créer un onglet avec la commande par défaut d’un nouvel onglet (clic avec majuscule : démarrer un terminal ; appui long : choisir la commande)",
+  "commandMenuLabel": "Commandes d’un nouvel onglet"
 }

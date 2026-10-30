@@ -6,5 +6,6 @@
   "remoteControlBadge": "RC",
   "closeConfirm": "Close",
   "close": "Close the tab {name}",
-  "newTabTitle": "Create a tab with the default command of a new tab (shift click: start a terminal)"
+  "newTabTitle": "Create a tab with the default command of a new tab (shift click: start a terminal; long press: choose the command)",
+  "commandMenuLabel": "Commands of a new tab"
 }

@@ -3,6 +3,7 @@ import { launchAgent } from './agents';
 import { newTerminal, newWorkspace, selectedWorkspace, splitPane } from './session';
 import { settings } from './settings';
 import type { PaneInfo } from '../lib/types';
+import type { NewTabCommand } from './new_tab_commands';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,6 +63,15 @@ export class NewPane {
 	}
 
 	/**
+	 * Starts one chosen command in a new tab, whatever the default command is, for the list of the plus button.
+	 * @param commandId - The command to start.
+	 * @returns A promise that ends when the application starts.
+	 */
+	static async startNewTab(commandId: NewTabCommand['id']): Promise<void> {
+		await NewPane._startDefaultPane(undefined, commandId, commandId);
+	}
+
+	/**
 	 * Creates a workspace and starts the preferred application in the workspace's first pane.
 	 * @param cwd - The workspace folder, absolute or starting with `~`.
 	 * @param label - The workspace name.
@@ -78,14 +88,18 @@ export class NewPane {
 	 * Starts a free coding agent with the default model and no starting prompt, or a terminal.
 	 * @param existingPane - A pane already created by a split or a new workspace.
 	 * @param label - The tab name, or an empty name to preserve the current tab name.
+	 * @param tool - The command to start, the default command of a new tab when omitted.
 	 * @returns A promise that ends when the application starts or reports a failure.
 	 */
-	private static async _startDefaultPane(existingPane?: PaneInfo, label: string = settings.newTabCommand): Promise<void> {
+	private static async _startDefaultPane(
+		existingPane?: PaneInfo,
+		label: string = settings.newTabCommand,
+		tool: NewTabCommand['id'] = settings.newTabCommand,
+	): Promise<void> {
 		const workspace = selectedWorkspace.value;
 		if (workspace === null || workspace === undefined) {
 			return;
 		}
-		const tool = settings.newTabCommand;
 		if (tool === 'terminal') {
 			if (existingPane === undefined) {
 				await newTerminal();

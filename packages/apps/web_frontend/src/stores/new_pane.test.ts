@@ -163,6 +163,36 @@ describe("the shortcut Command+T (issue #340)", () => {
   });
 });
 
+describe("the list of the commands of the plus button (issue #980)", () => {
+  it.each(["claude", "codex", "agy"] as const)("starts %s in a new tab, whatever the default command is", async (command) => {
+    const { settings } = await import("./settings");
+    settings.newTabCommand = "terminal";
+    const { NewPane } = await import("./new_pane");
+    await NewPane.startNewTab(command);
+    expect(launchAgent).toHaveBeenCalledTimes(1);
+    expect(launchAgent).toHaveBeenCalledWith(expect.objectContaining({ tool: command, label: command, agent: null, prompt: "" }));
+    expect(newTerminal).not.toHaveBeenCalled();
+  });
+
+  it("starts a terminal in a new tab when the default command is a coding agent", async () => {
+    const { settings } = await import("./settings");
+    settings.newTabCommand = "claude";
+    const { NewPane } = await import("./new_pane");
+    await NewPane.startNewTab("terminal");
+    expect(newTerminal).toHaveBeenCalledTimes(1);
+    expect(launchAgent).not.toHaveBeenCalled();
+  });
+
+  it("gives the terminal and only the coding agents switched on in the Settings window", async () => {
+    const { settings } = await import("./settings");
+    const { NewTabCommands } = await import("./new_tab_commands");
+    settings.ownedAgents = ["codex"];
+    expect(NewTabCommands.available().map((command) => command.id)).toEqual(["terminal", "codex"]);
+    settings.ownedAgents = ["claude", "codex", "antigravity"];
+    expect(NewTabCommands.available().map((command) => command.id)).toEqual(["terminal", "claude", "codex", "agy"]);
+  });
+});
+
 describe("the entry New workspace (issue #379)", () => {
   it("creates the workspace and opens no other tab when the default command is Terminal", async () => {
     const { NewPane } = await import("./new_pane");
