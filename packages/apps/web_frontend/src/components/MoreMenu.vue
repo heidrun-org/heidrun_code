@@ -5,6 +5,7 @@ import { state } from "../stores/session";
 import { openAgentsInformationModal } from "../stores/agentsInformation";
 import { openSettings } from "../stores/settings";
 import { openStatisticsModal } from "../stores/statistics_modal";
+import { MireModal } from "../stores/mire/mire_modal";
 import { openFindNewSkillsModal, openInstalledSkillModal } from "../stores/skills";
 import { t } from "../i18n/index";
 
@@ -19,6 +20,11 @@ function chooseShortcutsHelp() {
 function chooseAgentsInformation() {
   open.value = false;
   openAgentsInformationModal();
+}
+
+function chooseMire() {
+  open.value = false;
+  MireModal.open();
 }
 
 function chooseStatistics() {
@@ -72,6 +78,10 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocClick));
       <button class="menu-item item" role="menuitem" :title="t('moreMenu.agentsInformationTitle')" @click="chooseAgentsInformation()">
         <Icon name="people" />
         <span class="label">{{ t("moreMenu.agentsInformationLabel") }}</span>
+      </button>
+      <button class="menu-item item" role="menuitem" :title="t('moreMenu.mireTitle')" @click="chooseMire()">
+        <Icon name="bullseye" />
+        <span class="label">{{ t("moreMenu.mireLabel") }}</span>
       </button>
       <button class="menu-item item" role="menuitem" :title="t('moreMenu.statisticsTitle')" @click="chooseStatistics()">
         <Icon name="bar-chart" />

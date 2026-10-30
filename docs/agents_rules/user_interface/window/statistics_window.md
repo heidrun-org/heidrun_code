@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: Statistics window
 
 - Created: 15 October 2026
-- Last updated: 25 October 2026
+- Last updated: 30 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: user activity](../../glossary/user_activity.md), [User activity sidebar section](../sidebars/user_activity.md), [layout.md](layout.md), [Tab "User activity"](statistics_user_activity.md), [Tab "Work of one person"](statistics_person_work.md), [Glossary of Heidrun Code: status bar and information card tooltip](../../glossary/status_bar.md), [Data layer access](../../data_layer_access.md)
@@ -11,7 +11,7 @@ This file is a part of the rules of the window of Heidrun Code. The words are de
 
 ## The item in the More menu
 
-- The More menu has the item "Statistics", with the icon `bar-chart` and a title (the tooltip). The item is in the first group of the menu, after the item "Agents information" and before the first separator line.
+- The More menu has the item "Statistics", with the icon `bar-chart` and a title (the tooltip). The item is in the first group of the menu, after the item "Mire" and before the first separator line.
 - A click on the item opens the Statistics window and closes the More menu.
 
 ## The window

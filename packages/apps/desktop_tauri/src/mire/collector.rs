@@ -77,7 +77,8 @@ pub async fn mire_subscribe(app: AppHandle, view_id: String) -> MireObservations
         COLLECTOR.clone(),
         &view_id,
         COLLECTION_INTERVAL,
-        collect_once,
+        // Boxed: the future of a whole collection is large, and a worker thread has a small stack (issue 968).
+        || Box::pin(collect_once()),
         move |observations| {
             let _ = emitter.emit(OBSERVATIONS_EVENT, observations);
         },
@@ -156,13 +157,13 @@ pub async fn collect_once() -> MireObservations {
     let socket_path = codex_connection::shared_server_socket_path();
     let codex = match tokio::time::timeout(
         CODEX_COLLECTION_TIMEOUT,
-        codex_threads::collect(
+        Box::pin(codex_threads::collect(
             &socket_path,
             &root_thread_ids,
             MAXIMUM_CHILDREN_PER_ROOT,
             observed_at_ms,
             codex_errors.clone(),
-        ),
+        )),
     )
     .await
     {
@@ -213,6 +214,15 @@ mod tests {
             state.subscribe("modal"),
             "a view after the stop starts the collector again"
         );
+    }
+
+    #[test]
+    fn a_collection_is_a_small_task_that_fits_the_stack_of_a_worker_thread() {
+        // A 64 kilobyte buffer inside the future of a collection overflowed the stack of a worker thread when the
+        // Mire opened (issue 968). The future is created but never run, so nothing is read.
+        let future = collect_once();
+        let size = std::mem::size_of_val(&future);
+        assert!(size < 16 * 1024, "the future of a collection takes {size} bytes");
     }
 
     fn counting_collector() -> (

@@ -1,7 +1,7 @@
 # Directory Context: `/packages/apps/web_frontend/src/lib/mire`
 
 ## Purpose
-The pure model of the Mire: it builds the hierarchy Heidrun, workspaces, tabs, coding agents, and subagents from the Herdr data and the live observations, derives the visible statuses, the coverage, and the counters, and collects the messages. It draws nothing and calls no Tauri command.
+The pure model of the Mire and the layout of its radial graph: it builds the hierarchy Heidrun, workspaces, tabs, coding agents, and subagents from the Herdr data and the live observations, derives the visible statuses, the coverage, and the counters, and collects the messages. It draws nothing and calls no Tauri command.
 
 ## Key Exports & Entry Points
 - `observation_types.ts`: `MireObservations` and the other types of the Mire observation contract, the shape that the desktop application sends in the Tauri event `mire://observations`.
@@ -9,6 +9,7 @@ The pure model of the Mire: it builds the hierarchy Heidrun, workspaces, tabs, c
 - `mire_model_builder.ts`: `MireModelBuilder.build(input)` gives the `MireModel`; `MIRE_OBSERVATIONS_STALE_AFTER_MS`.
 - `mire_status.ts`: `MireStatus`, the status rules and the aggregation, for a view that needs one rule alone.
 - `mire_messages.ts`: `MireMessages.collect(observations, model)` and `MireMessages.newSince(messages, seenIds)`.
+- `mire_layout.ts`: `MireLayout.compute(model)`, the positions of the static radial graph. It reads only the hierarchy, the identifiers, and the names, so a status change moves nothing.
 - `mire_test_fixtures.ts`: fixtures for the test files only.
 - Command to run this folder: `pnpm --dir packages/apps/web_frontend exec vitest run src/lib/mire`
 
