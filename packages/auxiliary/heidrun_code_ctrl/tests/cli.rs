@@ -1,10 +1,16 @@
 //! Tests of the executable `heidrun_code_ctrl`, with a temporary folder of the data of Heidrun Code (the variable `HEIDRUN_CODE_DIR`) and a
 //! temporary project that has the folder `.heidrun`. The tests never touch the real files of the developer.
 
-use serde_json::Value;
-use std::io::Write;
+use serde_json::{json, Value};
+use std::io::{BufRead, BufReader, Write};
+use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+
+/// The number of the next fixture, for a short folder of the Herdr configuration.
+static NEXT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
 
 /// The temporary folders of one test, and the way to run the executable in them.
 struct Fixture {
@@ -12,6 +18,9 @@ struct Fixture {
     data_folder: PathBuf,
     /// The project: it has the folder `.heidrun`.
     project: PathBuf,
+    /// The folder of the variable `XDG_CONFIG_HOME`, so that a socket of Herdr is never the socket of a real session. Its
+    /// path is short, because the path of a Unix socket must stay shorter than 104 bytes on macOS.
+    config_folder: PathBuf,
 }
 
 /// What an execution gave.
@@ -36,7 +45,11 @@ impl Fixture {
         let project = base.join("project");
         std::fs::create_dir_all(&data_folder).unwrap();
         std::fs::create_dir_all(project.join(".heidrun")).unwrap();
-        Fixture { data_folder, project }
+        let config_folder =
+            std::env::temp_dir().join(format!("hcc{}_{}", std::process::id(), NEXT_FIXTURE.fetch_add(1, Ordering::SeqCst)));
+        let _ = std::fs::remove_dir_all(&config_folder);
+        std::fs::create_dir_all(&config_folder).unwrap();
+        Fixture { data_folder, project, config_folder }
     }
 
     fn personal_file(&self) -> PathBuf {
@@ -58,6 +71,7 @@ impl Fixture {
             .current_dir(&self.project)
             .env("HEIDRUN_CODE_DIR", &self.data_folder)
             .env("PATH", format!("{}:{}", self.project.display(), std::env::var("PATH").unwrap()))
+            .env("XDG_CONFIG_HOME", &self.config_folder)
             .env_remove("HERDR_SESSION")
             .env_remove("HERDR_SOCKET_PATH")
             .stdin(Stdio::piped())
@@ -632,6 +646,14 @@ fn the_skill_names_no_command_no_kind_and_no_option_that_the_help_does_not_have(
         assert!(skill.contains(&format!("heidrun_code_ctrl workspaces {command}")));
         assert!(help.contains(&format!("workspaces {command}")));
     }
+    for command in ["list", "create", "rename", "focus", "close"] {
+        assert!(skill.contains(&format!("heidrun_code_ctrl tabs {command}")), "tabs {command}");
+        assert!(help.contains(&format!("tabs {command}")), "tabs {command}");
+    }
+    for command in ["list", "split", "rename", "focus", "close", "send-text", "send-keys", "wait-output", "read"] {
+        assert!(skill.contains(&format!("heidrun_code_ctrl panes {command}")), "panes {command}");
+        assert!(help.contains(&format!("panes {command}")), "panes {command}");
+    }
     for kind in ["hard_coded", "personal", "project"] {
         assert!(skill.contains(&format!("`{kind}`")) && help.contains(kind), "{kind}");
     }
@@ -664,12 +686,28 @@ fn the_skill_names_the_fields_of_a_listed_macro_and_of_a_listed_launcher_and_eve
 fn the_commands_of_the_skill_run_on_a_project_and_give_a_macro_or_a_launcher_back() {
     let fixture = Fixture::new("skill_commands");
     fixture.install_herdr();
+    let socket = FakeSocket::start(&fixture.session_socket("example"));
     let skill = skill_text();
     let mut ran = 0;
+    let mut is_workspace_open_again = false;
     for block in skill.split("```bash").skip(1) {
         let block = block.split("```").next().unwrap().trim();
-        let block = if block.starts_with("heidrun_code_ctrl workspaces ") {
-            block.replace("<session>", "example").replace("<folder>", fixture.project.to_str().unwrap()).replace("<id>", "w1")
+        let is_herdr_block = ["workspaces", "tabs", "panes"]
+            .iter()
+            .any(|group| block.starts_with(&format!("heidrun_code_ctrl {group} ")) || block.contains(&format!("| heidrun_code_ctrl {group} ")));
+        // The example of workspaces close closes w1, and the tab and pane examples publish their focus request on w1.
+        if !is_workspace_open_again && (block.contains("heidrun_code_ctrl tabs ") || block.contains("heidrun_code_ctrl panes ")) {
+            assert_eq!(fixture.workspace_open().exit_code, 0);
+            is_workspace_open_again = true;
+        }
+        let block = if is_herdr_block {
+            block
+                .replace("<session>", "example")
+                .replace("<folder>", fixture.project.to_str().unwrap())
+                .replace("<workspace_id>", "w1")
+                .replace("<tab_id>", "w1:t2")
+                .replace("<pane_id>", "w1:p1")
+                .replace("<id>", "w1")
         } else {
             block.to_string()
         };
@@ -690,7 +728,8 @@ fn the_commands_of_the_skill_run_on_a_project_and_give_a_macro_or_a_launcher_bac
         assert!(run.json().is_array() || run.json().is_object());
         ran += 1;
     }
-    assert_eq!(ran, 14);
+    assert_eq!(ran, 29);
+    assert_eq!(socket.requests().len(), 1);
 }
 
 /// Splits a command line into its arguments: the words, with a quoted part kept whole and its quotes removed.
@@ -752,10 +791,109 @@ if args[:1] == ['--session']:
 state_file = root / 'herdr_state.json'
 state = json.loads(state_file.read_text()) if state_file.exists() else {}
 group, command = args[:2]
-if group == 'pane':
-    panes = [{'agent': 'codex'}] if mode == 'agent' else [{}]
-    print(json.dumps({'result': {'panes': panes}}))
+
+def option(name):
+    return args[args.index(name) + 1] if name in args else None
+
+def fail(message, code):
+    print(json.dumps({'error': {'code': code, 'message': message}}), file=sys.stderr)
+    sys.exit(1)
+
+def answer(result):
+    print(json.dumps({'result': result}))
     sys.exit(0)
+
+if group in ['tab', 'pane']:
+    # The tabs and the panes: two tabs in w1 at the start, with one pane each. The file pane_agents.json gives a coding agent to a pane.
+    layout_file = root / 'herdr_layout.json'
+    layout = json.loads(layout_file.read_text()) if layout_file.exists() else {
+        'tabs': [
+            {'tab_id': 'w1:t1', 'workspace_id': 'w1', 'label': '1', 'focused': True},
+            {'tab_id': 'w1:t2', 'workspace_id': 'w1', 'label': '2', 'focused': False},
+        ],
+        'panes': [
+            {'pane_id': 'w1:p1', 'tab_id': 'w1:t1', 'workspace_id': 'w1', 'focused': True},
+            {'pane_id': 'w1:p2', 'tab_id': 'w1:t2', 'workspace_id': 'w1', 'focused': False},
+        ],
+        'next': 3,
+    }
+    agents_file = root / 'pane_agents.json'
+    agents = json.loads(agents_file.read_text()) if agents_file.exists() else {}
+
+    def pane_view(pane):
+        pane = dict(pane)
+        agent = 'codex' if mode == 'agent' else agents.get(pane['pane_id'])
+        if agent:
+            pane['agent'] = agent
+        return pane
+
+    def focus_pane(pane_id):
+        tab_id = next(pane['tab_id'] for pane in layout['panes'] if pane['pane_id'] == pane_id)
+        for pane in layout['panes']:
+            pane['focused'] = pane['pane_id'] == pane_id
+        for tab in layout['tabs']:
+            tab['focused'] = tab['tab_id'] == tab_id
+
+    def save_and_answer(result):
+        layout_file.write_text(json.dumps(layout))
+        answer(result)
+
+    workspace = option('--workspace')
+    if group == 'tab':
+        if command == 'list':
+            answer({'tabs': [tab for tab in layout['tabs'] if workspace is None or tab['workspace_id'] == workspace]})
+        if command == 'create':
+            number = layout['next']
+            layout['next'] += 1
+            tab = {'tab_id': f'{workspace}:t{number}', 'workspace_id': workspace, 'label': option('--label') or str(number), 'focused': False}
+            pane = {'pane_id': f'{workspace}:p{number}', 'tab_id': tab['tab_id'], 'workspace_id': workspace, 'focused': False}
+            if option('--cwd') is not None:
+                pane['cwd'] = option('--cwd')
+            layout['tabs'].append(tab)
+            layout['panes'].append(pane)
+            if '--focus' in args:
+                focus_pane(pane['pane_id'])
+            save_and_answer({'type': 'tab_created', 'tab': tab, 'root_pane': pane_view(pane)})
+        tab = next((tab for tab in layout['tabs'] if tab['tab_id'] == args[2]), None)
+        if tab is None:
+            fail(f'tab {args[2]} not found', 'tab_not_found')
+        if command == 'rename':
+            tab['label'] = ' '.join(args[3:])
+        if command == 'focus':
+            focus_pane(next(pane['pane_id'] for pane in layout['panes'] if pane['tab_id'] == tab['tab_id']))
+        if command == 'close':
+            layout['tabs'].remove(tab)
+            layout['panes'] = [pane for pane in layout['panes'] if pane['tab_id'] != tab['tab_id']]
+            save_and_answer({'type': 'ok'})
+        save_and_answer({'type': 'tab_info', 'tab': tab})
+    if command == 'list':
+        answer({'panes': [pane_view(pane) for pane in layout['panes'] if workspace is None or pane['workspace_id'] == workspace]})
+    pane = next((pane for pane in layout['panes'] if pane['pane_id'] == args[2]), None)
+    if pane is None:
+        fail(f'pane {args[2]} not found', 'pane_not_found')
+    if command == 'split':
+        number = layout['next']
+        layout['next'] += 1
+        new = {'pane_id': f"{pane['workspace_id']}:p{number}", 'tab_id': pane['tab_id'], 'workspace_id': pane['workspace_id'], 'focused': False}
+        layout['panes'].append(new)
+        if '--focus' in args:
+            focus_pane(new['pane_id'])
+        save_and_answer({'type': 'pane_info', 'pane': pane_view(new)})
+    if command == 'rename':
+        pane['label'] = ' '.join(args[3:])
+    if command == 'close':
+        layout['panes'].remove(pane)
+        save_and_answer({'type': 'ok'})
+    if command in ['send-text', 'send-keys']:
+        sys.exit(0)
+    if command == 'wait-output':
+        if mode == 'timeout':
+            fail('timed out waiting for output match', 'timeout')
+        answer({'matched_line': 'tests passed', 'pane_id': pane['pane_id'], 'read': {'pane_id': pane['pane_id'], 'text': 'tests passed'}})
+    if command == 'read':
+        sys.stdout.write('line one\nline two\n')
+        sys.exit(0)
+    save_and_answer({'type': 'pane_info', 'pane': pane_view(pane)})
 if command == 'create':
     state['w1'] = {'workspace_id': 'w1', 'label': args[args.index('--label') + 1], 'extra_field': True}
     result = {'workspace': state['w1']}
@@ -798,6 +936,7 @@ if command != 'report-metadata':
             .args(arguments)
             .current_dir(&self.project)
             .env("PATH", format!("{}:{}", self.project.display(), std::env::var("PATH").unwrap()))
+            .env("XDG_CONFIG_HOME", &self.config_folder)
             .env_remove("HERDR_SESSION")
             .env_remove("HERDR_SOCKET_PATH");
         if let Some(session) = session {
@@ -966,4 +1105,346 @@ fn a_missing_herdr_executable_is_a_json_error_and_never_a_panic() {
     assert!(output.stdout.is_empty());
     let error: Value = serde_json::from_slice(&output.stderr).unwrap();
     assert!(error["error"].as_str().unwrap().contains("Cannot run Herdr"));
+}
+
+// ---- Tabs and panes: the same fake executable, and a fake socket for the focus of a pane -----------------------------
+
+/// A fake Herdr socket. It answers the request `pane.focus` for the panes `w1:p1` and `w1:p2`, refuses any other pane as Herdr
+/// does, and keeps every request.
+struct FakeSocket {
+    /// The requests, in the order of their arrival.
+    requests: Arc<Mutex<Vec<Value>>>,
+}
+
+impl FakeSocket {
+    fn start(path: &Path) -> FakeSocket {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let _ = std::fs::remove_file(path);
+        let listener = UnixListener::bind(path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let kept = Arc::clone(&requests);
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else {
+                    break;
+                };
+                let mut line = String::new();
+                BufReader::new(&stream).read_line(&mut line).unwrap();
+                let request: Value = serde_json::from_str(&line).unwrap();
+                kept.lock().unwrap().push(request.clone());
+                let pane_id = request["params"]["pane_id"].as_str().unwrap_or_default().to_string();
+                let tab_id = match pane_id.as_str() {
+                    "w1:p1" => Some("w1:t1"),
+                    "w1:p2" => Some("w1:t2"),
+                    _ => None,
+                };
+                let answer = match tab_id {
+                    Some(tab_id) => json!({
+                        "id": request["id"],
+                        "result": { "type": "pane_info", "pane": { "pane_id": pane_id, "tab_id": tab_id, "workspace_id": "w1", "focused": true } },
+                    }),
+                    None => json!({
+                        "id": request["id"],
+                        "error": { "code": "pane_not_found", "message": format!("pane {pane_id} not found") },
+                    }),
+                };
+                stream.write_all(format!("{answer}\n").as_bytes()).unwrap();
+            }
+        });
+        FakeSocket { requests }
+    }
+
+    fn requests(&self) -> Vec<Value> {
+        self.requests.lock().unwrap().clone()
+    }
+}
+
+impl Fixture {
+    /// The socket of a named session, in the folder of `XDG_CONFIG_HOME` of the fixture.
+    fn session_socket(&self, session: &str) -> PathBuf {
+        self.config_folder.join("herdr").join("sessions").join(session).join("herdr.sock")
+    }
+
+    /// Runs the executable with the fake `herdr`, the text as its standard input, and more environment variables.
+    fn herdr_run(&self, arguments: &[&str], input: &str, environment: &[(&str, &str)]) -> Run {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_heidrun_code_ctrl"));
+        command
+            .args(arguments)
+            .current_dir(&self.project)
+            .env("PATH", format!("{}:{}", self.project.display(), std::env::var("PATH").unwrap()))
+            .env("XDG_CONFIG_HOME", &self.config_folder)
+            .env_remove("HERDR_SESSION")
+            .env_remove("HERDR_SOCKET_PATH")
+            .envs(environment.iter().copied())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let mut child = command.spawn().unwrap();
+        child.stdin.take().unwrap().write_all(input.as_bytes()).unwrap();
+        let output = child.wait_with_output().unwrap();
+        Run {
+            stdout: String::from_utf8(output.stdout).unwrap(),
+            stderr: String::from_utf8(output.stderr).unwrap(),
+            exit_code: output.status.code().unwrap(),
+        }
+    }
+
+    fn herdr(&self, arguments: &[&str]) -> Run {
+        self.herdr_run(arguments, "", &[])
+    }
+
+    /// The value of the token `heidrun_focus_request` of the workspace w1, or null.
+    fn focus_request(&self) -> Value {
+        let workspaces = self.herdr(&["workspaces", "list", "--json"]).json();
+        workspaces[0]["tokens"]["heidrun_focus_request"].clone()
+    }
+
+    /// The calls to the fake `herdr` after the option `--session` and its value.
+    fn herdr_commands(&self) -> Vec<Vec<String>> {
+        self.herdr_calls()
+            .iter()
+            .map(|call| {
+                let words: Vec<String> = call.as_array().unwrap().iter().map(|word| word.as_str().unwrap().to_string()).collect();
+                if words.first().map(String::as_str) == Some("--session") {
+                    words[2..].to_vec()
+                } else {
+                    words
+                }
+            })
+            .collect()
+    }
+
+    /// Gives a coding agent to one pane of the fake `herdr`.
+    fn give_agent(&self, pane_id: &str) {
+        std::fs::write(self.project.join("pane_agents.json"), json!({ pane_id: "claude" }).to_string()).unwrap();
+    }
+}
+
+/// The error of a run: one JSON object with the field `error`, on one line of the standard error output, and nothing on the
+/// standard output.
+fn json_error(run: &Run) -> String {
+    assert_eq!(run.exit_code, 1, "{}", run.stdout);
+    assert_eq!(run.stdout, "");
+    assert_eq!(run.stderr.trim_end().lines().count(), 1, "{}", run.stderr);
+    serde_json::from_str::<Value>(&run.stderr).unwrap()["error"].as_str().unwrap().to_string()
+}
+
+#[test]
+fn tabs_are_listed_created_renamed_focused_and_closed_with_the_herdr_fields() {
+    let fixture = Fixture::new("tabs_life");
+    fixture.install_herdr();
+    fixture.workspace_open();
+    let listed = fixture.herdr(&["tabs", "list", "--json"]);
+    assert_eq!(listed.exit_code, 0, "{}", listed.stderr);
+    assert_eq!(listed.json().as_array().unwrap().len(), 2);
+    assert_eq!(fixture.herdr(&["tabs", "list", "--workspace", "w2", "--json"]).json(), json!([]));
+    assert!(fixture.herdr_commands().contains(&vec!["tab".into(), "list".into(), "--workspace".into(), "w2".into()]));
+
+    let before = fixture.focus_request();
+    let created = fixture.herdr(&["tabs", "create", "--workspace", "w1", "--label", "Tests", "--cwd", ".", "--json"]);
+    assert_eq!(created.exit_code, 0, "{}", created.stderr);
+    assert_eq!(created.json()["tab"]["label"], "Tests");
+    let root_pane = created.json()["root_pane"]["pane_id"].as_str().unwrap().to_string();
+    let project = std::fs::canonicalize(&fixture.project).unwrap();
+    assert_eq!(created.json()["root_pane"]["cwd"], project.to_str().unwrap());
+    assert!(fixture.herdr_commands().iter().any(|call| call[..2] == ["tab", "create"] && call.contains(&"--focus".to_string())));
+    let request = fixture.focus_request();
+    assert_ne!(request, before);
+    assert!(request.as_str().unwrap().ends_with(&format!(";pane={root_pane}")), "{request}");
+
+    let hidden = fixture.herdr(&["tabs", "create", "--workspace", "w1", "--no-focus", "--json"]);
+    assert_eq!(hidden.exit_code, 0, "{}", hidden.stderr);
+    assert!(fixture.herdr_commands().last().unwrap().contains(&"--no-focus".to_string()));
+    assert_eq!(fixture.focus_request(), request);
+
+    let renamed = fixture.herdr(&["tabs", "rename", "w1:t2", "--label", "Two words", "--json"]);
+    assert_eq!(renamed.json()["label"], "Two words");
+
+    let focused = fixture.herdr(&["tabs", "focus", "w1:t2", "--json"]);
+    assert_eq!(focused.exit_code, 0, "{}", focused.stderr);
+    assert_eq!(focused.json()["tab_id"], "w1:t2");
+    assert_eq!(focused.json()["focused"], true);
+    assert!(fixture.focus_request().as_str().unwrap().ends_with(";pane=w1:p2"));
+
+    let closed = fixture.herdr(&["tabs", "close", "w1:t2", "--json"]);
+    assert_eq!(closed.exit_code, 0, "{}", closed.stderr);
+    assert_eq!(closed.json()["closed"]["tab_id"], "w1:t2");
+    let tabs = fixture.herdr(&["tabs", "list", "--json"]).json();
+    assert!(tabs.as_array().unwrap().iter().all(|tab| tab["tab_id"] != "w1:t2"));
+    let markdown = fixture.herdr(&["tabs", "list"]);
+    assert!(markdown.stdout.starts_with("# Tabs\n\n```json\n["), "{}", markdown.stdout);
+}
+
+#[test]
+fn a_tab_with_a_coding_agent_is_refused_by_close_until_force_is_given() {
+    let fixture = Fixture::new("tabs_force");
+    fixture.install_herdr();
+    fixture.give_agent("w1:p2");
+    let refused = fixture.herdr(&["tabs", "close", "w1:t2"]);
+    assert!(json_error(&refused).contains("Tab w1:t2 contains a coding agent"));
+    assert!(fixture.herdr_commands().iter().all(|call| call[..2] != ["tab", "close"]));
+    let other = fixture.herdr(&["tabs", "close", "w1:t1", "--json"]);
+    assert_eq!(other.exit_code, 0, "{}", other.stderr);
+    let forced = fixture.herdr(&["tabs", "close", "w1:t2", "--force", "--json"]);
+    assert_eq!(forced.exit_code, 0, "{}", forced.stderr);
+    assert_eq!(forced.json()["closed"]["tab_id"], "w1:t2");
+    assert!(json_error(&fixture.herdr(&["tabs", "close", "w1:t9"])).contains("No tab has the id w1:t9"));
+}
+
+#[test]
+fn panes_are_listed_split_renamed_and_closed_with_the_herdr_fields() {
+    let fixture = Fixture::new("panes_life");
+    fixture.install_herdr();
+    fixture.workspace_open();
+    let listed = fixture.herdr(&["panes", "list", "--workspace", "w1", "--json"]);
+    assert_eq!(listed.exit_code, 0, "{}", listed.stderr);
+    assert_eq!(listed.json().as_array().unwrap().len(), 2);
+
+    let split = fixture.herdr(&["panes", "split", "w1:p1", "--direction", "right", "--json"]);
+    assert_eq!(split.exit_code, 0, "{}", split.stderr);
+    let new_pane = split.json()["pane_id"].as_str().unwrap().to_string();
+    assert_eq!(split.json()["tab_id"], "w1:t1");
+    let split_call: Vec<String> = ["pane", "split", "w1:p1", "--direction", "right", "--focus"].map(String::from).to_vec();
+    assert!(fixture.herdr_commands().contains(&split_call));
+    assert!(fixture.focus_request().as_str().unwrap().ends_with(&format!(";pane={new_pane}")));
+
+    let before = fixture.focus_request();
+    let hidden = fixture.herdr(&["panes", "split", "w1:p1", "--no-focus", "--json"]);
+    assert_eq!(hidden.exit_code, 0, "{}", hidden.stderr);
+    assert_eq!(fixture.focus_request(), before);
+
+    let renamed = fixture.herdr(&["panes", "rename", &new_pane, "--label", "Logs", "--json"]);
+    assert_eq!(renamed.json()["label"], "Logs");
+
+    fixture.give_agent(&new_pane);
+    let refused = fixture.herdr(&["panes", "close", &new_pane]);
+    assert!(json_error(&refused).contains("contains a coding agent"));
+    assert!(fixture.herdr_commands().iter().all(|call| call[..2] != ["pane", "close"]));
+    let forced = fixture.herdr(&["panes", "close", &new_pane, "--force", "--json"]);
+    assert_eq!(forced.exit_code, 0, "{}", forced.stderr);
+    assert_eq!(forced.json()["closed"]["pane_id"], new_pane.as_str());
+    assert!(json_error(&fixture.herdr(&["panes", "close", "w1:p9"])).contains("pane w1:p9 not found"));
+}
+
+#[test]
+fn panes_focus_sends_the_request_pane_focus_to_the_socket_of_the_session_and_publishes_the_pane_for_the_window() {
+    let fixture = Fixture::new("panes_focus");
+    fixture.install_herdr();
+    fixture.workspace_open();
+    let socket = FakeSocket::start(&fixture.session_socket("example"));
+    let focused = fixture.herdr(&["panes", "focus", "w1:p2", "--session", "example", "--json"]);
+    assert_eq!(focused.exit_code, 0, "{}", focused.stderr);
+    assert_eq!(focused.json()["pane_id"], "w1:p2");
+    assert_eq!(socket.requests().len(), 1);
+    assert_eq!(socket.requests()[0]["method"], "pane.focus");
+    assert_eq!(socket.requests()[0]["params"], json!({ "pane_id": "w1:p2" }));
+    assert!(fixture.focus_request().as_str().unwrap().ends_with(";pane=w1:p2"));
+
+    let before = fixture.focus_request();
+    let unknown = fixture.herdr(&["panes", "focus", "w1:p9", "--session", "example"]);
+    assert!(json_error(&unknown).contains("pane w1:p9 not found"));
+    assert_eq!(fixture.focus_request(), before);
+
+    let workspace_focus = fixture.herdr(&["workspaces", "focus", "w1", "--json"]);
+    assert_eq!(workspace_focus.exit_code, 0, "{}", workspace_focus.stderr);
+    assert!(!fixture.focus_request().as_str().unwrap().contains(";pane="));
+}
+
+#[test]
+fn panes_focus_uses_the_inherited_socket_and_an_explicit_session_overrides_it() {
+    let fixture = Fixture::new("panes_focus_socket");
+    fixture.install_herdr();
+    fixture.workspace_open();
+    let inherited_path = fixture.config_folder.join("inherited.sock");
+    let inherited = FakeSocket::start(&inherited_path);
+    let chosen = FakeSocket::start(&fixture.session_socket("chosen"));
+    let default = FakeSocket::start(&fixture.session_socket("heidrun"));
+    let path = inherited_path.to_str().unwrap();
+    assert_eq!(fixture.herdr_run(&["panes", "focus", "w1:p1"], "", &[("HERDR_SOCKET_PATH", path)]).exit_code, 0);
+    assert_eq!(fixture.herdr_run(&["panes", "focus", "w1:p1", "--session", "chosen"], "", &[("HERDR_SOCKET_PATH", path)]).exit_code, 0);
+    assert_eq!(fixture.herdr(&["panes", "focus", "w1:p1"]).exit_code, 0);
+    assert_eq!((inherited.requests().len(), chosen.requests().len(), default.requests().len()), (1, 1, 1));
+    let stopped = fixture.herdr(&["panes", "focus", "w1:p1", "--session", "stopped"]);
+    assert!(json_error(&stopped).contains("Cannot reach the Herdr socket"));
+}
+
+#[test]
+fn panes_send_text_send_keys_wait_output_and_read_call_herdr_and_say_what_was_done() {
+    let fixture = Fixture::new("panes_typing");
+    fixture.install_herdr();
+    let sent = fixture.herdr(&["panes", "send-text", "w1:p1", "--text", "pnpm test", "--json"]);
+    assert_eq!(sent.exit_code, 0, "{}", sent.stderr);
+    assert_eq!(sent.json(), json!({ "pane_id": "w1:p1", "sent_text": "pnpm test" }));
+    let from_input = fixture.herdr_run(&["panes", "send-text", "w1:p1", "--text", "-", "--json"], "line one\nline \"two\"\n", &[]);
+    assert_eq!(from_input.json()["sent_text"], "line one\nline \"two\"");
+    let keys = fixture.herdr(&["panes", "send-keys", "w1:p1", "ctrl+c", "enter", "--json"]);
+    assert_eq!(keys.json(), json!({ "pane_id": "w1:p1", "sent_keys": ["ctrl+c", "enter"] }));
+    assert_eq!(
+        fixture.herdr_commands(),
+        [
+            vec!["pane", "send-text", "w1:p1", "pnpm test"],
+            vec!["pane", "send-text", "w1:p1", "line one\nline \"two\""],
+            vec!["pane", "send-keys", "w1:p1", "ctrl+c", "enter"],
+        ]
+    );
+
+    let waited =
+        fixture.herdr(&["panes", "wait-output", "w1:p1", "--match", "passed", "--timeout", "500", "--source", "visible", "--lines", "5", "--json"]);
+    assert_eq!(waited.exit_code, 0, "{}", waited.stderr);
+    assert_eq!(waited.json()["matched_line"], "tests passed");
+    assert_eq!(
+        fixture.herdr_commands().last().unwrap(),
+        &["pane", "wait-output", "w1:p1", "--match", "passed", "--timeout", "500", "--source", "visible", "--lines", "5"]
+    );
+    fixture.herdr(&["panes", "wait-output", "w1:p1", "--regex", "pass(ed)?"]);
+    assert_eq!(fixture.herdr_commands().last().unwrap(), &["pane", "wait-output", "w1:p1", "--regex", "pass(ed)?"]);
+
+    let read = fixture.herdr(&["panes", "read", "w1:p1", "--lines", "2", "--json"]);
+    assert_eq!(read.json(), json!({ "pane_id": "w1:p1", "text": "line one\nline two" }));
+    let markdown = fixture.herdr(&["panes", "read", "w1:p1"]);
+    assert!(markdown.stdout.starts_with("# Pane output\n\n```json\n"), "{}", markdown.stdout);
+
+    std::fs::write(fixture.project.join("mode"), "timeout").unwrap();
+    let timeout = fixture.herdr(&["panes", "wait-output", "w1:p1", "--match", "never", "--timeout", "100"]);
+    assert!(json_error(&timeout).contains("timed out waiting for output match"));
+    assert!(json_error(&fixture.herdr(&["panes", "send-text", "w1:p1", "--text", "-"])).contains("not empty"));
+}
+
+#[test]
+fn tab_and_pane_session_selection_uses_the_explicit_session_then_the_inherited_connection_then_heidrun() {
+    let fixture = Fixture::new("tabs_sessions");
+    fixture.install_herdr();
+    fixture.herdr(&["tabs", "list", "--session", "chosen", "--json"]);
+    fixture.herdr_run(&["panes", "list", "--json"], "", &[("HERDR_SESSION", "inherited")]);
+    fixture.herdr(&["panes", "read", "w1:p1"]);
+    let calls = fixture.herdr_calls();
+    assert_eq!(calls[0], json!(["--session", "chosen", "tab", "list"]));
+    assert_eq!(calls[1], json!(["pane", "list"]));
+    assert_eq!(calls[2], json!(["--session", "heidrun", "pane", "read", "w1:p1"]));
+}
+
+#[test]
+fn tab_and_pane_errors_are_one_json_error_even_for_markdown_and_wrong_arguments_never_call_herdr() {
+    let fixture = Fixture::new("tabs_errors");
+    fixture.install_herdr();
+    for arguments in [
+        vec!["tabs", "create"],
+        vec!["tabs", "rename", "w1:t1"],
+        vec!["tabs", "focus", "-w1"],
+        vec!["tabs", "list", "--folder", "x"],
+        vec!["tabs", "create", "--workspace", "w1", "--cwd", "/this/folder/does/not/exist"],
+        vec!["panes", "split", "w1:p1", "--direction", "up"],
+        vec!["panes", "send-keys", "w1:p1"],
+        vec!["panes", "wait-output", "w1:p1"],
+        vec!["panes", "read", "w1:p1", "--lines", "0"],
+        vec!["--session", "chosen", "panes", "focus"],
+        vec!["panes", "fly", "w1:p1"],
+    ] {
+        json_error(&fixture.herdr(&arguments));
+    }
+    assert!(fixture.herdr_calls().is_empty());
+    std::fs::write(fixture.project.join("mode"), "stopped").unwrap();
+    assert!(json_error(&fixture.herdr(&["tabs", "list"])).contains("no herdr server is running"));
+    assert!(json_error(&fixture.herdr(&["panes", "read", "w1:p1"])).contains("no herdr server is running"));
+    assert!(fixture.herdr_calls().iter().all(|call| !call.to_string().contains("server")));
 }
