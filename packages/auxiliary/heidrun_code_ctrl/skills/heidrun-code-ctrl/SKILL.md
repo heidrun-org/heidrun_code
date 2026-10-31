@@ -1,18 +1,18 @@
 ---
 name: heidrun-code-ctrl
-description: Control the Heidrun Code application from the command line heidrun_code_ctrl. Use it to list, add, update, or delete the macros of the developer, the reusable texts that Heidrun Code writes into a pane, the hard-coded macros of Heidrun Code included, and to list, add, update, or delete the launchers of a project, the command lines that Heidrun Code runs in their own tab. Use the voice_words group to list, add, update, or delete the entries of the word replacement list of the voice input, the texts that Heidrun Code writes instead of the texts that Whisper writes wrongly. Use the workspaces group to list, open, rename, focus, or close workspaces through Herdr. A running Heidrun Code shows each change in its window within about one second.
+description: Control the Heidrun Code application from the command line heidrun_code_ctrl. Use it to list, add, update, or delete the macros of the developer, the reusable texts that Heidrun Code writes into a pane, the hard-coded macros of Heidrun Code included, and to list, add, update, or delete the launchers of a project, the command lines that Heidrun Code runs in their own tab. Use the voice_words group to list, add, update, or delete the entries of the word replacement list of the voice input, the texts that Heidrun Code writes instead of the texts that Whisper writes wrongly. Use the workspaces group to list, open, rename, focus, or close workspaces through Herdr. Use the tabs group to list, create, rename, focus, or close tabs, and the panes group to list, split, rename, focus, or close panes, to type a text or press keys in a pane, to wait for a text in the output of a pane, and to read that output. A running Heidrun Code shows each change in its window within about one second.
 compatibility: macOS with Heidrun Code installed and heidrun_code_ctrl available on the shell path.
 ---
 
 # heidrun_code_ctrl
 
-`heidrun_code_ctrl` is the command line that controls the Heidrun Code application. The groups `macros`, `launchers`, and `voice_words` have the commands `list`, `add`, `update`, and `delete`. The group `workspaces` has `list`, `open`, `rename`, `focus`, and `close`.
+`heidrun_code_ctrl` is the command line that controls the Heidrun Code application. The groups `macros`, `launchers`, and `voice_words` have the commands `list`, `add`, `update`, and `delete`. The group `workspaces` has `list`, `open`, `rename`, `focus`, and `close`. The group `tabs` has `list`, `create`, `rename`, `focus`, and `close`. The group `panes` has `list`, `split`, `rename`, `focus`, `close`, `send-text`, `send-keys`, `wait-output`, and `read`.
 
 - A macro is a reusable text that the developer writes into a pane with one click. The commands create, read, change, and remove macros. They do not write a macro into a pane.
 - A launcher is one item of the Launchers sidebar section: a command line that Heidrun Code runs in its own tab when the developer clicks its button "Run". The commands create, read, change, and remove launchers. They do not run a launcher. A launcher is not a macro.
 - A voice word is one entry of the word replacement list of the voice input: the text that Whisper writes wrongly, and the text that Heidrun Code writes instead. The commands create, read, change, and remove entries. They do not change the speech or the Whisper model. A voice word is not a macro.
 
-The groups `macros`, `launchers`, and `voice_words` change files and work while Heidrun Code is closed. The group `workspaces` talks only to Herdr through the `herdr` executable. Start Heidrun Code first to see workspace changes in its window. No workspace command starts a server.
+The groups `macros`, `launchers`, and `voice_words` change files and work while Heidrun Code is closed. The groups `workspaces`, `tabs`, and `panes` talk only to Herdr, through the `herdr` executable, and `panes focus` through the socket of the Herdr session. Start Heidrun Code first to see their changes in its window. No workspace, tab, or pane command starts a server.
 
 Before using a command, check that `heidrun_code_ctrl --help` works. The installed Heidrun Code application places `heidrun_code_ctrl` in `~/.local/bin` when the application starts. If the command is not found, ask the developer to install Heidrun Code and make `~/.local/bin` available on the shell path.
 
@@ -147,6 +147,77 @@ These commands require `herdr` on the shell path and a running Herdr session. Th
 
 The format options are `--format markdown|json` and `--json`, as for the other groups. Workspace errors are always one JSON object on standard error with exit code 1. Success uses standard output and exit code 0. No `add` or `delete` command exists for workspaces.
 
+## The tabs
+
+A tab belongs to one workspace, and holds one pane or more. A tab id looks like `w1:t2`. The tab commands choose the session exactly like the workspace commands: give `--session` with the session of the intended Heidrun Code window. A tab id from another session does not identify the same tab. The output is the JSON of Herdr, and every error is one JSON object on standard error with exit code 1.
+
+1. **List the tabs and copy an id.** `--workspace` lists the tabs of one workspace only. Each tab has the fields of Herdr, including `tab_id`, `workspace_id`, `label`, and `focused`.
+   ```bash
+   heidrun_code_ctrl tabs list --session <session> --workspace <workspace_id> --json
+   ```
+2. **Create a tab.** `--workspace` is required. `--label` and `--cwd` are optional; the folder of `--cwd` must exist. The new tab starts with the shell that Herdr creates, and the window selects the new tab and its pane. `--no-focus` keeps the current selection. JSON output is an object with the fields `tab` and `root_pane`: use the `pane_id` of `root_pane` to type in the new tab.
+   ```bash
+   heidrun_code_ctrl tabs create --session <session> --workspace <workspace_id> --label Tests --json
+   ```
+3. **Rename a tab.** `--label` is required and cannot be empty.
+   ```bash
+   heidrun_code_ctrl tabs rename <tab_id> --session <session> --label Renamed --json
+   ```
+4. **Focus a tab.** Herdr focuses the tab, and the window selects its workspace, the tab, and the pane of the tab that Herdr focuses.
+   ```bash
+   heidrun_code_ctrl tabs focus <tab_id> --session <session> --json
+   ```
+5. **Close a tab.** Closing stops every process in the tab. A tab that has a coding agent in one of its panes is refused unless `--force` is given. Inspect the tab before using `--force`. JSON output is an object with the field `closed`, containing the closed tab.
+   ```bash
+   heidrun_code_ctrl tabs close <tab_id> --session <session> --json
+   ```
+
+## The panes
+
+A pane is one terminal of a tab. A pane id looks like `w1:p3`. The pane commands choose the session like the workspace commands; give `--session`. The output is the JSON of Herdr, and every error is one JSON object on standard error with exit code 1.
+
+1. **List the panes and copy an id.** `--workspace` lists the panes of one workspace only. Each pane has the fields of Herdr, including `pane_id`, `tab_id`, `workspace_id`, `focused`, and `agent` when a coding agent runs in it.
+   ```bash
+   heidrun_code_ctrl panes list --session <session> --workspace <workspace_id> --json
+   ```
+2. **Split a pane.** The new pane is next to the given pane, in the same tab. `--direction` is `right` or `down`. `--cwd` is optional; the folder must exist. The window selects the new pane. `--no-focus` keeps the current selection. JSON output is the new pane.
+   ```bash
+   heidrun_code_ctrl panes split <pane_id> --session <session> --direction right --json
+   ```
+3. **Rename a pane.** `--label` is required and cannot be empty.
+   ```bash
+   heidrun_code_ctrl panes rename <pane_id> --session <session> --label Logs --json
+   ```
+4. **Focus a pane.** Herdr focuses the pane and switches to its tab, and the window selects its workspace, its tab, and the pane.
+   ```bash
+   heidrun_code_ctrl panes focus <pane_id> --session <session> --json
+   ```
+5. **Write a text in a pane.** The text goes to the terminal of the pane as if the developer typed it. Enter is not pressed: send the key `enter` after it. A text on several lines, or with quotes, goes through the standard input with `--text -`; one new line at the end is removed, and each other new line is sent as Enter. JSON output is `{"pane_id": ..., "sent_text": ...}`.
+   ```bash
+   heidrun_code_ctrl panes send-text <pane_id> --session <session> --text "pnpm test" --json
+   ```
+   ```bash
+   printf 'Review the branch.' | heidrun_code_ctrl panes send-text <pane_id> --session <session> --text - --json
+   ```
+6. **Press keys in a pane.** Give one key name or more, for example `enter`, `esc`, `tab`, `ctrl+c`. JSON output is `{"pane_id": ..., "sent_keys": [...]}`.
+   ```bash
+   heidrun_code_ctrl panes send-keys <pane_id> --session <session> enter --json
+   ```
+7. **Wait for a text in the output of a pane.** `--match` waits for a literal text, and `--regex` waits for a line that matches a Rust regular expression. Give one of them. The output that is already there counts. Give `--timeout` in milliseconds, because without it the command waits without end. On a timeout, the command fails with exit code 1. `--source` is `visible`, `recent`, or `recent-unwrapped` (default: `recent`), and `--lines` limits the search to that number of lines. JSON output is the result of Herdr, with the fields `matched_line` and `read`. Use it to wait until a coding agent has finished before the next step.
+   ```bash
+   heidrun_code_ctrl panes wait-output <pane_id> --session <session> --match passed --timeout 60000 --json
+   ```
+8. **Read the output of a pane.** `--source` is `visible`, `recent`, `recent-unwrapped`, or `detection`, and `--lines` limits the output to that number of lines. JSON output is `{"pane_id": ..., "text": ...}`.
+   ```bash
+   heidrun_code_ctrl panes read <pane_id> --session <session> --lines 20 --json
+   ```
+9. **Close a pane.** Closing stops the processes of the pane. A pane that has a coding agent is refused unless `--force` is given. JSON output is an object with the field `closed`, containing the closed pane.
+   ```bash
+   heidrun_code_ctrl panes close <pane_id> --session <session> --json
+   ```
+
+`tabs create`, `tabs focus`, `panes split`, and `panes focus` publish a new value of the Herdr token `heidrun_focus_request` on the workspace, with the pane after `;pane=`. The window reads it and selects the workspace, the tab, and the pane, even when the focus of Herdr does not change. If Herdr does the change but the publishing fails, the error says so; inspect `tabs list` or `panes list` before you try again.
+
 ## Errors
 
 A command that fails exits with the code 1, prints one JSON object on one line on the standard error output, with the field `error`, and changes no file. The errors that you can fix:
@@ -155,6 +226,9 @@ A command that fails exits with the code 1, prints one JSON object on one line o
 - No macro has the id: run `macros list` again and copy the id.
 - Herdr is not running: start the intended Heidrun Code window and check the session.
 - No workspace has the id: run `workspaces list` in the same session and copy the id.
+- No tab or no pane has the id: run `tabs list` or `panes list` in the same session and copy the id.
+- The tab or the pane contains a coding agent: inspect it, then give `--force` only when its processes can stop.
+- The output did not come before the end of `--timeout`: read the pane with `panes read`, then wait again or change the step.
 - No launcher has the id: run `launchers list` again and copy the id.
 - The text is empty: a macro always has a text. The command line is empty: a launcher always has a command line.
 - The launcher is of the kind Coding agent and `--command` is given: leave `--command` out.
