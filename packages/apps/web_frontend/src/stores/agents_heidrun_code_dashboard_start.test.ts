@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../lib/api";
 import { launchAgent } from "./agents";
+import { chatAboutReference } from './chat_open';
+import { allPanes, sendPrompt, state, toast } from './session';
 import { prepareAgentCommand } from "./coding_agent_start";
 import { project, runLauncher } from "./project";
 import { settings } from "./settings";
@@ -24,6 +26,15 @@ vi.mock("./session", async (importOriginal) => ({
   selectPane: vi.fn(),
   tabLabel: vi.fn(() => "Current tab"),
   toast: vi.fn(),
+  sendPrompt: vi.fn(async () => 'ok'),
+  allPanes: {
+    value: [{
+      pane_id: 'p1',
+      agent: 'codex',
+      agent_status: 'idle',
+      interactive_ready: true,
+    }],
+  },
 }));
 vi.mock("./guards", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./guards")>()),
@@ -72,10 +83,128 @@ beforeEach(() => {
   vi.mocked(api.heidrunCodeDashboardClaudeObserverModPath).mockReset().mockResolvedValue(null);
   project.panes = {};
   project.busy = {};
+  state.selectedWorkspaceId = 'w1';
+  allPanes.value[0].agent_status = 'idle';
+  allPanes.value[0].interactive_ready = true;
+  vi.mocked(api.newTab).mockClear();
+  vi.mocked(sendPrompt).mockClear();
+  vi.mocked(toast).mockClear();
 });
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe('Issue chat tracking (issue 1010)', () => {
+	it.each([
+		'https://github.com/heidrun-org/heidrun_code/issues/1010',
+		'https://github.com/heidrun-org/heidrun_code/pull/1010',
+		'https://gitlab.com/example/project/-/issues/1010',
+		'https://gitlab.com/example/project/-/merge_requests/1010',
+	])('reports the prepared Codex chat before sending the context of %s', async (url) => {
+		settings.newTabCommand = 'codex';
+		vi.mocked(api.codexPrepareChat).mockResolvedValue(CHAT_ID);
+		const launching = chatAboutReference(url, '#1010', '/work/app');
+		await vi.advanceTimersByTimeAsync(2_000);
+		await launching;
+		expect(api.newTab).toHaveBeenCalledWith('w1', '/work/app', '#1010');
+		expect(api.codexPrepareChat).toHaveBeenCalledWith('/work/app', '#1010', null);
+		expect(api.run).toHaveBeenCalledWith('p1', `codex resume '${CHAT_ID}'`);
+		expect(api.request).toHaveBeenCalledWith('pane.report_agent_session', expect.objectContaining({
+			pane_id: 'p1',
+			agent_session_id: CHAT_ID,
+			source: 'herdr:codex',
+		}));
+		expect(sendPrompt).toHaveBeenCalledWith('p1', `Let's chat about ${url}`);
+		expect(vi.mocked(api.request).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(sendPrompt).mock.invocationCallOrder[0]);
+	});
+
+	it('loads the Claude Code observer for the terminal fallback without changing the global preference', async () => {
+		settings.newTabCommand = 'terminal';
+		vi.mocked(api.heidrunCodeDashboardClaudeObserverModPath).mockResolvedValue(MOD);
+		const url = 'https://github.com/heidrun-org/heidrun_code/issues/1010';
+		const launching = chatAboutReference(url, '#1010', '/work/app');
+		await vi.advanceTimersByTimeAsync(2_000);
+		await launching;
+		expect(api.run).toHaveBeenCalledWith(
+			'p1',
+			`HEIDRUN_CODE_DASHBOARD_OBSERVATION_DIR='${FOLDER}' claude --plugin-dir '${MOD}'`,
+		);
+		expect(sendPrompt).toHaveBeenCalledWith('p1', `Let's chat about ${url}`);
+	});
+	it('sends the issue prompt when a prepared resumed chat is Finished and ready for input', async () => {
+		settings.newTabCommand = 'codex';
+		vi.mocked(api.codexPrepareChat).mockResolvedValue(CHAT_ID);
+		allPanes.value[0].agent_status = 'done';
+		const launching = chatAboutReference('https://github.com/example/project/issues/1', '#1', '/work/app');
+		await vi.advanceTimersByTimeAsync(2_000);
+		await launching;
+		expect(sendPrompt).toHaveBeenCalledWith('p1', "Let's chat about https://github.com/example/project/issues/1");
+	});
+
+	it('waits for input readiness even when the prepared resumed chat is Finished', async () => {
+		settings.newTabCommand = 'codex';
+		vi.mocked(api.codexPrepareChat).mockResolvedValue(CHAT_ID);
+		allPanes.value[0].agent_status = 'done';
+		allPanes.value[0].interactive_ready = false;
+		const launching = chatAboutReference('https://github.com/example/project/issues/1', '#1', '/work/app');
+		await vi.advanceTimersByTimeAsync(2_000);
+		expect(sendPrompt).not.toHaveBeenCalled();
+		allPanes.value[0].interactive_ready = true;
+		await vi.advanceTimersByTimeAsync(1_000);
+		await launching;
+		expect(sendPrompt).toHaveBeenCalledWith('p1', "Let's chat about https://github.com/example/project/issues/1");
+	});
+
+	it('retries preparation once after a temporary shared Codex server failure', async () => {
+		settings.newTabCommand = 'codex';
+		vi.mocked(api.codexPrepareChat).mockResolvedValueOnce(null).mockResolvedValueOnce(CHAT_ID);
+		const launching = chatAboutReference('https://github.com/example/project/issues/1', '#1', '/work/app');
+		await vi.advanceTimersByTimeAsync(2_000);
+		await launching;
+		expect(api.codexPrepareChat).toHaveBeenCalledTimes(2);
+		expect(api.run).toHaveBeenCalledWith('p1', `codex resume '${CHAT_ID}'`);
+		expect(sendPrompt).toHaveBeenCalledWith('p1', "Let's chat about https://github.com/example/project/issues/1");
+	});
+
+	it.each([null, 'unsafe;identifier'])('sends no command or issue prompt when Codex preparation gives %s', async (identifier) => {
+		settings.newTabCommand = 'codex';
+		vi.mocked(api.codexPrepareChat).mockResolvedValue(identifier);
+		const launching = chatAboutReference('https://github.com/example/project/issues/1', '#1', '/work/app');
+		await vi.advanceTimersByTimeAsync(2_000);
+		await launching;
+		expect(api.run).not.toHaveBeenCalled();
+		expect(sendPrompt).not.toHaveBeenCalled();
+		expect(toast).toHaveBeenCalledWith(expect.stringContaining('Cannot track this coding agent'));
+	});
+
+	it('sends no issue prompt when Herdr cannot record the prepared Codex chat', async () => {
+		settings.newTabCommand = 'codex';
+		vi.mocked(api.codexPrepareChat).mockResolvedValue(CHAT_ID);
+		vi.mocked(api.request).mockRejectedValue(new Error('herdr_unreachable'));
+		const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		try {
+			const launching = chatAboutReference('https://github.com/example/project/issues/1', '#1', '/work/app');
+			await vi.advanceTimersByTimeAsync(2_000);
+			await launching;
+			expect(sendPrompt).not.toHaveBeenCalled();
+			expect(toast).toHaveBeenCalledWith(expect.stringContaining('Cannot track this coding agent'));
+		} finally {
+			warning.mockRestore();
+		}
+	});
+
+	it('sends no command or issue prompt when the Claude Code observer is unavailable', async () => {
+		settings.newTabCommand = 'terminal';
+		const launching = chatAboutReference('https://github.com/example/project/issues/1', '#1', '/work/app');
+		await vi.advanceTimersByTimeAsync(2_000);
+		await launching;
+		expect(api.run).not.toHaveBeenCalled();
+		expect(sendPrompt).not.toHaveBeenCalled();
+		expect(toast).toHaveBeenCalledWith(expect.stringContaining('Cannot track this coding agent'));
+	});
+
 });
 
 describe("Codex starts in the chat that Heidrun Code prepared (issue 969)", () => {

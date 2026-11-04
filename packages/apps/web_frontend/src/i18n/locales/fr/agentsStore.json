@@ -6,5 +6,6 @@
   "launchFailed": "Lancement impossible : {error}",
   "tabClosedBeforeReady": "Onglet fermé avant que l’agent soit prêt : consigne non envoyée",
   "notReady": "L’agent n’est pas prêt au bout de 2 min : la consigne de départ est dans la zone de saisie",
-  "invalidSessionId": "Identifiant de session invalide : {name}"
+  "invalidSessionId": "Identifiant de session invalide : {name}",
+  "trackingUnavailable": "Impossible de suivre cet agent de programmation dans le Heidrun Code Dashboard. Aucune consigne sur l’issue n’a été envoyée. Pour Codex, vérifiez que le serveur Codex partagé est disponible. Pour Claude Code, vérifiez que l’observateur du tableau de bord est disponible."
 }
