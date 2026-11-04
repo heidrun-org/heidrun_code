@@ -6,5 +6,6 @@
   "launchFailed": "Cannot launch: {error}",
   "tabClosedBeforeReady": "Tab closed before the agent was ready: prompt not sent",
   "notReady": "The agent is not ready after 2 min: the starting prompt is in the input field",
-  "invalidSessionId": "Invalid session identifier: {name}"
+  "invalidSessionId": "Invalid session identifier: {name}",
+  "trackingUnavailable": "Cannot track this coding agent in the Heidrun Code Dashboard. No issue prompt was sent. For Codex, check that the shared Codex server is available. For Claude Code, check that the dashboard observer is available."
 }

@@ -1,6 +1,7 @@
 import * as api from "../lib/api";
 import { claudeObserverCommandFor, codexResumeCommandFor, startsNewInteractiveSession } from "../lib/launcher_agent_command";
 import { settings } from "./settings";
+import { t } from '../i18n/index';
 
 // The start of a coding agent that Heidrun Code types in a pane: the observer mod of the Heidrun Code Dashboard for Claude Code, and the
 // chat prepared on the shared Codex server for Codex (issue 969). Each free agent pane, each new tab or split that starts
@@ -34,17 +35,19 @@ let lastReportSequence = 0;
  * - Codex: Heidrun Code creates and names the chat on the shared Codex server, then the command is
  *   `codex resume '<chat identifier>'` with the other arguments. When the server is not available, the command stays
  *   plain `codex`, and the Heidrun Code Dashboard shows the pane as unmatched.
- * Every other command, and every subcommand such as `codex resume`, stays as it is.
+ * Required tracking loads the Claude Code observer regardless of the global preference, retries a failed Codex
+ * preparation once, and refuses an unprepared command. Other launches retain their existing fallback behavior.
  * @param command - The command line, already checked by the guards.
- * @param o - The folder of the pane, the tab name, and the model, or null for the default model.
+ * @param o - The folder, tab name, model, and whether this launch requires dashboard tracking.
  * @returns The command line to type, and the identifier of the prepared Codex chat, or null.
  */
 export async function prepareAgentCommand(
   command: string,
-  o: { cwd: string | null; name: string; model: string | null },
+  o: { cwd: string | null; name: string; model: string | null; isTrackingRequired?: boolean },
 ): Promise<PreparedAgentCommand> {
   const plain = { command, codexChatId: null };
-  if (settings.heidrunCodeDashboardClaudeObserver === true && startsNewInteractiveSession(command, "claude")) {
+  if ((settings.heidrunCodeDashboardClaudeObserver === true || o.isTrackingRequired === true)
+    && startsNewInteractiveSession(command, "claude")) {
     try {
       const [modFolder, observationFolder] = await Promise.all([
         api.heidrunCodeDashboardClaudeObserverModPath(),
@@ -56,10 +59,16 @@ export async function prepareAgentCommand(
     } catch {
       // Claude Code starts without the observer mod.
     }
+    if (o.isTrackingRequired === true) {
+      throw new Error(t('agentsStore.trackingUnavailable'));
+    }
     return plain;
   }
   if (o.cwd !== null && o.cwd !== "" && startsNewInteractiveSession(command, "codex")) {
-    const chatId = await api.codexPrepareChat(o.cwd, o.name, o.model === "" ? null : o.model).catch(() => null);
+    let chatId = await api.codexPrepareChat(o.cwd, o.name, o.model === "" ? null : o.model).catch(() => null);
+    if (chatId === null && o.isTrackingRequired === true) {
+      chatId = await api.codexPrepareChat(o.cwd, o.name, o.model === "" ? null : o.model).catch(() => null);
+    }
     if (typeof chatId === "string") {
       const resumeCommand = codexResumeCommandFor(command, chatId);
       if (resumeCommand !== null) {
@@ -67,19 +76,27 @@ export async function prepareAgentCommand(
       }
     }
   }
+  if (o.isTrackingRequired === true) {
+    throw new Error(t('agentsStore.trackingUnavailable'));
+  }
   return plain;
 }
 
 /**
  * Tells Herdr the chat of a pane that started a prepared Codex. Herdr reads the chat identifier from the command line
  * only for a coding agent that Herdr starts itself, and Heidrun Code types the command into the shell of the pane, so
- * Herdr needs this report to give the pane its `agent_session`. A failure of the report never fails the start: the pane
- * then stays unmatched in the Heidrun Code Dashboard.
+ * Herdr needs this report to give the pane its `agent_session`. Required tracking throws when the report fails,
+ * so the caller sends no issue prompt. Other launches keep the existing fallback behavior.
  * @param paneId - The pane where the command was typed.
  * @param prepared - What `prepareAgentCommand` gave.
+ * @param isTrackingRequired - Whether a failed report must prevent the issue prompt from being sent.
  * @returns A promise that ends when the report is sent or has failed.
  */
-export async function reportPreparedCodexChat(paneId: string, prepared: PreparedAgentCommand): Promise<void> {
+export async function reportPreparedCodexChat(
+  paneId: string,
+  prepared: PreparedAgentCommand,
+  isTrackingRequired = false,
+): Promise<void> {
   if (prepared.codexChatId === null) {
     return;
   }
@@ -94,5 +111,8 @@ export async function reportPreparedCodexChat(paneId: string, prepared: Prepared
     });
   } catch (error) {
     console.warn(`Heidrun Code: Herdr did not record the Codex chat of the pane ${paneId}`, error);
+    if (isTrackingRequired === true) {
+      throw new Error(t('agentsStore.trackingUnavailable'));
+    }
   }
 }

@@ -27,6 +27,7 @@ describe("chatAboutReference", () => {
       model: null,
       label: "#851",
       prompt: `Let's chat about ${URL}`,
+      isTrackingRequired: true,
     });
   });
 
@@ -54,6 +55,7 @@ describe("chatAboutFile", () => {
       model: null,
       label: "main.ts",
       prompt: "Let's chat about /work/app/src/main.ts",
+      isTrackingRequired: false,
     });
   });
 
