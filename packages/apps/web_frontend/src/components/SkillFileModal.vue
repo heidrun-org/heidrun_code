@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { diffWordsWithSpace } from "diff";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import Icon from "./Icon.vue";
@@ -31,7 +32,40 @@ const differenceChosen = ref<boolean | null>(null);
 const installedText = computed(() => view.value?.installedText);
 const isDifferent = computed(() => installedText.value !== undefined && isSameSkillText(installedText.value, view.value?.text ?? "") === false);
 const showDifference = computed(() => installedText.value !== undefined && (differenceChosen.value ?? isDifferent.value));
-const differenceRows = computed(() => (showDifference.value ? skillDifferenceRows(installedText.value ?? "", view.value?.text ?? "") : []));
+const differenceRows = computed(() => {
+  const rows = showDifference.value ? skillDifferenceRows(installedText.value ?? "", view.value?.text ?? "") : [];
+  return rows.map((row, index) => {
+    let otherIndex = index;
+    if (row.kind === "del") {
+      let start = index;
+      while (rows[start - 1]?.kind === "del") {
+        start--;
+      }
+      while (rows[otherIndex]?.kind === "del") {
+        otherIndex++;
+      }
+      otherIndex += index - start;
+    } else if (row.kind === "add") {
+      while (rows[otherIndex - 1]?.kind === "add") {
+        otherIndex--;
+      }
+      const offset = index - otherIndex;
+      const end = otherIndex - 1;
+      while (rows[otherIndex - 1]?.kind === "del") {
+        otherIndex--;
+      }
+      otherIndex = otherIndex + offset <= end ? otherIndex + offset : -1;
+    }
+    const other = rows[otherIndex];
+    if ((row.kind !== "del" && row.kind !== "add") || other?.kind !== (row.kind === "del" ? "add" : "del")) {
+      return { ...row, segments: [{ text: row.text, changed: false }] };
+    }
+    const parts = row.kind === "del" ? diffWordsWithSpace(row.text, other.text) : diffWordsWithSpace(other.text, row.text);
+    const segments = parts.filter((part) => row.kind === "del" ? part.added !== true : part.removed !== true)
+      .map((part) => ({ text: part.value, changed: row.kind === "del" ? part.removed === true : part.added === true }));
+    return { ...row, segments };
+  });
+});
 watch(view, () => {
   differenceChosen.value = null;
 });
@@ -105,13 +139,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
         </div>
         <button class="btn icon close" :title="t('settingsSkills.closeTitle')" :aria-label="t('settingsSkills.closeLabel')" @click="closeSkillView"><Icon name="x-lg" /></button>
       </header>
-      <div class="body" :class="codeThemeClass">
+      <div class="body code" :class="codeThemeClass">
         <div v-if="view.loading" class="empty">{{ t("settingsSkills.loading") }}</div>
         <template v-else-if="showDifference">
           <div class="diff-help">{{ isDifferent ? t("settingsSkills.differenceHelp") : t("settingsSkills.differenceNone") }}</div>
           <div v-if="isDifferent" class="diff">
             <div v-for="(row, index) in differenceRows" :key="index" class="d-row" :class="row.kind">
-              <span class="d-sign">{{ row.kind === "add" ? "+" : row.kind === "del" ? "−" : "" }}</span>{{ row.text || " " }}
+              <span class="d-sign" aria-hidden="true">{{ row.kind === "add" ? "+" : row.kind === "del" ? "−" : "" }}</span><span class="d-text"><span v-for="(segment, segmentIndex) in row.segments" :key="segmentIndex" :class="{ changed: segment.changed }">{{ segment.text }}</span></span>
             </div>
           </div>
         </template>
@@ -159,11 +193,14 @@ h2 { margin: 0; font-size: var(--font-size); font-weight: 600; white-space: nowr
 .md-doc { padding: 24px 36px 60px; }
 .diff-help { padding: 12px 16px; color: var(--text-2); font-family: var(--sans); font-size: var(--font-size); }
 .diff { white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
-.d-row { padding: 0 10px; }
+.d-row { display: flex; padding: 2px 10px; }
+.d-text { min-width: 0; flex: 1; }
+.d-row.add .changed { background: var(--c-add-strong); }
+.d-row.del .changed { background: var(--c-del-strong); }
 .d-row.add { background: var(--c-add); }
 .d-row.del { background: var(--c-del); }
 .d-row.gap { color: var(--c-gutter); }
-.d-sign { display: inline-block; width: 16px; color: var(--c-gutter); user-select: none; }
+.d-sign { flex: 0 0 24px; color: var(--c-gutter); user-select: none; }
 .tbl { border-collapse: collapse; width: 100%; }
 .tbl td { padding: 0 10px; vertical-align: top; }
 .no { width: 1%; min-width: 44px; text-align: right; color: var(--c-gutter); user-select: none; white-space: nowrap; }
