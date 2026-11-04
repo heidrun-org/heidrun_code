@@ -138,6 +138,9 @@ describe("SkillFileModal: the differences from the installed skill", () => {
     expect(wrapper.get(".diff-help").text()).toContain("Lines with −");
     expect(wrapper.get(".d-row.del").text()).toContain("Use the old way.");
     expect(wrapper.get(".d-row.add").text()).toContain("Use the new way.");
+    expect(wrapper.get(".body").classes()).toContain("code");
+    expect(wrapper.get(".d-row.del .changed").text()).toBe("old");
+    expect(wrapper.get(".d-row.add .changed").text()).toBe("new");
     expect(wrapper.find(".md-doc").exists()).toBe(false);
   });
 
