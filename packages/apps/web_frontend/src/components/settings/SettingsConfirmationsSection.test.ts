@@ -76,11 +76,36 @@ describe('heading Ask before deleting', () => {
 	it('holds the switch Ask before deleting a saved search, linked to its setting, after the heading Ask before closing', async () => {
 		const wrapper = mount(SettingsConfirmationsSection);
 		const headingTextList = wrapper.findAll('h4').map((heading) => heading.text());
-		expect(headingTextList).toEqual(['Ask before closing', 'Ask before deleting']);
+		expect(headingTextList).toEqual(['Ask before closing', 'Ask before deleting', 'Files outside the workspace folder']);
 		const switchInput = SettingsConfirmationsSectionTestHelper.getSwitch(wrapper, 'Ask before deleting a saved search');
 		expect(switchInput.attributes('role')).toBe('switch');
 		expect((switchInput.element as HTMLInputElement).checked).toBe(true);
 		await switchInput.setValue(false);
 		expect(settings.confirmSavedSearchDelete).toBe(false);
+	});
+});
+
+describe('heading Files outside the workspace folder (issue #956)', () => {
+	beforeEach(() => {
+		settings.filesOutsideWorkspace = 'ask';
+	});
+
+	it('holds four choices, Ask first and chosen by default', () => {
+		const wrapper = mount(SettingsConfirmationsSection);
+		const option = wrapper.get('[data-option="filesOutsideWorkspace"]');
+		expect(option.get('h4').text()).toBe('Files outside the workspace folder');
+		expect(option.findAll('label').map((label) => label.text())).toEqual(['Ask', 'Open in Heidrun Code', 'Open in the default app', 'Never open']);
+		expect((option.findAll('input')[0].element as HTMLInputElement).checked).toBe(true);
+	});
+
+	it('changes the setting at once', async () => {
+		const wrapper = mount(SettingsConfirmationsSection);
+		const inputList = wrapper.get('[data-option="filesOutsideWorkspace"]').findAll('input');
+		await inputList[3].setValue(true);
+		expect(settings.filesOutsideWorkspace).toBe('never');
+		await inputList[2].setValue(true);
+		expect(settings.filesOutsideWorkspace).toBe('openDefault');
+		await inputList[1].setValue(true);
+		expect(settings.filesOutsideWorkspace).toBe('open');
 	});
 });

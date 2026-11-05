@@ -13,7 +13,7 @@ import RcModal from "./components/RcModal.vue";
 import ConfirmModal from "./components/ConfirmModal.vue";
 import DangerModal from "./components/DangerModal.vue";
 import GuardModal from "./components/GuardModal.vue";
-import { merging } from "./stores/git";
+import { pullRequestMerge } from "./stores/pull_request_merge";
 import MergeModal from "./components/MergeModal.vue";
 import IssueModal from "./components/IssueModal.vue";
 import { issueView } from "./stores/issues";
@@ -412,7 +412,7 @@ onBeforeUnmount(() => {
     <StatisticsModal v-if="statisticsModal.open" />
     <NoteModal v-if="notes.openId" />
     <RcModal v-if="remote.openFor" />
-    <MergeModal v-if="merging.open && merging.req" />
+    <MergeModal v-if="pullRequestMerge.open" />
     <IssueModal v-if="issueView.open" />
     <WorkspaceFolderRecovery />
     <SearchModal v-if="search.open" />

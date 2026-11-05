@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import Icon from "./Icon.vue";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { issueView } from "../stores/issues";
 import { settings } from "../stores/settings";
 import { renderMarkdown } from "../lib/markdown";
 import AbbreviatedTime from "./AbbreviatedTime.vue";
+import PullRequestMergeBar from "./PullRequestMergeBar.vue";
+import { pullRequestMerge } from "../stores/pull_request_merge";
+import { stateOf } from "../stores/issues";
 import { t } from "../i18n/index";
 
 const el = ref<HTMLElement>();
@@ -30,6 +33,18 @@ const forgeName = computed(() => d.value?.forge ?? (issueView.url?.includes("git
 function close() {
   issueView.open = false;
 }
+
+// After the merge of the shown item, the window shows the state "Merged" and no merge bar (issue #570).
+watch(
+  () => pullRequestMerge.mergeCount,
+  () => {
+    if (issueView.merge !== null && issueView.data !== null && pullRequestMerge.name === issueView.data.ref) {
+      const [state, stateLevel] = stateOf("merged");
+      Object.assign(issueView.data, { state, stateLevel });
+      issueView.merge = null;
+    }
+  },
+);
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape") {
     e.preventDefault();
@@ -82,6 +97,15 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
               <span v-if="d.at"> · <AbbreviatedTime :milliseconds="d.at" /></span>
               <span v-if="d.branches" class="mono"> · {{ d.branches }}</span>
             </p>
+            <PullRequestMergeBar
+              v-if="issueView.merge !== null"
+              class="merge"
+              :facts="issueView.merge.facts"
+              :folder="issueView.merge.folder"
+              :forge="issueView.merge.forge"
+              :name="d.ref"
+              :web-base="issueView.merge.webBase"
+            />
           </div>
           <article v-if="body" class="md-doc" :class="{ full: settings.mdWidth === 'full' }" v-html="body"></article>
           <div v-else class="md-doc muted" :class="{ full: settings.mdWidth === 'full' }">{{ t("issueModal.noDescription") }}</div>
@@ -119,6 +143,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
 .scroll .md-doc { font-size: inherit; }
 .head-doc .t { border: none; margin-bottom: 0.2em; }
 .meta { color: var(--muted); font-size: 0.85em; }
+.merge { margin-bottom: 1em; }
 .comments { margin-top: 2em; }
 .count { color: var(--muted); font-weight: 400; font-size: 0.8em; }
 .comment { border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 16px; margin-bottom: 12px; background: rgba(var(--wash), 0.02); }

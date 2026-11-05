@@ -247,6 +247,12 @@ const defaults = {
   histDecisionMin: 0.5,
   /** File view pane: a Markdown file shows rendered. */
   filesMdRead: true,
+  /**
+   * A click in a terminal on a file outside the project of the pane (issue #956): "ask" opens a confirmation modal, "open"
+   * opens the file at once in a file view pane, "openDefault" opens it at once in the default application of macOS, and
+   * "never" opens nothing.
+   */
+  filesOutsideWorkspace: "ask" as "ask" | "open" | "openDefault" | "never",
   /** Mosaic: only the agents at work (main, recent journal, or in Claude's list). */
   mosaicActiveOnly: true,
   /** Monthly budget per workspace (label → USD); alert at 80 % and 100 %. */
@@ -329,12 +335,20 @@ const defaults = {
   statisticsPersonWorkWorkspaces: { isSaved: false, workspaceIds: [] } as StatisticsPersonWorkWorkspaces,
   /** The identifier of the workspace that was selected at the last run: the next start selects it again. Empty: none. */
   selectedWorkspaceId: "",
+  /**
+   * The permanent branches, whose deletion the merge window never offers (issue #570). A name that ends with `*` matches
+   * every branch that starts with the rest of the name.
+   */
+  mergePermanentBranches: ["main", "master", "dev", "dev_*"] as string[],
+  /** The last merge method of the developer on GitHub, by address of the repository: the merge window selects it again. */
+  mergeLastMethods: {} as Record<string, "merge" | "squash" | "rebase">,
 };
 
 /** The values that an option accepts, for the options that have a short list of values. A saved value outside the list is dropped. */
 const ALLOWED_VALUES: Record<string, readonly unknown[]> = {
   rightSidebarSection: ["toHandle", "notes", "chats", "userActivity"],
   diffMode: ["unified", "split"],
+  filesOutsideWorkspace: ["ask", "open", "openDefault", "never"],
   filesPanelIndent: ["small", "medium", "large"],
   filesPanelRowHeight: ["compact", "comfortable"],
   agentsActivityScope: ["all", "pane"],

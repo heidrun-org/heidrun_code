@@ -128,6 +128,14 @@ const createdText = computed(() => {
 /** How the state looks: its text, its icon, and the class of its color. */
 const state = computed(() => chatReferenceState(props.reference.kind, props.details?.rawState ?? ""));
 
+/** The key of the line of the person who opened the item: "opened this merge request" on GitLab (issue #570). */
+const openedKey = computed(() => {
+  if (props.reference.kind === "issue") {
+    return "chatsPanel.referenceOpenedIssue";
+  }
+  return props.forge === "gitlab" ? "chatsPanel.referenceOpenedMergeRequest" : "chatsPanel.referenceOpenedPullRequest";
+});
+
 /** The beginning of the description as plain text, or an empty text. */
 const excerpt = computed(() => referenceExcerpt(props.details?.body ?? ""));
 
@@ -320,11 +328,7 @@ function showCopyState(state: "idle" | "copied" | "failed") {
           @error="isAvatarBroken = true"
         />
         <Icon v-else name="person-circle" />
-        {{
-          t(reference.kind === "issue" ? "chatsPanel.referenceOpenedIssue" : "chatsPanel.referenceOpenedPullRequest", {
-            author: details.author,
-          })
-        }}
+        {{ t(openedKey, { author: details.author }) }}
       </div>
     </template>
   </div>
