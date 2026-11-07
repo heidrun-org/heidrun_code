@@ -1,7 +1,7 @@
 # Documentation index
 
 - Created: 13 October 2026
-- Last updated: 19 October 2026
+- Last updated: 7 November 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../AGENTS.md)
 - Related issue: [issue 337](https://github.com/heidrun-org/heidrun/issues/337), [issue 715](https://github.com/heidrun-org/heidrun/issues/715)
@@ -21,3 +21,4 @@ This file lists the files and the subfolders of this folder, for agents and tool
 - [release_notes/](release_notes/index.md): the text that starts every GitHub release.
 - [statistics/](statistics/index.md): the four data layers, and the statistics that read them.
 - [team_collaboration_process/](team_collaboration_process/index.md): how the people who work on Heidrun Code work together.
+- [voice_input/](voice_input/index.md): the conversation audit and verified maintenance of the voice input word replacement list.
