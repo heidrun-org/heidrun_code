@@ -74,7 +74,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown, true));
 
 <template>
   <div class="overlay" @mousedown.self="close">
-    <dialog class="dialog dialog-instant dialog-nonmodal" open aria-labelledby="macro-editor-title">
+    <dialog class="dialog dialog-lg dialog-instant dialog-nonmodal" open aria-labelledby="macro-editor-title">
       <div class="dialog-header">
         <div id="macro-editor-title" class="dialog-title me-auto" role="heading" aria-level="2">{{ t(isNew ? "macroEditor.createTitle" : "macroEditor.title") }}</div>
         <DialogCloseButton :title="t('macroEditor.close')" :label="t('macroEditor.close')" @click="close" />
@@ -88,7 +88,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown, true));
 
         <div class="mb-3">
           <label class="form-label" for="macro-editor-description">{{ t("macroEditor.description") }}</label>
-          <input id="macro-editor-description" v-model="description" class="form-control" autocomplete="off" spellcheck="false" />
+          <textarea id="macro-editor-description" v-model="description" class="form-control" rows="3" spellcheck="false"></textarea>
         </div>
 
         <div class="mb-3">
@@ -113,4 +113,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown, true));
 
 <style scoped>
 .overlay { position: fixed; inset: 0; z-index: 59; background: var(--overlay); }
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  resize: vertical;
+}
 </style>

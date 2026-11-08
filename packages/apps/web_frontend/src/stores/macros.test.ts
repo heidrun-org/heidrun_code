@@ -99,6 +99,21 @@ describe("the hard-coded macros", () => {
 });
 
 describe("the personal macros", () => {
+	it('preserves Markdown whitespace through creation, update and reload', async () => {
+		const store = await loadStore();
+		store.startMacros();
+		await flush();
+		const description = '    indented code\n\nFirst line  \nSecond line\n';
+		const id = await store.addMacro('Markdown', description, 'Macro text', false);
+		expect(lastWrite()[0].description).toBe(description);
+		const updated = `${description}\nFinal line  `;
+		await store.updateMacro(id, false, 'Markdown', updated, 'Macro text');
+		expect(lastWrite()[0].description).toBe(updated);
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(store.macros.personal[0].description).toBe(updated);
+		expect(store.macros.personal[0].text).toBe('Macro text');
+	});
+
   it("are read from the file at the start", async () => {
     backend.file = { exists: true, macros: [macroA], error: null };
     const store = await loadStore();
