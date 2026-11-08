@@ -1,7 +1,7 @@
 # Live information for the Heidrun Code Dashboard
 
 - Created: 30 October 2026
-- Last updated: 30 October 2026
+- Last updated: 8 November 2026
 - Status: Live investigation, and the desktop integration of the observation sources
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Workspace glossary](../agents_rules/glossary/workspaces_tabs_and_panes.md), [Chat glossary](../agents_rules/glossary/chats.md), [Status dot](status_dot.md), [Application installations](application_installations.md)
@@ -96,7 +96,7 @@ Keep an unknown or stale state, and support sessions without the optional collec
 
 ## Code and next integration work
 
-The experiment is in [heidrun_code_dashboard_live_information](../../packages/experiments/heidrun_code_dashboard_live_information/CONTEXT.md). Existing application sources to reuse are the [Herdr client](../../packages/apps/desktop_tauri/src/herdr.rs), [session store](../../packages/apps/web_frontend/src/stores/session.ts), [workspace folder storage](../../packages/apps/desktop_tauri/src/workspace_folders.rs), [Claude Code transcript reader](../../packages/apps/desktop_tauri/src/claude.rs), and [Codex chat finder](../../submodules/heidrun_data/packages/data_layer_coding_agents/src/coding_agents/codex_chat_finder.rs).
+The experiment is in [heidrun_code_dashboard_live_information](../../packages/experiments/heidrun_code_dashboard_live_information/CONTEXT.md). Existing application sources to reuse are the [Herdr client](../../packages/apps/desktop_tauri/src/herdr.rs), [session store](../../packages/apps/web_frontend/src/stores/session.ts), [workspace folder storage](../../packages/apps/desktop_tauri/src/workspace_folders.rs), [Claude Code transcript reader](../../packages/apps/desktop_tauri/src/claude.rs), and [Codex chat finder](../../submodules/heidrun_data/packages/data_layers/data_layer_coding_agents/src/coding_agents/codex_chat_finder.rs).
 
 The data layer `subagents` table holds configuration files, not running instances. Do not use it as the live registry. The existing transcript modal's recent-file heuristic is also not a runtime status source.
 
