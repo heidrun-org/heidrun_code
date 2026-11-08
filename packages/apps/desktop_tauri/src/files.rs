@@ -443,6 +443,36 @@ pub fn file_open_external(root: String, path: String) -> Result<(), String> {
     std::process::Command::new("open").arg(&real).status().map_err(|e| e.to_string()).and_then(|s| if s.success() { Ok(()) } else { Err("cannot open the file".into()) })
 }
 
+/// Returns repository root, repository-relative path, commit, and branch for a committed file.
+/// `root` must be a known project and `path` must be a regular file below that project.
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn fileGitRevision(root: String, path: String) -> Result<Option<(String, String, String, Option<String>)>, String> {
+	let fullPath = full_path(&root, &path)?;
+	if fullPath.is_file() == false {
+		return Ok(None);
+	}
+	let parentPath = fullPath.parent().ok_or("file has no parent")?;
+	let Some(repositoryBytes) = run(parentPath, &["rev-parse", "--show-toplevel"]).await else {
+		return Ok(None);
+	};
+	let repositoryRoot = String::from_utf8_lossy(&repositoryBytes).trim_end().to_string();
+	let relativePath = fullPath.strip_prefix(&repositoryRoot).map_err(|error| error.to_string())?
+		.to_string_lossy().to_string();
+	let repositoryPath = Path::new(&repositoryRoot);
+	let Some(commitBytes) = run(repositoryPath, &["rev-parse", "--verify", "HEAD"]).await else {
+		return Ok(None);
+	};
+	let commit = String::from_utf8_lossy(&commitBytes).trim().to_string();
+	let object = format!("{commit}:{relativePath}");
+	if run(repositoryPath, &["cat-file", "-e", &object]).await.is_none() {
+		return Ok(None);
+	}
+	let branch = run(repositoryPath, &["symbolic-ref", "--quiet", "--short", "HEAD"]).await
+		.map(|bytes| String::from_utf8_lossy(&bytes).trim().to_string());
+	Ok(Some((repositoryRoot, relativePath, commit, branch)))
+}
+
 /// Absolute path of a project file (for "Copy absolute path").
 #[tauri::command]
 pub fn file_full_path(root: String, path: String) -> Result<String, String> {
@@ -733,6 +763,32 @@ pub fn dirs_existing(root: String, paths: Vec<String>) -> Result<Vec<String>, St
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[allow(non_snake_case)]
+    #[tokio::test]
+    async fn resolvesCommittedFileAndDetachedCheckout() {
+        let directory = std::env::temp_dir().join(format!("hd-file-links-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let root = std::fs::canonicalize(&directory).unwrap().display().to_string();
+        remember_root(&root);
+        assert!(run(&directory, &["init", "-b", "feature/menu"]).await.is_some());
+        std::fs::write(directory.join("a #é.txt"), "committed").unwrap();
+        std::fs::write(directory.join("new.txt"), "untracked").unwrap();
+        assert!(run(&directory, &["add", "--", "a #é.txt"]).await.is_some());
+        assert!(run(&directory, &["-c", "user.name=Test", "-c", "user.email=test@example.com",
+            "-c", "commit.gpgsign=false", "commit", "-m", "test"]).await.is_some());
+        let revision = fileGitRevision(root.clone(), "a #é.txt".into()).await.unwrap().unwrap();
+        assert_eq!(revision.0, root);
+        assert_eq!(revision.1, "a #é.txt");
+        assert_eq!(revision.2.len(), 40);
+        assert_eq!(revision.3.as_deref(), Some("feature/menu"));
+        assert!(fileGitRevision(root.clone(), "new.txt".into()).await.unwrap().is_none());
+        assert!(fileGitRevision(root.clone(), "../outside".into()).await.is_err());
+        assert!(run(&directory, &["checkout", "--detach"]).await.is_some());
+        assert!(fileGitRevision(root, "a #é.txt".into()).await.unwrap().unwrap().3.is_none());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn refuses_home_and_root() {

@@ -7,9 +7,10 @@ const invokeMock = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const copyMock = vi.hoisted(() => vi.fn(async () => {}));
 const chatAboutFileMock = vi.hoisted(() => vi.fn(async (_absolutePath: string, _label: string, _folder: string | null) => {}));
 const openFileViewMock = vi.hoisted(() => vi.fn(async (_absolutePath: string) => true));
+const openUrlMock = vi.hoisted(() => vi.fn(async (_url: string) => {}));
 const revealItemInDirMock = vi.hoisted(() => vi.fn(async (_path: string) => {}));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
-vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemInDir: revealItemInDirMock }));
+vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemInDir: revealItemInDirMock, openUrl: openUrlMock }));
 vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
 vi.mock("../lib/clipboard", () => ({ copy: copyMock }));
 vi.mock("../stores/chat_open", async (importOriginal) => ({
@@ -18,6 +19,7 @@ vi.mock("../stores/chat_open", async (importOriginal) => ({
 }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 
+import { FileGitLinks } from "../lib/file_git_links";
 import FilesPanel from "./FilesPanel.vue";
 import { git, type GitStatus } from "../stores/git";
 import { files, filesPanelIgnoredChildren, filesPanelNewFolders, filesPanelSelections } from "../stores/files";
@@ -867,4 +869,35 @@ describe("FilesPanel, a symbolic link to a folder (issue #923)", () => {
     await rowNamed(wrapper, "file-link.md")?.trigger("click");
     await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/skills/file-link.md"));
   });
+});
+
+
+it('opens each GitHub address from a separate context menu section', async () => {
+	const links = {
+		service: 'GitHub',
+		permalink: 'https://github.com/group/repo/blob/abc123/README.md',
+		headlink: 'https://github.com/group/repo/blob/main/README.md',
+	};
+	const loadSpy = vi.spyOn(FileGitLinks, 'load').mockResolvedValue(links);
+	const wrapper = await mountPanel();
+	try {
+		for (const [label, address] of [
+			['Open GitHub permalink', links.permalink],
+			['Open GitHub headlink', links.headlink],
+		]) {
+			await wrapper.findAll('.row')[1].trigger('contextmenu');
+			await vi.waitFor(() => {
+				expect(document.body.querySelector('[role=menu]')?.textContent).toContain(label);
+			});
+			const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role=menuitem]'))
+				.find((item) => item.textContent?.trim() === label);
+			expect(button).toBeDefined();
+			button?.click();
+			await vi.waitFor(() => expect(openUrlMock).toHaveBeenCalledWith(address));
+			expect(document.body.querySelector('[role=menu]')).toBeNull();
+		}
+	} finally {
+		wrapper.unmount();
+		loadSpy.mockRestore();
+	}
 });
