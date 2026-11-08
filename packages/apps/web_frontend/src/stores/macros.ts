@@ -278,7 +278,7 @@ const slug = (s: string) =>
   `${s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "modele"}-${Math.random().toString(36).slice(2, 5)}`;
 
 export async function addMacro(label: string, description: string, text: string, inProject: boolean): Promise<string> {
-  const macro = { id: slug(label), label: label.trim() || text.slice(0, 40), description: description.trim(), text };
+  const macro = { id: slug(label), label: label.trim() || text.slice(0, 40), description, text };
   const ws = state.selectedWorkspaceId;
   if (inProject && ws && currentProject.value) {
     // Re-read the file first: another workspace on the same repo may have changed it.
@@ -299,12 +299,12 @@ export async function updateMacro(id: string, fromProject: boolean, label: strin
     await loadProject(ws);
     const cfg = currentProject.value.config as { prompts?: Partial<Macro>[] };
     cfg.prompts = (cfg.prompts ?? []).map((p, i) =>
-      (typeof p.id === "string" && p.id ? p.id : `projet-${i}`) === id ? { ...p, id, label: label.trim() || text.slice(0, 40), description: description.trim(), text } : p,
+      (typeof p.id === "string" && p.id ? p.id : `projet-${i}`) === id ? { ...p, id, label: label.trim() || text.slice(0, 40), description, text } : p,
     );
     if (!(await saveProject(ws))) throw new Error(t("macrosStore.saveFailed"));
   } else {
     await changePersonal((list) =>
-      list.map((p) => (p.id === id ? { id, label: label.trim() || text.slice(0, 40), description: description.trim(), text } : p)),
+      list.map((p) => (p.id === id ? { id, label: label.trim() || text.slice(0, 40), description, text } : p)),
     );
   }
 }

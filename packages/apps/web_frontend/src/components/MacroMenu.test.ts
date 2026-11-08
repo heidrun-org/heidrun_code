@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { nextTick, type Ref } from 'vue';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import MacroMenu from './MacroMenu.vue';
 import MacroEditor from './MacroEditor.vue';
 import {
@@ -10,6 +11,10 @@ import {
 import { askConfirm } from '../stores/confirm';
 import { insertText, toast } from '../stores/session';
 import { t } from '../i18n/index';
+
+vi.mock('@tauri-apps/plugin-opener', () => ({
+	openUrl: vi.fn(async () => {}),
+}));
 
 vi.mock('../stores/macros', async () => {
 	const { reactive, ref } = await import('vue');
@@ -174,6 +179,22 @@ afterEach(() => {
 });
 
 describe('the macro menu', () => {
+	it('renders sanitized Markdown descriptions and opens links without inserting macro text', async () => {
+		macros.personal = [{
+			...personalMacro,
+			description: '**Bold**\n\n- First\n- Second\n\n[Guide](https://example.com) <script>bad()</script>',
+		}];
+		const menu = await MacroMenuTest.openMenu();
+		const description = MacroMenuTest.row(menu, 'Own macro').querySelector('.md-doc')!;
+		expect(description.querySelector('strong')!.textContent).toBe('Bold');
+		expect(description.querySelectorAll('li')).toHaveLength(2);
+		expect(description.querySelector('script')).toBeNull();
+		await MacroMenuTest.click(description.querySelector('a')!);
+		expect(openUrl).toHaveBeenCalledWith('https://example.com');
+		expect(insertText).not.toHaveBeenCalled();
+		expect(document.body.contains(menu)).toBe(true);
+	});
+
 	it('keeps project, personal and hard-coded groups in order, with one row per macro', async () => {
 		const menu = await MacroMenuTest.openMenu();
 		expect([...menu.querySelectorAll('.menu-header')].map((element) => element.textContent)).toEqual([
@@ -298,6 +319,28 @@ describe('the macro menu', () => {
 });
 
 describe('the macro editor', () => {
+	it.each([false, true])('saves and reopens multiline Markdown descriptions with project=%s', async (isProject) => {
+		const description = '**Summary**\nSecond line\n\n- First\n- Second';
+		macroEditor.open = true;
+		const editor = MacroMenuTest.editor();
+		expect(editor.get('#macro-editor-description').element.tagName).toBe('TEXTAREA');
+		await editor.get('#macro-editor-label').setValue('Multiline macro');
+		await editor.get('#macro-editor-description').setValue(description);
+		await editor.get('#macro-editor-text').setValue('Original macro text');
+		await editor.get('#macro-editor-in-project').setValue(isProject);
+		await MacroMenuTest.save(editor);
+		expect(addMacro).toHaveBeenCalledWith('Multiline macro', description, 'Original macro text', isProject);
+		const menu = await MacroMenuTest.openMenu();
+		await MacroMenuTest.click(MacroMenuTest.row(menu, 'Multiline macro').querySelectorAll('button')[1]);
+		const reopened = MacroMenuTest.editor();
+		expect((reopened.get('#macro-editor-description').element as HTMLTextAreaElement).value).toBe(description);
+		await reopened.get('#macro-editor-description').setValue(`${description}\n\nUpdated paragraph`);
+		await MacroMenuTest.save(reopened);
+		expect(updateMacro).toHaveBeenCalledWith(
+			'new-id', isProject, 'Multiline macro', `${description}\n\nUpdated paragraph`, 'Original macro text',
+		);
+	});
+
 	it('keeps the form open when saving fails', async () => {
 		vi.mocked(addMacro).mockRejectedValueOnce(new Error('Write failed'));
 		macroEditor.open = true;

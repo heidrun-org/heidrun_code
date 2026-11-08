@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: macros
 
 - Created: 16 October 2026
-- Last updated: 23 October 2026
+- Last updated: 8 November 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md)
@@ -47,3 +47,5 @@ The command line that controls the Heidrun Code application, for a coding agent.
 - The macro menu is 420 pixels wide, or the width of the window minus 16 pixels when the window is narrower. The Edit and Delete buttons are small icon buttons with no border. They sit at the right end of the first line of the row, on the same line as the title of the macro, and the description stays on the line under the title. The title keeps free space on its right, so a long title wraps before the buttons and never goes under them.
 - Create at the bottom of the macro menu opens a blank form. Edit opens the selected macro with its title, description, and text filled in. Save writes the macro and closes the window. Selection and deletion belong in the menu, not in the editor.
 - Clicking a macro inserts its text; Shift+click also presses Enter.
+
+- A macro description supports multiple lines and Markdown. Create and Edit show the original Markdown in a multiline field. Saving preserves the description, and the macro menu renders it with the shared sanitized Markdown renderer. Web links open in the browser without inserting the macro text.
