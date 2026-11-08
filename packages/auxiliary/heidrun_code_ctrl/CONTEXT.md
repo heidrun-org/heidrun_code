@@ -12,7 +12,7 @@ A Rust library and the `heidrun_code_ctrl` command line that control Heidrun Cod
 - Command to test this folder: `pnpm --filter heidrun_code_ctrl test`
 
 ## Rules
-- The three kinds of macro are `hard_coded` (only in `src/hard_coded_macros.rs`), `personal` (`HEIDRUN_CODE_DIR/macros.json`, or `~/.config/heidrun_code/macros.json`), and `project` (key `prompts` of `.heidrun/config.json`); the words are in [macros.md](../../../docs/agents_rules/glossary/macros.md).
+- The two macro kinds are user (`personal` in the existing file format and command-line options) and project (`project`); storage and terms are defined in [macros.md](../../../docs/agents_rules/glossary/macros.md).
 - A change of `.heidrun/config.json` keeps the other keys, their order, and unknown fields. Workspace level launchers are its key `launchers`; the old key `actions` is read and replaced on write, and a file with both keys is an error.
 - User level launchers are `HEIDRUN_CODE_DIR/launchers.json`; `desktop_tauri` reads and writes them, and the group `launchers` never changes them. A launcher of the kind Coding agent keeps its `agent`, and `launchers update` refuses `--command` for it.
 - A new launcher's default name is the first 20 characters of its command line; its id is the name in lowercase with dashes, a dash, and four characters, as in `stores/project.ts` of `web_frontend`.

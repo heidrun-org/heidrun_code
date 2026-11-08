@@ -21,8 +21,6 @@ pub struct Macro {
 /// Where a macro is kept.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MacroKind {
-    /// Written in the source code of Heidrun Code. It cannot be added, changed, or deleted.
-    HardCoded,
     /// Made by the developer, and kept in the file of the personal macros of this computer.
     Personal,
     /// Made by the developer, and kept in the key `prompts` of the file `.heidrun/config.json` of the project.
@@ -30,10 +28,9 @@ pub enum MacroKind {
 }
 
 impl MacroKind {
-    /// The name of the kind in the options and in the output: `hard_coded`, `personal`, or `project`.
+    /// The name of the kind in the options and in the output: `personal` or `project`.
     pub fn name(self) -> &'static str {
         match self {
-            MacroKind::HardCoded => "hard_coded",
             MacroKind::Personal => "personal",
             MacroKind::Project => "project",
         }
@@ -41,14 +38,13 @@ impl MacroKind {
 
     /// The kind that has this name, or `None`.
     pub fn from_name(name: &str) -> Option<MacroKind> {
-        [MacroKind::HardCoded, MacroKind::Personal, MacroKind::Project].into_iter().find(|kind| kind.name() == name)
+        [MacroKind::Personal, MacroKind::Project].into_iter().find(|kind| kind.name() == name)
     }
 
-    /// The words that name the kind in a sentence: "hard-coded", "personal", or "project".
+    /// The words that name the kind in a sentence: "user" or "project".
     pub fn words(self) -> &'static str {
         match self {
-            MacroKind::HardCoded => "hard-coded",
-            MacroKind::Personal => "personal",
+            MacroKind::Personal => "user",
             MacroKind::Project => "project",
         }
     }
@@ -63,7 +59,7 @@ pub struct ListedMacro {
     /// Where the macro is kept.
     #[serde(serialize_with = "serialize_kind")]
     pub kind: MacroKind,
-    /// The file that holds the macro. `None` for a hard-coded macro.
+    /// The file that holds the macro. The storage path for this macro.
     pub file: Option<PathBuf>,
 }
 

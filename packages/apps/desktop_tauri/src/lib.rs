@@ -401,7 +401,6 @@ pub fn run() {
             project::project_save,
             project::project_refs,
             project::project_config_text,
-            macros::macros_hard_coded,
             macros::macros_personal_read,
             macros::macros_personal_write,
             user_launchers::launchers_user_read,

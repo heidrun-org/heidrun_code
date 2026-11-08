@@ -4,11 +4,10 @@
 //! The binary also controls workspaces through Herdr; those operations stay outside this library.
 //! The macros, the launchers, and the word replacement list of the voice input each have four orders. The orders are list,
 //! add, update, and delete. The library holds what the command line and the desktop application share, so that the format
-//! of each file has one place: the hard-coded macros, the file of the personal macros, the keys `prompts` and `launchers`
+//! of each file has one place: the file of the personal macros, the keys `prompts` and `launchers`
 //! of the file `.heidrun/config.json`, the file of the user level launchers, the file of the word replacement list, the
 //! orders, and the output. The package knows nothing about Tauri.
 
-mod hard_coded_macros;
 mod ids;
 mod launcher_orders;
 mod launcher_output;
@@ -25,7 +24,6 @@ mod voice_word_file;
 mod voice_word_orders;
 mod voice_word_output;
 
-pub use hard_coded_macros::hard_coded_macros;
 pub use launcher_orders::{
     add_launcher, delete_launcher, label_from_command, list_launchers, update_launcher, LauncherChanges, NewLauncher,
 };

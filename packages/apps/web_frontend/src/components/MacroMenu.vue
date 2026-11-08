@@ -3,7 +3,7 @@ import Icon from "./Icon.vue";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import { askConfirm } from "../stores/confirm";
 import { insertText, toast } from "../stores/session";
-import { hardCodedMacros, macroEditor, macros, projectMacros, removeMacro, resolveMacroVariables, type Macro } from "../stores/macros";
+import { macroEditor, macros, projectMacros, removeMacro, resolveMacroVariables, type Macro } from "../stores/macros";
 import { t } from "../i18n/index";
 
 const props = defineProps<{ paneId: string }>();
@@ -49,17 +49,13 @@ function onKeyDown(event: KeyboardEvent) {
   }
 }
 
-/** The groups of the menu that have macros, in order: the project, the personal macros, then the hard-coded macros. */
+/** The groups of the menu that have macros, in order: the project macros, then the user macros. */
 const groups = computed(() =>
   [
     { id: "project", title: t("macroMenu.project"), items: projectMacros.value },
     { id: "personal", title: t("macroMenu.personal"), items: macros.personal },
-    { id: "hardCoded", title: t("macroMenu.hardCoded"), items: hardCodedMacros.value },
   ].filter((group) => group.items.length > 0),
 );
-
-/** The titles of the groups show only when the menu has more than one group. */
-const hasSeveralGroups = computed(() => groups.value.length > 1);
 
 // A click writes the text; a Shift+click writes it and presses Enter.
 async function useMacro(macro: Macro, event: MouseEvent) {
@@ -68,8 +64,9 @@ async function useMacro(macro: Macro, event: MouseEvent) {
   await insertText(props.paneId, text, event.shiftKey);
 }
 
-function edit(macro: Macro | null, isFromProject = false) {
+function edit(macro: Macro | null, isFromProject = false, isReadOnly = false) {
   close();
+  macroEditor.isReadOnly = isReadOnly;
   macroEditor.selectedId = macro?.id ?? null;
   macroEditor.isFromProject = isFromProject;
   macroEditor.open = true;
@@ -115,15 +112,18 @@ onBeforeUnmount(close);
     >
       <template v-for="(group, index) in groups" :key="group.id">
         <div v-if="index > 0" class="menu-divider" role="separator"></div>
-        <div v-if="hasSeveralGroups" class="menu-header">{{ group.title }}</div>
+        <div class="menu-header">{{ group.title }}</div>
         <div v-for="macro in group.items" :key="group.id + macro.id" class="position-relative">
           <button type="button" class="menu-item text-wrap text-break" role="menuitem" :title="macro.text" @click="useMacro(macro, $event)">
             <span class="d-flex flex-column gap-1 align-self-start">
-              <span class="fw-medium" :class="{ 'pe-5': group.id !== 'hardCoded' }">{{ macro.label }}</span>
+              <span class="fw-medium pe-5 me-4">{{ macro.label }}</span>
               <small v-if="macro.description !== ''" class="text-body-secondary">{{ macro.description.split(/\r\n|\r|\n/, 1)[0] }}</small>
             </span>
           </button>
-          <span v-if="group.id !== 'hardCoded'" class="position-absolute top-0 end-0 d-flex align-items-center mt-1">
+          <span class="position-absolute top-0 end-0 d-flex align-items-center mt-1">
+            <button type="button" class="btn icon small" role="menuitem" :aria-label="t('macroMenu.viewMacro', { label: macro.label })" :title="t('macroMenu.view')" @click.stop="edit(macro, group.id === 'project', true)">
+              <Icon name="eye" />
+            </button>
             <button type="button" class="btn icon small" role="menuitem" :aria-label="t('macroMenu.editMacro', { label: macro.label })" :title="t('macroMenu.edit')" @click.stop="edit(macro, group.id === 'project')">
               <Icon name="pencil" />
             </button>

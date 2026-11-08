@@ -94,13 +94,12 @@ impl Fixture {
 }
 
 #[test]
-fn the_list_has_the_four_hard_coded_macros_when_the_developer_made_none() {
+fn the_list_is_empty_when_the_developer_made_none() {
     let fixture = Fixture::new("list_empty");
     let run = fixture.run(&["macros", "list", "--format", "json"]);
     assert_eq!(run.exit_code, 0, "{}", run.stderr);
     let list = run.json();
-    assert_eq!(list.as_array().unwrap().len(), 4);
-    assert!(list.as_array().unwrap().iter().all(|item| item["kind"] == "hard_coded" && item["file"].is_null()));
+    assert!(list.as_array().unwrap().is_empty());
 }
 
 #[test]
@@ -108,7 +107,7 @@ fn the_default_format_is_markdown_even_when_the_output_is_not_a_terminal() {
     let fixture = Fixture::new("markdown");
     let run = fixture.run(&["macros", "list"]);
     assert!(run.stdout.starts_with("# Macros\n"));
-    assert!(run.stdout.contains("### Review the merge request"));
+    assert!(run.stdout.contains("## User macros"));
 }
 
 #[test]
@@ -171,19 +170,6 @@ fn a_text_on_several_lines_comes_from_the_standard_input_without_its_last_new_li
     assert_eq!(run.json()["text"], "One.\nTwo \"quoted\".");
 }
 
-#[test]
-fn a_hard_coded_macro_is_refused_by_update_and_delete_with_the_exit_code_1_and_no_file() {
-    let fixture = Fixture::new("hard_coded");
-    for arguments in [vec!["macros", "update", "revue-mr", "--text", "X"], vec!["macros", "delete", "revue-mr"]] {
-        let run = fixture.run(&arguments);
-        assert_eq!(run.exit_code, 1);
-        assert_eq!(run.stdout, "");
-        assert!(run.stderr.starts_with("Error: The macro revue-mr is hard-coded in Heidrun Code and cannot be"), "{}", run.stderr);
-    }
-    assert!(!fixture.personal_file().exists());
-    let add = fixture.run(&["macros", "add", "--kind", "hard_coded", "--text", "X"]);
-    assert_eq!(add.exit_code, 1);
-}
 
 #[test]
 fn an_error_is_one_json_object_on_one_line_on_the_standard_error_output_with_the_format_json() {
@@ -654,7 +640,7 @@ fn the_skill_names_no_command_no_kind_and_no_option_that_the_help_does_not_have(
         assert!(skill.contains(&format!("heidrun_code_ctrl panes {command}")), "panes {command}");
         assert!(help.contains(&format!("panes {command}")), "panes {command}");
     }
-    for kind in ["hard_coded", "personal", "project"] {
+    for kind in ["personal", "project"] {
         assert!(skill.contains(&format!("`{kind}`")) && help.contains(kind), "{kind}");
     }
 }
@@ -662,6 +648,7 @@ fn the_skill_names_no_command_no_kind_and_no_option_that_the_help_does_not_have(
 #[test]
 fn the_skill_names_the_fields_of_a_listed_macro_and_of_a_listed_launcher_and_every_variable_of_a_text() {
     let fixture = Fixture::new("skill_fields");
+    assert_eq!(fixture.run(&["macros", "add", "--label", "Example", "--text", "Example text"]).exit_code, 0);
     let listed = fixture.run(&["macros", "list", "--json"]).json();
     let skill = skill_text();
     for field in listed[0].as_object().unwrap().keys() {
