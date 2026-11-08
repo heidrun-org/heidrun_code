@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import Icon from "./Icon.vue";
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { renderMarkdown } from '../lib/markdown';
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import { askConfirm } from "../stores/confirm";
 import { insertText, toast } from "../stores/session";
@@ -65,15 +63,6 @@ const hasSeveralGroups = computed(() => groups.value.length > 1);
 
 // A click writes the text; a Shift+click writes it and presses Enter.
 async function useMacro(macro: Macro, event: MouseEvent) {
-  const link = event.target instanceof Element ? event.target.closest('a') : null;
-  if (link !== null) {
-    event.preventDefault();
-    const href = link.getAttribute('href') ?? '';
-    if (/^https?:\/\//i.test(href)) {
-      await openUrl(href).catch((error) => toast(String(error)));
-    }
-    return;
-  }
   close();
   const text = await resolveMacroVariables(macro.text, props.paneId);
   await insertText(props.paneId, text, event.shiftKey);
@@ -131,14 +120,9 @@ onBeforeUnmount(close);
           <button type="button" class="menu-item text-wrap text-break" role="menuitem" :title="macro.text" @click="useMacro(macro, $event)">
             <span class="d-flex flex-column gap-1 align-self-start">
               <span class="fw-medium" :class="{ 'pe-5': group.id !== 'hardCoded' }">{{ macro.label }}</span>
+              <small v-if="macro.description !== ''" class="text-body-secondary">{{ macro.description.split(/\r\n|\r|\n/, 1)[0] }}</small>
             </span>
           </button>
-          <div
-            v-if="macro.description !== ''"
-            class="md-doc text-body-secondary small px-3 pb-2"
-            @click="useMacro(macro, $event)"
-            v-html="renderMarkdown(macro.description)"
-          ></div>
           <span v-if="group.id !== 'hardCoded'" class="position-absolute top-0 end-0 d-flex align-items-center mt-1">
             <button type="button" class="btn icon small" role="menuitem" :aria-label="t('macroMenu.editMacro', { label: macro.label })" :title="t('macroMenu.edit')" @click.stop="edit(macro, group.id === 'project')">
               <Icon name="pencil" />
