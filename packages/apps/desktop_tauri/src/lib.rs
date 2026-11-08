@@ -471,6 +471,7 @@ pub fn run() {
             files::file_image,
             files::file_open_external,
             files::file_full_path,
+            files::fileGitRevision,
             files::file_read,
             files::file_stat,
             files::file_write,
