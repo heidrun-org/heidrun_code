@@ -48,4 +48,4 @@ The command line that controls the Heidrun Code application, for a coding agent.
 - Create at the bottom of the macro menu opens a blank form. Edit opens the selected macro with its title, description, and text filled in. Save writes the macro and closes the window. Selection and deletion belong in the menu, not in the editor.
 - Clicking a macro inserts its text; Shift+click also presses Enter.
 
-- A macro description supports multiple lines and Markdown. Create and Edit show the original Markdown in a multiline field. Saving preserves the description, and the macro menu renders it with the shared sanitized Markdown renderer. Web links open in the browser without inserting the macro text.
+- A macro description supports multiple lines and Markdown. Create and Edit show the original Markdown in a multiline field. Saving preserves the description, and the macro menu shows only the first description line as raw plain text under the title, without interpreting Markdown or HTML.

@@ -2,7 +2,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { nextTick, type Ref } from 'vue';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import MacroMenu from './MacroMenu.vue';
 import MacroEditor from './MacroEditor.vue';
 import {
@@ -11,10 +10,6 @@ import {
 import { askConfirm } from '../stores/confirm';
 import { insertText, toast } from '../stores/session';
 import { t } from '../i18n/index';
-
-vi.mock('@tauri-apps/plugin-opener', () => ({
-	openUrl: vi.fn(async () => {}),
-}));
 
 vi.mock('../stores/macros', async () => {
 	const { reactive, ref } = await import('vue');
@@ -179,20 +174,22 @@ afterEach(() => {
 });
 
 describe('the macro menu', () => {
-	it('renders sanitized Markdown descriptions and opens links without inserting macro text', async () => {
+	it.each(['\n', '\r\n', '\r'])('shows only the first description line as raw text with %j', async (separator) => {
+		const firstLine = '**Bold** [Guide](https://example.com) <b>raw HTML</b>';
 		macros.personal = [{
 			...personalMacro,
-			description: '**Bold**\n\n- First\n- Second\n\n[Guide](https://example.com) <script>bad()</script>',
+			description: `${firstLine}${separator}Hidden second line${separator}- Hidden list`,
 		}];
 		const menu = await MacroMenuTest.openMenu();
-		const description = MacroMenuTest.row(menu, 'Own macro').querySelector('.md-doc')!;
-		expect(description.querySelector('strong')!.textContent).toBe('Bold');
-		expect(description.querySelectorAll('li')).toHaveLength(2);
-		expect(description.querySelector('script')).toBeNull();
-		await MacroMenuTest.click(description.querySelector('a')!);
-		expect(openUrl).toHaveBeenCalledWith('https://example.com');
-		expect(insertText).not.toHaveBeenCalled();
-		expect(document.body.contains(menu)).toBe(true);
+		const row = MacroMenuTest.row(menu, 'Own macro');
+		const description = row.querySelector('small')!;
+		expect(description.textContent).toBe(firstLine);
+		expect(description.children).toHaveLength(0);
+		expect(row.textContent).not.toContain('Hidden');
+		expect(row.querySelector('.md-doc')).toBeNull();
+		expect(description.closest('button.menu-item')).not.toBeNull();
+		await MacroMenuTest.click(description);
+		expect(insertText).toHaveBeenCalledWith('pane_1', 'Own text', false);
 	});
 
 	it('keeps project, personal and hard-coded groups in order, with one row per macro', async () => {
