@@ -7,7 +7,7 @@
 - Related rules: [Source "AI cost"](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/agents_rules/user_interface/window/statistics_ai_cost.md), [Workspace selector](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/agents_rules/user_interface/window/statistics_person_work_workspace.md), [Glossary of Heidrun Code: work of one person](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/agents_rules/glossary/person_work.md)
 - Related issue: [issue 616](https://github.com/heidrun-org/heidrun/issues/616), [issue 482](https://github.com/heidrun-org/heidrun/issues/482), [issue 559](https://github.com/heidrun-org/heidrun/issues/559)
 
-This file says how Heidrun Code stores the tokens that the coding agents used, how it turns them into an estimated cost in US dollars, and how to ask for them. The package [`data_layer_coding_agents`](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/packages/data_layer_coding_agents/README.md) owns the tables. The command `usage` of [`heidrun_data`](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/packages/heidrun_data/README.md) and the source "AI cost" of the Statistics window read them. The general rules of the data layers are in [the four data layers](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/statistics/the_four_data_layers.md).
+This file says how Heidrun Code stores the tokens that the coding agents used, how it turns them into an estimated cost in US dollars, and how to ask for them. The package [`data_layer_coding_agents`](https://github.com/heidrun-org/heidrun_data/blob/main/packages/data_layers/data_layer_coding_agents/README.md) owns the tables. The command `usage` of [`heidrun_data`](https://github.com/heidrun-org/heidrun_data/blob/main/packages/apps/heidrun_data/README.md) and the source "AI cost" of the Statistics window read them. The general rules of the data layers are in [the four data layers](https://github.com/heidrun-org/heidrun_code/blob/dev_jerome/docs/statistics/the_four_data_layers.md).
 
 ## What is stored
 
@@ -199,11 +199,11 @@ The totals are not the same as those of the old path for two reasons. The old pa
 
 | Part | Place |
 | --- | --- |
-| The tables, the index, and the views | `packages/data_layer_coding_agents/src/storage/token_usage_schema.rs` |
-| The rows and the queries | `packages/data_layer_coding_agents/src/storage/token_usage_database.rs` and `usage_grouping.rs` |
-| The reading of the chat session files | `packages/data_layer_coding_agents/src/coding_agents/token_usage_reader.rs` |
-| The prices | `packages/data_layer_coding_agents/src/pricing/` and `src/storage/model_price_database.rs` |
-| The command `usage` | `packages/heidrun_data/src/usage.rs` |
+| The tables, the index, and the views | `packages/data_layers/data_layer_coding_agents/src/storage/token_usage_schema.rs` |
+| The rows and the queries | `packages/data_layers/data_layer_coding_agents/src/storage/token_usage_database.rs` and `usage_grouping.rs` |
+| The reading of the chat session files | `packages/data_layers/data_layer_coding_agents/src/coding_agents/token_usage_reader.rs` |
+| The prices | `packages/data_layers/data_layer_coding_agents/src/pricing/` and `src/storage/model_price_database.rs` |
+| The command `usage` | `packages/apps/heidrun_data/src/usage.rs` |
 | The commands of the application | In Heidrun Code: `packages/apps/desktop_tauri/src/statistics/ai_cost.rs`, and `past_chats/chats.rs` for the refresh of the prices in the background |
 | The tab | In Heidrun Code: `packages/apps/web_frontend/src/components/PersonWorkTab.vue` and `lib/ai_cost.ts` |
 
