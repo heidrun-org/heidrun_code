@@ -9,9 +9,7 @@ Controls the Heidrun Code application. There are six groups of commands: macros,
 voice_words, workspaces, tabs, and panes.
 
 The macros: a macro is a reusable text that the developer writes into a pane. There are
-three kinds of macro:
-  hard_coded   Written in the source code of Heidrun Code. It is listed, and it cannot be
-               added, changed, or deleted.
+two kinds of macro:
   personal     Made by the developer, and kept in the file "macros.json" of the folder
                of the variable HEIDRUN_CODE_DIR, or else of "~/.config/heidrun_code".
   project      Made by the developer, and kept in the key "prompts" of the file
@@ -42,7 +40,7 @@ tab, or pane command starts a Herdr server. A tab id looks like w1:t2, and a pan
 w1:p3: copy them from tabs list and panes list of the same session.
 
 Commands:
-  macros list                 List every macro, the hard-coded macros included.
+  macros list                 List every user and project macro.
   macros add                  Add a macro.
   macros update <id>          Change the title, the description, or the text of a macro.
   macros delete <id>          Delete a macro.
@@ -102,7 +100,7 @@ Options:
                               recent)
   --lines <count>             Panes wait-output and read only. Only this number of lines
                               of the output.
-  --kind <name>               Macros only. hard_coded, personal, or project. For list,
+  --kind <name>               Macros only. personal or project. For list,
                               only the macros of that kind. For add, the kind to add:
                               personal or project. (default: personal) For update and
                               delete, the kind to search, when the id exists in two
@@ -155,7 +153,7 @@ Output:
   markdown   Text for a person, or for a renderer: pipe it to glow to get colors.
   json       One JSON value: a list for list, and one item for add and update. A macro
              has the fields "id", "label", "description", "text", "kind", and "file"
-             (null for a hard-coded macro). A launcher has the fields "id", "label",
+             (the storage path). A launcher has the fields "id", "label",
              "command", "description", "cwd", and "agent" (null for a field that the
              launcher does not have). A voice word has the fields "id",
              "whisper_writes", and "heidrun_writes". A delete gives the object
@@ -545,9 +543,9 @@ fn text_input_of(value: String) -> TextInput {
     }
 }
 
-/// The kind that a name gives, or an error that lists the three names.
+/// The kind that a name gives, or an error that lists the two names.
 fn kind_of(name: &str) -> Result<MacroKind, String> {
-    MacroKind::from_name(name).ok_or_else(|| format!("The kind {name} is not known: use hard_coded, personal, or project."))
+    MacroKind::from_name(name).ok_or_else(|| format!("The kind {name} is not known: use personal or project."))
 }
 
 /// Reads the arguments of the command line, without the name of the program.
@@ -1108,7 +1106,7 @@ mod tests {
     fn an_unknown_command_kind_format_or_option_is_an_error_that_says_the_choices() {
         assert!(parse(&arguments(&["windows"])).unwrap_err().contains("use macros, launchers, voice_words, workspaces, tabs, or panes"));
         assert!(parse(&arguments(&["macros", "run"])).unwrap_err().contains("list, add, update, or delete"));
-        assert!(parse(&arguments(&["macros", "list", "--kind", "x"])).unwrap_err().contains("hard_coded, personal, or project"));
+        assert!(parse(&arguments(&["macros", "list", "--kind", "x"])).unwrap_err().contains("personal or project"));
         assert!(parse(&arguments(&["macros", "list", "--format", "table"])).unwrap_err().contains("markdown or json"));
         assert!(parse(&arguments(&["macros", "list", "--color"])).unwrap_err().contains("--color"));
         assert!(parse(&arguments(&["macros", "list", "--kind"])).unwrap_err().contains("needs a value"));

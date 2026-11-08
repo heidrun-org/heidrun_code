@@ -1,6 +1,6 @@
 ---
 name: heidrun-code-ctrl
-description: Control the Heidrun Code application from the command line heidrun_code_ctrl. Use it to list, add, update, or delete the macros of the developer, the reusable texts that Heidrun Code writes into a pane, the hard-coded macros of Heidrun Code included, and to list, add, update, or delete the launchers of a project, the command lines that Heidrun Code runs in their own tab. Use the voice_words group to list, add, update, or delete the entries of the word replacement list of the voice input, the texts that Heidrun Code writes instead of the texts that Whisper writes wrongly. Use the workspaces group to list, open, rename, focus, or close workspaces through Herdr. Use the tabs group to list, create, rename, focus, or close tabs, and the panes group to list, split, rename, focus, or close panes, to type a text or press keys in a pane, to wait for a text in the output of a pane, and to read that output. A running Heidrun Code shows each change in its window within about one second.
+description: Control the Heidrun Code application from the command line heidrun_code_ctrl. Use it to list, add, update, or delete the macros of the developer, the reusable texts that Heidrun Code writes into a pane, and to list, add, update, or delete the launchers of a project, the command lines that Heidrun Code runs in their own tab. Use the voice_words group to list, add, update, or delete the entries of the word replacement list of the voice input, the texts that Heidrun Code writes instead of the texts that Whisper writes wrongly. Use the workspaces group to list, open, rename, focus, or close workspaces through Herdr. Use the tabs group to list, create, rename, focus, or close tabs, and the panes group to list, split, rename, focus, or close panes, to type a text or press keys in a pane, to wait for a text in the output of a pane, and to read that output. A running Heidrun Code shows each change in its window within about one second.
 compatibility: macOS with Heidrun Code installed and heidrun_code_ctrl available on the shell path.
 ---
 
@@ -18,11 +18,10 @@ Before using a command, check that `heidrun_code_ctrl --help` works. The install
 
 ## The macros
 
-### The three kinds of macro
+### The two kinds of macro
 
 | Kind | Where it is kept | What you can do |
 | --- | --- | --- |
-| `hard_coded` | In the source code of Heidrun Code. | List it only. `add`, `update`, and `delete` refuse it. |
 | `personal` | The file `macros.json` in the folder of the variable `HEIDRUN_CODE_DIR`, or else in `~/.config/heidrun_code`. It belongs to the developer, for every project. | List, add, update, delete. |
 | `project` | The key `prompts` of the file `.heidrun/config.json` of the project. The file is shared with the other developers of the project. | List, add, update, delete. |
 
@@ -36,7 +35,7 @@ Give `--format json` when a program reads the output. The default format is Mark
    ```bash
    heidrun_code_ctrl macros list --format json
    ```
-   The list has the hard-coded macros, then the personal macros, then the project macros. Each macro has the fields `id`, `label`, `description`, `text`, `kind`, and `file`. `--kind personal` lists one kind only. The command reads the project of the current folder, or of the folder of `--folder`.
+   The list has the user macros, then the project macros. Each macro has the fields `id`, `label`, `description`, `text`, `kind`, and `file`. `--kind personal` lists one kind only. The command reads the project of the current folder, or of the folder of `--folder`.
 2. **Add a macro.** The kind is `personal` unless `--kind project` is given. The command prints the new macro with its new id.
    ```bash
    heidrun_code_ctrl macros add --label "Run the tests" --text "Run the tests first." --format json
@@ -222,7 +221,6 @@ A pane is one terminal of a tab. A pane id looks like `w1:p3`. The pane commands
 
 A command that fails exits with the code 1, prints one JSON object on one line on the standard error output, with the field `error`, and changes no file. The errors that you can fix:
 
-- The macro is hard-coded: choose another macro, or add a personal macro with the text that you want.
 - No macro has the id: run `macros list` again and copy the id.
 - Herdr is not running: start the intended Heidrun Code window and check the session.
 - No workspace has the id: run `workspaces list` in the same session and copy the id.

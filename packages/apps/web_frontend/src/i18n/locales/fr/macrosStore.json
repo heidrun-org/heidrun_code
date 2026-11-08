@@ -1,13 +1,9 @@
 {
-  "default.reviewMergeRequest": "Revue de la MR",
-  "default.handoverNote": "Note de reprise",
-  "default.progress": "Où en es-tu ?",
-  "default.explainSelection": "Explique la sélection",
   "saveFailed": "Enregistrement de .heidrun/config.json impossible",
-  "default.reviewMergeRequestDescription": "Sécurité, bugs, tests, résumé",
-  "default.handoverNoteDescription": "Commite, puis écris ce qui est fait et ce qui reste",
-  "default.progressDescription": "Cinq lignes sur ce qui est fait et ce qui reste",
-  "default.explainSelectionDescription": "Explique le texte sélectionné",
+  "macroNotFound": "La macro est introuvable à son emplacement actuel",
+  "projectUnavailable": "Sélectionne un projet avant de déplacer une macro vers ou depuis un projet",
+  "locationConflict": "Une macro avec cet identifiant existe déjà à l’emplacement choisi",
+  "moveRollbackFailed": "La macro n’a pas pu être déplacée ni restaurée à son emplacement précédent",
   "personalFileInvalid": "Le fichier des macros personnelles est illisible, donc rien n'est enregistré : {reason}",
   "personalFileNotRead": "Heidrun Code lit encore le fichier des macros personnelles. Réessaie dans un instant."
 }

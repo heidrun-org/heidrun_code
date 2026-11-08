@@ -19,7 +19,7 @@ The packages that produce the application Heidrun Code. Nothing else lives here.
 
 - A pane moves when the developer drags its header: `web_frontend/src/stores/pane_move.ts` owns the pointer events and calls `lib/pane_move.ts` for the four drop triangles and the Herdr steps; the rules are in [the pane move rules](../../docs/agents_rules/user_interface/workspaces_tabs_and_panes/pane_move.md).
 
-- The macro menu sets `macroEditor.selectedId` and `macroEditor.isFromProject` before opening the macro editor; a null selection creates a macro. See [the macro rules](../../docs/agents_rules/glossary/macros.md).
+- The macro menu sets `macroEditor.selectedId`, `macroEditor.isFromProject`, and `macroEditor.isReadOnly` before opening the macro editor; a null selection creates a macro, and View opens the selected macro without editable fields or saving controls. See [the macro rules](../../docs/agents_rules/glossary/macros.md).
 
 - The file listing returns submodule folders separately from files and reads initialized submodules with their own ignore rules; the File explorer follows [the file rules](../../docs/agents_rules/user_interface/sidebars/files.md).
 
