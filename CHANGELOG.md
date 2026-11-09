@@ -4,6 +4,48 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-09
+
+### Release notes
+
+Heidrun Code 0.4.0 brings coding agent activity into Heidrun Code Dashboard and makes more everyday work available directly from the application.
+
+**Heidrun Code Dashboard**
+
+See workspaces, coding agents, and subagents together, inspect observed activity, and filter by status. Open Heidrun Code Dashboard in a separate window or on a phone or tablet on the local network, with a pairing QR code and support for keeping the device screen on.
+
+**Files, macros, and coding agents**
+
+Merge GitHub pull requests and GitLab merge requests from Code hosting, open files outside the workspace with a remembered choice, and browse mixed Claude and Codex past chats. Macros gain multiline descriptions, separate user and project groups, and controls for viewing and moving macros. The command line tool `heidrun_code_ctrl` gains control of tabs, panes, and terminal input and output.
+
+### Added
+
+- Added Heidrun Code Dashboard with a graph of workspaces, coding agents, and subagents, status counters and filters, activity details, and explicit indications when observations are unavailable or stale. ([#975](https://github.com/heidrun-org/heidrun_code/pull/975), [#976](https://github.com/heidrun-org/heidrun_code/pull/976), [#977](https://github.com/heidrun-org/heidrun_code/pull/977)).
+- Added a separate window and full screen for Heidrun Code Dashboard, with animated activity, reduced motion support, and navigation back to the main window. ([#979](https://github.com/heidrun-org/heidrun_code/pull/979), [#990](https://github.com/heidrun-org/heidrun_code/pull/990)).
+- Added read-only access to Heidrun Code Dashboard from phones and tablets on the local network, with QR code pairing and a saved address. ([#985](https://github.com/heidrun-org/heidrun_code/pull/985)).
+- Added merging of GitHub pull requests and GitLab merge requests from Code hosting, including approval information, available merge methods, reasons preventing a merge, and protection against deleting permanent branches. ([#961](https://github.com/heidrun-org/heidrun_code/pull/961)).
+- Added the choice to open files outside the workspace in Heidrun Code or the default application, with a remembered preference and access limited to the selected file. ([#960](https://github.com/heidrun-org/heidrun_code/pull/960)).
+- Added Reveal in Finder and Open with VS Code to the File explorer context menu. ([#965](https://github.com/heidrun-org/heidrun_code/pull/965)).
+- Added GitHub and GitLab file links for the current commit or branch, including files in submodules. ([#1024](https://github.com/heidrun-org/heidrun_code/pull/1024)).
+- Added a long press on the tab bar plus button to choose Terminal or an enabled coding agent for a new tab. ([#981](https://github.com/heidrun-org/heidrun_code/pull/981)).
+- Added `heidrun_code_ctrl` commands for listing, creating, renaming, focusing, and closing tabs and panes, splitting panes, sending text and keys, reading output, and waiting for text. ([#1005](https://github.com/heidrun-org/heidrun_code/pull/1005)).
+
+### Changed
+
+- Past chats now uses independent Claude and Codex checkboxes and combines selected coding agents in one sorted list with coding agent icons. ([#963](https://github.com/heidrun-org/heidrun_code/pull/963)).
+- Macro descriptions now support multiple lines and Markdown, while the macro menu shows only the first description line as plain text. ([#1025](https://github.com/heidrun-org/heidrun_code/pull/1025), [#1027](https://github.com/heidrun-org/heidrun_code/pull/1027)).
+- Macros now have separate Project macro and User macro groups, a details view, field guidance, and controls for moving macros between user and project locations. ([#1030](https://github.com/heidrun-org/heidrun_code/pull/1030)).
+- Heidrun Code Dashboard shows full workspace names, a resizable details sidebar, and more visible animated activity indicators. ([#990](https://github.com/heidrun-org/heidrun_code/pull/990)).
+- Named the new activity view Heidrun Code Dashboard, with Dashboard in the More menu and Settings. ([#992](https://github.com/heidrun-org/heidrun_code/pull/992), [#995](https://github.com/heidrun-org/heidrun_code/pull/995), [#997](https://github.com/heidrun-org/heidrun_code/pull/997)).
+- Improved menu hover contrast and the spacing between the title and motto on the splash screen. ([#965](https://github.com/heidrun-org/heidrun_code/pull/965), [#987](https://github.com/heidrun-org/heidrun_code/pull/987)).
+- Replaced the repository-specific changelog generator with the shared Keep a Changelog Workflow for maintaining release history. ([#1035](https://github.com/heidrun-org/heidrun_code/pull/1035)).
+
+### Fixed
+
+- Coding agents started from issue and pull request chats are now tracked in Heidrun Code Dashboard; preparation failures are reported instead of silently opening an untracked chat. ([#1011](https://github.com/heidrun-org/heidrun_code/pull/1011)).
+- Skill comparisons now apply added and removed line colors and highlight changed words within paired lines. ([#1014](https://github.com/heidrun-org/heidrun_code/pull/1014)).
+- Heidrun Code Dashboard can keep the phone or tablet screen on after the first touch, including when served over plain HTTP on the local network. ([#994](https://github.com/heidrun-org/heidrun_code/pull/994)).
+
 ## [0.3.5] - 2026-10-28
 
 ### Added
@@ -268,3 +310,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Show a spinner on the Refresh button while it refreshes. ([#25](https://github.com/heidrun-org/heidrun/pull/25))
 - Show a modal dialog to confirm closing the application. ([#29](https://github.com/heidrun-org/heidrun/pull/29))
 - Make the scroll bar of the terminal panel no longer white. ([#108](https://github.com/heidrun-org/heidrun/pull/108))
+
+[0.4.0]: https://github.com/heidrun-org/heidrun_code/compare/v0.3.5...v0.4.0
