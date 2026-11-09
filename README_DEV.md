@@ -64,7 +64,7 @@ cp .env.example .env
 pnpm test
 ```
 
-The command runs the fast tests, and ends with a non-zero exit code when a test fails. The command `pnpm test:slow` runs the slow tests (the real Whisper model of `voice_input`, and `change_log_generator`). The command `pnpm test:full` runs the fast tests, then the slow tests, and the release steps use it. To run the tests of one package:
+The command runs the fast tests, and ends with a non-zero exit code when a test fails. The command `pnpm test:slow` runs the slow tests (the real Whisper model of `voice_input`). The command `pnpm test:full` runs the fast tests, then the slow tests, and the release steps use it. To run the tests of one package:
 
 | Command | Tests |
 | --- | --- |
@@ -81,7 +81,6 @@ The command runs the fast tests, and ends with a non-zero exit code when a test 
 | `cargo test --package data_layer_source_control` (at the root) | The Rust tests of `submodules/heidrun_data/packages/data_layers/data_layer_source_control`: the JSON schema, the SQLite file, the reading of the commits of a real Git repository, the modes initialize and update, and the read-only query. The tests of the command line use a real Git repository in a temporary folder and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
 | `cargo test --package data_layer_user_activity` (at the root) | The Rust tests of `submodules/heidrun_data/packages/data_layers/data_layer_user_activity`: the JSON schema, the SQLite file, the reading of the file of user activity records, the modes initialize and update, and the read-only query. The tests of the command line use a fake file of user activity records in a temporary folder and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
 | `cargo test --package data_layer_coding_agents` (at the root) | The Rust tests of `submodules/heidrun_data/packages/data_layers/data_layer_coding_agents`: the reading of the chat session files of Claude Code and of Codex, the cache of the scans, the JSON schema, the SQLite file with its link tables, the modes initialize and update, and the read-only query. The tests of the command line use fake folders of the two coding agents and sit in the folder `tests`, and the other Rust tests sit in a `#[cfg(test)]` module at the end of each source file. |
-| `pnpm --filter change_log_generator test` | The Vitest tests of `packages/dev_tools/change_log_generator`, the generator of the change log. The test files sit in the folder `tests`. These are slow tests: `pnpm test:slow` runs them. |
 | `pnpm --filter install_script_tests test` | The Vitest tests of `packages/dev_tools/install_script_tests`, the tests of the script `scripts/install.sh`. They run the script with a fake `curl`, a fake `hdiutil`, a fake `ditto`, a fake `uname`, and a fake `pgrep`, and install in a temporary folder in place of `/Applications`. The test files sit in the folder `tests`. |
 | `pnpm --filter worktree_tools test` | The Vitest tests of `packages/dev_tools/worktree_tools`, the tools that create a worktree, clean the old target folders, delete the obsolete files of a target folder, give the unchanged sources of a new worktree the dates of the main checkout, and build the bundled command line tools only when their sources changed. The test files sit in the folder `tests`. |
 
@@ -175,40 +174,18 @@ Cargo never deletes the files of an old build, so the folder `target/debug` grow
 
 `pnpm dev` starts with `pnpm bundled_commands:build`. The command builds the bundled command line tools `heidrun_code_ctrl` and `heidrun_data` only when their sources changed since their last build: it compares a fingerprint of the sources with the file `sources.sha256` next to the tools. A new worktree clones the tools and this file from the main checkout, so it builds nothing when the sources of the tools did not change. Add the option `--force` to build them in any case ([issue 864](https://github.com/heidrun-org/heidrun_code/issues/864)).
 
-## Generate the change log
+## Maintain the changelog
 
-```bash
-pnpm release:change_log
-```
+Use the shared [Keep a Changelog Workflow](.agents/skills/keep-a-changelog-workflow/SKILL.md) skill to maintain `CHANGELOG.md`. Codex reads the installed copy in `.agents/skills`; Claude Code uses the link in `.claude/skills`. Both use the same instructions.
 
-The command writes a section of the file `CHANGELOG.md` in the root of the repository, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format, from the pull requests that were merged between two releases. If the file does not exist, the command creates it with the header of the format. The command also prints the new section on the standard output. The command is the package [`packages/dev_tools/change_log_generator`](packages/dev_tools/change_log_generator).
+Give the coding agent the operation and explicit boundaries. For example:
 
-Without option, the section is `Unreleased`: from the last release to the current commit. The last release is the Git tag with the highest version number, for example `v0.2.0`. A pull request is a commit whose first line starts with `Merge pull request #`.
+- **Update unreleased changes:** “Use Keep a Changelog Workflow to update Unreleased from `v0.3.5` through HEAD. Preserve all completed releases and manual wording.”
+- **Add release:** “Use Keep a Changelog Workflow to add the release from `v<previous version>` to `v<version>`, with the publication date confirmed by the published release record.”
+- **Update release:** Use the same original tags and established date to reconcile an existing release; do not append a duplicate release.
+- **Finalize release:** Use the supplied existing release tag and established date to transfer only the Unreleased entries included in that tag.
+- **Validate changelog:** Check the selected release, evidence links, dates, comparison endpoints, and preservation of unrelated sections without writing.
 
-To choose another range, use the options `--from` and `--to`:
+The skill reads merged pull request descriptions and verifies inclusion with Git tags and history. Every section created or updated starts with narrative Release notes, followed by the nonempty Keep a Changelog categories and evidence links. Preserve existing history and manual text; do not regenerate historical releases during setup or a workflow migration. Missing history, ambiguous boundaries, or unknown publication dates must be resolved before writing. A tag commit date is not a publication date.
 
-| Command | Range | Heading of the section |
-| --- | --- | --- |
-| `pnpm release:change_log` | last release → now | `## [Unreleased]` |
-| `pnpm release:change_log --from v0.2.0` | `v0.2.0` → now | `## [Unreleased]` |
-| `pnpm release:change_log --to v0.2.0` | the release before `v0.2.0`, or the start → `v0.2.0` | `## [0.2.0] - <date>` |
-| `pnpm release:change_log --from start --to v0.2.0` | the start of the history → `v0.2.0` | `## [0.2.0] - <date>` |
-| `pnpm release:change_log --from v0.2.0 --to v0.3.0` | `v0.2.0` → `v0.3.0` | `## [0.3.0] - <date>` |
-
-The date of a release is the date of the commit of its tag. The sections of the file are in this order: `Unreleased` first, then the releases from the highest version to the lowest. The command puts the new section at its place. If the file already has a section with the same version, the command replaces it, so you can run the command again. When the new section is a release and this release is the last release, the command also removes the section `Unreleased`, because its pull requests now belong to this release. The other sections never change.
-
-Without `--ai`, the section is a plain list of the merged pull requests, with the title and the link of each one. The command does not choose a category.
-
-Options:
-
-| Option | Effect |
-| --- | --- |
-| `--from <tag>` | The release after which the changes start. `start` means the start of the history. The default is the release before `--to`, or the start if there is none. |
-| `--to <tag>` | The release where the changes end. `now` means the current commit. The default is `now`. |
-| `--ai` | A coding agent writes the section, with the categories `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security`. The command sends the messages of the merged pull requests to the executable of the package [`coding_agent_cli`](packages/auxiliary/coding_agent_cli), which `cargo run` builds when needed. You need `codex`, `claude`, or `agy` installed and signed in, and the Rust tools. |
-| `--agent <name>` | The coding agent for the option `--ai`: `codex` (the default), `claude`, or `agy`. |
-| `--help` | Shows the description of the command and its options. |
-
-The command exits with code 1 and prints an error message when a tag does not exist.
-
-Read the new section before you commit it: a coding agent can make a mistake.
+Read the resulting difference and validate the affected section. Repeating the same operation with the same inputs must add no duplicate section or description. The skill never changes versions, creates or moves tags, commits, pushes, or publishes merely because the skill was invoked. [HOW_TO_RELEASE.md](HOW_TO_RELEASE.md) gives the separate release steps and explains the GitHub release notes.

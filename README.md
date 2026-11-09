@@ -98,7 +98,6 @@ To build the application, run `pnpm build`, then drag `Heidrun Code.app` into `/
 | [`packages/apps/desktop_tauri`](packages/apps/desktop_tauri) | The macOS application: the Rust backend and the Tauri shell. |
 | [`packages/apps/web_frontend`](packages/apps/web_frontend) | The user interface, written with Vue 3 and TypeScript. |
 | [`packages/auxiliary/website_public`](packages/auxiliary/website_public) | The public website and documentation, built with VitePress. |
-| [`packages/dev_tools/change_log_generator`](packages/dev_tools/change_log_generator) | A command line tool that writes `CHANGELOG.md` from the merged pull requests. |
 | [`packages/dev_tools/install_script_tests`](packages/dev_tools/install_script_tests) | The tests of the script `scripts/install.sh`, which runs it with a fake `curl`, a fake `hdiutil`, and a fake `ditto`. |
 | [`packages/dev_tools/worktree_tools`](packages/dev_tools/worktree_tools) | Two command line tools: one creates a Git worktree and clones the compiled Rust files into it, the other deletes the old Cargo target folders of the worktrees. |
 | [`packages/auxiliary/coding_agent_cli`](packages/auxiliary/coding_agent_cli) | A Rust library and a command line tool that send one prompt to `codex`, `claude`, or `agy` and return the answer. The desktop application uses the library, and the change log generator runs the command line tool. |

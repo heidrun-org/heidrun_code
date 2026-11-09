@@ -1,7 +1,7 @@
 # Rule: fast tests, slow tests, and full tests
 
 - Created: 23 October 2026
-- Last updated: 23 October 2026
+- Last updated: 9 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: test levels](glossary/test_levels.md)
@@ -17,7 +17,7 @@ Run each command at the root of the repository.
 | --- | --- |
 | `pnpm test` | The fast tests only. It is the same command as `pnpm test:fast`. |
 | `pnpm test:fast` | The fast tests of every package, one package after the other. |
-| `pnpm test:slow` | The slow tests: `pnpm --filter voice_input test:slow`, then `pnpm --filter change_log_generator test`. |
+| `pnpm test:slow` | The slow tests: `pnpm --filter voice_input test:slow`. |
 | `pnpm test:full` | `pnpm test:fast`, then `pnpm test:slow`. |
 
 Every command ends with a non-zero exit code when a test fails. The steps of [HOW_TO_RELEASE.md](../../HOW_TO_RELEASE.md) run `pnpm test:full`, because `pnpm test` is not enough before a release.
@@ -25,7 +25,7 @@ Every command ends with a non-zero exit code when a test fails. The steps of [HO
 ## Which test is slow
 
 - A test is slow when it loads a real model, for example the real Whisper model `tiny`.
-- A test is also slow when it is in a package that the developer rarely changes and that runs for about 10 seconds or more, for example `change_log_generator`.
+- A test is also slow when it is in a package that the developer rarely changes and that runs for about 10 seconds or more.
 - Every other test is fast.
 - When the developer tells that a test is slow, the test is slow. The developer decides the level, and the two points above are the default.
 
@@ -44,4 +44,4 @@ The rules for the speed of the Vitest tests (the number of workers, the test env
 
 - The split comes from [issue 826](https://github.com/heidrun-org/heidrun/issues/826). Before the split, the command `pnpm test` ran every test and took 361 seconds on 23 October 2026.
 - After the split, on the same computer and on the same day, the fast tests took 147 seconds, the slow tests took 75 seconds, and the full tests took 222 seconds. These times move with the load of the computer.
-- The package `voice_input` is slow because of the real model. The package `change_log_generator` is slow because each test starts a new process, and the developer rarely changes the package.
+- The package `voice_input` is slow because of the real model.
