@@ -77,9 +77,8 @@ The output is Markdown, or JSON with `--format json`. For colors, send the Markd
 
 The macro, launcher, and voice word commands change files that the running Heidrun Code watches:
 
-- The personal macros are in the file `macros.json` in the folder of the variable `HEIDRUN_CODE_DIR`, else in `~/.config/heidrun_code`.
+- The user macros are in the file `macros.json` in the folder of the variable `HEIDRUN_CODE_DIR`, else in `~/.config/heidrun_code`.
 - The project macros are in the key `prompts` of the file `.heidrun/config.json` of the project.
-- The hard-coded macros are in the source code of Heidrun Code. They are listed, and they cannot be changed.
 - The launchers are in the key `launchers` of the file `.heidrun/config.json` of the project. A launcher of the kind Coding agent is listed and its field `agent` stays as it is, but the command line cannot add one.
 - The voice words are in the file `voice_words.json` in the folder of the variable `HEIDRUN_CODE_DIR`, else in `~/.config/heidrun_code`.
 

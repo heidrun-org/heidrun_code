@@ -12,6 +12,7 @@ import { parseProjectConfig, type Launcher, type ProjectConfig, type ProjectGuar
 import { withBuiltInGuard, withProjectGuard, withoutProjectGuard } from "../lib/guards_edit";
 import { launcherNameFromCommand } from "../lib/launcher_name";
 import { UserLaunchers, userLaunchers } from "./user_launchers";
+import { prepareAgentCommand, reportPreparedCodexChat, type PreparedAgentCommand } from "./coding_agent_start";
 
 export type { Launcher };
 
@@ -319,7 +320,14 @@ export async function runLauncher(workspaceId: string, launcher: Launcher, rerun
     selectTab(existing.tab_id);
     selectPane(existing);
     if (rerun && !project.busy[existing.pane_id]) {
-      await api.run(existing.pane_id, launcher.command).catch((e) => toast(String(e)));
+      const prepared = await launcherStartCommand(launcher, cwd, isCodingAgent);
+      const isTyped = await api.run(existing.pane_id, prepared.command).then(() => true, (e) => {
+        toast(String(e));
+        return false;
+      });
+      if (isTyped) {
+        await reportPreparedCodexChat(existing.pane_id, prepared);
+      }
       project.busy[existing.pane_id] = true;
     }
     return;
@@ -330,7 +338,9 @@ export async function runLauncher(workspaceId: string, launcher: Launcher, rerun
     project.panes[`${workspaceId}:${launcher.id}`] = pane.pane_id;
     // Let the shell print its prompt before typing into it.
     await new Promise((r) => setTimeout(r, 350));
-    await api.run(pane.pane_id, launcher.command);
+    const prepared = await launcherStartCommand(launcher, cwd, isCodingAgent);
+    await api.run(pane.pane_id, prepared.command);
+    await reportPreparedCodexChat(pane.pane_id, prepared);
     project.busy[pane.pane_id] = true;
     await refresh();
     const fresh = allPanes.value.find((x) => x.pane_id === pane.pane_id);
@@ -338,6 +348,25 @@ export async function runLauncher(workspaceId: string, launcher: Launcher, rerun
   } catch (e) {
     toast(String(e));
   }
+}
+
+/**
+ * The command line of a launcher that starts a coding agent: the observer mod for Claude Code, or the prepared chat for
+ * Codex, named after the launcher. See `prepareAgentCommand`.
+ * @param launcher - The launcher.
+ * @param cwd - The folder of its pane.
+ * @param isCodingAgent - False for a launcher that starts no coding agent: its command stays as it is.
+ * @returns The command line to type, and the identifier of the prepared Codex chat, or null.
+ */
+async function launcherStartCommand(launcher: Launcher, cwd: string | null, isCodingAgent: boolean): Promise<PreparedAgentCommand> {
+  if (isCodingAgent === false) {
+    return { command: launcher.command, codexChatId: null };
+  }
+  return prepareAgentCommand(launcher.command, {
+    cwd,
+    name: launcher.label,
+    model: launcher.agent?.model ?? null,
+  });
 }
 
 export async function stopLauncher(workspaceId: string, launcher: Launcher) {

@@ -16,6 +16,15 @@ describe('TauriMock', () => {
 		TauriMockFixture.setSplitRatio([], 0.5);
 	});
 
+	it('installs nothing on the Heidrun Code Dashboard page of a device of the local network, so that no fake answer shows there (issue 978)', () => {
+		window.history.replaceState(null, '', '/heidrun_code_dashboard');
+		TauriMock.install();
+		expect(tauriWindow.__TAURI_INTERNALS__).toBe(undefined);
+		window.history.replaceState(null, '', '/');
+		TauriMock.install();
+		expect(tauriWindow.__TAURI_INTERNALS__).not.toBe(undefined);
+	});
+
 	it('answers the Herdr request session.snapshot with the fake Herdr session', async () => {
 		TauriMock.install();
 		const result = await invoke<{ snapshot: SessionSnapshot }>('herdr_request', {
@@ -231,6 +240,20 @@ describe('TauriMock', () => {
 		).toEqual([{ folder: '/Users/demo/webwork/heidrun/.claude/worktrees/fix-35', branch: 'fix-35' }]);
 		expect(await invoke('chats_worktree_open_in_vscode', { folder: '/Users/demo/webwork/heidrun/.claude/worktrees/fix-35' })).toBeNull();
 		expect(await invoke('file_open_external', { root: '/Users/demo/webwork/heidrun', path: 'docs/a.md' })).toBeNull();
+	});
+
+	it('answers the Heidrun Code Dashboard commands with no observation and an unavailable shared Codex server, never with fictional data', async () => {
+		TauriMock.install();
+		const observations = await invoke<{ claude: { sessions: unknown[] }; codex: { coverage: string; threads: unknown[] } }>(
+			'heidrun_code_dashboard_subscribe',
+			{ viewId: 'modal' },
+		);
+		expect(observations.claude.sessions).toEqual([]);
+		expect(observations.codex.coverage).toBe('unavailable');
+		expect(observations.codex.threads).toEqual([]);
+		expect(await invoke('heidrun_code_dashboard_unsubscribe', { viewId: 'modal' })).toBeNull();
+		expect(await invoke('heidrun_code_dashboard_claude_observer_mod_path')).toBeNull();
+		expect(await invoke('codex_prepare_chat', { cwd: '/work', name: 'Tab', model: null })).toBeNull();
 	});
 
 	it('rejects a Tauri command that it does not list', async () => {

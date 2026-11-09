@@ -1,7 +1,7 @@
 # The four data layers
 
 - Created: 15 October 2026
-- Last updated: 26 October 2026
+- Last updated: 8 November 2026
 - Status: Maintained description of the four data layers
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: chats](../agents_rules/glossary/chats.md), [Rule for GitHub and GitLab support](../agents_rules/github_and_gitlab_support.md), [Data layer access](../agents_rules/data_layer_access.md)
@@ -19,10 +19,10 @@ The statistics read the facts from the SQLite file. They do not ask GitHub, Git,
 
 | Data layer | Source | What it reads | Tables |
 | --- | --- | --- | --- |
-| [`data_layer_source_control`](../../submodules/heidrun_data/packages/data_layer_source_control/README.md) | Source control (Git) | Every commit of a Git repository, merges included, with the command `git log`. | `commits` |
-| [`data_layer_code_hosting`](../../submodules/heidrun_data/packages/data_layer_code_hosting/README.md) | Code hosting (GitHub) | Every issue and every pull request of a GitHub repository, with the command `gh api graphql`. | `issues`, `pull_requests` |
-| [`data_layer_coding_agents`](../../submodules/heidrun_data/packages/data_layer_coding_agents/README.md) | Coding agents | The chat session files that Claude Code and Codex save on this computer for the repository, and the coding agent configuration: the memory files, the subagents, and the skills ([issue 569](https://github.com/heidrun-org/heidrun/issues/569)). | `chat_sessions`, `chat_session_folders`, `chat_session_issues`, `chat_session_pull_requests`, `chat_session_files`, `memory_files`, `subagents`, `skills`, and for the tokens `token_usage_minutes`, `token_usage_synchronizations`, `model_price_versions`, `model_prices`, with the views `latest_model_prices` and `token_usage_with_cost` ([token_usage_and_cost.md](token_usage_and_cost.md)) |
-| [`data_layer_user_activity`](../../submodules/heidrun_data/packages/data_layer_user_activity/README.md) | User activity | The file `~/.config/heidrun_code/user_activity.jsonl`, which the web frontend writes. | `user_activity_records` |
+| [`data_layer_source_control`](../../submodules/heidrun_data/packages/data_layers/data_layer_source_control/README.md) | Source control (Git) | Every commit of a Git repository, merges included, with the command `git log`. | `commits` |
+| [`data_layer_code_hosting`](../../submodules/heidrun_data/packages/data_layers/data_layer_code_hosting/README.md) | Code hosting (GitHub) | Every issue and every pull request of a GitHub repository, with the command `gh api graphql`. | `issues`, `pull_requests` |
+| [`data_layer_coding_agents`](../../submodules/heidrun_data/packages/data_layers/data_layer_coding_agents/README.md) | Coding agents | The chat session files that Claude Code and Codex save on this computer for the repository, and the coding agent configuration: the memory files, the subagents, and the skills ([issue 569](https://github.com/heidrun-org/heidrun/issues/569)). | `chat_sessions`, `chat_session_folders`, `chat_session_issues`, `chat_session_pull_requests`, `chat_session_files`, `memory_files`, `subagents`, `skills`, and for the tokens `token_usage_minutes`, `token_usage_synchronizations`, `model_price_versions`, `model_prices`, with the views `latest_model_prices` and `token_usage_with_cost` ([token_usage_and_cost.md](token_usage_and_cost.md)) |
+| [`data_layer_user_activity`](../../submodules/heidrun_data/packages/data_layers/data_layer_user_activity/README.md) | User activity | The file `~/.config/heidrun_code/user_activity.jsonl`, which the web frontend writes. | `user_activity_records` |
 
 The mode `update` of each data layer reads only what is new:
 
@@ -39,7 +39,7 @@ The mode `update` of each data layer reads only what is new:
 - Each data layer creates and writes only its own tables.
 - The tables join each other in one way only. The columns `repository` and `issueNumber` of `chat_session_issues` join the columns `repository` and `number` of `issues`. The table `chat_session_pull_requests` joins `pull_requests` the same way. The column `id` of `memory_files`, `subagents`, and `skills` is an absolute path, and joins the column `path` of `chat_session_files`: the chat sessions that wrote the file. The text `Fixes #N` in the field `body` of a pull request is the only link from a pull request to its issue, because the field `closingIssuesReferences` of GitHub is empty here.
 - A user activity record holds the folder of a workspace and not the name of a repository, so `user_activity_records` joins no other table.
-- The data layers set no waiting time on the file, so two writes at the same time fail with the error "database is locked". The desktop application and the command `heidrun_data update` take one lock before each write of the file: `lock_database` in `submodules/heidrun_data/packages/heidrun_data/src/database_lock.rs`. The lock holds for the threads of one program, and for the programs of the computer through the lock file `data_layer.sqlite.lock` next to the SQLite file ([issue 564](https://github.com/heidrun-org/heidrun/issues/564)).
+- The data layers set no waiting time on the file, so two writes at the same time fail with the error "database is locked". The desktop application and the command `heidrun_data update` take one lock before each write of the file: `lock_database` in `submodules/heidrun_data/packages/apps/heidrun_data/src/database_lock.rs`. The lock holds for the threads of one program, and for the programs of the computer through the lock file `data_layer.sqlite.lock` next to the SQLite file ([issue 564](https://github.com/heidrun-org/heidrun/issues/564)).
 
 ## The rules that the four data layers share
 
@@ -49,7 +49,7 @@ The mode `update` of each data layer reads only what is new:
 - Each data layer is a Rust library and a command line tool. The script `pnpm --silent data_layer:<name>` at the root of the repository runs the command line tool, and the script `pnpm --filter <package> test` runs the tests. The calls of the library are blocking.
 - No data layer imports another data layer. They share the SQLite file only.
 - Each data layer offers the desktop application two kinds of function: `refresh_*` reads the source and writes the SQLite file, and `find_*` reads the SQLite file only and gives typed rows. The Past chats sidebar section and the Statistics window call only these functions, as [data_layer_access.md](../agents_rules/data_layer_access.md) says.
-- The package [`heidrun_data`](../../submodules/heidrun_data/packages/heidrun_data/README.md) is not a data layer. It is one command line for a coding agent that calls the four libraries: `update` and `initialize` of every source or of the sources given, `query` with a default `LIMIT`, `sources`, `schema`, `usage`, and `read` (the content of a chat session, a commit, an issue, or a pull request, which the tables do not store), with the output formats `jsonl`, `json`, and `table`. Its [SKILL.md](../../submodules/heidrun_data/packages/heidrun_data/SKILL.md) teaches a coding agent to use it. The script `pnpm --silent data_layer:heidrun_data` runs it. It is the only package that imports more than one data layer ([issue 564](https://github.com/heidrun-org/heidrun/issues/564)).
+- The package [`heidrun_data`](../../submodules/heidrun_data/packages/apps/heidrun_data/README.md) is not a data layer. It is one command line for a coding agent that calls the four libraries: `update` and `initialize` of every source or of the sources given, `query` with a default `LIMIT`, `sources`, `schema`, `usage`, and `read` (the content of a chat session, a commit, an issue, or a pull request, which the tables do not store), with the output formats `jsonl`, `json`, and `table`. Its [SKILL.md](../../submodules/heidrun_data/packages/apps/heidrun_data/SKILL.md) teaches a coding agent to use it. The script `pnpm --silent data_layer:heidrun_data` runs it. It is the only package that imports more than one data layer ([issue 564](https://github.com/heidrun-org/heidrun/issues/564)).
 - A data layer imports no other package of the repository.
 - Every data layer has the same folders: `src/model`, `src/storage`, the folder that reads the source, `src/synchronization.rs`, `schemas`, and `tests`.
 

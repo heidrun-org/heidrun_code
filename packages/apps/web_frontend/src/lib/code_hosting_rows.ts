@@ -5,13 +5,23 @@ import type { CodeHostingGroup, CodeHostingItem } from "../stores/code_hosting";
 
 /** The two small detail lines under the title of a row of the Code hosting sidebar section. */
 export type CodeHostingDetailLines = {
-  /** Who opened the item, and how long ago. A draft pull request or merge request adds "Draft". It can be empty. */
+  /**
+   * Who opened the item, and how long ago. A draft pull request or merge request adds "Draft", and its approval state, for
+   * example "Approved" (issue #570). It can be empty.
+   */
   opened: string;
   /** The labels of an issue, which the row shows in their colors. It is empty for a pull request and a merge request. */
   labels: ChatReferenceLabel[];
   /** The text of the last line when it holds no label: "No label" for an issue, or the two branches of a request. */
   extra: string;
 };
+
+/** The translation key of each approval state on the second line of a row (issue #570). */
+const ROW_APPROVAL_KEYS = {
+  approved: "mergeModal.approved",
+  changesRequested: "mergeModal.changesRequested",
+  reviewRequired: "mergeModal.reviewRequired",
+} as const;
 
 /**
  * The two small detail lines of a row.
@@ -30,8 +40,15 @@ export function codeHostingDetailLines(group: CodeHostingGroup, item: CodeHostin
   } else if (item.author !== null) {
     opened = item.author;
   }
+  const marks: string[] = [];
   if (item.isDraft === true) {
-    opened = opened === "" ? t("codeHostingPanel.draft") : `${opened} · ${t("codeHostingPanel.draft")}`;
+    marks.push(t("codeHostingPanel.draft"));
+  }
+  if (item.approval !== null && item.approval !== undefined) {
+    marks.push(t(ROW_APPROVAL_KEYS[item.approval]));
+  }
+  for (const mark of marks) {
+    opened = opened === "" ? mark : `${opened} · ${mark}`;
   }
   if (group === "issues") {
     return { opened, labels: item.labels, extra: item.labels.length > 0 ? "" : t("codeHostingPanel.noLabel") };

@@ -5,39 +5,12 @@ import InformationCard from "../InformationCard.vue";
 import SettingsOptionHelp from "./SettingsOptionHelp.vue";
 import SettingsSwitchRow from "./SettingsSwitchRow.vue";
 import { settings } from "../../stores/settings";
+import { NEW_TAB_COMMANDS, NewTabCommands } from "../../stores/new_tab_commands";
 import { AGENTS, type AgentDefinition } from "../../lib/agents";
 import { t } from "../../i18n/index";
 import { antigravityLink, disableAntigravityLink, enableAntigravityLink, loadAntigravityLink } from "../../stores/antigravity";
 
 onMounted(loadAntigravityLink);
-
-/** The commands that the pane of a new tab can run, in the order of the buttons. */
-const COMMANDS = [
-  {
-    id: 'terminal',
-    agentId: null,
-    labelKey: 'settingsNewTab.terminalLabel',
-    titleKey: 'settingsNewTab.terminalTitle',
-  },
-  {
-    id: 'claude',
-    agentId: 'claude',
-    labelKey: 'settingsNewTab.claudeLabel',
-    titleKey: 'settingsNewTab.claudeTitle',
-  },
-  {
-    id: 'codex',
-    agentId: 'codex',
-    labelKey: 'settingsNewTab.codexLabel',
-    titleKey: 'settingsNewTab.codexTitle',
-  },
-  {
-    id: 'agy',
-    agentId: 'antigravity',
-    labelKey: 'settingsNewTab.antigravityLabel',
-    titleKey: 'settingsNewTab.antigravityTitle',
-  },
-] as const;
 
 /** The blocks of the information card of a coding agent, in the order of the card. */
 const AGENT_HELP_BLOCKS = [
@@ -86,9 +59,14 @@ const COMPOSITION_BAR_HELP_BLOCKS = [
   },
 ] as const;
 
-const availableCommands = computed(() =>
-  COMMANDS.filter((command) => command.agentId === null || settings.ownedAgents.includes(command.agentId)),
-);
+/** The information card of the Claude Code observer of the Heidrun Code Dashboard. */
+const HEIDRUN_CODE_DASHBOARD_CLAUDE_OBSERVER_HELP_BLOCKS = [
+  { titleKey: "settingsHelp.whatTitle", textKey: "settingsHelp.heidrunCodeDashboardClaudeObserver.what" },
+  { titleKey: "settingsHelp.onTitle", textKey: "settingsHelp.heidrunCodeDashboardClaudeObserver.on" },
+  { titleKey: "settingsHelp.offTitle", textKey: "settingsHelp.heidrunCodeDashboardClaudeObserver.off" },
+] as const;
+
+const availableCommands = computed(() => NewTabCommands.available());
 
 const antigravityTracking = computed({
   get: () => antigravityLink.installed,
@@ -110,7 +88,7 @@ function toggleOwned(agent: AgentDefinition) {
   const wasOwned = isOwned(agent);
   settings.ownedAgents = wasOwned ? others : [...others, agent.id];
   settings.ownedAgentsConfigured = true;
-  const command = COMMANDS.find((candidate) => candidate.agentId === agent.id);
+  const command = NEW_TAB_COMMANDS.find((candidate) => candidate.agentId === agent.id);
   if (wasOwned && command !== undefined && settings.newTabCommand === command.id) {
     settings.newTabCommand = "terminal";
   }
@@ -195,6 +173,14 @@ function onEnter(event: KeyboardEvent, agent: AgentDefinition) {
         title-key="settingsAgents.compositionBarOnAgentStart"
         :blocks="COMPOSITION_BAR_HELP_BLOCKS"
       />
+    </SettingsSwitchRow>
+
+    <SettingsSwitchRow
+      v-model="settings.heidrunCodeDashboardClaudeObserver"
+      :label="t('settingsAgents.heidrunCodeDashboardClaudeObserver')"
+      data-option="heidrunCodeDashboardClaudeObserver"
+    >
+      <SettingsOptionHelp title-key="settingsAgents.heidrunCodeDashboardClaudeObserver" :blocks="HEIDRUN_CODE_DASHBOARD_CLAUDE_OBSERVER_HELP_BLOCKS" />
     </SettingsSwitchRow>
 
     <div class="d-flex flex-column gap-2">

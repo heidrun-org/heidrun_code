@@ -20,8 +20,8 @@ describe('BundledCommandsStamp', () => {
 			});
 			expect(relativePaths).toEqual([
 				Path.join('packages', 'auxiliary', 'heidrun_code_ctrl'),
-				Path.join('submodules', 'heidrun_data', 'packages', 'data_layer_source_control'),
-				Path.join('submodules', 'heidrun_data', 'packages', 'heidrun_data'),
+				Path.join('submodules', 'heidrun_data', 'packages', 'apps', 'heidrun_data'),
+				Path.join('submodules', 'heidrun_data', 'packages', 'data_layers', 'data_layer_source_control'),
 			]);
 		});
 	});

@@ -1,0 +1,106 @@
+/* The animations of the radial graph of the Heidrun Code Dashboard. `HeidrunCodeDashboardGraph.vue` loads this file as a scoped style. Every animation
+   runs only under the class `heidrun-code-dashboard-animated`, which the pause button and the reduced motion setting remove. Each
+   animation changes a transform of its own element, an opacity, a color, or a stroke offset: none moves a node, and
+   none changes the layout. The colors come from the theme variables of styles.css. */
+
+.heidrun-code-dashboard-waves,
+.heidrun-code-dashboard-orbit,
+.heidrun-code-dashboard-drops,
+.heidrun-code-dashboard-keyboard,
+.heidrun-code-dashboard-sight-ring,
+.heidrun-code-dashboard-hexagon-glow { pointer-events: none; }
+
+/* Heidrun at the centre: the golden sight ring and the keyboard. */
+.heidrun-code-dashboard-sight-ring { transform-box: fill-box; transform-origin: center; }
+.heidrun-code-dashboard-sight-circle { fill: none; stroke: var(--heidrun-gold); stroke-width: 1; stroke-opacity: 0.7; }
+.heidrun-code-dashboard-sight-mark { stroke: var(--heidrun-gold); stroke-width: 1; stroke-opacity: 0.7; }
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-sight-ring { animation: heidrun-code-dashboard-turn 40s linear infinite; }
+
+/* The white dashed circle of the selected node turns clockwise. `--heidrun-code-dashboard-selection-turn` grows with the radius, so the
+   dashes of every circle move at the same speed. */
+.heidrun-code-dashboard-selection-ring { transform-box: fill-box; transform-origin: center; }
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-selection-ring { animation: heidrun-code-dashboard-turn var(--heidrun-code-dashboard-selection-turn) linear infinite; }
+
+.heidrun-code-dashboard-keyboard-plate { fill: var(--raised); stroke: var(--heidrun-gold); stroke-opacity: 0.8; stroke-linejoin: round; }
+.heidrun-code-dashboard-keyboard-edge { fill: var(--line-strong); }
+.heidrun-code-dashboard-key { fill: var(--line-strong); }
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-keyboard-active .heidrun-code-dashboard-key {
+  animation: heidrun-code-dashboard-key var(--heidrun-code-dashboard-key-period) linear infinite;
+  animation-delay: calc(var(--heidrun-code-dashboard-key-period) * var(--heidrun-code-dashboard-key-late-share) * -1);
+}
+
+
+/* Blocked: the red glow of the workspace hexagon, and the waves around the dot. */
+.heidrun-code-dashboard-hexagon-glow {
+  fill: var(--blocked);
+  fill-opacity: 0.25;
+  stroke: var(--blocked);
+  stroke-width: 12;
+  stroke-linejoin: round;
+  stroke-opacity: 0.25;
+}
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-hexagon-glow { animation: heidrun-code-dashboard-glow 1.6s ease-in-out infinite alternate; }
+
+.heidrun-code-dashboard-wave {
+  fill: none;
+  stroke: var(--blocked);
+  stroke-width: 2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-wave { animation: heidrun-code-dashboard-wave 2s ease-out infinite; }
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-wave-late { animation-delay: -1s; }
+
+/* Working: the dot breathes, a small dot turns around it, and drops of mead climb the line to its parent. The small
+   dot and the drops are gold, with a gold glow, and move fast; the line and the dot of the node keep the color of the
+   status. */
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-status-working > .heidrun-code-dashboard-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: heidrun-code-dashboard-breathe 2.4s ease-in-out infinite;
+}
+.heidrun-code-dashboard-orbit-turn { transform-box: fill-box; transform-origin: center; }
+/* The bounds circle reaches past the small dot, so that the turn stays centred on the node. */
+.heidrun-code-dashboard-orbit-bounds { fill: none; stroke: none; }
+.heidrun-code-dashboard-orbit-dot { fill: var(--heidrun-gold); }
+/* The gold glow of the small dot and of the drops is an SVG filter of HeidrunCodeDashboardGraph.vue: two blurs of the shape in gold,
+   made 4 and 8 times more opaque, under the shape. A CSS drop-shadow on an SVG element did not show in the web view of macOS. */
+.heidrun-code-dashboard-gold-flood { flood-color: var(--heidrun-gold); flood-opacity: 1; }
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-orbit-turn { animation: heidrun-code-dashboard-turn 1s linear infinite; }
+
+.heidrun-code-dashboard-drops {
+  fill: none;
+  stroke: var(--heidrun-gold);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 49.9;
+}
+.heidrun-code-dashboard-animated .heidrun-code-dashboard-drops { animation: heidrun-code-dashboard-drops 0.5s linear infinite; }
+
+@keyframes heidrun-code-dashboard-turn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes heidrun-code-dashboard-key {
+  0%, 18% { fill: var(--working); }
+  19%, 100% { fill: var(--line-strong); }
+}
+@keyframes heidrun-code-dashboard-glow {
+  from { stroke-opacity: 0.1; }
+  to { stroke-opacity: 0.5; }
+}
+@keyframes heidrun-code-dashboard-wave {
+  0% { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.4); }
+}
+@keyframes heidrun-code-dashboard-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+/* The dash pattern and the offset are in units of the drawing, not in parts of the line: the drops are 50 units apart
+   and move 50 units in each cycle of 0.5 second (100 units each second), so they have the same spacing and the same speed on a short and on a long line. */
+@keyframes heidrun-code-dashboard-drops {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -50; }
+}

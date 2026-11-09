@@ -486,6 +486,16 @@ describe("options of the window Create a custom launcher that were called custom
   });
 });
 
+describe("option of the Heidrun Code Dashboard that was called mireClaudeObserver (issue 989)", () => {
+  it("keeps the saved value under the name heidrunCodeDashboardClaudeObserver", async () => {
+    localStorage.setItem("heidrun.settings", JSON.stringify({ mireClaudeObserver: true }));
+    vi.resetModules();
+    const restarted = await import("./settings");
+    expect(restarted.settings.heidrunCodeDashboardClaudeObserver).toBe(true);
+    expect("mireClaudeObserver" in restarted.settings).toBe(false);
+  });
+});
+
 describe("sidebar section of the left sidebar that held the workspaces", () => {
   it.each(["workspaces", "workspacesAndTabs"])("shows the sidebar section Launchers when the saved sidebar section was %s, because the workspaces left the left sidebar", async (savedName) => {
     localStorage.setItem("heidrun.settings", JSON.stringify({ leftSidebarSection: savedName }));
@@ -546,7 +556,7 @@ const SAVED_OPTIONS: [string, unknown, unknown][] = [
   ["searchAgentsOnly", false, true],
   ["searchThisWorkspace", false, true],
   ["notesShowAll", false, true],
-  ["chatsAgent", "claude", "codex"],
+  ["chatsAgent", "both", "codex"],
   ["chatsView", "compact", "expanded"],
   ["chatsRefreshSeconds", 10, 30],
   ["dynamicTopics", true, false],
@@ -650,7 +660,7 @@ describe("a corrupted saved value", () => {
     expect(restarted.settings.agentsActivityScope).toBe("all");
     expect(restarted.settings.historyPeriod).toBe("today");
     expect(restarted.settings.historyGroupBy).toBe("ws");
-    expect(restarted.settings.chatsAgent).toBe("claude");
+    expect(restarted.settings.chatsAgent).toBe("both");
     expect(restarted.settings.chatsView).toBe("compact");
     expect(restarted.settings.dynamicTopicExtraction).toBe("keyword");
     expect(restarted.settings.gitFetchMinutes).toBe(5);

@@ -28,5 +28,9 @@
   "fileMenu.label": "Menu du fichier ou du dossier",
   "fileMenu.copyAbsolutePath": "Copier le chemin absolu",
   "fileMenu.copyRelativePath": "Copier le chemin relatif",
-  "fileMenu.chatAboutFile": "Discuter de ce fichier"
+  "fileMenu.chatAboutFile": "Discuter de ce fichier",
+  "fileMenu.revealInFinder": "Afficher dans le Finder",
+  "fileMenu.openWithVisualStudioCode": "Ouvrir avec VS Code",
+  "fileMenu.openPermalink": "Ouvrir le lien permanent {service}",
+  "fileMenu.openHeadlink": "Ouvrir le lien de branche {service}"
 }

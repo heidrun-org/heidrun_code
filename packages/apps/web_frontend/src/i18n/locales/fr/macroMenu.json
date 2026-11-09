@@ -1,13 +1,14 @@
 {
   "label": "Macros",
   "title": "Macros. Clic : insérer. Maj+clic : insérer et envoyer.",
-  "project": "Projet",
-  "personal": "Mes macros",
+  "project": "Macro du projet",
+  "personal": "Macro utilisateur",
   "edit": "Modifier",
-  "hardCoded": "Intégrées",
   "create": "Créer",
   "delete": "Supprimer",
   "editMacro": "Modifier {label}",
   "deleteMacro": "Supprimer {label}",
-  "deleteConfirm": "Voulez-vous vraiment supprimer la macro « {label} » ?"
+  "deleteConfirm": "Voulez-vous vraiment supprimer la macro « {label} » ?",
+  "view": "Voir",
+  "viewMacro": "Voir {label}"
 }

@@ -16,7 +16,9 @@ import { TargetPaths } from '../src/target_paths.ts';
  */
 export class SampleToolPackages {
 	/** The folder of the package that `heidrun_data` depends on, relative to the root of a checkout. */
-	static readonly dependencyRelativePath = Path.join('submodules', 'heidrun_data', 'packages', 'data_layer_source_control');
+	static readonly dependencyRelativePath = Path.join(
+		'submodules', 'heidrun_data', 'packages', 'data_layers', 'data_layer_source_control',
+	);
 
 	/** The folder of the package that the tools do not depend on, relative to the root of a checkout. */
 	static readonly unrelatedRelativePath = Path.join('packages', 'apps', 'desktop_tauri');
@@ -30,8 +32,8 @@ export class SampleToolPackages {
 		SampleToolPackages._writePackage(checkoutPath, Path.join('packages', 'auxiliary', 'heidrun_code_ctrl'), '');
 		SampleToolPackages._writePackage(
 			checkoutPath,
-			Path.join('submodules', 'heidrun_data', 'packages', 'heidrun_data'),
-			'data_layer_source_control = { path = "../data_layer_source_control" }\n',
+			Path.join('submodules', 'heidrun_data', 'packages', 'apps', 'heidrun_data'),
+			'data_layer_source_control = { path = "../../data_layers/data_layer_source_control" }\n',
 		);
 		SampleToolPackages._writePackage(checkoutPath, SampleToolPackages.dependencyRelativePath, '');
 		SampleToolPackages._writePackage(checkoutPath, SampleToolPackages.unrelatedRelativePath, '');

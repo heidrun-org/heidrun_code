@@ -13,6 +13,8 @@
 // - issue #854
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { FileGitLinks, type FileGitLinksResult } from "../lib/file_git_links";
 import Icon from "./Icon.vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
 import { currentGit } from "../stores/git";
@@ -318,6 +320,8 @@ function chooseRow(row: TreeRow) {
 
 /** The context menu of a file row or a folder row: the relative path, and where the pointer was. Null when closed. */
 const fileMenu = ref<{ path: string; top: number; left: number } | null>(null);
+let fileMenuRequest = 0;
+const fileGitLinks = ref<FileGitLinksResult | null>(null);
 const fileMenuElement = ref<HTMLElement>();
 
 /** The space in pixels that the context menu keeps between itself and the edge of the window. */
@@ -327,8 +331,23 @@ const FILE_MENU_MARGIN = 8;
 function openFileMenu(event: MouseEvent, row: TreeRow) {
   event.preventDefault();
   fileMenu.value = { path: row.path, top: event.clientY, left: event.clientX };
+  fileGitLinks.value = null;
+  const request = ++fileMenuRequest;
+  if (row.dir === false) {
+    void FileGitLinks.load(files.root, row.path).then((links) => {
+      if (request === fileMenuRequest && fileMenu.value !== null) {
+        fileGitLinks.value = links;
+        fitFileMenu();
+      }
+    }).catch(() => {});
+  }
   document.addEventListener("mousedown", onDocumentMouseDown, true);
   document.addEventListener("keydown", onDocumentKeyDown, true);
+  fitFileMenu();
+}
+
+/** Keeps the menu inside the window after its contents change. */
+function fitFileMenu() {
   void nextTick(() => {
     const menuElement = fileMenuElement.value;
     const current = fileMenu.value;
@@ -344,8 +363,23 @@ function openFileMenu(event: MouseEvent, row: TreeRow) {
   });
 }
 
+/** Opens the selected hosting address and closes the context menu. */
+async function openGitLink(kind: "permalink" | "headlink") {
+  const address = fileGitLinks.value?.[kind] ?? null;
+  closeFileMenu();
+  if (address === null) {
+    return;
+  }
+  try {
+    await openUrl(address);
+  } catch (error) {
+    toast(String(error), "error");
+  }
+}
+
 /** Closes the context menu. */
 function closeFileMenu() {
+  fileMenuRequest += 1;
   fileMenu.value = null;
   document.removeEventListener("mousedown", onDocumentMouseDown, true);
   document.removeEventListener("keydown", onDocumentKeyDown, true);
@@ -406,6 +440,37 @@ async function chatAboutRow() {
     return;
   }
   await chatAboutFile(absolutePath, relativePath.split("/").pop() ?? relativePath, files.root);
+}
+
+/**
+ * Shows the file or the folder of the row of the context menu in the Finder, and closes the menu.
+ * Issue: https://github.com/heidrun-org/heidrun_code/issues/964
+ */
+async function revealRowInFinder() {
+  const relativePath = fileMenu.value?.path ?? null;
+  closeFileMenu();
+  if (relativePath === null) {
+    return;
+  }
+  try {
+    const absolutePath = await invoke<string>("file_full_path", { root: files.root, path: relativePath });
+    await revealItemInDir(absolutePath);
+  } catch (error) {
+    toast(String(error), "error");
+  }
+}
+
+/**
+ * Opens the file or the folder of the row of the context menu in Visual Studio Code, and closes the menu.
+ * Issue: https://github.com/heidrun-org/heidrun_code/issues/964
+ */
+async function openRowWithVisualStudioCode() {
+  const relativePath = fileMenu.value?.path ?? null;
+  closeFileMenu();
+  if (relativePath === null) {
+    return;
+  }
+  await invoke("file_open_external", { root: files.root, path: relativePath }).catch((error) => toast(String(error), "error"));
 }
 
 onBeforeUnmount(closeFileMenu);
@@ -563,6 +628,22 @@ function letterClass(letter: string): string {
         <button type="button" class="menu-item" role="menuitem" @click="chatAboutRow()">
           {{ t("filesPanel.fileMenu.chatAboutFile") }}
         </button>
+        <div class="menu-divider" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" @click="revealRowInFinder()">
+          {{ t("filesPanel.fileMenu.revealInFinder") }}
+        </button>
+        <button type="button" class="menu-item" role="menuitem" @click="openRowWithVisualStudioCode()">
+          {{ t("filesPanel.fileMenu.openWithVisualStudioCode") }}
+        </button>
+        <template v-if="fileGitLinks !== null">
+          <div class="menu-divider" role="separator"></div>
+          <button type="button" class="menu-item" role="menuitem" @click="openGitLink('permalink')">
+            {{ t("filesPanel.fileMenu.openPermalink", { service: fileGitLinks.service }) }}
+          </button>
+          <button type="button" class="menu-item" role="menuitem" :disabled="fileGitLinks.headlink === null" @click="openGitLink('headlink')">
+            {{ t("filesPanel.fileMenu.openHeadlink", { service: fileGitLinks.service }) }}
+          </button>
+        </template>
       </div>
     </Teleport>
   </div>

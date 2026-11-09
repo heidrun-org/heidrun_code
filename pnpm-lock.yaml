@@ -197,6 +197,8 @@ importers:
 
   packages/auxiliary/heidrun_code_ctrl: {}
 
+  packages/auxiliary/heidrun_code_dashboard_server: {}
+
   packages/auxiliary/mobile_server: {}
 
   packages/auxiliary/mobile_website:
@@ -244,22 +246,6 @@ importers:
         version: 3.5.43(typescript@5.9.3)
 
   packages/dev_tools/agents_rules_checker:
-    devDependencies:
-      '@types/node':
-        specifier: ^26.6.5
-        version: 26.6.5
-      vitest:
-        specifier: ^2.1.9
-        version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
-
-  packages/dev_tools/change_log_generator:
-    dependencies:
-      commander:
-        specifier: ^15.0.0
-        version: 15.0.0
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
     devDependencies:
       '@types/node':
         specifier: ^26.6.5
@@ -330,12 +316,6 @@ importers:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
-
-  packages/experiments/localai_decisions_candle: {}
-
-  packages/experiments/localai_decisions_llamacpp: {}
-
-  packages/experiments/localai_embeddings: {}
 
   packages/experiments/multi_layer_graph:
     dependencies:

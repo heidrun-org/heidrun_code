@@ -19,10 +19,6 @@ interface FakeFile {
   error: string | null;
 }
 
-const HARD_CODED: Macro[] = [
-  { id: "revue-mr", label: "Review the merge request", description: "Security, bugs, tests, summary", text: "Review {branche}." },
-  { id: "note-reprise", label: "Handover note", description: "Commit", text: "Write the handover note." },
-];
 
 /** The file of the personal macros that the fake backend holds, and what was written to it. */
 const backend = {
@@ -37,9 +33,6 @@ async function loadStore() {
   vi.resetModules();
   const { invoke } = await import("@tauri-apps/api/core");
   vi.mocked(invoke).mockImplementation((async (command: string, args?: { macros?: Macro[] }) => {
-    if (command === "macros_hard_coded") {
-      return structuredClone(HARD_CODED);
-    }
     if (command === "macros_personal_read") {
       const snapshot = structuredClone(backend.file);
       const held = backend.heldRead;
@@ -87,18 +80,22 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("the hard-coded macros", () => {
-  it("come from the backend, and their titles follow the language in use", async () => {
-    const store = await loadStore();
-    store.startMacros();
-    await flush();
-    expect(store.hardCodedMacros.value.map((macro) => macro.id)).toEqual(["revue-mr", "note-reprise"]);
-    expect(store.hardCodedMacros.value[0].label).toBe("Review the merge request");
-    expect(store.hardCodedMacros.value[0].text).toBe("Review {branche}.");
-  });
-});
-
 describe("the personal macros", () => {
+	it('preserves Markdown whitespace through creation, update and reload', async () => {
+		const store = await loadStore();
+		store.startMacros();
+		await flush();
+		const description = '    indented code\n\nFirst line  \nSecond line\n';
+		const id = await store.addMacro('Markdown', description, 'Macro text', false);
+		expect(lastWrite()[0].description).toBe(description);
+		const updated = `${description}\nFinal line  `;
+		await store.updateMacro(id, false, 'Markdown', updated, 'Macro text');
+		expect(lastWrite()[0].description).toBe(updated);
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(store.macros.personal[0].description).toBe(updated);
+		expect(store.macros.personal[0].text).toBe('Macro text');
+	});
+
   it("are read from the file at the start", async () => {
     backend.file = { exists: true, macros: [macroA], error: null };
     const store = await loadStore();
@@ -200,7 +197,8 @@ describe("the old storage of the window", () => {
     await flush();
     expect(backend.writes).toHaveLength(1);
     expect(backend.file.macros).toEqual([
-      { id: "note-reprise-personal", label: "Note", description: "", text: "A text that the developer changed." },
+      { id: "revue-mr", label: "Revue de la MR", description: "", text: "Review {branche}." },
+      { id: "note-reprise", label: "Note", description: "", text: "A text that the developer changed." },
       { id: "own-1", label: "Own", description: "", text: "Own text" },
     ]);
     expect(store.macros.personal).toEqual(backend.file.macros);
@@ -220,15 +218,7 @@ describe("the old storage of the window", () => {
     expect(backend.writes).toEqual([]);
   });
 
-  it("drops a default macro that the developer never changed, and keeps one that was changed under a new id", async () => {
-    const store = await loadStore();
-    const old = [
-      { id: "revue-mr", label: "x", description: "", text: "Review {branche}." },
-      { id: "note-reprise", label: "y", description: "", text: "Changed" },
-      macroA,
-    ];
-    expect(store.personalMacrosFromOldStorage(old, HARD_CODED).map((macro) => macro.id)).toEqual(["note-reprise-personal", "a"]);
-  });
+
 });
 
 describe("the macros of a project", () => {

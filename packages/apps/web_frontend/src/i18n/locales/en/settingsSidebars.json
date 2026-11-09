@@ -1,5 +1,7 @@
 {
   "needsYouTitle": "Needs you",
   "pastChatsTitle": "Past chats",
-  "sourceControlTitle": "Source control"
+  "sourceControlTitle": "Source control",
+  "codeHostingTitle": "Code hosting",
+  "mergePermanentBranches": "Permanent branches, never deleted by a merge"
 }

@@ -22,6 +22,7 @@ mod legacy;
 mod login_shell_path;
 mod herdr;
 mod macros;
+mod heidrun_code_dashboard;
 mod mobile;
 mod past_chats;
 mod project;
@@ -208,6 +209,10 @@ fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
     StateFlags::POSITION | StateFlags::SIZE | StateFlags::MAXIMIZED | StateFlags::FULLSCREEN
 }
 
+/// The windows that the window-state plugin never saves: the separate Heidrun Code Dashboard window always opens at a reasonable size on
+/// the screen of the main window (issue 973).
+const WINDOW_STATE_DENYLIST: [&str; 1] = [heidrun_code_dashboard::heidrun_code_dashboard_window::HEIDRUN_CODE_DASHBOARD_WINDOW_LABEL];
+
 /// True for the first call with this flag, false for every later call. The flag is set by the first call.
 fn claim_first_show(flag: &std::sync::atomic::AtomicBool) -> bool {
     !flag.swap(true, std::sync::atomic::Ordering::SeqCst)
@@ -278,10 +283,16 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(window_state_flags()).build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(window_state_flags())
+                .with_denylist(&WINDOW_STATE_DENYLIST)
+                .build(),
+        )
         .manage(pty::PtyState::default())
         .manage(herdr::StatusWatcher::default())
         .manage(mobile::MobileState::default())
+        .manage(heidrun_code_dashboard::local_network::HeidrunCodeDashboardLocalNetworkState::default())
         .manage(html_preview::HtmlPreviewState::default())
         .manage(voice_commands::VoiceState::default())
         .manage(status_item::StatusItemState::default())
@@ -298,6 +309,7 @@ pub fn run() {
             app.set_menu(build_menu(app.handle())?)?;
             herdr::spawn_event_loop(app.handle().clone());
             mobile::start_if_enabled(app.handle());
+            heidrun_code_dashboard::local_network::start_if_enabled(app.handle());
             status_item::create(app.handle())?;
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -321,12 +333,17 @@ pub fn run() {
             }
         })
         .on_window_event(|window, event| {
+            // Only the main window holds the file views: the separate Heidrun Code Dashboard window always closes (issue 973).
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                if UNSAVED.load(std::sync::atomic::Ordering::Relaxed) {
+                if window.label() == heidrun_code_dashboard::heidrun_code_dashboard_window::MAIN_WINDOW_LABEL && UNSAVED.load(std::sync::atomic::Ordering::Relaxed) {
                     api.prevent_close();
                     use tauri::Emitter;
                     let _ = window.emit("quit-blocked", ());
                 }
+            }
+            if let tauri::WindowEvent::Destroyed = event {
+                use tauri::Manager;
+                heidrun_code_dashboard::heidrun_code_dashboard_window::on_window_destroyed(window.app_handle(), window.label());
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -368,12 +385,22 @@ pub fn run() {
             voice_words::voice_words_update,
             voice_words::voice_words_delete,
             usage::codex_usage,
+            heidrun_code_dashboard::collector::heidrun_code_dashboard_subscribe,
+            heidrun_code_dashboard::collector::heidrun_code_dashboard_unsubscribe,
+            heidrun_code_dashboard::claude_observer_mod::heidrun_code_dashboard_claude_observer_mod_path,
+            heidrun_code_dashboard::claude_observer_mod::heidrun_code_dashboard_claude_observation_folder,
+            heidrun_code_dashboard::codex_chat_preparation::codex_prepare_chat,
+            heidrun_code_dashboard::heidrun_code_dashboard_window::heidrun_code_dashboard_window_open,
+            heidrun_code_dashboard::heidrun_code_dashboard_window::heidrun_code_dashboard_open_in_main_window,
+            heidrun_code_dashboard::local_network::heidrun_code_dashboard_local_network_status,
+            heidrun_code_dashboard::local_network::heidrun_code_dashboard_local_network_enable,
+            heidrun_code_dashboard::local_network::heidrun_code_dashboard_local_network_disable,
+            heidrun_code_dashboard::local_network::heidrun_code_dashboard_local_network_new_key,
             project::project_load,
             project::project_package_scripts,
             project::project_save,
             project::project_refs,
             project::project_config_text,
-            macros::macros_hard_coded,
             macros::macros_personal_read,
             macros::macros_personal_write,
             user_launchers::launchers_user_read,
@@ -442,7 +469,9 @@ pub fn run() {
             html_preview::html_preview_close,
             files::file_image,
             files::file_open_external,
+            files::file_open_default,
             files::file_full_path,
+            files::fileGitRevision,
             files::file_read,
             files::file_stat,
             files::file_write,
@@ -488,6 +517,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 herdr::stop_session_on_quit(KEEP_AGENTS_RUNNING.load(std::sync::atomic::Ordering::Relaxed));
                 mobile::stop_on_quit(app);
+                heidrun_code_dashboard::local_network::stop_on_quit(app);
             }
         });
 }
@@ -525,6 +555,11 @@ mod tests {
         let window = &config["app"]["windows"][0];
         assert_eq!(window["width"], json!(1440));
         assert_eq!(window["height"], json!(900));
+    }
+
+    #[test]
+    fn the_window_state_never_saves_the_separate_heidrun_code_dashboard_window() {
+        assert_eq!(WINDOW_STATE_DENYLIST, ["heidrun_code_dashboard"]);
     }
 
     #[test]

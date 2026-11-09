@@ -1,11 +1,11 @@
 # User interface of Heidrun Code: opening a file view pane
 
 - Created: 26 October 2026
-- Last updated: 26 October 2026
+- Last updated: 29 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [File view pane](file_view_pane.md), [Search in files](../sidebars/file_search.md)
-- Related issue: [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886), [issue 898](https://github.com/heidrun-org/heidrun_code/issues/898), [issue 899](https://github.com/heidrun-org/heidrun_code/issues/899)
+- Related issue: [issue 714](https://github.com/heidrun-org/heidrun/issues/714), [issue 886](https://github.com/heidrun-org/heidrun_code/issues/886), [issue 898](https://github.com/heidrun-org/heidrun_code/issues/898), [issue 899](https://github.com/heidrun-org/heidrun_code/issues/899), [issue 956](https://github.com/heidrun-org/heidrun_code/issues/956)
 
 This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md). It gives the actions that open a file in a file view pane, and the place of the pane that opens. The other rules of the file view pane are in [file_view_pane.md](file_view_pane.md).
 
@@ -21,6 +21,21 @@ These actions open a file in a file view pane:
 - A click on a line of the Search in files sidebar section, at that line ([file_search.md](../sidebars/file_search.md)).
 - The box that searches a file by its name. The shortcut ⌘P and the entry "Open a project file…" of the command palette open it on top of the panes, as in VS Code. It lists the files of the project of the selected pane, or of the repository of the selected workspace when no pane is selected. The developer types a part of the name: the letters only need to be in order, and a `/` moves to the next folder. The arrow keys move in the list, Enter or a click opens the file, and the key Escape or a click outside closes the box ([issue 898](https://github.com/heidrun-org/heidrun_code/issues/898)).
 
+## A file outside the project
+
+A click in a terminal on the path of a file outside the project of the pane, for example a screenshot that a coding agent saved in a temporary folder, follows the setting "Files outside the workspace folder" (`filesOutsideWorkspace`) of the heading of the same name in the section Confirmations of the Settings window ([issue 956](https://github.com/heidrun-org/heidrun_code/issues/956)):
+
+- "Ask", the default: a confirmation modal asks "This file is outside the workspace folder. How do you want to open it?", with the buttons No, Open in the default app, and Open in Heidrun Code (the main button, which Enter clicks), and the checkbox "Remember my choice", unchecked. No, the key Escape, and a click outside open nothing. With the checkbox checked, the answer changes the setting to the value of the same name.
+- "Open in Heidrun Code": the file opens at once in a file view pane.
+- "Open in the default app": the file opens at once in the default application of macOS for its type (`open`), for example Preview for an image, and no pane opens.
+- "Never open": nothing opens, and a toast says where to change the choice.
+
+A file of the project opens with no question. A path that does not exist, or a folder, keeps its toast. A file in a folder of secrets of the home folder (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.docker`, `Library/Keychains`) or inside `.git` never opens.
+
+Security: `files_resolve` only describes a file outside the project (`outside: true`, the folder of the file as `root`, its name as `path`). Only a call with `allowOutside: true`, after the choice of the developer, makes this one file readable, through `known_file` of `git.rs`. Its folder never becomes a known root: the neighbouring files, the listing, the search, and Git stay refused. The file view pane resolves its own file with `allowOutside: true`, because it shows only a file that the developer chose to open.
+
+## The pane that opens
+
 The file view pane opens in this way:
 
 - When the selected pane is a terminal, running or idle, a new pane opens to the right of it, in the same tab, and shows the file. The terminal stays as it was. Heidrun Code never replaces, hides, or stops a terminal.
@@ -31,6 +46,7 @@ The file view pane opens in this way:
 ## Where the code is
 
 - `FileViewPanes.open` in `stores/file_view_panes.ts` takes the absolute path and the line, and keeps the line in `fileViewLineRequests` until the file view pane shows it.
-- `openFileRef` in `stores/files.ts` resolves a file name of a terminal and gives its line.
+- `openFileRef` in `stores/files.ts` resolves a file name of a terminal and gives its line, and asks for a file outside the project with `askChoiceWithRemember` of `stores/confirm.ts`.
+- `files_resolve` and `outside_file` in `desktop_tauri/src/files.rs`, and `known_file` in `desktop_tauri/src/git.rs`, decide which file may be read. `file_open_default` of `files.rs` opens a readable file in the default application.
 - `QuickOpenModal.vue` is the box of ⌘P, `QuickOpen` in `stores/quick_open.ts` opens it, and `QuickOpenSearch` in `lib/quick_open_search.ts` finds a file by a part of its name.
-- The tests are `file_view_panes.test.ts`, `FileView.test.ts`, `QuickOpenModal.test.ts`, `quick_open_search.test.ts`, and `removed_windows.test.ts`.
+- The tests are `files_open_outside.test.ts`, `confirm.test.ts`, the Rust test `opens_only_the_chosen_file_outside_the_project` of `files.rs`, `file_view_panes.test.ts`, `FileView.test.ts`, `QuickOpenModal.test.ts`, `quick_open_search.test.ts`, and `removed_windows.test.ts`.

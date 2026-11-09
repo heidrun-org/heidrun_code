@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { toast } from "./session";
 import { settings } from "./settings";
 import { FileViewPanes } from "./file_view_panes";
+import { askChoiceWithRemember } from "./confirm";
 import { t } from "../i18n/index";
 
 interface FileList {
@@ -161,9 +162,17 @@ export async function loadFiles(cwd: string): Promise<boolean> {
   }
 }
 
+/** A file name of a terminal, resolved by the command `files_resolve`. */
+type ResolvedFile = {
+  root: string;
+  path: string;
+  /** True for a file outside the project of the pane: `root` is the folder of the file, and `path` its name (issue #956). */
+  outside: boolean;
+};
+
 /**
  * Opens a file name seen in a terminal, such as "src/app.ts:42", in a file view pane, at its line. The path is resolved from
- * the folder of the pane.
+ * the folder of the pane. A file outside the project of the pane follows the setting `filesOutsideWorkspace` (issue #956).
  * @param cwd - The folder of the pane that shows the file name.
  * @param path - The path of the file, relative to the folder of the pane or absolute.
  * @param line - The line that follows the file name, or null when the file name has no line.
@@ -171,11 +180,49 @@ export async function loadFiles(cwd: string): Promise<boolean> {
 export async function openFileRef(cwd: string | null | undefined, path: string, line: number | null = null) {
   if (!cwd) return toast(t("filesStore.unknownFolder"));
   try {
-    const r = await invoke<{ root: string; path: string }>("files_resolve", { cwd, path });
+    let r = await invoke<ResolvedFile>("files_resolve", { cwd, path });
+    if (r.outside) {
+      const way = await outsideFileWay();
+      if (way === null) return;
+      r = await invoke<ResolvedFile>("files_resolve", { cwd, path, allowOutside: true });
+      if (way === "openDefault") {
+        await invoke("file_open_default", { root: r.root, path: r.path });
+        return;
+      }
+    }
     await FileViewPanes.open(`${r.root}/${r.path}`, line);
   } catch (e) {
     toast(String(e));
   }
+}
+
+/** How a file outside the project opens: in a file view pane of Heidrun Code, or in the default application of macOS. */
+type OutsideFileWay = "open" | "openDefault";
+
+/**
+ * How a file outside the project opens, from the setting `filesOutsideWorkspace`, or from the answer of the developer to
+ * the confirmation modal. A remembered answer changes the setting (issue #956).
+ * @returns The way to open the file, or null when the file does not open.
+ */
+async function outsideFileWay(): Promise<OutsideFileWay | null> {
+  const setting = settings.filesOutsideWorkspace;
+  if (setting === "open" || setting === "openDefault") return setting;
+  if (setting === "never") {
+    toast(t("filesStore.outsideNever"));
+    return null;
+  }
+  const answer = await askChoiceWithRemember(
+    t("filesStore.outsideQuestion"),
+    [
+      { id: "openDefault", label: t("filesStore.outsideOpenDefault") },
+      { id: "open", label: t("filesStore.outsideOpenHeidrun") },
+    ],
+    t("filesStore.outsideNo"),
+    t("filesStore.outsideRemember"),
+  );
+  const way = answer.choiceId as OutsideFileWay | null;
+  if (answer.isRemembered) settings.filesOutsideWorkspace = way ?? "never";
+  return way;
 }
 
 // ---- Tree -----------------------------------------------------------------------

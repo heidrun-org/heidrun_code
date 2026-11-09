@@ -117,17 +117,19 @@ pnpm release:dmg --notes-file docs/release_notes/v<version>.md
 
 The command always exits with code 0, because the script `release:dmg` in `package.json` ends with `|| true`. Read the output and look for red text.
 
-### Step 8: Write the change log
+### Step 8: Maintain the changelog with Keep a Changelog Workflow
 
-Run this command after Step 7, because the command needs the git tag:
+Use the shared [Keep a Changelog Workflow](.agents/skills/keep-a-changelog-workflow/SKILL.md) skill after Step 7, because the release tag and the published release record must exist. This invocation maintains `CHANGELOG.md` only; it does not authorize another build, version change, tag, commit, push, or publication.
 
-```bash
-pnpm release:change_log --ai --to v<version>
-```
+Give the coding agent this request with the placeholders replaced:
 
-Always use `--ai` for a release, so that a coding agent sorts the pull requests into the categories of Keep a Changelog. Read the new section of `CHANGELOG.md`, then commit it on `main` and push. The git tag stays on the release commit, and the change log commit comes after the git tag.
+> Use Keep a Changelog Workflow, operation Add release, for `CHANGELOG.md` from `v<last version>` to `v<version>`. Use the publication date established by the published release record, written as YYYY-MM-DD. Verify the merged pull requests belong to this Git range. Preserve existing history, manual wording, and unrelated sections. Begin the new section with narrative Release notes, then the detailed change categories with supporting pull request links. Validate the changed section and comparison links afterward.
 
-For the release 0.2.5, the section `[Unreleased]` was out of date: it stopped at [pull request 119](https://github.com/heidrun-org/heidrun/pull/119), while the last merged pull request was [pull request 244](https://github.com/heidrun-org/heidrun/pull/244).
+Confirm the publication date from the published release record; never silently use today's date or the tag commit date. If the section already exists, use Update release with the same original range and established date, rather than adding another section. If Unreleased already contains entries for this release, use Finalize release instead, retaining any entries outside the release tag. Stop to resolve an unknown date, unavailable tag, or ambiguous entry membership.
+
+Read the difference, verify evidence links and the comparison endpoints, and confirm that repeating the same operation adds no duplicates. Keep unrelated sections byte for byte. Do not repair or regenerate historical releases unless separately requested.
+
+After review, commit `CHANGELOG.md` on `main` and push as a separate release action. The release tag stays on the release commit; the changelog commit follows the tag. Do not move the tag to the changelog commit.
 
 ### Step 9: Know where the text of the release page comes from
 

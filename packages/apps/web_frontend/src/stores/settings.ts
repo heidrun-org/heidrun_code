@@ -124,8 +124,8 @@ const defaults = {
   leftSidebarSection: "launchers" as LeftSidebarSection,
   /** Sidebar section that the right sidebar shows. */
   rightSidebarSection: "toHandle" as RightSidebarSection,
-  /** Sidebar section Past chats: the coding agent whose chats the list shows. */
-  chatsAgent: "claude" as "claude" | "codex",
+  /** Sidebar section Past chats: the coding agents whose chats the list shows: both, one, or none (issue #959). */
+  chatsAgent: "both" as "both" | "claude" | "codex" | "none",
   /** Sidebar section Past chats: "compact" keeps the rows tight, and "expanded" gives them more air. */
   chatsView: "compact" as "compact" | "expanded",
   /**
@@ -173,6 +173,11 @@ const defaults = {
   newTabCommand: "terminal" as "terminal" | "claude" | "codex" | "agy",
 	/** Show the composition bar initially when a new pane starts directly with a coding agent. */
 	isCompositionBarShownOnAgentStart: false,
+  /**
+   * Settings window, section Coding agents: each Claude Code that Heidrun Code starts loads the observer mod of the Heidrun Code Dashboard,
+   * with `--plugin-dir`, and writes its live observations for the Heidrun Code Dashboard. Off: Claude Code starts without the mod.
+   */
+  heidrunCodeDashboardClaudeObserver: false,
   /** Window Create a custom launcher: the last kind, "commandLine" or "codingAgent". */
   customLauncherKind: "commandLine" as "commandLine" | "codingAgent",
   /** Window Create a custom launcher: the identifier of the last coding agent. */
@@ -247,6 +252,12 @@ const defaults = {
   histDecisionMin: 0.5,
   /** File view pane: a Markdown file shows rendered. */
   filesMdRead: true,
+  /**
+   * A click in a terminal on a file outside the project of the pane (issue #956): "ask" opens a confirmation modal, "open"
+   * opens the file at once in a file view pane, "openDefault" opens it at once in the default application of macOS, and
+   * "never" opens nothing.
+   */
+  filesOutsideWorkspace: "ask" as "ask" | "open" | "openDefault" | "never",
   /** Mosaic: only the agents at work (main, recent journal, or in Claude's list). */
   mosaicActiveOnly: true,
   /** Monthly budget per workspace (label → USD); alert at 80 % and 100 %. */
@@ -329,18 +340,26 @@ const defaults = {
   statisticsPersonWorkWorkspaces: { isSaved: false, workspaceIds: [] } as StatisticsPersonWorkWorkspaces,
   /** The identifier of the workspace that was selected at the last run: the next start selects it again. Empty: none. */
   selectedWorkspaceId: "",
+  /**
+   * The permanent branches, whose deletion the merge window never offers (issue #570). A name that ends with `*` matches
+   * every branch that starts with the rest of the name.
+   */
+  mergePermanentBranches: ["main", "master", "dev", "dev_*"] as string[],
+  /** The last merge method of the developer on GitHub, by address of the repository: the merge window selects it again. */
+  mergeLastMethods: {} as Record<string, "merge" | "squash" | "rebase">,
 };
 
 /** The values that an option accepts, for the options that have a short list of values. A saved value outside the list is dropped. */
 const ALLOWED_VALUES: Record<string, readonly unknown[]> = {
   rightSidebarSection: ["toHandle", "notes", "chats", "userActivity"],
   diffMode: ["unified", "split"],
+  filesOutsideWorkspace: ["ask", "open", "openDefault", "never"],
   filesPanelIndent: ["small", "medium", "large"],
   filesPanelRowHeight: ["compact", "comfortable"],
   agentsActivityScope: ["all", "pane"],
   historyPeriod: ["today", "7", "30", "90", "365"],
   historyGroupBy: ["ws", "feature"],
-  chatsAgent: ["claude", "codex"],
+  chatsAgent: ["both", "claude", "codex", "none"],
   chatsView: ["compact", "expanded"],
   chatsRefreshSeconds: [5, 10, 30, 60],
   dynamicTopicExtraction: ["keyword", "languageModel"],
@@ -497,6 +516,7 @@ const RENAMED_SETTINGS: Record<string, string> = {
   customScriptAgent: "customLauncherAgent",
   customScriptModel: "customLauncherModel",
   customScriptEffort: "customLauncherEffort",
+  mireClaudeObserver: "heidrunCodeDashboardClaudeObserver",
 };
 
 function load(): typeof defaults {
@@ -665,6 +685,7 @@ export type SettingsSection =
   | "terminal"
   | "textDetection"
   | "agents"
+  | "heidrunCodeDashboard"
   | "confirmations"
   | "guards"
   | "notifications"

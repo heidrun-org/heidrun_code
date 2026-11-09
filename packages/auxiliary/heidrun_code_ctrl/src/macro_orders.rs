@@ -1,6 +1,5 @@
 //! The four orders on the macros: list, add, update, and delete.
 
-use crate::hard_coded_macros::hard_coded_macros;
 use crate::ids::unused_id;
 use crate::macro_types::{ListedMacro, Macro, MacroKind};
 use crate::personal_macros::{read_personal_macros, write_personal_macros};
@@ -42,16 +41,12 @@ pub struct MacroChanges {
     pub text: Option<String>,
 }
 
-/// Lists every macro: the hard-coded macros, then the personal macros, then the project macros.
+/// Lists every macro: the user macros, then the project macros.
 ///
 /// # Errors
 /// The file of the personal macros or the file of the project cannot be read or is not valid.
 pub fn list_macros(places: &MacroPlaces) -> Result<Vec<ListedMacro>, String> {
-    let mut listed: Vec<ListedMacro> = hard_coded_macros()
-        .into_iter()
-        .map(|content| ListedMacro { content, kind: MacroKind::HardCoded, file: None })
-        .collect();
-    listed.extend(list_kind(places, MacroKind::Personal)?);
+    let mut listed = list_kind(places, MacroKind::Personal)?;
     listed.extend(list_kind(places, MacroKind::Project)?);
     Ok(listed)
 }
@@ -59,7 +54,6 @@ pub fn list_macros(places: &MacroPlaces) -> Result<Vec<ListedMacro>, String> {
 /// Lists the macros of one kind.
 fn list_kind(places: &MacroPlaces, kind: MacroKind) -> Result<Vec<ListedMacro>, String> {
     let (contents, file) = match kind {
-        MacroKind::HardCoded => (hard_coded_macros(), None),
         MacroKind::Personal => (
             read_personal_macros(&places.personal_file)?.unwrap_or_default(),
             Some(places.personal_file.clone()),
@@ -72,12 +66,9 @@ fn list_kind(places: &MacroPlaces, kind: MacroKind) -> Result<Vec<ListedMacro>, 
 /// Adds a macro of the kind `kind`, which is personal or project.
 ///
 /// # Errors
-/// The kind is hard-coded, the text is empty, the id is already taken by another macro of any kind, or a file cannot be
+/// The text is empty, the id is already taken by another macro of any kind, or a file cannot be
 /// read, is not valid, or cannot be written.
 pub fn add_macro(places: &MacroPlaces, kind: MacroKind, new: NewMacro) -> Result<ListedMacro, String> {
-    if kind == MacroKind::HardCoded {
-        return Err("A hard-coded macro cannot be added: it is written in the source code of Heidrun Code.".to_string());
-    }
     if new.text.trim().is_empty() {
         return Err("The text of a macro cannot be empty.".to_string());
     }
@@ -113,7 +104,7 @@ pub fn add_macro(places: &MacroPlaces, kind: MacroKind, new: NewMacro) -> Result
 /// Changes the macro `id`. `kind` says which kind to search when the id exists in two kinds.
 ///
 /// # Errors
-/// No macro has the id, the id is in two kinds and no kind is given, the macro is hard-coded, no change is given, the new
+/// No macro has the id, the id is in two kinds and no kind is given, no change is given, the new
 /// text is empty, or a file cannot be read, is not valid, or cannot be written.
 pub fn update_macro(places: &MacroPlaces, id: &str, kind: Option<MacroKind>, changes: MacroChanges) -> Result<ListedMacro, String> {
     if changes.label.is_none() && changes.description.is_none() && changes.text.is_none() {
@@ -162,7 +153,7 @@ pub fn update_macro(places: &MacroPlaces, id: &str, kind: Option<MacroKind>, cha
 /// Deletes the macro `id`. `kind` says which kind to search when the id exists in two kinds.
 ///
 /// # Errors
-/// No macro has the id, the id is in two kinds and no kind is given, the macro is hard-coded, or a file cannot be read, is
+/// No macro has the id, the id is in two kinds and no kind is given, or a file cannot be read, is
 /// not valid, or cannot be written.
 pub fn delete_macro(places: &MacroPlaces, id: &str, kind: Option<MacroKind>) -> Result<ListedMacro, String> {
     let found = locate(places, id, kind, "deleted")?;
@@ -182,7 +173,7 @@ pub fn delete_macro(places: &MacroPlaces, id: &str, kind: Option<MacroKind>) -> 
 }
 
 /// The macro `id` of a kind that can be changed.
-fn locate(places: &MacroPlaces, id: &str, kind: Option<MacroKind>, action: &str) -> Result<ListedMacro, String> {
+fn locate(places: &MacroPlaces, id: &str, kind: Option<MacroKind>, _action: &str) -> Result<ListedMacro, String> {
     let mut candidates: Vec<ListedMacro> = list_macros(places)?
         .into_iter()
         .filter(|listed| listed.content.id == id && kind.is_none_or(|wanted| wanted == listed.kind))
@@ -194,9 +185,6 @@ fn locate(places: &MacroPlaces, id: &str, kind: Option<MacroKind>, action: &str)
         }),
         1 => {
             let found = candidates.remove(0);
-            if found.kind == MacroKind::HardCoded {
-                return Err(format!("The macro {id} is hard-coded in Heidrun Code and cannot be {action}."));
-            }
             Ok(found)
         }
         _ => {
@@ -206,10 +194,9 @@ fn locate(places: &MacroPlaces, id: &str, kind: Option<MacroKind>, action: &str)
     }
 }
 
-/// The file that holds the macros of a kind, or `None` for the hard-coded macros.
+/// The file that holds the macros of a kind, as an optional path.
 fn file_of(places: &MacroPlaces, kind: MacroKind) -> Option<PathBuf> {
     match kind {
-        MacroKind::HardCoded => None,
         MacroKind::Personal => Some(places.personal_file.clone()),
         MacroKind::Project => Some(project_config_path(&places.project_root)),
     }
@@ -282,21 +269,20 @@ mod tests {
     }
 
     #[test]
-    fn the_list_has_the_four_hard_coded_macros_first_when_nothing_else_exists() {
+    fn the_list_is_empty_when_nothing_exists() {
         let listed = list_macros(&places("list_empty")).unwrap();
-        assert_eq!(listed.len(), 4);
-        assert!(listed.iter().all(|item| item.kind == MacroKind::HardCoded && item.file.is_none()));
+        assert!(listed.is_empty());
     }
 
     #[test]
-    fn an_added_personal_macro_is_listed_after_the_hard_coded_macros_with_its_file() {
+    fn an_added_personal_macro_is_listed_with_its_file() {
         let places = places("add_personal");
         let added = add_macro(&places, MacroKind::Personal, new_macro("Run the tests", "Run the tests first.")).unwrap();
         assert!(added.content.id.starts_with("run-the-tests-"));
         let listed = list_macros(&places).unwrap();
-        assert_eq!(listed.len(), 5);
-        assert_eq!(listed[4].content, added.content);
-        assert_eq!(listed[4].file.as_deref(), Some(places.personal_file.as_path()));
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].content, added.content);
+        assert_eq!(listed[0].file.as_deref(), Some(places.personal_file.as_path()));
     }
 
     #[test]
@@ -317,12 +303,6 @@ mod tests {
         assert_eq!(added.content.label, text.chars().take(40).collect::<String>());
     }
 
-    #[test]
-    fn a_hard_coded_macro_cannot_be_added() {
-        let places = places("add_hard_coded");
-        let error = add_macro(&places, MacroKind::HardCoded, new_macro("A", "B")).unwrap_err();
-        assert!(error.contains("hard-coded"));
-    }
 
     #[test]
     fn an_empty_text_is_refused_for_add_and_for_update() {
@@ -336,7 +316,8 @@ mod tests {
     #[test]
     fn an_id_that_exists_in_any_kind_is_refused() {
         let places = places("same_id");
-        let new = NewMacro { id: Some("revue-mr".to_string()), ..new_macro("A", "B") };
+        add_macro(&places, MacroKind::Project, NewMacro { id: Some("existing".to_string()), ..new_macro("A", "B") }).unwrap();
+        let new = NewMacro { id: Some("existing".to_string()), ..new_macro("A", "B") };
         assert!(add_macro(&places, MacroKind::Personal, new).unwrap_err().contains("already exists"));
     }
 
@@ -374,14 +355,6 @@ mod tests {
         assert!(update_macro(&places, &added.content.id, None, MacroChanges::default()).is_err());
     }
 
-    #[test]
-    fn an_update_and_a_delete_refuse_a_hard_coded_macro_and_change_no_file() {
-        let places = places("hard_coded_refused");
-        let changes = MacroChanges { text: Some("X".to_string()), ..MacroChanges::default() };
-        assert!(update_macro(&places, "revue-mr", None, changes).unwrap_err().contains("hard-coded in Heidrun Code and cannot be changed"));
-        assert!(delete_macro(&places, "revue-mr", None).unwrap_err().contains("hard-coded in Heidrun Code and cannot be deleted"));
-        assert!(!places.personal_file.exists());
-    }
 
     #[test]
     fn a_delete_removes_the_macro_from_its_file_and_keeps_the_others() {

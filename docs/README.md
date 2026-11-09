@@ -1,7 +1,7 @@
 # Documentation of Heidrun Code
 
 - Created: 13 October 2026
-- Last updated: 16 October 2026
+- Last updated: 7 November 2026
 - Status: Maintained overview for people
 - Related framing: [Project instructions](../AGENTS.md)
 - Related issue: [issue 337](https://github.com/heidrun-org/heidrun/issues/337)
@@ -13,3 +13,5 @@ Open the file `README.md` of the subfolder that matches your question. Agents an
 For mobile access, read [Mobile access](mobile_access/README.md).
 
 For the learned website documentation workflow, read [Documentation by AI](documentation_by_ai/README.md).
+
+For maintaining the voice input word replacement list from saved conversations, read [Voice input](voice_input/README.md).

@@ -26,7 +26,7 @@ export class BundledCommandsStamp {
 	 */
 	static readonly toolPackageRelativePaths = [
 		Path.join('packages', 'auxiliary', 'heidrun_code_ctrl'),
-		Path.join('submodules', 'heidrun_data', 'packages', 'heidrun_data'),
+		Path.join('submodules', 'heidrun_data', 'packages', 'apps', 'heidrun_data'),
 	];
 
 	/**

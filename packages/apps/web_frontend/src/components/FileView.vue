@@ -122,7 +122,8 @@ async function load() {
   }
   isLoading.value = true;
   try {
-    const resolved = await invoke<FileLocation>("files_resolve", { cwd: props.pane.cwd || props.pane.foreground_cwd, path });
+    // The file view pane shows only a file that the developer chose to open, so a file outside the project opens too (issue #956).
+    const resolved = await invoke<FileLocation>("files_resolve", { cwd: props.pane.cwd || props.pane.foreground_cwd, path, allowOutside: true });
     if (mine !== sequence) {
       return;
     }

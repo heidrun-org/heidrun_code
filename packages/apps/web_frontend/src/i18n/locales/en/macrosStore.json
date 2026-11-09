@@ -1,13 +1,9 @@
 {
-  "default.reviewMergeRequest": "Review the merge request",
-  "default.handoverNote": "Handover note",
-  "default.progress": "Where are you?",
-  "default.explainSelection": "Explain the selection",
   "saveFailed": "Cannot save .heidrun/config.json",
-  "default.reviewMergeRequestDescription": "Security, bugs, tests, summary",
-  "default.handoverNoteDescription": "Commit, then write what is done and what remains",
-  "default.progressDescription": "Five lines on what is done and what remains",
-  "default.explainSelectionDescription": "Explain the selected text",
+  "macroNotFound": "The macro could not be found at its current location",
+  "projectUnavailable": "Select a project before moving a macro to or from a project",
+  "locationConflict": "A macro with this identifier already exists at the chosen location",
+  "moveRollbackFailed": "The macro could not be moved, and its previous location could not be restored",
   "personalFileInvalid": "The file of the personal macros cannot be read, so nothing is saved: {reason}",
   "personalFileNotRead": "Heidrun Code is still reading the file of the personal macros. Try again in a moment."
 }

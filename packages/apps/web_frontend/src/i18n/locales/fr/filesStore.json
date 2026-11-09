@@ -1,3 +1,9 @@
 {
-  "unknownFolder": "Dossier du panneau inconnu"
+  "unknownFolder": "Dossier du panneau inconnu",
+  "outsideQuestion": "Ce fichier est en dehors du dossier du workspace.\nComment voulez-vous l'ouvrir ?",
+  "outsideOpenDefault": "Ouvrir dans l'application par défaut",
+  "outsideOpenHeidrun": "Ouvrir dans Heidrun Code",
+  "outsideNo": "Non",
+  "outsideRemember": "Mémoriser mon choix",
+  "outsideNever": "Fichier en dehors du dossier du workspace : non ouvert. Changez cela dans Réglages, Confirmations, « Fichiers en dehors du dossier du workspace »."
 }

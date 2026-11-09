@@ -57,6 +57,11 @@ export type CodeHostingItem = {
   headBranch: string | null;
   /** The branch that receives the changes of a pull request or of a merge request, or null for an issue. */
   baseBranch: string | null;
+  /**
+   * The approval state of a pull request or of a merge request, or null when it is not known or when no review is asked
+   * (issue #570). GitLab gives in its list only whether an approval is missing, or whether changes are requested.
+   */
+  approval: "approved" | "changesRequested" | "reviewRequired" | null;
 };
 
 /**
@@ -159,6 +164,7 @@ type GithubItem = {
   isDraft?: boolean;
   headRefName?: string;
   baseRefName?: string;
+  reviewDecision?: string;
 };
 
 /** What the API of GitLab gives for one issue or one merge request. */
@@ -172,13 +178,27 @@ type GitlabItem = {
   draft?: boolean;
   source_branch?: string;
   target_branch?: string;
+  detailed_merge_status?: string;
 };
 
 /** The fields that `gh issue list` prints for each issue. */
 const GITHUB_ISSUE_FIELDS = "number,title,url,author,createdAt,labels";
 
 /** The fields that `gh pr list` prints for each pull request. */
-const GITHUB_PULL_REQUEST_FIELDS = "number,title,url,author,createdAt,isDraft,headRefName,baseRefName";
+const GITHUB_PULL_REQUEST_FIELDS = "number,title,url,author,createdAt,isDraft,headRefName,baseRefName,reviewDecision";
+
+/** The approval state of each review decision of `gh pr list` (issue #570). */
+const GITHUB_LIST_APPROVAL: Record<string, CodeHostingItem["approval"]> = {
+  APPROVED: "approved",
+  CHANGES_REQUESTED: "changesRequested",
+  REVIEW_REQUIRED: "reviewRequired",
+};
+
+/** The approval state that the detailed merge status of a merge request of GitLab tells, in the list (issue #570). */
+const GITLAB_LIST_APPROVAL: Record<string, CodeHostingItem["approval"]> = {
+  not_approved: "reviewRequired",
+  requested_changes: "changesRequested",
+};
 
 /**
  * The time of a date in the text that a hosting service gives.
@@ -205,6 +225,7 @@ function itemOfGithub(item: GithubItem): CodeHostingItem {
     isDraft: item.isDraft === true,
     headBranch: item.headRefName ?? null,
     baseBranch: item.baseRefName ?? null,
+    approval: GITHUB_LIST_APPROVAL[item.reviewDecision ?? ""] ?? null,
   };
 }
 
@@ -237,6 +258,7 @@ function itemOfGitlab(item: GitlabItem): CodeHostingItem {
     isDraft: item.draft === true,
     headBranch: item.source_branch ?? null,
     baseBranch: item.target_branch ?? null,
+    approval: GITLAB_LIST_APPROVAL[item.detailed_merge_status ?? ""] ?? null,
   };
 }
 

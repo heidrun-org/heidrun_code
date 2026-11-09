@@ -57,10 +57,15 @@ describe("SplashScreen", () => {
     expect(wrapper.find(".splash-subtitle").exists()).toBe(false);
   });
 
-  it("writes the title at 128 pixels and the motto at 52 pixels, twice the size they had before", () => {
+  it("writes the title at 104 pixels and the motto at 60 pixels, so the motto is wider than the title", () => {
     const source = Fs.readFileSync(Path.join(import.meta.dirname, "SplashScreen.vue"), "utf8");
-    expect(source).toMatch(/\.splash-title\s*{[^}]*font-size:\s*128px/);
-    expect(source).toMatch(/\.splash-motto\s*{[^}]*font-size:\s*52px/);
+    expect(source).toMatch(/\.splash-title\s*{[^}]*font-size:\s*104px/);
+    expect(source).toMatch(/\.splash-motto\s*{[^}]*font-size:\s*60px/);
+  });
+
+  it("keeps the title 164 pixels above the bottom edge, so the title does not touch the curved motto", () => {
+    const source = Fs.readFileSync(Path.join(import.meta.dirname, "SplashScreen.vue"), "utf8");
+    expect(source).toMatch(/\.splash-text\s*{[^}]*padding:\s*120px 24px 164px/);
   });
 
   it("writes the motto along the lower half of a circle, centered in the middle of the screen and above the top edge", async () => {

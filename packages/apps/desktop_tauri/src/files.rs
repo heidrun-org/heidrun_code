@@ -2,7 +2,7 @@
 //! images, and "open in VS Code". Reading goes through git::git_file, with the
 //! same protections (known root, relative path, no symlink escape).
 
-use crate::git::{known_root, remember_root, safe_rel};
+use crate::git::{known_file, known_root, remember_outside_file, remember_root, safe_rel};
 use base64::Engine;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -351,7 +351,7 @@ fn folder_path(root: &str, path: &str) -> Result<PathBuf, String> {
 }
 
 pub(crate) fn full_path(root: &str, path: &str) -> Result<PathBuf, String> {
-    known_root(root)?;
+    known_file(root, path)?;
     let rel = safe_rel(path)?;
     let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let full = base.join(rel);
@@ -369,7 +369,7 @@ pub(crate) fn full_path(root: &str, path: &str) -> Result<PathBuf, String> {
 /// The real path of a file of the project to watch: its real folder, which must be inside the project, and its name.
 /// The file itself may be missing, because a coding agent can delete it and write it again (issue #931).
 pub(crate) fn watch_path(root: &str, path: &str) -> Result<PathBuf, String> {
-    known_root(root)?;
+    known_file(root, path)?;
     let rel = safe_rel(path)?;
     let base = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let full = base.join(rel);
@@ -408,12 +408,16 @@ pub fn file_image(root: String, path: String) -> Result<String, String> {
 pub struct Resolved {
     pub root: String,
     pub path: String,
+    /// True for a file outside the project of the pane: `root` is then the folder of the file, and `path` its name.
+    pub outside: bool,
 }
 
 /// "src/app.ts" cited in a terminal, relative to the pane's folder: the project and
-/// the path inside it, if the file exists there.
+/// the path inside it, if the file exists there. A file outside the project is only
+/// described, unless `allow_outside` says that the developer chose to open it: then
+/// this one file becomes readable (issue #956).
 #[tauri::command]
-pub async fn files_resolve(cwd: String, path: String) -> Result<Resolved, String> {
+pub async fn files_resolve(cwd: String, path: String, allow_outside: Option<bool>) -> Result<Resolved, String> {
     let dir = std::fs::canonicalize(&cwd).map_err(|_| "folder not found".to_string())?;
     let p = Path::new(&path);
     let candidate = if p.is_absolute() { p.to_path_buf() } else { dir.join(p) };
@@ -424,12 +428,30 @@ pub async fn files_resolve(cwd: String, path: String) -> Result<Resolved, String
     let top = run(&dir, &["rev-parse", "--show-toplevel"]).await.map(|b| String::from_utf8_lossy(&b).trim().to_string()).filter(|t| !t.is_empty());
     let root = PathBuf::from(top.unwrap_or_else(|| dir.display().to_string()));
     let root = std::fs::canonicalize(&root).unwrap_or(root);
-    acceptable_root(&root)?;
-    used_by_a_pane(&root).await?;
-    let rel = real.strip_prefix(&root).map_err(|_| "file outside the project".to_string())?;
-    let root_s = root.display().to_string();
-    remember_root(&root_s);
-    Ok(Resolved { root: root_s, path: rel.to_string_lossy().replace('\\', "/") })
+    if let Ok(rel) = real.strip_prefix(&root) {
+        if acceptable_root(&root).is_ok() && used_by_a_pane(&root).await.is_ok() {
+            let root_s = root.display().to_string();
+            remember_root(&root_s);
+            return Ok(Resolved { root: root_s, path: rel.to_string_lossy().replace('\\', "/"), outside: false });
+        }
+    }
+    outside_file(&real, allow_outside.unwrap_or(false))
+}
+
+/// A file outside the project: its folder and its name. Never a file of a folder of secrets.
+fn outside_file(real: &Path, allow: bool) -> Result<Resolved, String> {
+    let home = dirs::home_dir().unwrap_or_default();
+    let home = std::fs::canonicalize(&home).unwrap_or(home);
+    let secrets = [".ssh", ".aws", ".gnupg", ".kube", ".docker", "Library/Keychains"];
+    if secrets.iter().any(|d| real.starts_with(home.join(d))) || real.components().any(|c| c.as_os_str() == ".git") {
+        return Err("Private folder: the file is not opened".into());
+    }
+    let folder = real.parent().ok_or("folder not found")?.display().to_string();
+    let name = real.file_name().ok_or("invalid name")?.to_string_lossy().into_owned();
+    if allow {
+        remember_outside_file(&folder, &name);
+    }
+    Ok(Resolved { root: folder, path: name, outside: true })
 }
 
 /// Opens the file in VS Code (or the default app when VS Code is not installed).
@@ -440,6 +462,43 @@ pub fn file_open_external(root: String, path: String) -> Result<(), String> {
     if matches!(vscode, Ok(s) if s.success()) {
         return Ok(());
     }
+    std::process::Command::new("open").arg(&real).status().map_err(|e| e.to_string()).and_then(|s| if s.success() { Ok(()) } else { Err("cannot open the file".into()) })
+}
+
+/// Returns repository root, repository-relative path, commit, and branch for a committed file.
+/// `root` must be a known project and `path` must be a regular file below that project.
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn fileGitRevision(root: String, path: String) -> Result<Option<(String, String, String, Option<String>)>, String> {
+	let fullPath = full_path(&root, &path)?;
+	if fullPath.is_file() == false {
+		return Ok(None);
+	}
+	let parentPath = fullPath.parent().ok_or("file has no parent")?;
+	let Some(repositoryBytes) = run(parentPath, &["rev-parse", "--show-toplevel"]).await else {
+		return Ok(None);
+	};
+	let repositoryRoot = String::from_utf8_lossy(&repositoryBytes).trim_end().to_string();
+	let relativePath = fullPath.strip_prefix(&repositoryRoot).map_err(|error| error.to_string())?
+		.to_string_lossy().to_string();
+	let repositoryPath = Path::new(&repositoryRoot);
+	let Some(commitBytes) = run(repositoryPath, &["rev-parse", "--verify", "HEAD"]).await else {
+		return Ok(None);
+	};
+	let commit = String::from_utf8_lossy(&commitBytes).trim().to_string();
+	let object = format!("{commit}:{relativePath}");
+	if run(repositoryPath, &["cat-file", "-e", &object]).await.is_none() {
+		return Ok(None);
+	}
+	let branch = run(repositoryPath, &["symbolic-ref", "--quiet", "--short", "HEAD"]).await
+		.map(|bytes| String::from_utf8_lossy(&bytes).trim().to_string());
+	Ok(Some((repositoryRoot, relativePath, commit, branch)))
+}
+
+/// Opens the file in the default application of macOS for its type, for example Preview for an image (issue #956).
+#[tauri::command(async)]
+pub fn file_open_default(root: String, path: String) -> Result<(), String> {
+    let real = full_path(&root, &path)?;
     std::process::Command::new("open").arg(&real).status().map_err(|e| e.to_string()).and_then(|s| if s.success() { Ok(()) } else { Err("cannot open the file".into()) })
 }
 
@@ -503,7 +562,7 @@ pub fn file_read(root: String, path: String) -> Result<FileText, String> {
 /// Fingerprint of a file now, to see whether someone (an agent) changed it.
 #[tauri::command(async)]
 pub fn file_stat(root: String, path: String) -> Result<FileStamp, String> {
-    known_root(&root)?;
+    known_file(&root, &path)?;
     let rel = safe_rel(&path)?;
     let base = std::fs::canonicalize(&root).map_err(|e| e.to_string())?;
     if std::fs::symlink_metadata(base.join(rel)).is_err() {
@@ -524,7 +583,7 @@ static TMP_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new
 #[tauri::command(async)]
 pub fn file_write(root: String, path: String, content: String, expected: Option<String>) -> Result<FileStamp, String> {
     not_in_git_dir(&path)?;
-    known_root(&root)?;
+    known_file(&root, &path)?;
     let rel = safe_rel(&path)?;
     if content.len() as u64 > MAX_EDIT {
         return Err("content too large".into());
@@ -734,6 +793,32 @@ pub fn dirs_existing(root: String, paths: Vec<String>) -> Result<Vec<String>, St
 mod tests {
     use super::*;
 
+    #[allow(non_snake_case)]
+    #[tokio::test]
+    async fn resolvesCommittedFileAndDetachedCheckout() {
+        let directory = std::env::temp_dir().join(format!("hd-file-links-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let root = std::fs::canonicalize(&directory).unwrap().display().to_string();
+        remember_root(&root);
+        assert!(run(&directory, &["init", "-b", "feature/menu"]).await.is_some());
+        std::fs::write(directory.join("a #é.txt"), "committed").unwrap();
+        std::fs::write(directory.join("new.txt"), "untracked").unwrap();
+        assert!(run(&directory, &["add", "--", "a #é.txt"]).await.is_some());
+        assert!(run(&directory, &["-c", "user.name=Test", "-c", "user.email=test@example.com",
+            "-c", "commit.gpgsign=false", "commit", "-m", "test"]).await.is_some());
+        let revision = fileGitRevision(root.clone(), "a #é.txt".into()).await.unwrap().unwrap();
+        assert_eq!(revision.0, root);
+        assert_eq!(revision.1, "a #é.txt");
+        assert_eq!(revision.2.len(), 40);
+        assert_eq!(revision.3.as_deref(), Some("feature/menu"));
+        assert!(fileGitRevision(root.clone(), "new.txt".into()).await.unwrap().is_none());
+        assert!(fileGitRevision(root.clone(), "../outside".into()).await.is_err());
+        assert!(run(&directory, &["checkout", "--detach"]).await.is_some());
+        assert!(fileGitRevision(root, "a #é.txt".into()).await.unwrap().unwrap().3.is_none());
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
     #[test]
     fn refuses_home_and_root() {
         let _home_lock = crate::HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -746,6 +831,43 @@ mod tests {
         assert!(not_in_git_dir(".git/config").is_err());
         assert!(not_in_git_dir("a/.git/hooks/x").is_err());
         assert!(not_in_git_dir("src/.gitignore").is_ok());
+    }
+
+    #[tokio::test]
+    async fn opens_only_the_chosen_file_outside_the_project() {
+        let _home_lock = crate::HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let base = std::env::temp_dir().join(format!("hd-files-outside-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(base.join("pane")).unwrap();
+        std::fs::create_dir_all(base.join("shots/.git")).unwrap();
+        std::fs::write(base.join("shots/shot.txt"), "une capture\n").unwrap();
+        std::fs::write(base.join("shots/neighbour.txt"), "voisin\n").unwrap();
+        std::fs::write(base.join("shots/.git/config"), "[core]\n").unwrap();
+        let cwd = base.join("pane").display().to_string();
+        let shot = base.join("shots/shot.txt").display().to_string();
+        let folder = std::fs::canonicalize(base.join("shots")).unwrap().display().to_string();
+
+        // Without the choice of the developer, the file is only described, and stays unreadable.
+        let described = files_resolve(cwd.clone(), shot.clone(), None).await.unwrap();
+        assert!(described.outside);
+        assert_eq!((described.root.as_str(), described.path.as_str()), (folder.as_str(), "shot.txt"));
+        assert!(crate::git::git_file(folder.clone(), "shot.txt".into(), None).await.is_err());
+
+        // After the choice, this one file opens, and its neighbours stay closed.
+        let opened = files_resolve(cwd.clone(), shot, Some(true)).await.unwrap();
+        assert!(opened.outside);
+        assert_eq!(crate::git::git_file(folder.clone(), "shot.txt".into(), None).await.unwrap(), "une capture\n");
+        assert!(file_stat(folder.clone(), "shot.txt".into()).unwrap().hash.is_some());
+        assert!(watch_path(&folder, "shot.txt").is_ok());
+        assert!(crate::git::git_file(folder.clone(), "neighbour.txt".into(), None).await.is_err());
+        assert!(full_path(&folder, "neighbour.txt").is_err());
+        assert!(file_open_default(folder.clone(), "neighbour.txt".into()).is_err());
+        assert!(known_root(&folder).is_err());
+
+        // A file inside the internal data of Git never opens.
+        let config = base.join("shots/.git/config").display().to_string();
+        assert!(files_resolve(cwd, config, Some(true)).await.is_err());
+        let _ = std::fs::remove_dir_all(&base);
     }
 
     #[test]
