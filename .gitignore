@@ -1,6 +1,9 @@
 # Installed packages, created by the command "pnpm install"
 node_modules
 
+# Local pnpm package store
+.pnpm-store/
+
 # Built output
 dist
 dist_staging
