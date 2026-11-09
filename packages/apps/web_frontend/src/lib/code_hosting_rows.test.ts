@@ -16,6 +16,7 @@ function itemOf(changes: Partial<CodeHostingItem> = {}): CodeHostingItem {
     isDraft: false,
     headBranch: null,
     baseBranch: null,
+    approval: null,
     ...changes,
   };
 }
@@ -60,5 +61,15 @@ describe("codeHostingDetailLines of a pull request or of a merge request", () =>
     expect(lines.extra).toBe("");
     expect(lines.labels).toEqual([]);
     expect(codeHostingDetailLines("requests", itemOf({ headBranch: "a" }), NOW).extra).toBe("");
+  });
+});
+
+describe("codeHostingDetailLines of a pull request with an approval state (issue #570)", () => {
+  it("adds the approval state after the date, and after Draft", () => {
+    const branches = { headBranch: "feature-one", baseBranch: "main" };
+    expect(codeHostingDetailLines("requests", itemOf({ ...branches, approval: "approved" }), NOW).opened).toBe("jeromeetienne opened 3 days ago · Approved");
+    const draft = itemOf({ ...branches, isDraft: true, approval: "reviewRequired" });
+    expect(codeHostingDetailLines("requests", draft, NOW).opened).toBe("jeromeetienne opened 3 days ago · Draft · Review required");
+    expect(codeHostingDetailLines("requests", itemOf({ ...branches, approval: "changesRequested" }), NOW).opened).toBe("jeromeetienne opened 3 days ago · Changes requested");
   });
 });

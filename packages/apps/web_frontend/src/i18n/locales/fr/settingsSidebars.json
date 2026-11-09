@@ -1,5 +1,7 @@
 {
   "needsYouTitle": "Vous attend",
   "pastChatsTitle": "Conversations passées",
-  "sourceControlTitle": "Contrôle de code source"
+  "sourceControlTitle": "Contrôle de code source",
+  "codeHostingTitle": "Hébergement du code",
+  "mergePermanentBranches": "Branches permanentes, jamais supprimées par un merge"
 }

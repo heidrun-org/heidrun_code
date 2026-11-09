@@ -4,22 +4,22 @@
 The content of each section of the Settings window. The Settings window itself is `../SettingsModal.vue`.
 
 ## Key Exports & Entry Points
-- `SettingsSwitchRow.vue`: one Bootstrap switch with its label, bound with `v-model`. The slot after the label holds the circled question mark. Every boolean setting uses it.
-- `SettingsOptionHelp.vue`: the circled question mark of an option and its information card (`../InformationCard.vue`). The properties are the key of the name of the option and the blocks, each one a key of a title and a key of a text, in the locale file `settingsHelp.json`.
+- `SettingsSwitchRow.vue`: the shared boolean switch with `v-model` and a slot for the question mark.
+- `SettingsOptionHelp.vue`: the option question mark and information card; locale keys come from `settingsHelp.json`.
 - `settings_design_section.vue`: the Color themes section, with immediately applied, saved colour choices.
 - `SettingsGeneralSection.vue`: the language, the time format, the working days, and the switch `goatSound`.
 - `SettingsTerminalSection.vue`: the font, the font size that zooms the whole window, and the mouse behaviour (`mouseMode`).
-- `SettingsTextDetectionSection.vue`: the section "Text detection": the switch `terminalTextDetection`, the data of the project, the field "Try a text" (`SettingsTextDetectionSample.vue`, runs no action), and one card for each detection family (`SettingsTextDetectionFamily.vue`) with the real patterns and examples of `../../lib/detection_catalog.ts`. See [the rules](../../../../../../docs/agents_rules/user_interface/window/settings_text_detection.md).
-- `SettingsAgentsSection.vue`: the section "Coding agents": one switch per coding agent (`ownedAgents`), quota monitoring, the default command of a new tab (`newTabCommand`), the initial composition bar visibility, and `keepAgentsRunningAfterQuit`. Switching off the selected coding agent changes the default command to Terminal.
-- `SettingsHeidrunCodeDashboardSection.vue`: the section "Heidrun Code Dashboard": the switch `heidrunCodeDashboardLocalNetwork`, and while the server listens, the QR code, the address with its label and a copy button, and the button "Make a new pairing key". See [the rules](../../../../../../docs/agents_rules/user_interface/heidrun_code_dashboard/heidrun_code_dashboard_local_network.md).
-- `SettingsConfirmationsSection.vue`: the headings "Ask before closing" (workspace, tab, pane) and "Ask before deleting" (saved search).
-- `SettingsGuardsSection.vue`: the project guards, then the built-in guards. It opens `../GuardModal.vue` through `../../stores/guard_window.ts`, and `../../stores/project.ts` writes the changes.
-- `SettingsNotificationsSection.vue`: the notification settings, one row for each kind of notification (system notification, sound, list of sounds, button "Test"), and the switch `showStatusItem`. See [the rules](../../../../../../docs/agents_rules/user_interface/window/settings_notifications.md).
-- `SettingsSidebarsSection.vue`: one heading for each sidebar section: "Needs you", "Past chats", and "Source control".
+- `SettingsTextDetectionSection.vue`: Text detection controls, the sample field, and detection family cards. See [the rules](../../../../../../docs/agents_rules/user_interface/window/settings_text_detection.md).
+- `SettingsAgentsSection.vue`: coding agent switches, quotas, default tab command, composition bar visibility, and `keepAgentsRunningAfterQuit`; disabling the default agent selects Terminal.
+- `SettingsHeidrunCodeDashboardSection.vue`: the Dashboard local network switch, QR code, address, copy button, and pairing key. See [the rules](../../../../../../docs/agents_rules/user_interface/heidrun_code_dashboard/heidrun_code_dashboard_local_network.md).
+- `SettingsConfirmationsSection.vue`: closing and deletion confirmations, and `filesOutsideWorkspace` (Ask, Open in Heidrun Code, Open in the default app, Never open).
+- `SettingsGuardsSection.vue`: project and built-in guards, edited through `../../stores/guard_window.ts` and `../../stores/project.ts`.
+- `SettingsNotificationsSection.vue`: notification types, sound selection and testing, and `showStatusItem`. See [the rules](../../../../../../docs/agents_rules/user_interface/window/settings_notifications.md).
+- `SettingsSidebarsSection.vue`: one heading for each sidebar section: "Needs you", "Past chats", "Source control", and "Code hosting" (the permanent branches of the merge, `mergePermanentBranches`, issue #570).
 - `SettingsDynamicTopicsSection.vue`: the switches `dynamicTopics` and `clusteredDynamicTopics`, the extraction method, and the button "Rebuild the clusters".
 - `SettingsMobileAccessSection.vue`: the mobile access switch, the switch `mobileTerminalTyping`, the QR code, and the paired devices.
 - `SettingsVoiceInputSection.vue`: the switch `voiceInput`, the language, the Whisper model with the state of its download, and the word replacement list.
-- `SettingsVoiceWordsEditor.vue`: the word replacement list (`data-option="voiceWords"`): add, edit, and delete the entries through `../../lib/voice_words.ts`, which reads the file again every second while the section is open.
+- `SettingsVoiceWordsEditor.vue`: the word replacement editor, using `../../lib/voice_words.ts`, refreshed every second while open.
 
 ## Rules
 - A section component shows the content only. The title, the sidebar and the close button belong to `SettingsModal.vue`.

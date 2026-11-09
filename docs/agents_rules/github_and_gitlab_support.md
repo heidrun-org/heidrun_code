@@ -1,11 +1,11 @@
 # Rule: every support for GitHub is also a support for GitLab
 
 - Created: 13 October 2026
-- Last updated: 25 October 2026
+- Last updated: 29 October 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](glossary/index.md)
-- Related issue: [issue 302](https://github.com/heidrun-org/heidrun/issues/302), [issue 870](https://github.com/heidrun-org/heidrun_code/issues/870), [issue 879](https://github.com/heidrun-org/heidrun_code/issues/879), [issue 890](https://github.com/heidrun-org/heidrun_code/issues/890)
+- Related issue: [issue 302](https://github.com/heidrun-org/heidrun/issues/302), [issue 870](https://github.com/heidrun-org/heidrun_code/issues/870), [issue 879](https://github.com/heidrun-org/heidrun_code/issues/879), [issue 890](https://github.com/heidrun-org/heidrun_code/issues/890), [issue 570](https://github.com/heidrun-org/heidrun_code/issues/570)
 
 This file gives the rule for every agent that adds support for GitHub. Heidrun Code works with two Git hosting services: GitHub and GitLab. Everywhere that this repository supports GitHub, it must also support GitLab.
 
@@ -44,5 +44,12 @@ Each row gives the `gh` command and the matching `glab` command. In the `glab` o
 | Close an issue | `gh issue close <number>` | `glab issue close <number>` |
 | Create a pull request or a merge request | `gh pr create --title "<title>" --body "<body>"` | `glab mr create --title "<title>" --description "<body>"` |
 | Merge a pull request or a merge request | `gh pr merge <number>` | `glab mr merge <number>` |
+| Merge with a merge commit | `gh pr merge <number> --merge` | `glab mr merge <number>`, when the method of the project is `merge` |
+| Squash and merge | `gh pr merge <number> --squash` | `glab mr merge <number> --squash` |
+| Rebase and merge | `gh pr merge <number> --rebase` | `glab mr merge <number> --rebase` rebases the branch first; the method is a setting of the project (`merge_method`) |
+| Delete the source branch | `--delete-branch` | `--remove-source-branch` |
+| Read the merge settings of the repository | `gh api repos/{owner}/{repo}` | `glab api projects/:fullpath` |
 
 The option `--attach` of `glab` takes a file path only. It has no alternative text after `#`.
+
+The merge window of Heidrun Code calls the API of GitLab, not `glab mr merge`, to give the squash and the deletion of the branch explicitly, and never deletes a permanent branch: see [code_hosting_merge.md](user_interface/sidebars/code_hosting_merge.md).

@@ -185,7 +185,7 @@ describe("FileView (issue #714)", () => {
   it("resolves the file from the folder of the pane, reads it, and gives it to an editor that can change it (issue #899)", async () => {
     const wrapper = mountFileView();
     await flushPromises();
-    expect(invokeMock).toHaveBeenCalledWith("files_resolve", { cwd: "/work/project", path: "/work/project/src/main.ts" });
+    expect(invokeMock).toHaveBeenCalledWith("files_resolve", { cwd: "/work/project", path: "/work/project/src/main.ts", allowOutside: true });
     expect(invokeMock).toHaveBeenCalledWith("file_read", { root: "/work/project", path: "src/main.ts" });
     const editor = wrapper.get(".code-editor-stub");
     expect(editor.attributes("data-read-only")).toBe("false");

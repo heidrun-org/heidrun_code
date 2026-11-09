@@ -93,7 +93,7 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Confirmations',
 			component: SettingsConfirmationsSection,
-			optionList: ['confirmWorkspaceClose', 'confirmTabClose', 'confirmPaneClose', 'confirmSavedSearchDelete'],
+			optionList: ['confirmWorkspaceClose', 'confirmTabClose', 'confirmPaneClose', 'confirmSavedSearchDelete', 'filesOutsideWorkspace'],
 		},
 		{
 			name: 'Guards',
@@ -116,7 +116,7 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Sidebars',
 			component: SettingsSidebarsSection,
-			optionList: ['showWorkspaces', 'finishedTtl', 'chatsRefreshSeconds', 'gitFetchMinutes'],
+			optionList: ['showWorkspaces', 'finishedTtl', 'chatsRefreshSeconds', 'gitFetchMinutes', 'mergePermanentBranches'],
 		},
 		{
 			name: 'Dynamic topics',

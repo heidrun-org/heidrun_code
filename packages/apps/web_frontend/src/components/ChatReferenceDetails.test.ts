@@ -346,6 +346,18 @@ describe("ChatReferenceDetails, the separators and the body", () => {
     expect(wrapper.text()).toContain("jeromeetienne opened this pull request");
   });
 
+  it("says that the person opened a merge request on GitLab (issue #570)", () => {
+    const wrapper = mountDetails({
+      reference: { kind: "pull_request", number: 7, url: "https://gitlab.com/group/app/-/merge_requests/7" },
+      details: detailsOf({ headBranch: "fix-7", baseBranch: "main" }),
+      forge: "gitlab",
+      webBase: "https://gitlab.com/group/app",
+      name: "!7",
+    });
+    expect(wrapper.text()).toContain("jeromeetienne opened this merge request");
+    expect(wrapper.text()).not.toContain("opened this pull request");
+  });
+
   it("shows the login of the person who opened it, and never the word You", () => {
     const wrapper = mountDetails();
     expect(wrapper.text()).toContain("jeromeetienne opened this issue");

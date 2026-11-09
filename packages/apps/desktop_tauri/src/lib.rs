@@ -469,6 +469,7 @@ pub fn run() {
             html_preview::html_preview_close,
             files::file_image,
             files::file_open_external,
+            files::file_open_default,
             files::file_full_path,
             files::fileGitRevision,
             files::file_read,

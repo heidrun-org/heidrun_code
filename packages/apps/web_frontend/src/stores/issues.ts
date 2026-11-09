@@ -2,6 +2,7 @@
 import { reactive } from "vue";
 import { runForgeCli } from "../lib/forge_cli";
 import { refContext, type Forge, type RefTarget } from "../lib/refs";
+import { loadMergeFacts, type MergeFacts } from "./pull_request_merge";
 import { t } from "../i18n/index";
 
 export interface IssueComment {
@@ -33,6 +34,11 @@ export const issueView = reactive({
   error: "",
   url: null as string | null,
   data: null as IssueData | null,
+  /**
+   * What the merge bar of a pull request or of a merge request of the repository of the workspace needs, or null for an
+   * issue, for an item of another repository, or when the hosting service did not answer (issue #570).
+   */
+  merge: null as { folder: string; forge: Forge; number: number; webBase: string; facts: MergeFacts } | null,
 });
 
 // Through the cache of the answers, which keeps each answer for ten minutes (issue #870).
@@ -142,14 +148,22 @@ let seq = 0;
  * `target.forge`), else the ones of the repo of `cwd`.
  */
 export async function openIssue(cwd: string | null | undefined, target: RefTarget, url: string | null) {
-  Object.assign(issueView, { open: true, loading: true, error: "", url, data: null });
+  Object.assign(issueView, { open: true, loading: true, error: "", url, data: null, merge: null });
   const my = ++seq;
   try {
     if (!cwd) throw new Error(t("issuesStore.unknownFolder"));
     const ctx = await refContext(cwd);
     const forge: Forge = target.forge ?? ctx.forge ?? "gitlab";
-    const data = forge === "github" ? await github(cwd, target.type, target.number, target.project) : await gitlab(cwd, target.type, target.number, target.project);
-    if (my === seq) issueView.data = data;
+    // The merge runs in the repository of the workspace: an item of another repository shows no merge bar.
+    const isMergeable = target.type === "mr" && target.project === undefined && ctx.base !== null;
+    const [data, facts] = await Promise.all([
+      forge === "github" ? github(cwd, target.type, target.number, target.project) : gitlab(cwd, target.type, target.number, target.project),
+      isMergeable ? loadMergeFacts(cwd, forge, target.number).catch(() => null) : Promise.resolve(null),
+    ]);
+    if (my === seq) {
+      issueView.data = data;
+      issueView.merge = facts === null ? null : { folder: cwd, forge, number: target.number, webBase: ctx.base ?? "", facts };
+    }
   } catch (e) {
     if (my === seq) issueView.error = String(e).split("\n")[0].slice(0, 300);
   } finally {
