@@ -73,9 +73,11 @@ describe('the pop-up of the macros (MacroEditor.vue)', () => {
 		}
 	});
 
-	it('styles only the dark layer behind the dialog', () => {
+	it('limits custom class styles to the overlay, value cards, and help buttons', () => {
 		const classNameList = MacroBootstrapTestHelper.listStyledClassNames(sourceText);
-		expect([...new Set(classNameList)]).toEqual(['overlay']);
+		expect([...new Set(classNameList)]).toEqual([
+			'overlay', 'macro-value-card', 'macro-help-button', 'btn', 'icon', 'small', 'macro-help-mark',
+		]);
 	});
 });
 

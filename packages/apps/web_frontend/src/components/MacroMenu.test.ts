@@ -252,9 +252,12 @@ describe('the macro menu', () => {
 		expect(editor.find('#macro-editor-label').exists()).toBe(false);
 		expect(editor.find('#macro-editor-description').exists()).toBe(false);
 		expect(editor.find('#macro-editor-text').exists()).toBe(false);
-		expect(editor.find('.form-control-plaintext').text()).toBe(macro.label);
+		expect(editor.get('.macro-value-card').text()).toBe(macro.label);
 		expect(editor.findAll('.md-doc')).toHaveLength(2);
-		expect((editor.get('#macro-editor-description').element as HTMLTextAreaElement).value).toBe(macro.description);
+		expect(editor.get('article.md-doc strong').text()).toBe('First line');
+		expect(editor.findAll('article.md-doc')[0].text()).toContain('Second paragraph');
+		expect(editor.findAll('article.md-doc')[1].text()).toBe(macro.text);
+		expect(editor.findAll('input, textarea')).toHaveLength(0);
 		expect(editor.find('button.primary').exists()).toBe(false);
 		expect(editor.find('.dialog-footer').exists()).toBe(false);
 		expect(addMacro).not.toHaveBeenCalled();
@@ -285,10 +288,13 @@ describe('the macro menu', () => {
 		expect((editor.get('#macro-editor-description').element as HTMLInputElement).value).toBe(macro.description);
 		expect((editor.get('#macro-editor-text').element as HTMLTextAreaElement).value).toBe(macro.text);
 		expect(editor.find('select').exists()).toBe(false);
-		expect(editor.find('#macro-editor-in-project').exists()).toBe(false);
+		expect((editor.get(`#macro-editor-${isProject ? 'project' : 'user'}-level`).element as HTMLInputElement)
+			.checked).toBe(true);
 		await editor.get('#macro-editor-label').setValue('Changed title');
 		await MacroMenuTest.save(editor);
-		expect(updateMacro).toHaveBeenCalledWith(macro.id, isProject, 'Changed title', macro.description, macro.text);
+		expect(updateMacro).toHaveBeenCalledWith(
+			macro.id, isProject, 'Changed title', macro.description, macro.text, isProject,
+		);
 		expect(addMacro).not.toHaveBeenCalled();
 		expect(macroEditor.open).toBe(false);
 	});
@@ -302,7 +308,7 @@ describe('the macro menu', () => {
 		await editor.get('#macro-editor-label').setValue('New macro');
 		await editor.get('#macro-editor-description').setValue('New description');
 		await editor.get('#macro-editor-text').setValue('New text');
-		await editor.get('#macro-editor-in-project').setValue(isProject);
+		await editor.get(`#macro-editor-${isProject ? 'project' : 'user'}-level`).setValue(true);
 		await MacroMenuTest.save(editor);
 		expect(addMacro).toHaveBeenCalledWith('New macro', 'New description', 'New text', isProject);
 		expect(updateMacro).not.toHaveBeenCalled();
@@ -350,7 +356,7 @@ describe('the macro editor', () => {
 		await editor.get('#macro-editor-label').setValue('Multiline macro');
 		await editor.get('#macro-editor-description').setValue(description);
 		await editor.get('#macro-editor-text').setValue('Original macro text');
-		await editor.get('#macro-editor-in-project').setValue(isProject);
+		await editor.get(`#macro-editor-${isProject ? 'project' : 'user'}-level`).setValue(true);
 		await MacroMenuTest.save(editor);
 		expect(addMacro).toHaveBeenCalledWith('Multiline macro', description, 'Original macro text', isProject);
 		const menu = await MacroMenuTest.openMenu();
@@ -360,7 +366,7 @@ describe('the macro editor', () => {
 		await reopened.get('#macro-editor-description').setValue(`${description}\n\nUpdated paragraph`);
 		await MacroMenuTest.save(reopened);
 		expect(updateMacro).toHaveBeenCalledWith(
-			'new-id', isProject, 'Multiline macro', `${description}\n\nUpdated paragraph`, 'Original macro text',
+			'new-id', isProject, 'Multiline macro', `${description}\n\nUpdated paragraph`, 'Original macro text', isProject,
 		);
 	});
 
