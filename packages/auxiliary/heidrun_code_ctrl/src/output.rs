@@ -80,7 +80,7 @@ pub(crate) fn to_json_text(value: &Value) -> String {
 
 /// The list in Markdown: a count for each kind, then one section for each kind.
 fn list_markdown(listed: &[ListedMacro], places: &MacroPlaces, only: Option<MacroKind>) -> String {
-    let all_kinds = [MacroKind::HardCoded, MacroKind::Personal, MacroKind::Project];
+    let all_kinds = [MacroKind::Personal, MacroKind::Project];
     let kinds: Vec<MacroKind> = all_kinds.into_iter().filter(|kind| only.is_none_or(|wanted| wanted == *kind)).collect();
     let of_kind = |kind: MacroKind| listed.iter().filter(move |item| item.kind == kind);
     let mut text = String::from("# Macros\n\n");
@@ -90,7 +90,6 @@ fn list_markdown(listed: &[ListedMacro], places: &MacroPlaces, only: Option<Macr
     for kind in kinds {
         text.push_str(&format!("\n## {} macros\n\n", capitalized(kind.words())));
         match kind {
-            MacroKind::HardCoded => text.push_str("Written in the source code of Heidrun Code. They cannot be changed.\n\n"),
             MacroKind::Personal => text.push_str(&format!("File: `{}`\n\n", places.personal_file.display())),
             MacroKind::Project => {
                 text.push_str(&format!("File: `{}`\n\n", crate::project_config_file::project_config_path(&places.project_root).display()));
@@ -160,15 +159,15 @@ mod tests {
         ListedMacro {
             content: Macro { id: "an-id".into(), label: "A title".into(), description: "A description".into(), text: text.into() },
             kind,
-            file: if kind == MacroKind::HardCoded { None } else { Some(PathBuf::from("/data/macros.json")) },
+            file: Some(PathBuf::from("/data/macros.json")),
         }
     }
 
     #[test]
     fn the_markdown_list_has_a_count_and_a_section_for_each_kind() {
         let text = list_text(&[listed(MacroKind::Personal, "Hello")], &places(), None, Format::Markdown);
-        assert!(text.starts_with("# Macros\n\n- hard_coded: 0\n- personal: 1\n- project: 0\n"));
-        for heading in ["## Hard-coded macros", "## Personal macros", "## Project macros"] {
+        assert!(text.starts_with("# Macros\n\n- personal: 1\n- project: 0\n"));
+        for heading in ["## User macros", "## Project macros"] {
             assert!(text.contains(heading), "{heading}");
         }
         assert!(text.contains("File: `/data/macros.json`"));
@@ -181,8 +180,8 @@ mod tests {
     fn a_list_of_one_kind_has_the_section_and_the_count_of_that_kind_only() {
         let text = list_text(&[listed(MacroKind::Personal, "Hello")], &places(), Some(MacroKind::Personal), Format::Markdown);
         assert!(text.starts_with("# Macros\n\n- personal: 1\n"));
-        assert!(text.contains("## Personal macros"));
-        assert!(!text.contains("## Hard-coded macros") && !text.contains("## Project macros"));
+        assert!(text.contains("## User macros"));
+        assert!(!text.contains("## Project macros"));
     }
 
     #[test]
@@ -193,10 +192,10 @@ mod tests {
 
     #[test]
     fn the_json_list_is_a_list_of_objects_with_the_fields_the_kind_and_the_file() {
-        let text = list_text(&[listed(MacroKind::HardCoded, "Hello"), listed(MacroKind::Project, "World")], &places(), None, Format::Json);
+        let text = list_text(&[listed(MacroKind::Personal, "Hello"), listed(MacroKind::Project, "World")], &places(), None, Format::Json);
         let value: Value = serde_json::from_str(&text).unwrap();
-        assert_eq!(value[0]["kind"], "hard_coded");
-        assert_eq!(value[0]["file"], Value::Null);
+        assert_eq!(value[0]["kind"], "personal");
+        assert_eq!(value[0]["file"], "/data/macros.json");
         assert_eq!(value[1]["kind"], "project");
         assert_eq!(value[1]["file"], "/data/macros.json");
         assert_eq!(value[1]["text"], "World");
@@ -212,8 +211,8 @@ mod tests {
     #[test]
     fn a_changed_macro_and_a_deleted_macro_have_a_sentence_in_markdown_and_an_object_in_json() {
         let item = listed(MacroKind::Personal, "Hello");
-        assert!(changed_text("Added", &item, Format::Markdown).starts_with("Added the personal macro `an-id`.\n\n### A title"));
-        assert_eq!(deleted_text(&item, Format::Markdown), "Deleted the personal macro `an-id` (A title).\n");
+        assert!(changed_text("Added", &item, Format::Markdown).starts_with("Added the user macro `an-id`.\n\n### A title"));
+        assert_eq!(deleted_text(&item, Format::Markdown), "Deleted the user macro `an-id` (A title).\n");
         let value: Value = serde_json::from_str(&deleted_text(&item, Format::Json)).unwrap();
         assert_eq!(value["deleted"]["id"], "an-id");
     }

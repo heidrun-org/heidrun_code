@@ -1,6 +1,9 @@
-//! The command line for Heidrun Code macros, launchers, voice words, and workspaces.
+//! The command line for Heidrun Code macros, launchers, voice words, workspaces, tabs, and panes.
 
 mod command_line;
+mod herdr;
+mod panes;
+mod tabs;
 mod workspaces;
 
 use command_line::{find_format, parse, CommonOptions, Parsed, TextInput, HELP};
@@ -53,6 +56,8 @@ fn run(arguments: &[String]) -> Result<String, String> {
     match parse(arguments)? {
         Parsed::Help => Ok(HELP.to_string()),
         Parsed::Workspace { common, session, command } => workspaces::run(command, session.as_deref(), common.format),
+        Parsed::Tab { common, session, command } => tabs::run(command, session.as_deref(), common.format),
+        Parsed::Pane { common, session, command } => panes::run(command, session.as_deref(), common.format),
         Parsed::List { common, kind } => {
             let places = places_of(&common)?;
             let listed: Vec<_> = list_macros(&places)?.into_iter().filter(|item| kind.is_none_or(|wanted| wanted == item.kind)).collect();
@@ -116,7 +121,7 @@ fn run(arguments: &[String]) -> Result<String, String> {
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     let format =
-        if command_line::is_workspace_command(&arguments) { Format::Json } else { find_format(&arguments).unwrap_or(Format::Markdown) };
+        if command_line::is_herdr_command(&arguments) { Format::Json } else { find_format(&arguments).unwrap_or(Format::Markdown) };
     match run(&arguments) {
         Ok(text) => {
             print!("{text}");

@@ -124,8 +124,8 @@ const defaults = {
   leftSidebarSection: "launchers" as LeftSidebarSection,
   /** Sidebar section that the right sidebar shows. */
   rightSidebarSection: "toHandle" as RightSidebarSection,
-  /** Sidebar section Past chats: the coding agent whose chats the list shows. */
-  chatsAgent: "claude" as "claude" | "codex",
+  /** Sidebar section Past chats: the coding agents whose chats the list shows: both, one, or none (issue #959). */
+  chatsAgent: "both" as "both" | "claude" | "codex" | "none",
   /** Sidebar section Past chats: "compact" keeps the rows tight, and "expanded" gives them more air. */
   chatsView: "compact" as "compact" | "expanded",
   /**
@@ -173,6 +173,11 @@ const defaults = {
   newTabCommand: "terminal" as "terminal" | "claude" | "codex" | "agy",
 	/** Show the composition bar initially when a new pane starts directly with a coding agent. */
 	isCompositionBarShownOnAgentStart: false,
+  /**
+   * Settings window, section Coding agents: each Claude Code that Heidrun Code starts loads the observer mod of the Heidrun Code Dashboard,
+   * with `--plugin-dir`, and writes its live observations for the Heidrun Code Dashboard. Off: Claude Code starts without the mod.
+   */
+  heidrunCodeDashboardClaudeObserver: false,
   /** Window Create a custom launcher: the last kind, "commandLine" or "codingAgent". */
   customLauncherKind: "commandLine" as "commandLine" | "codingAgent",
   /** Window Create a custom launcher: the identifier of the last coding agent. */
@@ -354,7 +359,7 @@ const ALLOWED_VALUES: Record<string, readonly unknown[]> = {
   agentsActivityScope: ["all", "pane"],
   historyPeriod: ["today", "7", "30", "90", "365"],
   historyGroupBy: ["ws", "feature"],
-  chatsAgent: ["claude", "codex"],
+  chatsAgent: ["both", "claude", "codex", "none"],
   chatsView: ["compact", "expanded"],
   chatsRefreshSeconds: [5, 10, 30, 60],
   dynamicTopicExtraction: ["keyword", "languageModel"],
@@ -511,6 +516,7 @@ const RENAMED_SETTINGS: Record<string, string> = {
   customScriptAgent: "customLauncherAgent",
   customScriptModel: "customLauncherModel",
   customScriptEffort: "customLauncherEffort",
+  mireClaudeObserver: "heidrunCodeDashboardClaudeObserver",
 };
 
 function load(): typeof defaults {
@@ -679,6 +685,7 @@ export type SettingsSection =
   | "terminal"
   | "textDetection"
   | "agents"
+  | "heidrunCodeDashboard"
   | "confirmations"
   | "guards"
   | "notifications"

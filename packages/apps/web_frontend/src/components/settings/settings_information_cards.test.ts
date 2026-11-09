@@ -9,6 +9,7 @@ import SettingsConfirmationsSection from './SettingsConfirmationsSection.vue';
 import SettingsDynamicTopicsSection from './SettingsDynamicTopicsSection.vue';
 import SettingsGeneralSection from './SettingsGeneralSection.vue';
 import SettingsGuardsSection from './SettingsGuardsSection.vue';
+import SettingsHeidrunCodeDashboardSection from './SettingsHeidrunCodeDashboardSection.vue';
 import SettingsMobileAccessSection from './SettingsMobileAccessSection.vue';
 import SettingsNotificationsSection from './SettingsNotificationsSection.vue';
 import SettingsSidebarsSection from './SettingsSidebarsSection.vue';
@@ -55,7 +56,7 @@ class SettingsInformationCardsTestHelper {
 	static readonly WORKSPACE_ID = 'w1';
 
 	/**
-	 * The eleven sections of the Settings window, with their options. A new option goes in this list, and the test then
+	 * The sections of the Settings window, with their options. A new option goes in this list, and the test then
 	 * fails until the option has an information card.
 	 */
 	static readonly SECTION_LIST: SectionCase[] = [
@@ -82,7 +83,12 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Coding agents',
 			component: SettingsAgentsSection,
-			optionList: ['agent', 'agent', 'agent', 'quotaMonitoring', 'antigravityQuotaTracking', 'newTabCommand', 'compositionBarOnAgentStart', 'keepAgentsRunning'],
+			optionList: ['agent', 'agent', 'agent', 'quotaMonitoring', 'antigravityQuotaTracking', 'newTabCommand', 'compositionBarOnAgentStart', 'heidrunCodeDashboardClaudeObserver', 'keepAgentsRunning'],
+		},
+		{
+			name: 'Heidrun Code Dashboard',
+			component: SettingsHeidrunCodeDashboardSection,
+			optionList: ['heidrunCodeDashboardLocalNetwork'],
 		},
 		{
 			name: 'Confirmations',

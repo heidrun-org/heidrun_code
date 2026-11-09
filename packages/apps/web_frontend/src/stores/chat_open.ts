@@ -49,7 +49,7 @@ export async function openChatInHeidrun(agent: ChatAgent, chat: Chat, folder: st
  * @param folder - the folder of the selected workspace, where the new tab starts
  */
 export async function chatAboutReference(url: string, label: string, folder: string | null) {
-  await startChatAbout(url, label, folder);
+  await startChatAbout(url, label, folder, true);
 }
 
 /**
@@ -70,8 +70,10 @@ export async function chatAboutFile(absolutePath: string, label: string, folder:
  * @param subject - the web address or the absolute path that the chat is about
  * @param label - the name of the new tab
  * @param folder - the folder of the selected workspace, where the new tab starts
+ * @param isTrackingRequired - Whether the coding agent must be prepared for dashboard tracking before work starts.
+ * @returns A promise that ends after the launch attempt.
  */
-async function startChatAbout(subject: string, label: string, folder: string | null) {
+async function startChatAbout(subject: string, label: string, folder: string | null, isTrackingRequired = false) {
   if (state.selectedWorkspaceId === null) {
     return;
   }
@@ -83,5 +85,6 @@ async function startChatAbout(subject: string, label: string, folder: string | n
     model: null,
     label,
     prompt: `Let's chat about ${subject}`,
+    isTrackingRequired,
   });
 }

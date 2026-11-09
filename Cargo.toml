@@ -7,13 +7,14 @@ members = [
     "packages/apps/desktop_tauri",
     "packages/auxiliary/coding_agent_cli",
     "packages/auxiliary/heidrun_code_ctrl",
+    "packages/auxiliary/heidrun_code_dashboard_server",
     "packages/auxiliary/mobile_server",
     "packages/auxiliary/voice_input",
-    "submodules/heidrun_data/packages/data_layer_code_hosting",
-    "submodules/heidrun_data/packages/data_layer_coding_agents",
-    "submodules/heidrun_data/packages/data_layer_source_control",
-    "submodules/heidrun_data/packages/data_layer_user_activity",
-    "submodules/heidrun_data/packages/heidrun_data",
+    "submodules/heidrun_data/packages/data_layers/data_layer_code_hosting",
+    "submodules/heidrun_data/packages/data_layers/data_layer_coding_agents",
+    "submodules/heidrun_data/packages/data_layers/data_layer_source_control",
+    "submodules/heidrun_data/packages/data_layers/data_layer_user_activity",
+    "submodules/heidrun_data/packages/apps/heidrun_data",
 ]
 # The experiments keep their own Cargo.lock and their own large dependencies
 exclude = [

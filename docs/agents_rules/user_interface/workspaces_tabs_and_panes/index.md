@@ -1,7 +1,7 @@
 # Workspaces, tabs, and panes rules index
 
 - Created: 13 October 2026
-- Last updated: 26 October 2026
+- Last updated: 31 October 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
@@ -24,4 +24,4 @@ This file lists the files and the subfolders of this folder, for agents and tool
 - [tabs.md](tabs.md): the tabs.
 - [voice_input_across_panes.md](voice_input_across_panes.md): the voice input with more than one composition bar: the three states and the queue of Whisper, a press while another composition bar records, the switch of tab or workspace during a recording, and the recording icon.
 - [workspace.md](workspace.md): the workspace.
-- [workspace_commands.md](workspace_commands.md): the workspace commands, creation folders, focus events, and refreshes through Herdr.
+- [workspace_commands.md](workspace_commands.md): the workspace, tab, and pane commands of `heidrun_code_ctrl`, creation folders, focus events, and refreshes through Herdr.

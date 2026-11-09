@@ -536,8 +536,23 @@ let refreshTimer: number | undefined;
 let inflight = false;
 let again = false;
 let lastPaneKey = "";
-let pendingWorkspaceFocusId: string | null = null;
+/** A focus request that waits for the next snapshot: the workspace to select, and the pane to select in it. */
+type PendingFocus = {
+	/** The workspace to select. */
+	workspaceId: string;
+	/** The pane to select, with its tab, or `null` to select the workspace alone. */
+	paneId: string | null;
+};
+
+let pendingFocus: PendingFocus | null = null;
 const workspaceFocusRequests = new Map<string, string>();
+
+/**
+ * The text before the pane id in the value of the token `heidrun_focus_request`. `heidrun_code_ctrl` puts the pane in the
+ * same value, because Herdr keeps a token until a new value replaces it: a separate token of the pane would stay after a
+ * later focus request of the workspace alone.
+ */
+const FOCUS_REQUEST_PANE_SEPARATOR = ';pane=';
 
 export function scheduleRefresh(delay = 60) {
   window.clearTimeout(refreshTimer);
@@ -902,12 +917,12 @@ function applySnapshot(snap: SessionSnapshot) {
 	}
   fixSelection(snap);
 	pruneFinished();
-	if (pendingWorkspaceFocusId !== null
-		&& snap.workspaces.some((workspace) => workspace.workspace_id === pendingWorkspaceFocusId)) {
-		selectWorkspace(pendingWorkspaceFocusId);
-		pendingWorkspaceFocusId = null;
+	const focus = pendingFocus;
+	if (focus !== null && snap.workspaces.some((workspace) => workspace.workspace_id === focus.workspaceId)) {
+		applyFocusRequest(snap, focus);
+		pendingFocus = null;
 	} else if (again === false) {
-		pendingWorkspaceFocusId = null;
+		pendingFocus = null;
 	}
 
   const ids = snap.panes.filter((p) => p.agent).map((p) => p.pane_id).sort();
@@ -918,6 +933,36 @@ function applySnapshot(snap: SessionSnapshot) {
     lastPaneKey = key;
     refreshCodex();
   }
+}
+
+/**
+ * Selects what a focus request asks for: the pane, with its workspace and its tab, as a click on the pane does, when the
+ * snapshot has the pane in the workspace of the request. Otherwise it selects the workspace alone.
+ * @param snap - the snapshot that Herdr just sent
+ * @param focus - the focus request
+ */
+function applyFocusRequest(snap: SessionSnapshot, focus: PendingFocus): void {
+	const pane = snap.panes.find((candidate) => candidate.pane_id === focus.paneId
+		&& candidate.workspace_id === focus.workspaceId);
+	if (pane === undefined) {
+		selectWorkspace(focus.workspaceId);
+		return;
+	}
+	selectPane(pane);
+}
+
+/**
+ * Reads the pane of a focus request of `heidrun_code_ctrl`.
+ * @param request - the value of the token `heidrun_focus_request`
+ * @returns the pane id after `;pane=`, or `null` for a request of the workspace alone
+ */
+function paneOfFocusRequest(request: string): string | null {
+	const index = request.indexOf(FOCUS_REQUEST_PANE_SEPARATOR);
+	if (index === -1) {
+		return null;
+	}
+	const paneId = request.slice(index + FOCUS_REQUEST_PANE_SEPARATOR.length);
+	return paneId === '' ? null : paneId;
 }
 
 /**
@@ -1449,16 +1494,29 @@ export async function start() {
 	await listen<WorkspaceEvent>('herdr://event', async (event) => {
 		const workspace = event.payload.data?.workspace;
 		const request = workspace?.tokens?.heidrun_focus_request;
-		let workspaceId = event.payload.event === 'workspace_focused'
+		const focusedId = event.payload.event === 'workspace_focused'
 			? event.payload.data?.workspace_id : undefined;
+		let focus: PendingFocus | null = null;
+		if (typeof focusedId === 'string') {
+			// Herdr can announce the focus of the workspace after the request of a pane in it: the pane stays.
+			const isPaneKept = pendingFocus !== null && pendingFocus.paneId !== null
+				&& pendingFocus.workspaceId === focusedId;
+			focus = isPaneKept ? pendingFocus : {
+				workspaceId: focusedId,
+				paneId: null,
+			};
+		}
 		if (event.payload.event === 'workspace_metadata_updated'
 			&& workspace !== undefined && request !== undefined
 			&& workspaceFocusRequests.get(workspace.workspace_id) !== request) {
 			workspaceFocusRequests.set(workspace.workspace_id, request);
-			workspaceId = workspace.workspace_id;
+			focus = {
+				workspaceId: workspace.workspace_id,
+				paneId: paneOfFocusRequest(request),
+			};
 		}
-		if (typeof workspaceId === 'string') {
-			pendingWorkspaceFocusId = workspaceId;
+		if (focus !== null) {
+			pendingFocus = focus;
 			await refresh();
 			return;
 		}

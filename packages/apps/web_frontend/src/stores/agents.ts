@@ -5,11 +5,12 @@ import { WorkspaceFolders } from './workspace_folders';
 // "Nouvel agent": a tab named after the agent, Claude (or Codex) launched in it,
 // and the starting consigne sent once the agent is ready.
 import * as api from "../lib/api";
-import { allPanes, refresh, selectPane, sendPrompt, toast } from "./session";
+import { allPanes, refresh, selectPane, sendPrompt, tabLabel, toast } from "./session";
 import { resolveMacroVariables } from "./macros";
 import { t } from "../i18n/index";
 import { chatResumeCommand } from "../lib/chat_links";
 import { shellQuote } from "../lib/launcher_agent_command";
+import { prepareAgentCommand, reportPreparedCodexChat, type PreparedAgentCommand } from "./coding_agent_start";
 import type { PaneInfo } from "../lib/types";
 
 // Only plain names reach the shell command line, and quoted ("sonnet[1m]" is a glob for zsh).
@@ -35,7 +36,7 @@ export function agentCommand(
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Waits for Herdr to see the agent in the pane and for it to be idle (2 min max). */
+/** Waits for Herdr to see the coding agent ready for input, including a resumed chat marked Finished (2 min max). */
 async function whenReady(paneId: string): Promise<"ready" | "closed" | "timeout"> {
   let warned = false;
   for (let i = 0; i < 160; i++) {
@@ -49,7 +50,9 @@ async function whenReady(paneId: string): Promise<"ready" | "closed" | "timeout"
       warned = true;
       toast(t("agentsStore.waitingConfirmation"));
     }
-    if (p.agent_status === "idle" && p.interactive_ready !== false) return "ready";
+		if ((p.agent_status === 'idle' || p.agent_status === 'done') && p.interactive_ready !== false) {
+			return 'ready';
+		}
   }
   return "timeout";
 }
@@ -62,6 +65,8 @@ export async function launchAgent(o: {
   model: string | null;
   label: string;
   prompt: string;
+  /** Require dashboard preparation before starting work, for chats opened from an issue or a pull request. */
+  isTrackingRequired?: boolean;
   /** The session identifier of a saved chat to resume: the tab starts `claude --resume` or `codex resume` with it. */
   resumeId?: string | null;
   /** A pane that already exists, for example the first pane of a new workspace: the command runs in it, and no new tab is created. */
@@ -87,8 +92,9 @@ export async function launchAgent(o: {
     return "failed";
   }
   let pane: PaneInfo;
+  let cwd: string | null;
   try {
-    const cwd = o.existingPane === undefined || o.existingPane === null
+    cwd = o.existingPane === undefined || o.existingPane === null
       ? WorkspaceFolders.require(o.workspaceId)
       : o.existingPane.foreground_cwd || o.existingPane.cwd || null;
     if ((await allowCommand(command, cwd, o.label)) === false) {
@@ -111,8 +117,19 @@ export async function launchAgent(o: {
   selectPane(pane);
   // Let the shell print its prompt before typing into it.
   await wait(400);
+  const isNewCodexChat = o.tool === "codex" && (o.resumeId === undefined || o.resumeId === null);
+  let prepared: PreparedAgentCommand = { command, codexChatId: null };
   try {
-    await api.run(pane.pane_id, command);
+    if (o.tool === "claude" || isNewCodexChat || o.isTrackingRequired === true) {
+      prepared = await prepareAgentCommand(command, {
+        cwd,
+        name: o.label !== "" ? o.label : tabLabel(pane.tab_id),
+        model: o.model,
+        isTrackingRequired: o.isTrackingRequired,
+      });
+    }
+    await api.run(pane.pane_id, prepared.command);
+    await reportPreparedCodexChat(pane.pane_id, prepared, o.isTrackingRequired);
   } catch (e) {
     toast(t("agentsStore.launchFailed", { error: String(e) }));
     return "failed";

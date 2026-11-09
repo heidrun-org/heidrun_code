@@ -2075,6 +2075,7 @@ dependencies = [
  "dirs 6.0.0",
  "dotenvy",
  "heidrun_code_ctrl",
+ "heidrun_code_dashboard_server",
  "heidrun_data",
  "mobile_server",
  "notify",
@@ -2103,6 +2104,19 @@ dependencies = [
  "dirs 6.0.0",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "heidrun_code_dashboard_server"
+version = "0.3.5"
+dependencies = [
+ "axum",
+ "dirs 6.0.0",
+ "qrcode",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower",
 ]
 
 [[package]]

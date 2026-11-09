@@ -6,6 +6,7 @@
   "agent.codex": "Codex",
   "loading": "Lecture des conversations…",
   "noWorkspace": "Sélectionne un workspace pour voir ses conversations.",
+  "noAgentChecked": "Coche Claude ou Codex pour voir leurs conversations.",
   "empty": "Aucune conversation de Claude ou de Codex n’a été trouvée pour ce workspace.",
   "showLess": "Afficher moins",
   "showMore": "Afficher plus",

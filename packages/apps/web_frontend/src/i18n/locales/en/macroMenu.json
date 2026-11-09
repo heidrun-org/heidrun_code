@@ -1,13 +1,14 @@
 {
   "label": "Macros",
   "title": "Macros. Click: insert. Shift+click: insert and send.",
-  "project": "Project",
-  "personal": "My macros",
+  "project": "Project macro",
+  "personal": "User macro",
   "edit": "Edit",
-  "hardCoded": "Hard-coded",
   "create": "Create",
   "delete": "Delete",
   "editMacro": "Edit {label}",
   "deleteMacro": "Delete {label}",
-  "deleteConfirm": "Do you really want to delete the macro “{label}”?"
+  "deleteConfirm": "Do you really want to delete the macro “{label}”?",
+  "view": "View",
+  "viewMacro": "View {label}"
 }

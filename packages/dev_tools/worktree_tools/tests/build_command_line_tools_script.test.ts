@@ -37,7 +37,7 @@ class ToolsScriptRunner {
 		Fs.mkdirSync(Path.join(rootPath, 'scripts'));
 		Fs.copyFileSync(ToolsScriptRunner.scriptPath, Path.join(rootPath, 'scripts', 'build_command_line_tools.sh'));
 		Fs.mkdirSync(Path.join(rootPath, 'packages', 'auxiliary', 'heidrun_code_ctrl'), { recursive: true });
-		Fs.mkdirSync(Path.join(rootPath, 'submodules', 'heidrun_data', 'packages', 'heidrun_data'), { recursive: true });
+		Fs.mkdirSync(Path.join(rootPath, 'submodules', 'heidrun_data', 'packages', 'apps', 'heidrun_data'), { recursive: true });
 		const releasePath = Path.join(rootPath, 'packages', 'apps', 'desktop_tauri', 'target', 'release');
 		Fs.mkdirSync(releasePath, { recursive: true });
 		Fs.writeFileSync(Path.join(releasePath, 'heidrun_code_ctrl'), 'heidrun_code_ctrl');

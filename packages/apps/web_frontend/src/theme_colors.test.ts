@@ -53,6 +53,33 @@ class ThemeColorsTestHelper {
 		}
 		return match[1].trim();
 	}
+
+	/**
+	 * Gives the contrast ratio of two colors, as the Web Content Accessibility Guidelines define it.
+	 *
+	 * @param firstColor - The first color, in the form `#rrggbb`.
+	 * @param secondColor - The second color, in the form `#rrggbb`.
+	 * @returns The contrast ratio, from 1 (the same color) to 21 (black and white).
+	 */
+	static contrastRatio(firstColor: string, secondColor: string): number {
+		const firstLuminance = ThemeColorsTestHelper._relativeLuminance(firstColor);
+		const secondLuminance = ThemeColorsTestHelper._relativeLuminance(secondColor);
+		return (Math.max(firstLuminance, secondLuminance) + 0.05) / (Math.min(firstLuminance, secondLuminance) + 0.05);
+	}
+
+	/**
+	 * Gives the relative luminance of a color.
+	 *
+	 * @param color - The color, in the form `#rrggbb`.
+	 * @returns The relative luminance, from 0 (black) to 1 (white).
+	 */
+	static _relativeLuminance(color: string): number {
+		const channels = [1, 3, 5].map((start) => {
+			const value = parseInt(color.slice(start, start + 2), 16) / 255;
+			return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+		});
+		return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+	}
 }
 
 describe('the theme colors', () => {
@@ -93,5 +120,16 @@ describe('the theme colors', () => {
 		const iconBarText = ThemeColorsTestHelper.readSource('components/SidebarIconBar.vue');
 		expect(iconBarText).toMatch(/\.sidebar-icon-bar button \{[^}]*color: var\(--icon\);/);
 		expect(iconBarText).toMatch(/\.icons button\.on \{[^}]*color: var\(--text\);/);
+	});
+
+	it('give the hovered menu item a background that stands out from the menu, in both themes (issue #964)', () => {
+		const { darkText, lightText } = ThemeColorsTestHelper.readThemeTexts();
+		const stylesText = ThemeColorsTestHelper.readSource('styles.css');
+		expect(stylesText).toMatch(/\.menu-item \{[^}]*--menu-item-hover-bg: var\(--menu-hover\);/);
+		for (const themeText of [darkText, lightText]) {
+			const menuColor = ThemeColorsTestHelper.readValue(themeText, '--raised') ?? '';
+			const hoverColor = ThemeColorsTestHelper.readValue(themeText, '--menu-hover') ?? '';
+			expect(ThemeColorsTestHelper.contrastRatio(menuColor, hoverColor)).toBeGreaterThanOrEqual(1.3);
+		}
 	});
 });

@@ -1,0 +1,5 @@
+{
+  "source": "jeromeetienne/coding_agent_plugin",
+  "skill_id": "issue_batch_workflow",
+  "folder_url": "https://github.com/jeromeetienne/coding_agent_plugin/tree/main/skills/issue_batch_workflow"
+}

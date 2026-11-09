@@ -2,6 +2,7 @@ import type { InvokeArgs } from '@tauri-apps/api/core';
 import { mockIPC, mockWindows } from '@tauri-apps/api/mocks';
 import type { ChatSortKey, ChatSortOrder } from '../stores/chats';
 import { TauriMockFixture } from './tauri_mock_fixture';
+import { HEIDRUN_CODE_DASHBOARD_LOCAL_NETWORK_PATH } from '../lib/heidrun_code_dashboard/heidrun_code_dashboard_local_network_path';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,7 @@ type HerdrRequestPayload = {
 export class TauriMock {
 	/**
 	 * Installs the mock when the code runs in the development server and no real Tauri bridge exists.
-	 * Does nothing in a production build, and does nothing inside the Tauri window.
+	 * Does nothing in a production build, inside the Tauri window, and on the Heidrun Code Dashboard page of a device of the local network.
 	 */
 	static install(): void {
 		if (import.meta.env.DEV === false) {
@@ -33,6 +34,10 @@ export class TauriMock {
 		}
 		const tauriWindow = window as unknown as { __TAURI_INTERNALS__?: unknown };
 		if (tauriWindow.__TAURI_INTERNALS__ !== undefined) {
+			return;
+		}
+		// The page of a device of the local network reads the real Heidrun Code Dashboard: a fake answer must never show there.
+		if (window.location.pathname === HEIDRUN_CODE_DASHBOARD_LOCAL_NETWORK_PATH) {
 			return;
 		}
 		mockWindows('main');
@@ -73,6 +78,16 @@ export class TauriMock {
 					available: false,
 					sessions: {},
 				};
+			case 'heidrun_code_dashboard_subscribe':
+				return TauriMock._buildHeidrunCodeDashboardObservations();
+			case 'heidrun_code_dashboard_unsubscribe':
+				return null;
+			case 'heidrun_code_dashboard_claude_observer_mod_path':
+				return null;
+			case 'heidrun_code_dashboard_claude_observation_folder':
+				return '/tmp/heidrun_code/heidrun_code_dashboard_claude_observations';
+			case 'codex_prepare_chat':
+				return null;
 			case 'history_read':
 				return [];
 			case 'chats_synchronize':
@@ -182,6 +197,34 @@ export class TauriMock {
 			default:
 				throw new Error(`mock: the command "${command}" is not available in the browser`);
 		}
+	}
+
+	/**
+	 * Builds the answer of the Tauri command `heidrun_code_dashboard_subscribe` on the fake computer: no Claude Code session, and the shared
+	 * Codex server unavailable, because the fake computer has no live source. The mock never shows fictional data as a
+	 * real observation.
+	 *
+	 * @returns The observations, in the shape of the observation contract of issue 968.
+	 */
+	private static _buildHeidrunCodeDashboardObservations(): unknown {
+		return {
+			schemaVersion: 1,
+			observedAtMs: Date.now(),
+			claude: {
+				sessions: [],
+				errors: [],
+			},
+			codex: {
+				coverage: 'unavailable',
+				unavailableReason: 'The development server has no shared Codex server',
+				threads: [],
+				errors: [],
+				limits: {
+					maximumChildrenPerRoot: 100,
+					truncatedRootThreadIds: [],
+				},
+			},
+		};
 	}
 
 	/**

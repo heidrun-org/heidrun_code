@@ -34,8 +34,7 @@ Every command ends with a non-zero exit code when a test fails. The steps of [HO
 1. A new fast test goes where the other tests of its package are. The root script `test:fast` must call the script `test` of the package. When you add a package that has tests, add it to the root script `test:fast`.
 2. A new slow test needs its own command, so that `pnpm test:fast` does not run it. A package that has fast tests and slow tests gets the two scripts `test:fast` and `test:slow`, and its script `test` runs both. The root script `test:slow` calls the script `test:slow` of the package. A package that has only slow tests keeps its script `test`, and the root script `test:slow` calls it.
 3. In the package `voice_input`, the fast tests sit in the library (`cargo test --lib`), and the slow tests that load the real model sit in the folder `tests` (`cargo test --test transcription_with_tiny_model`). A new test file in the folder `tests` of this package runs only with `pnpm test:slow`, so a fast test never goes there.
-4. The packages `localai_decisions_candle`, `localai_decisions_llamacpp`, and `localai_embeddings` need models of several hundred megabytes. They are in no level, and the developer runs them by hand.
-5. Add the test and its level to the section "Tests" of [AGENTS.md](../../AGENTS.md), and to the table of the section "Test the application" of [README_DEV.md](../../README_DEV.md).
+4. Add the test and its level to the section "Tests" of [AGENTS.md](../../AGENTS.md), and to the table of the section "Test the application" of [README_DEV.md](../../README_DEV.md).
 
 ## The speed of the Vitest tests
 

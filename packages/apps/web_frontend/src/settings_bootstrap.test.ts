@@ -25,6 +25,7 @@ class SettingsBootstrapTestHelper {
 		'settings/SettingsDynamicTopicsSection.vue',
 		'settings/SettingsGeneralSection.vue',
 		'settings/SettingsGuardsSection.vue',
+		'settings/SettingsHeidrunCodeDashboardSection.vue',
 		'settings/SettingsMobileAccessSection.vue',
 		'settings/SettingsNotificationsSection.vue',
 		'settings/SettingsSidebarsSection.vue',
@@ -95,6 +96,7 @@ describe('the Settings window (issue 412)', () => {
 		}
 		expect(styledClassNameList).toEqual({
 			'SettingsModal.vue': ['overlay'],
+			'settings/SettingsHeidrunCodeDashboardSection.vue': ['qr'],
 			'settings/SettingsMobileAccessSection.vue': ['qr', 'command'],
 		});
 	});

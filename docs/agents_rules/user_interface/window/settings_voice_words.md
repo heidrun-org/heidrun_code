@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: word replacement list of the voice input
 
 - Created: 23 October 2026
-- Last updated: 26 October 2026
+- Last updated: 7 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: voice input](../../glossary/voice_input.md), [Voice input](settings_voice_input.md), [Information card of every option of the Settings window](settings_information_cards.md)
@@ -40,3 +40,7 @@ The pure function `voice_input::replace_words` takes the text of Whisper and the
 - The web page files are `stores/voice_words.ts`, `lib/voice_words.ts`, and `components/settings/SettingsVoiceWordsEditor.vue`.
 - The Rust tests check the function (whole words, upper and lower case, the longest entry first, an empty list, a chain of replacements, a list that loops, and the spaces at the ends of an entry), the file and the four orders with their errors, and the replacement with a valid, a missing, and an invalid file. The test of `heidrun_code_ctrl` compares `SKILL.md` with the help, and runs its examples.
 - The Vitest tests check the library (the read each second, the stop of the read, the older read that is ignored, and the refusals) and the section (add, edit, delete, the refusals, the invalid file, and French).
+
+## Maintenance from saved conversations
+
+Read [Improve the voice input word replacement list from saved conversations](../../../voice_input/improving_word_replacements.md) for the repeatable conversation audit, evidence requirements, command examples, verification, and reversal steps.

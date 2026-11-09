@@ -4,14 +4,16 @@ import {
   canShowLessChats,
   canShowMoreChats,
   CHAT_AGENTS,
+  availableChatAgents,
   chats,
-  chooseChatAgent,
+  checkChatAgent,
+  checkedChatAgents,
   loadChats,
-  selectedChatAgent,
   shownChats,
   showLessChats,
   showMoreChats,
   type ChatAgent,
+  type Chat,
 } from "../stores/chats";
 import { chatReferences } from "../lib/chat_references";
 import { dynamicTopicBarTopics, dynamicTopicChatCounts, withoutCommonTopics } from "../lib/dynamic_topic_bar";
@@ -143,6 +145,15 @@ function agentLabel(agent: ChatAgent): string {
 }
 
 /**
+ * Checks or unchecks a coding agent after a click on its button in the selector.
+ * @param agent - the coding agent of the button
+ * @param event - the change event of the checkbox
+ */
+function onAgentChange(agent: ChatAgent, event: Event): void {
+  checkChatAgent(agent, (event.target as HTMLInputElement).checked);
+}
+
+/**
  * The raw dynamic topics of the chats that the list shows, by identifier of chat, from the method that the developer chose.
  * There is none while the option "Dynamic topics" is off, so the dynamic topic bar and the rows show nothing.
  */
@@ -185,7 +196,7 @@ watch(activeTopic, (value) => {
     selectedTopic.value = null;
   }
 });
-watch([folder, () => selectedChatAgent.value], () => {
+watch([folder, () => checkedChatAgents.value.join()], () => {
   selectedTopic.value = null;
 });
 
@@ -205,22 +216,23 @@ const rows = computed(() =>
 const isTopicTimelineOpen = ref(false);
 
 /** Opens the chat of a dot of the topic timeline in Heidrun Code, and closes the topic timeline. */
-function openTimelineChat(chat: (typeof shownChats.value)[number]): void {
+function openTimelineChat(chat: Chat): void {
   isTopicTimelineOpen.value = false;
-  openChatInHeidrun(agent.value, chat, chats.folder);
+  const shownChat = shownChats.value.find((candidate) => candidate === chat);
+  if (shownChat !== undefined) {
+    openChatInHeidrun(shownChat.agent, shownChat, chats.folder);
+  }
 }
 
-/** The coding agent of the selector. */
-const agent = computed<ChatAgent>({
-  get: () => selectedChatAgent.value ?? chats.agent,
-  set: (value) => chooseChatAgent(value),
-});
+/** The title of the button that opens a chat in the desktop application of the coding agent of the chat. */
+function appTitle(chatAgent: ChatAgent): string {
+  return t("chatsPanel.openInAppTitle", { app: agentLabel(chatAgent) });
+}
 
-/** The title of the button that opens a chat in the desktop application of the coding agent of the list. */
-const appTitle = computed(() => t("chatsPanel.openInAppTitle", { app: agentLabel(agent.value) }));
-
-/** The icon of the coding agent of the list, as the tabs show it: Claude has its own icon, and Codex has the icon of OpenAI. */
-const agentIcon = computed(() => (agent.value === "codex" ? "openai" : "claude"));
+/** The icon of a coding agent, as the tabs show it: Claude has its own icon, and Codex has the icon of OpenAI. */
+function agentIcon(chatAgent: ChatAgent): string {
+  return chatAgent === "codex" ? "openai" : "claude";
+}
 
 /** The view of the list: "expanded" gives more air to the rows, and every other saved value gives the compact view. */
 const view = computed<"compact" | "expanded">({
@@ -245,7 +257,7 @@ const VIEWS = [
     <div class="chats-panel d-flex flex-column gap-3 overflow-y-auto">
       <div v-if="chats.error !== null" class="alert theme-danger" role="alert">{{ chats.error }}</div>
       <div v-else-if="chats.isLoading" class="text-body-secondary">{{ t("chatsPanel.loading") }}</div>
-      <div v-else-if="selectedChatAgent === null" class="text-body-secondary">
+      <div v-else-if="availableChatAgents.length === 0" class="text-body-secondary">
         {{ folder === null ? t("chatsPanel.noWorkspace") : t("chatsPanel.empty") }}
       </div>
       <template v-else>
@@ -260,12 +272,11 @@ const VIEWS = [
               >
                 <input
                   :id="`chats-agent-${choice}`"
-                  v-model="agent"
-                  type="radio"
-                  name="chats-agent"
+                  type="checkbox"
                   autocomplete="off"
-                  :value="choice"
+                  :checked="checkedChatAgents.includes(choice)"
                   :disabled="chats[choice].length === 0"
+                  @change="onAgentChange(choice, $event)"
                 />
                 {{ agentLabel(choice) }}
               </label>
@@ -307,26 +318,27 @@ const VIEWS = [
           />
           <div class="chats-separator border-top" role="separator"></div>
         </div>
+        <div v-if="checkedChatAgents.length === 0" class="text-body-secondary">{{ t("chatsPanel.noAgentChecked") }}</div>
         <ul class="list-group list-group-flush" :class="{ 'is-expanded': view === 'expanded' }">
-          <li v-for="row in rows" :key="row.chat.id" class="list-group-item list-group-item-action text-break">
+          <li v-for="row in rows" :key="`${row.chat.agent}-${row.chat.id}`" class="list-group-item list-group-item-action text-break">
             <div class="d-flex align-items-start gap-2">
               <div class="chat-title flex-fill">{{ row.chat.title }}</div>
               <div class="chat-actions btn-group" role="group" :aria-label="t('chatsPanel.chatActionsLabel')">
                 <button
                   type="button"
                   class="btn"
-                  :title="appTitle"
-                  :aria-label="appTitle"
-                  @click="openChatInApp(agent, row.chat)"
+                  :title="appTitle(row.chat.agent)"
+                  :aria-label="appTitle(row.chat.agent)"
+                  @click="openChatInApp(row.chat.agent, row.chat)"
                 >
-                  <Icon :name="agentIcon" />
+                  <Icon :name="agentIcon(row.chat.agent)" />
                 </button>
                 <button
                   type="button"
                   class="btn"
                   :title="t('chatsPanel.heidrunTitle')"
                   :aria-label="t('chatsPanel.heidrunTitle')"
-                  @click="openChatInHeidrun(agent, row.chat, chats.folder)"
+                  @click="openChatInHeidrun(row.chat.agent, row.chat, chats.folder)"
                 >
                   <Icon name="heidrun-goat-only" />
                 </button>

@@ -5,7 +5,7 @@ import { nextTick, type Ref } from 'vue';
 import MacroMenu from './MacroMenu.vue';
 import MacroEditor from './MacroEditor.vue';
 import {
-	addMacro, hardCodedMacros, macroEditor, macros, projectMacros, removeMacro, updateMacro, type Macro,
+	addMacro, macroEditor, macros, projectMacros, removeMacro, updateMacro, type Macro,
 } from '../stores/macros';
 import { askConfirm } from '../stores/confirm';
 import { insertText, toast } from '../stores/session';
@@ -17,12 +17,12 @@ vi.mock('../stores/macros', async () => {
 		macros: reactive({
 			personal: [],
 		}),
-		hardCodedMacros: ref([]),
 		projectMacros: ref([]),
 		macroEditor: reactive({
 			open: false,
 			selectedId: null,
 			isFromProject: false,
+			isReadOnly: false,
 		}),
 		VARIABLES: ['{workspace}'],
 		resolveMacroVariables: vi.fn(async (text: string) => text),
@@ -57,12 +57,6 @@ const projectMacro: Macro = {
 	description: 'Project description',
 	text: 'Project text',
 };
-const hardCodedMacro: Macro = {
-	id: 'fixed',
-	label: 'Fixed macro',
-	description: 'Fixed description',
-	text: 'Fixed text',
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -75,7 +69,7 @@ class MacroMenuTest {
 	static wrappers: VueWrapper[] = [];
 
 	/**
-	 * Opens the menu with the personal, project and hard-coded macros.
+	 * Opens the menu with the user and project macros.
 	 * @returns The visible menu element.
 	 */
 	static async openMenu(): Promise<HTMLElement> {
@@ -159,11 +153,11 @@ beforeEach(() => {
 	});
 	vi.mocked(updateMacro).mockResolvedValue(undefined);
 	macros.personal = [personalMacro];
-	(hardCodedMacros as unknown as Ref<Macro[]>).value = [hardCodedMacro];
 	(projectMacros as unknown as Ref<Macro[]>).value = [projectMacro];
 	macroEditor.open = false;
 	macroEditor.selectedId = null;
 	macroEditor.isFromProject = false;
+	macroEditor.isReadOnly = false;
 });
 
 afterEach(() => {
@@ -174,16 +168,33 @@ afterEach(() => {
 });
 
 describe('the macro menu', () => {
-	it('keeps project, personal and hard-coded groups in order, with one row per macro', async () => {
+	it.each(['\n', '\r\n', '\r'])('shows only the first description line as raw text with %j', async (separator) => {
+		const firstLine = '**Bold** [Guide](https://example.com) <b>raw HTML</b>';
+		macros.personal = [{
+			...personalMacro,
+			description: `${firstLine}${separator}Hidden second line${separator}- Hidden list`,
+		}];
+		const menu = await MacroMenuTest.openMenu();
+		const row = MacroMenuTest.row(menu, 'Own macro');
+		const description = row.querySelector('small')!;
+		expect(description.textContent).toBe(firstLine);
+		expect(description.children).toHaveLength(0);
+		expect(row.textContent).not.toContain('Hidden');
+		expect(row.querySelector('.md-doc')).toBeNull();
+		expect(description.closest('button.menu-item')).not.toBeNull();
+		await MacroMenuTest.click(description);
+		expect(insertText).toHaveBeenCalledWith('pane_1', 'Own text', false);
+	});
+
+	it('keeps project and user groups in order, with one row per macro', async () => {
 		const menu = await MacroMenuTest.openMenu();
 		expect([...menu.querySelectorAll('.menu-header')].map((element) => element.textContent)).toEqual([
-			t('macroMenu.project'), t('macroMenu.personal'), t('macroMenu.hardCoded'),
+			t('macroMenu.project'), t('macroMenu.personal'),
 		]);
-		expect(menu.querySelectorAll('.fw-medium')).toHaveLength(3);
-		expect(menu.querySelectorAll('.menu-divider')).toHaveLength(3);
-		expect(MacroMenuTest.row(menu, 'Fixed macro').querySelectorAll('button')).toHaveLength(1);
-		expect(MacroMenuTest.row(menu, 'Own macro').querySelectorAll('button')).toHaveLength(3);
-		expect(MacroMenuTest.row(menu, 'Project macro').querySelectorAll('button')).toHaveLength(3);
+		expect(menu.querySelectorAll('.fw-medium')).toHaveLength(2);
+		expect(menu.querySelectorAll('.menu-divider')).toHaveLength(2);
+		expect(MacroMenuTest.row(menu, 'Own macro').querySelectorAll('button')).toHaveLength(4);
+		expect(MacroMenuTest.row(menu, 'Project macro').querySelectorAll('button')).toHaveLength(4);
 	});
 
 	it('is wide, and puts small Edit and Delete buttons without borders on the title line of the row', async () => {
@@ -195,7 +206,7 @@ describe('the macro menu', () => {
 			expect(actionList.classList.contains('top-0')).toBe(true);
 			expect(actionList.classList.contains('end-0')).toBe(true);
 			const actionButtonList = [...actionList.querySelectorAll('button')];
-			expect(actionButtonList).toHaveLength(2);
+			expect(actionButtonList).toHaveLength(3);
 			for (const actionButton of actionButtonList) {
 				expect(actionButton.classList.contains('icon')).toBe(true);
 				expect(actionButton.classList.contains('small')).toBe(true);
@@ -205,19 +216,52 @@ describe('the macro menu', () => {
 		}
 	});
 
-	it('gives a hard-coded macro no action buttons and no space for them', async () => {
+	it('labels a single user group and exposes View, Edit and Delete by name', async () => {
+		(projectMacros as unknown as Ref<Macro[]>).value = [];
 		const menu = await MacroMenuTest.openMenu();
-		const row = MacroMenuTest.row(menu, 'Fixed macro');
-		expect(row.querySelector('.position-absolute')).toBeNull();
-		expect(row.querySelector('.fw-medium')!.classList.contains('pe-5')).toBe(false);
+		expect(menu.querySelector('.menu-header')!.textContent).toBe('User macro');
+		const buttons = MacroMenuTest.row(menu, 'Own macro').querySelectorAll('button');
+		expect(buttons[1].getAttribute('aria-label')).toBe('View Own macro');
+		expect(buttons[2].getAttribute('aria-label')).toBe('Edit Own macro');
+		expect(buttons[3].getAttribute('aria-label')).toBe('Delete Own macro');
 	});
 
-	it('hides group titles when only hard-coded macros exist and keeps Create last', async () => {
+	it('keeps Create last when there are no macros', async () => {
 		macros.personal = [];
 		(projectMacros as unknown as Ref<Macro[]>).value = [];
 		const menu = await MacroMenuTest.openMenu();
 		expect(menu.querySelector('.menu-header')).toBeNull();
 		expect(menu.lastElementChild!.textContent!.trim()).toBe(t('macroMenu.create'));
+	});
+
+	it.each([false, true])('views the full macro without allowing changes with project=%s', async (isProject) => {
+		const macro = {
+			...(isProject ? projectMacro : personalMacro),
+			description: '**First line**\n\nSecond paragraph',
+		};
+		if (isProject === true) {
+			(projectMacros as unknown as Ref<Macro[]>).value = [macro];
+		} else {
+			macros.personal = [macro];
+		}
+		const menu = await MacroMenuTest.openMenu();
+		await MacroMenuTest.click(MacroMenuTest.row(menu, macro.label).querySelectorAll('button')[1]);
+		expect(macroEditor.isReadOnly).toBe(true);
+		const editor = MacroMenuTest.editor();
+		expect(editor.get('[role="heading"]').text()).toBe(t('macroEditor.viewTitle'));
+		expect(editor.find('#macro-editor-label').exists()).toBe(false);
+		expect(editor.find('#macro-editor-description').exists()).toBe(false);
+		expect(editor.find('#macro-editor-text').exists()).toBe(false);
+		expect(editor.find('.form-control-plaintext').text()).toBe(macro.label);
+		expect(editor.findAll('.md-doc')).toHaveLength(2);
+		expect((editor.get('#macro-editor-description').element as HTMLTextAreaElement).value).toBe(macro.description);
+		expect(editor.find('button.primary').exists()).toBe(false);
+		expect(editor.find('.dialog-footer').exists()).toBe(false);
+		expect(addMacro).not.toHaveBeenCalled();
+		expect(updateMacro).not.toHaveBeenCalled();
+		expect(insertText).not.toHaveBeenCalled();
+		await editor.get('button').trigger('click');
+		expect(macroEditor.open).toBe(false);
 	});
 
 	it.each([false, true])('preserves macro insertion with Shift=%s', async (isShift) => {
@@ -233,7 +277,7 @@ describe('the macro menu', () => {
 	it.each([false, true])('edits the selected macro with project=%s even when identifiers overlap', async (isProject) => {
 		const macro = isProject ? projectMacro : personalMacro;
 		const menu = await MacroMenuTest.openMenu();
-		await MacroMenuTest.click(MacroMenuTest.row(menu, macro.label).querySelectorAll('button')[1]);
+		await MacroMenuTest.click(MacroMenuTest.row(menu, macro.label).querySelectorAll('button')[2]);
 		expect(insertText).not.toHaveBeenCalled();
 		expect(macroEditor.open).toBe(true);
 		const editor = MacroMenuTest.editor();
@@ -271,7 +315,7 @@ describe('the macro menu', () => {
 	it.each([false, true])('requires confirmation before deleting a macro with project=%s', async (isProject) => {
 		const macro = isProject ? projectMacro : personalMacro;
 		const menu = await MacroMenuTest.openMenu();
-		await MacroMenuTest.click(MacroMenuTest.row(menu, macro.label).querySelectorAll('button')[2]);
+		await MacroMenuTest.click(MacroMenuTest.row(menu, macro.label).querySelectorAll('button')[3]);
 		expect(askConfirm).toHaveBeenCalledWith(
 			t('macroMenu.deleteConfirm', {
 				label: macro.label,
@@ -287,7 +331,7 @@ describe('the macro menu', () => {
 		vi.mocked(askConfirm).mockResolvedValue(true);
 		const macro = isProject ? projectMacro : personalMacro;
 		const menu = await MacroMenuTest.openMenu();
-		await MacroMenuTest.click(MacroMenuTest.row(menu, macro.label).querySelectorAll('button')[2]);
+		await MacroMenuTest.click(MacroMenuTest.row(menu, macro.label).querySelectorAll('button')[3]);
 		expect(removeMacro).toHaveBeenCalledWith(macro.id, isProject);
 		expect(insertText).not.toHaveBeenCalled();
 		const reopened = await MacroMenuTest.openMenu();
@@ -298,6 +342,28 @@ describe('the macro menu', () => {
 });
 
 describe('the macro editor', () => {
+	it.each([false, true])('saves and reopens multiline Markdown descriptions with project=%s', async (isProject) => {
+		const description = '**Summary**\nSecond line\n\n- First\n- Second';
+		macroEditor.open = true;
+		const editor = MacroMenuTest.editor();
+		expect(editor.get('#macro-editor-description').element.tagName).toBe('TEXTAREA');
+		await editor.get('#macro-editor-label').setValue('Multiline macro');
+		await editor.get('#macro-editor-description').setValue(description);
+		await editor.get('#macro-editor-text').setValue('Original macro text');
+		await editor.get('#macro-editor-in-project').setValue(isProject);
+		await MacroMenuTest.save(editor);
+		expect(addMacro).toHaveBeenCalledWith('Multiline macro', description, 'Original macro text', isProject);
+		const menu = await MacroMenuTest.openMenu();
+		await MacroMenuTest.click(MacroMenuTest.row(menu, 'Multiline macro').querySelectorAll('button')[2]);
+		const reopened = MacroMenuTest.editor();
+		expect((reopened.get('#macro-editor-description').element as HTMLTextAreaElement).value).toBe(description);
+		await reopened.get('#macro-editor-description').setValue(`${description}\n\nUpdated paragraph`);
+		await MacroMenuTest.save(reopened);
+		expect(updateMacro).toHaveBeenCalledWith(
+			'new-id', isProject, 'Multiline macro', `${description}\n\nUpdated paragraph`, 'Original macro text',
+		);
+	});
+
 	it('keeps the form open when saving fails', async () => {
 		vi.mocked(addMacro).mockRejectedValueOnce(new Error('Write failed'));
 		macroEditor.open = true;

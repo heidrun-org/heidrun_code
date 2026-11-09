@@ -20,7 +20,7 @@
       "name": "heidrun-data",
       "source": {
         "source": "local",
-        "path": "./submodules/heidrun_data/packages/heidrun_data"
+        "path": "./submodules/heidrun_data/packages/apps/heidrun_data"
       },
       "policy": {
         "installation": "AVAILABLE",
