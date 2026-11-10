@@ -7,9 +7,11 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke }));
 vi.mock("./session", () => ({ toast }));
 
 import {
+  approvalLevel,
   approvalText,
   confirmMergeWindow,
   defaultMethod,
+  githubApproval,
   githubMergeFacts,
   gitlabMergeFacts,
   isPermanentBranch,
@@ -131,6 +133,43 @@ describe("gitlabMergeFacts (issue #570)", () => {
     expect(factsOf("checking").blockKey).toBeNull();
     const unknown = factsOf("jira_association_missing");
     expect(mergeBlockReason(unknown)).toBe("The hosting service refuses the merge now (jira_association_missing).");
+  });
+});
+
+describe("the approval state when the repository asks for no review (issue #1044)", () => {
+  it("reads the review decision of GitHub first", () => {
+    expect(githubApproval({ reviewDecision: "APPROVED", latestReviews: [] })).toBe("approved");
+    expect(githubApproval({ reviewDecision: "CHANGES_REQUESTED", latestReviews: [{ state: "APPROVED" }] })).toBe("changesRequested");
+    expect(githubApproval({ reviewDecision: "REVIEW_REQUIRED", latestReviews: [] })).toBe("reviewRequired");
+  });
+
+  it("reads the last reviews of GitHub when the decision is empty, and a request for changes wins", () => {
+    expect(githubApproval({ reviewDecision: "", latestReviews: [] })).toBe("notApproved");
+    expect(githubApproval({ latestReviews: [{ state: "COMMENTED" }] })).toBe("notApproved");
+    expect(githubApproval({ reviewDecision: "", latestReviews: [{ state: "APPROVED" }] })).toBe("approved");
+    expect(githubApproval({ reviewDecision: "", latestReviews: [{ state: "APPROVED" }, { state: "CHANGES_REQUESTED" }] })).toBe("changesRequested");
+  });
+
+  it("gives the state of pull request 1043: no decision and no review", () => {
+    const facts = githubMergeFacts({ ...READY_PULL_REQUEST, reviewDecision: "", latestReviews: [] }, null, 1043);
+    expect(facts.approval).toBe("notApproved");
+    expect(facts.approvers).toEqual([]);
+    expect(approvalText(facts)).toBe("Not approved");
+    expect(facts.blockKey).toBeNull();
+  });
+
+  it("gives Not approved for a merge request of GitLab with no approval rule and no approval, and nothing when the approvals are unknown", () => {
+    const status = { ...READY_MERGE_REQUEST, detailed_merge_status: "mergeable" };
+    expect(gitlabMergeFacts(status, { approved: true, approvals_left: 0, approved_by: [] }, null, 7).approval).toBe("notApproved");
+    expect(gitlabMergeFacts(status, { approved: true, approvals_left: 0, approved_by: [{ user: { username: "olivier" } }] }, null, 7).approval).toBe("approved");
+    expect(gitlabMergeFacts(status, null, null, 7).approval).toBeNull();
+  });
+
+  it("colors the chip: green when approved, orange when a review is missing or asks for changes, gray otherwise", () => {
+    expect(approvalLevel("approved")).toBe("ok");
+    expect(approvalLevel("reviewRequired")).toBe("warn");
+    expect(approvalLevel("changesRequested")).toBe("warn");
+    expect(approvalLevel("notApproved")).toBe("muted");
   });
 });
 
