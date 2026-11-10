@@ -46,7 +46,8 @@ pub struct ClaudeObservations {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexObservations {
-    /// `connected` or `unavailable`.
+    /// `connected`, `unavailable`, or `not_needed` when no Codex pane of the Herdr session has a chat to read, so the
+    /// shared Codex server is not asked (issue #1016).
     pub coverage: &'static str,
     pub unavailable_reason: Option<String>,
     pub threads: Vec<CodexThreadObservation>,
@@ -55,7 +56,23 @@ pub struct CodexObservations {
 }
 
 impl CodexObservations {
-    /// The observations when the shared Codex server cannot be read: no chat, and the reason.
+    /// The observations when no Codex pane of the Herdr session has a chat: the shared Codex server is not asked, and
+    /// the Heidrun Code Dashboard shows no Codex notice (issue #1016).
+    pub fn not_needed(errors: Vec<ObservationError>) -> Self {
+        CodexObservations {
+            coverage: "not_needed",
+            unavailable_reason: None,
+            threads: Vec::new(),
+            errors,
+            limits: CodexLimits {
+                maximum_children_per_root: MAXIMUM_CHILDREN_PER_ROOT,
+                truncated_root_thread_ids: Vec::new(),
+            },
+        }
+    }
+
+    /// The observations when the shared Codex server cannot be read: no chat, and the reason. The reason is not also
+    /// an error entry, so that the Heidrun Code Dashboard shows it once (issue #1016).
     pub fn unavailable(reason: String, errors: Vec<ObservationError>) -> Self {
         CodexObservations {
             coverage: "unavailable",

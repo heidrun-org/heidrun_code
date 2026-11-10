@@ -95,7 +95,7 @@ export class HeidrunCodeDashboardTestFixtures {
 		/** The Codex chats. */
 		threads?: CodexThreadObservation[];
 		/** The coverage of the shared Codex server. */
-		coverage?: 'connected' | 'unavailable';
+		coverage?: 'connected' | 'unavailable' | 'not_needed';
 		/** The roots with more descendants than the maximum. */
 		truncatedRootThreadIds?: string[];
 		/** The time of the collection. */

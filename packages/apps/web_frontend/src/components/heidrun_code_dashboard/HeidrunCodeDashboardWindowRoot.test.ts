@@ -33,6 +33,10 @@ import { state } from "../../stores/session";
 import { HeidrunCodeDashboardModal } from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_modal";
 import { HeidrunCodeDashboardStore, heidrunCodeDashboardState } from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_store";
 import { HEIDRUN_CODE_DASHBOARD_SIDEBAR_WIDTH_KEY } from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_sidebar_width";
+import {
+  HEIDRUN_CODE_DASHBOARD_LOCAL_NETWORK_SIDEBAR_FOLDED_KEY,
+  HEIDRUN_CODE_DASHBOARD_SIDEBAR_FOLDED_KEY,
+} from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_sidebar_fold";
 import { HeidrunCodeDashboardViewTestSupport, TEST_NODES } from "./heidrun_code_dashboard_view_test_support";
 
 let wrapper: VueWrapper | null = null;
@@ -132,6 +136,33 @@ describe("HeidrunCodeDashboardWindowRoot, the page of the separate Heidrun Code 
     expect(wrapper.get("[data-heidrun-code-dashboard-sidebar]").attributes("style")).toContain("width: 500px");
     expect(wrapper.find("[data-heidrun-code-dashboard-sidebar-resizer]").exists()).toBe(true);
     localStorage.removeItem(HEIDRUN_CODE_DASHBOARD_SIDEBAR_WIDTH_KEY);
+  });
+
+  it("folds the right sidebar to a strip with the counters, remembers it, and unfolds it (issue #1016)", async () => {
+    localStorage.removeItem(HEIDRUN_CODE_DASHBOARD_SIDEBAR_FOLDED_KEY);
+    wrapper = mount(HeidrunCodeDashboardWindowRoot, { attachTo: document.body });
+    await flushPromises();
+    expect(wrapper.find("[data-heidrun-code-dashboard-sidebar-strip]").exists()).toBe(false);
+    await wrapper.get("[data-sidebar-fold]").trigger("click");
+    expect(wrapper.find("[data-heidrun-code-dashboard-sidebar]").exists()).toBe(false);
+    expect(wrapper.find("[data-heidrun-code-dashboard-sidebar-resizer]").exists()).toBe(false);
+    const strip = wrapper.get("[data-heidrun-code-dashboard-sidebar-strip]");
+    expect(strip.findAll("[data-filter]").map((counter) => counter.attributes("data-filter"))).toEqual(["working", "blocked", "finished", "idle", "unknown"]);
+    expect(localStorage.getItem(HEIDRUN_CODE_DASHBOARD_SIDEBAR_FOLDED_KEY)).toBe("true");
+    expect(localStorage.getItem(HEIDRUN_CODE_DASHBOARD_LOCAL_NETWORK_SIDEBAR_FOLDED_KEY)).toBe(null);
+
+    await strip.get('[data-filter="blocked"]').trigger("click");
+    expect(heidrunCodeDashboardState.filter).toBe("blocked");
+    HeidrunCodeDashboardStore.clearFilter();
+
+    wrapper.unmount();
+    wrapper = mount(HeidrunCodeDashboardWindowRoot, { attachTo: document.body });
+    await flushPromises();
+    expect(wrapper.find("[data-heidrun-code-dashboard-sidebar-strip]").exists()).toBe(true);
+    await wrapper.get("[data-sidebar-unfold]").trigger("click");
+    expect(wrapper.find("[data-heidrun-code-dashboard-sidebar]").exists()).toBe(true);
+    expect(localStorage.getItem(HEIDRUN_CODE_DASHBOARD_SIDEBAR_FOLDED_KEY)).toBe("false");
+    localStorage.removeItem(HEIDRUN_CODE_DASHBOARD_SIDEBAR_FOLDED_KEY);
   });
 
   it("shows a terminal preview that never takes the input focus and never resizes a terminal", async () => {

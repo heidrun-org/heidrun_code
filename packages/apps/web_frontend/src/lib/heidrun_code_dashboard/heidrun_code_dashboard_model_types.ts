@@ -299,7 +299,7 @@ export type HeidrunCodeDashboardModel = {
 	/** `none`: no observation arrived. `stale`: the last observation is too old. */
 	observationsState: 'none' | 'fresh' | 'stale';
 	/** The coverage of the shared Codex server, or null when there is no observation. */
-	codexCoverage: 'connected' | 'unavailable' | null;
+	codexCoverage: 'connected' | 'unavailable' | 'not_needed' | null;
 	/** Why the shared Codex server is not available, or null. */
 	codexUnavailableReason: string | null;
 	/** The errors of the sources. */

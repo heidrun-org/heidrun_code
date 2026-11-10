@@ -12,6 +12,7 @@ The state of the Heidrun Code Dashboard views of one window: the live observatio
 - `heidrun_code_dashboard_local_network_session.ts`: `HeidrunCodeDashboardLocalNetworkSession` and `heidrunCodeDashboardLocalNetworkPageState`, the state of the Heidrun Code Dashboard on the page of a device of the local network, read from the Heidrun Code Dashboard server every second, kept in the session state and in the Heidrun Code Dashboard state.
 - `heidrun_code_dashboard_local_network_settings.ts`: `HeidrunCodeDashboardLocalNetworkSettings` and `heidrunCodeDashboardLocalNetworkSettingsState`, the status, the switch, and the new pairing key of the section "Heidrun Code Dashboard" of the Settings window.
 - `heidrun_code_dashboard_sidebar_width.ts`: `heidrunCodeDashboardSidebarWidth` and `HeidrunCodeDashboardSidebarWidth` (load, set), the width of the right sidebar, saved in `localStorage` and shared by the modal and the separate Heidrun Code Dashboard window.
+- `heidrun_code_dashboard_sidebar_fold.ts`: `heidrunCodeDashboardSidebarFolded` and `HeidrunCodeDashboardSidebarFold` (load, toggle), the fold of the right sidebar, saved in `localStorage` under one key for the computer and one for the local network (issue #1016).
 - `heidrun_code_dashboard_window_session.ts`: `HeidrunCodeDashboardWindowSession`, the Herdr snapshot of the separate Heidrun Code Dashboard window, kept in the session state.
 - Command to run this folder: `pnpm --dir packages/apps/web_frontend exec vitest run src/stores/heidrun_code_dashboard`
 

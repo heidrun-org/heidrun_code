@@ -57,6 +57,8 @@
   "animation.resumeTitle": "Relancer les animations du Heidrun Code Dashboard.",
   "animation.messageTitle": "Message : {from} → {to} · {delivery} · {text}",
   "sidebar.label": "Détails de la sélection",
+  "sidebar.fold": "Replier la barre latérale pour que le graphe prenne toute la largeur",
+  "sidebar.unfold": "Déplier la barre latérale",
   "path.label": "Chemin de la sélection",
   "counters.label": "Compteurs des agents de code et des sous-agents",
   "counters.title": "En ce moment",

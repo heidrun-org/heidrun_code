@@ -23,7 +23,7 @@ export type HeidrunCodeDashboardObservations = {
 	/** The observations of the shared Codex server. */
 	codex: {
 		/** `connected` when the collector reads the shared Codex server. */
-		coverage: 'connected' | 'unavailable';
+		coverage: 'connected' | 'unavailable' | 'not_needed';
 		/** Why the shared Codex server is not available, or null. */
 		unavailableReason: string | null;
 		/** The root chats of the Codex panes of Herdr, and their descendants. */

@@ -198,7 +198,7 @@ pub async fn collect_once() -> HeidrunCodeDashboardObservations {
                 "The shared Codex server did not answer in {} seconds",
                 CODEX_COLLECTION_TIMEOUT.as_secs()
             );
-            codex_errors.push(ObservationError::new(socket_path.display().to_string(), reason.clone()));
+            // The reason is shown once, as the coverage notice, not also as an error (issue #1016).
             super::contract::CodexObservations::unavailable(reason, codex_errors)
         }
     };
