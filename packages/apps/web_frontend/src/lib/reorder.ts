@@ -22,8 +22,11 @@ type Press = {
 /**
  * The gap where an item would land when the pointer is at (`x`, `y`): 0 is before the first item, and the number of items is
  * after the last item. Returns null when the pointer is too far from the list across its axis, so that a release there moves nothing.
+ * With `alongTolerance`, it also returns null when the pointer is more than this distance before the first item or after the
+ * last item along the axis: a list that sits next to another list (the two levels of the launchers) then never takes a drop
+ * made over the other list.
  */
-export function gapAt(boxes: Box[], axis: "x" | "y", x: number, y: number): number | null {
+export function gapAt(boxes: Box[], axis: "x" | "y", x: number, y: number, alongTolerance?: number): number | null {
   if (boxes.length === 0) return null;
   const spans = boxes.map((box) =>
     axis === "x"
@@ -35,6 +38,11 @@ export function gapAt(boxes: Box[], axis: "x" | "y", x: number, y: number): numb
   const crossFrom = Math.min(...spans.map((span) => span.crossFrom));
   const crossTo = Math.max(...spans.map((span) => span.crossTo));
   if (across < crossFrom - CROSS_AXIS_TOLERANCE || across > crossTo + CROSS_AXIS_TOLERANCE) return null;
+  if (alongTolerance !== undefined) {
+    const alongFrom = Math.min(...spans.map((span) => span.from));
+    const alongTo = Math.max(...spans.map((span) => span.to));
+    if (along < alongFrom - alongTolerance || along > alongTo + alongTolerance) return null;
+  }
   return spans.filter((span) => along > (span.from + span.to) / 2).length;
 }
 
@@ -63,8 +71,10 @@ function findElements(item: HTMLElement, ids: string[]): HTMLElement[] | null {
  * (0 = before the first item, length = after the last), which is exactly
  * Herdr's `insert_index`.
  * Every item has the attribute `data-reorder-id`, and the element that starts the drag calls `onPointerDown`.
+ * `options.alongTolerance` is given to `gapAt`: without it, a release before or after the list along its axis still lands at
+ * the first or the last gap.
  */
-export function useReorder(axis: "x" | "y", drop: (id: string, insertIndex: number) => void) {
+export function useReorder(axis: "x" | "y", drop: (id: string, insertIndex: number) => void, options: { alongTolerance?: number } = {}) {
   const dragging = ref<string | null>(null);
   /** Gap where the item would land, for the insertion marker. */
   const gap = ref<number | null>(null);
@@ -95,7 +105,7 @@ export function useReorder(axis: "x" | "y", drop: (id: string, insertIndex: numb
       document.body.style.userSelect = "none";
       document.body.style.cursor = "grabbing";
     }
-    gap.value = gapAt(press.elements.map((element) => element.getBoundingClientRect()), axis, e.clientX, e.clientY);
+    gap.value = gapAt(press.elements.map((element) => element.getBoundingClientRect()), axis, e.clientX, e.clientY, options.alongTolerance);
   }
 
   function onPointerUp() {

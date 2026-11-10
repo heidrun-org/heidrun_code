@@ -50,6 +50,20 @@ describe("gapAt", () => {
     expect(gapAt(row, "x", 150, -100)).toBeNull();
   });
 
+  it("gives null before or after the list along its axis only with alongTolerance", () => {
+    const column: Box[] = [
+      { left: 0, top: 100, right: 200, bottom: 140 },
+      { left: 0, top: 148, right: 200, bottom: 188 },
+    ];
+    expect(gapAt(column, "y", 100, 20)).toBe(0);
+    expect(gapAt(column, "y", 100, 300)).toBe(2);
+    expect(gapAt(column, "y", 100, 20, 4)).toBeNull();
+    expect(gapAt(column, "y", 100, 300, 4)).toBeNull();
+    expect(gapAt(column, "y", 100, 97, 4)).toBe(0);
+    expect(gapAt(column, "y", 100, 191, 4)).toBe(2);
+    expect(gapAt(column, "y", 100, 160, 4)).toBe(1);
+  });
+
   it("gives null for an empty list", () => {
     expect(gapAt([], "x", 0, 0)).toBeNull();
   });

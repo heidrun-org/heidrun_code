@@ -17,5 +17,6 @@
   "menu.edit": "Modifier",
   "importTitle": "Importer les lanceurs du projet",
   "levelUser": "Niveau utilisateur",
-  "levelUserTitle": "Ce lanceur personnalisé apparaît dans chaque espace de travail."
+  "levelUserTitle": "Ce lanceur personnalisé apparaît dans chaque espace de travail.",
+  "reorderTitle": "Faites glisser la carte pour changer l’ordre des lanceurs de son niveau. Au clavier : Option ↑ ou Option ↓."
 }
