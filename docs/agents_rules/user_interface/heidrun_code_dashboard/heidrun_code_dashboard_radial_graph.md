@@ -1,11 +1,11 @@
 # Heidrun Code Dashboard radial graph
 
 - Created: 30 October 2026
-- Last updated: 30 October 2026
+- Last updated: 10 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Heidrun Code Dashboard graph and sidebar](heidrun_code_dashboard_graph_and_sidebar.md), [Heidrun Code Dashboard animations](heidrun_code_dashboard_animations.md), [Glossary of Heidrun Code: Heidrun Code Dashboard](../../glossary/heidrun_code_dashboard.md)
-- Related issue: [issue 968](https://github.com/heidrun-org/heidrun_code/issues/968), [issue 989](https://github.com/heidrun-org/heidrun_code/issues/989)
+- Related issue: [issue 968](https://github.com/heidrun-org/heidrun_code/issues/968), [issue 989](https://github.com/heidrun-org/heidrun_code/issues/989), [issue 1016](https://github.com/heidrun-org/heidrun_code/issues/1016)
 
 This file gives the rules of the static radial graph of the Heidrun Code Dashboard view. The code is in `packages/apps/web_frontend/src/lib/heidrun_code_dashboard/heidrun_code_dashboard_layout.ts` and `packages/apps/web_frontend/src/components/heidrun_code_dashboard`. The opening, the selection, the right sidebar, the counters, and the filters follow [heidrun_code_dashboard_graph_and_sidebar.md](heidrun_code_dashboard_graph_and_sidebar.md).
 
@@ -19,7 +19,7 @@ This file gives the rules of the static radial graph of the Heidrun Code Dashboa
 - Each workspace has a sector sized by its coding agents and subagents, with a minimum angle so that a small workspace keeps room for its label.
 - The coding agents of a workspace follow the order of its tabs, so that the coding agents of one tab sit side by side. The label of a coding agent is shaped like a tab, with the exact tab name and the icon of the coding agent, the same icon as the tabs of Heidrun Code: the icon `claude` of Bootstrap Icons for Claude Code, and the icon `openai` for Codex. Another coding agent gets the first letter of its name.
 - `HeidrunCodeDashboardLayout.compute` reads only the hierarchy, the identifiers, and the names. The same model gives the same positions, and a status change moves nothing. The filter hides nodes and never moves the others.
-- A long label of a coding agent or of a subagent is shortened with an ellipsis, and the full name stays in the title. A crowded sector hides the labels that have no room. The SVG drawing has a view box, so it follows every resize. With no workspace, the view shows a plain text message.
+- A long label of a coding agent or of a subagent is shortened with an ellipsis, and the full name stays in the title. A crowded sector hides the labels that have no room. The SVG drawing has a view box, so it follows every resize. The frame of the graph clips the drawing (`overflow: hidden` and `contain: paint`), and 150 milliseconds after its size stops changing (the sidebar folded, unfolded, or dragged), the SVG element is made again: the web view of macOS kept pieces of the drawing of the previous size, and showed the ring of Heidrun and the sectors twice (issue 1016). With no workspace, the view shows a plain text message.
 - The colors are `--working`, `--blocked`, `--done`, and `--idle` of `styles.css`. A blocked node and a blocked sector have a red glow. Each node also has a sign (▸ Working, ! Blocked, ✓ Finished, – Idle, ? unknown) and an accessible name with the status in words.
 - Unknown has a dashed outline. A stale, unmatched, or not observed coding agent or subagent has a dashed outline and the word under its label.
 - The animations, the pause, and the links of the messages follow [heidrun_code_dashboard_animations.md](heidrun_code_dashboard_animations.md).
