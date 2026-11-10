@@ -10,6 +10,7 @@ import {
 } from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_sidebar_width";
 import Resizer from "../Resizer.vue";
 import HeidrunCodeDashboardGraph from "./HeidrunCodeDashboardGraph.vue";
+import HeidrunCodeDashboardOpenFailure from "./HeidrunCodeDashboardOpenFailure.vue";
 import HeidrunCodeDashboardSidebar from "./HeidrunCodeDashboardSidebar.vue";
 import HeidrunCodeDashboardSidebarStrip from "./HeidrunCodeDashboardSidebarStrip.vue";
 
@@ -19,7 +20,8 @@ import HeidrunCodeDashboardSidebarStrip from "./HeidrunCodeDashboardSidebarStrip
 // of the right sidebar to change its width, in the modal and in the separate Heidrun Code Dashboard window. On a device of the local
 // network, the sidebar keeps the width of its page. The developer folds the sidebar to a narrow strip with the counters,
 // so that the graph takes the whole width and stays centered on Heidrun (issue #1016). The fold is saved, separately on
-// the computer and on the page of the local network.
+// the computer and on the page of the local network. While the sidebar is folded, the message of an "Open in Heidrun Code"
+// that opened nothing shows over the graph.
 
 const emit = defineEmits<{
   /** A workspace, a tab, or the pane of a coding agent is now shown in the main window: the modal closes. */
@@ -40,7 +42,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="heidrun-code-dashboard-view d-flex" data-heidrun-code-dashboard-view>
+  <div class="heidrun-code-dashboard-view d-flex position-relative" data-heidrun-code-dashboard-view>
+    <HeidrunCodeDashboardOpenFailure v-if="heidrunCodeDashboardSidebarFolded" class="heidrun-code-dashboard-floating-failure" />
     <HeidrunCodeDashboardGraph @opened-in-heidrun-code="emit('openedInHeidrunCode')" />
     <HeidrunCodeDashboardSidebarStrip v-if="heidrunCodeDashboardSidebarFolded" />
     <Resizer
@@ -63,4 +66,6 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .heidrun-code-dashboard-view { width: 100%; height: 100%; min-height: 0; background: var(--bg); }
+/* Over the top right of the graph, next to the folded strip. */
+.heidrun-code-dashboard-floating-failure { position: absolute; top: 8px; right: 60px; z-index: 2; max-width: 380px; }
 </style>

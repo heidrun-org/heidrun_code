@@ -171,42 +171,56 @@ pub async fn collect_once() -> HeidrunCodeDashboardObservations {
                 .push(ObservationError::new(folder.display().to_string(), error));
         }
     }
-    let mut codex_errors = Vec::new();
-    let root_thread_ids = match crate::herdr::request("session.snapshot", json!({})).await {
-        Ok(snapshot) => codex_threads::codex_root_thread_ids(&snapshot),
-        Err(error) => {
-            codex_errors.push(ObservationError::new("session.snapshot", error));
-            Vec::new()
-        }
-    };
+    let snapshot = crate::herdr::request("session.snapshot", json!({})).await;
     let socket_path = codex_connection::shared_server_socket_path();
-    let codex = match tokio::time::timeout(
-        CODEX_COLLECTION_TIMEOUT,
-        Box::pin(codex_threads::collect(
-            &socket_path,
-            &root_thread_ids,
-            MAXIMUM_CHILDREN_PER_ROOT,
-            observed_at_ms,
-            codex_errors.clone(),
-        )),
-    )
-    .await
-    {
-        Ok(codex) => codex,
-        Err(_) => {
-            let reason = format!(
-                "The shared Codex server did not answer in {} seconds",
-                CODEX_COLLECTION_TIMEOUT.as_secs()
-            );
-            // The reason is shown once, as the coverage notice, not also as an error (issue #1016).
-            super::contract::CodexObservations::unavailable(reason, codex_errors)
-        }
-    };
+    let codex = collect_codex(snapshot, &socket_path, observed_at_ms).await;
     HeidrunCodeDashboardObservations {
         schema_version: SCHEMA_VERSION,
         observed_at_ms,
         claude,
         codex,
+    }
+}
+
+/// Reads the Codex chats of the panes of a Herdr snapshot on the shared Codex server. When the snapshot could not be
+/// read, the Codex chats of the panes are unknown: the coverage is `unavailable` with the reason, never `not_needed`,
+/// and the error of Herdr stays as an error entry (issue #1016).
+async fn collect_codex(
+    snapshot: Result<serde_json::Value, String>,
+    socket_path: &std::path::Path,
+    observed_at_ms: i64,
+) -> super::contract::CodexObservations {
+    let root_thread_ids = match snapshot {
+        Ok(snapshot) => codex_threads::codex_root_thread_ids(&snapshot),
+        Err(error) => {
+            return super::contract::CodexObservations::unavailable(
+                "Herdr did not give the panes, so the Codex chats are unknown".to_string(),
+                vec![ObservationError::new("session.snapshot", error)],
+            );
+        }
+    };
+    match tokio::time::timeout(
+        CODEX_COLLECTION_TIMEOUT,
+        Box::pin(codex_threads::collect(
+            socket_path,
+            &root_thread_ids,
+            MAXIMUM_CHILDREN_PER_ROOT,
+            observed_at_ms,
+            Vec::new(),
+        )),
+    )
+    .await
+    {
+        Ok(codex) => codex,
+        // The reason is shown once, as the coverage notice, not also as an error. It names the socket.
+        Err(_) => super::contract::CodexObservations::unavailable(
+            format!(
+                "The shared Codex server {} did not answer in {} seconds",
+                socket_path.display(),
+                CODEX_COLLECTION_TIMEOUT.as_secs()
+            ),
+            Vec::new(),
+        ),
     }
 }
 
@@ -344,4 +358,23 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(60)).await;
         assert_eq!(count.load(Ordering::SeqCst), after_stop, "no reading after both modes close");
     }
+
+    #[tokio::test]
+    async fn a_herdr_snapshot_that_fails_gives_unavailable_and_not_not_needed() {
+        let path = std::env::temp_dir().join(format!("heidrun_code_dashboard_no_herdr_{}.sock", std::process::id()));
+        let codex = collect_codex(Err("Herdr did not answer".to_string()), &path, 0).await;
+        assert_eq!(codex.coverage, "unavailable");
+        assert!(codex.unavailable_reason.is_some());
+        assert_eq!(codex.errors, vec![ObservationError::new("session.snapshot", "Herdr did not answer")]);
+    }
+
+    #[tokio::test]
+    async fn a_herdr_snapshot_without_a_codex_chat_gives_not_needed() {
+        let path = std::env::temp_dir().join(format!("heidrun_code_dashboard_no_codex_{}.sock", std::process::id()));
+        let snapshot = json!({ "snapshot": { "panes": [{ "agent": "claude" }] } });
+        let codex = collect_codex(Ok(snapshot), &path, 0).await;
+        assert_eq!(codex.coverage, "not_needed");
+        assert!(codex.errors.is_empty());
+    }
+
 }

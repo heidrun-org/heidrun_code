@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import type { HeidrunCodeDashboardVisibleStatus } from "../../lib/heidrun_code_dashboard/heidrun_code_dashboard_model_types";
 import { HeidrunCodeDashboardStore, heidrunCodeDashboardModel, heidrunCodeDashboardState } from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_store";
 import HeidrunCodeDashboardStatusText from "./HeidrunCodeDashboardStatusText.vue";
+import { HeidrunCodeDashboardViewTexts } from "./heidrun_code_dashboard_view_texts";
 import { t } from "../../i18n/index";
 
 // The counters of the Heidrun Code Dashboard: for each visible status, the coding agents and the subagents, each counted once, from the
 // whole model. The totals never follow the active filter. Each counter is a filter button: a second click on the same
 // counter, or the button "All", shows every node again.
 
-/** The statuses of the counters, in the order of the aggregation, with unknown last. */
-const STATUSES: HeidrunCodeDashboardVisibleStatus[] = ["working", "blocked", "finished", "idle", "unknown"];
+const STATUSES = HeidrunCodeDashboardViewTexts.COUNTER_STATUSES;
 </script>
 
 <template>
@@ -38,7 +37,7 @@ const STATUSES: HeidrunCodeDashboardVisibleStatus[] = ["working", "blocked", "fi
       >
         <span class="d-flex align-items-center justify-content-between gap-2">
           <HeidrunCodeDashboardStatusText :status="status" />
-          <span class="fw-semibold" data-count>{{ heidrunCodeDashboardModel.counters.codingAgents[status] + heidrunCodeDashboardModel.counters.subagents[status] }}</span>
+          <span class="fw-semibold" data-count>{{ HeidrunCodeDashboardViewTexts.counterTotal(heidrunCodeDashboardModel, status) }}</span>
         </span>
         <span class="text-body-secondary heidrun-code-dashboard-counter-detail" data-detail>{{
           t("heidrunCodeDashboard.counters.detail", {

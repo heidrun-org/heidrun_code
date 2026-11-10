@@ -28,7 +28,7 @@ This file gives the rules of the data of the Heidrun Code Dashboard: the hierarc
 ## Matching a pane to its observation
 
 - Claude Code: the session belongs to the pane through the pane token `hd_sid`. When the pane has no `hd_sid`, the session belongs to the pane only when the mod saw the same pane identifier and the same Herdr socket. With no observed session, the pane is "not observed": the option is off, or the mod is not loaded in this session.
-- Codex: the root chat belongs to the pane only through the `agent_session` of the pane. A Codex pane with no `agent_session` is "unmatched". When the shared Codex server is connected and the root chat is not observed, the pane is "unmatched". When the server is not available, the pane is "not observed". The coverage `not_needed` means that no Codex pane has a chat, so the server was not asked (issue 1016).
+- Codex: the root chat belongs to the pane only through the `agent_session` of the pane. A Codex pane with no `agent_session` is "unmatched". When the shared Codex server is connected and the root chat is not observed, the pane is "unmatched". When the server is not available, the pane is "not observed". The coverage `not_needed` means that no Codex pane has a chat, so the server was not asked, and `pending` that no collection has run yet: both count as not connected (issue 1016).
 - A Codex root chat with the native status `notLoaded` while the pane still names it: the chat identifier is "stale" (the pane left this chat, for example after `/clear`). Its descendants are not shown under the pane.
 - The observations that no pane claims stay in the list `unmatchedObservations`. They are never drawn as a link.
 

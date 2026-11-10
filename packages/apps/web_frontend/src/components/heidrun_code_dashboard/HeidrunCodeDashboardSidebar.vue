@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { HeidrunCodeDashboardTabNode, HeidrunCodeDashboardWorkspaceNode } from "../../lib/heidrun_code_dashboard/heidrun_code_dashboard_model_types";
-import { HeidrunCodeDashboardStore, heidrunCodeDashboardIndex, heidrunCodeDashboardSelectedEntry, heidrunCodeDashboardState } from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_store";
+import { heidrunCodeDashboardIndex, heidrunCodeDashboardSelectedEntry } from "../../stores/heidrun_code_dashboard/heidrun_code_dashboard_store";
 import HeidrunCodeDashboardCodingAgentDetails from "./HeidrunCodeDashboardCodingAgentDetails.vue";
 import HeidrunCodeDashboardCounters from "./HeidrunCodeDashboardCounters.vue";
 import HeidrunCodeDashboardCoverageNotices from "./HeidrunCodeDashboardCoverageNotices.vue";
 import HeidrunCodeDashboardHeidrunDetails from "./HeidrunCodeDashboardHeidrunDetails.vue";
+import HeidrunCodeDashboardOpenFailure from "./HeidrunCodeDashboardOpenFailure.vue";
 import HeidrunCodeDashboardPath from "./HeidrunCodeDashboardPath.vue";
 import HeidrunCodeDashboardSubagentDetails from "./HeidrunCodeDashboardSubagentDetails.vue";
 import HeidrunCodeDashboardWorkspaceDetails from "./HeidrunCodeDashboardWorkspaceDetails.vue";
@@ -57,10 +58,7 @@ const tab = computed<HeidrunCodeDashboardTabNode | null>(() => (node.value.kind 
     </div>
     <HeidrunCodeDashboardCoverageNotices />
     <HeidrunCodeDashboardPath />
-    <div v-if="heidrunCodeDashboardState.openFailure !== null" class="alert theme-danger m-0 p-2 d-flex align-items-start gap-2" role="status" data-open-failure>
-      <span class="me-auto">{{ t(`heidrunCodeDashboard.open.${heidrunCodeDashboardState.openFailure}`) }}</span>
-      <button type="button" class="btn small" :title="t('heidrunCodeDashboard.open.dismiss')" @click="HeidrunCodeDashboardStore.clearOpenFailure()">{{ t("heidrunCodeDashboard.open.dismiss") }}</button>
-    </div>
+    <HeidrunCodeDashboardOpenFailure />
     <HeidrunCodeDashboardHeidrunDetails v-if="node.kind === 'heidrun'" />
     <HeidrunCodeDashboardWorkspaceDetails v-else-if="workspace !== null" :key="node.nodeId" :workspace="workspace" :tab="tab" />
     <HeidrunCodeDashboardCodingAgentDetails

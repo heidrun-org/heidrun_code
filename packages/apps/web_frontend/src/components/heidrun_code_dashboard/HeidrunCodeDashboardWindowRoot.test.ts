@@ -165,6 +165,30 @@ describe("HeidrunCodeDashboardWindowRoot, the page of the separate Heidrun Code 
     localStorage.removeItem(HEIDRUN_CODE_DASHBOARD_SIDEBAR_FOLDED_KEY);
   });
 
+  it("keeps the warnings and the failure of Open in Heidrun Code visible while the sidebar is folded (issue #1016)", async () => {
+    localStorage.setItem(HEIDRUN_CODE_DASHBOARD_SIDEBAR_FOLDED_KEY, "true");
+    heidrunCodeDashboardState.observations = null;
+    wrapper = mount(HeidrunCodeDashboardWindowRoot, { attachTo: document.body });
+    await flushPromises();
+    const strip = wrapper.get("[data-heidrun-code-dashboard-sidebar-strip]");
+    expect(strip.find("[data-filter-all]").exists()).toBe(false);
+    await strip.get('[data-filter="working"]').trigger("click");
+    expect(strip.get('[data-filter="working"]').attributes("title")).toContain("Click again to show everything");
+    await strip.get("[data-filter-all]").trigger("click");
+    expect(heidrunCodeDashboardState.filter).toBe(null);
+
+    heidrunCodeDashboardState.openFailure = "gone";
+    await flushPromises();
+    expect(wrapper.get("[data-open-failure]").text()).toContain("It is not in the Herdr session any more");
+
+    // No observation arrived yet: the sidebar warns, so the strip shows the warning, which unfolds the sidebar.
+    await wrapper.get("[data-sidebar-warning]").trigger("click");
+    expect(wrapper.find("[data-heidrun-code-dashboard-sidebar]").exists()).toBe(true);
+    expect(wrapper.findAll("[data-open-failure]")).toHaveLength(1);
+    HeidrunCodeDashboardStore.clearOpenFailure();
+    localStorage.removeItem(HEIDRUN_CODE_DASHBOARD_SIDEBAR_FOLDED_KEY);
+  });
+
   it("shows a terminal preview that never takes the input focus and never resizes a terminal", async () => {
     HeidrunCodeDashboardStore.select(TEST_NODES.claude);
     wrapper = mount(HeidrunCodeDashboardWindowRoot, { attachTo: document.body });

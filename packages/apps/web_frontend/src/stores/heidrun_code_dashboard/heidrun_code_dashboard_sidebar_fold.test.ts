@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import {
 	HEIDRUN_CODE_DASHBOARD_LOCAL_NETWORK_SIDEBAR_FOLDED_KEY,

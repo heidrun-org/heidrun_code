@@ -110,6 +110,17 @@ describe("HeidrunCodeDashboardSidebar, Heidrun selected", () => {
     expect(sidebar.find('[data-coverage="codex_unavailable"]').exists()).toBe(false);
     expect(sidebar.text()).not.toContain("Codex");
   });
+
+  it("shows no Codex notice before the first collection (issue #1016)", async () => {
+    const sidebar = await mountSidebar("heidrun");
+    const observations = HeidrunCodeDashboardViewTestSupport.observations();
+    observations.codex.coverage = "pending";
+    observations.codex.unavailableReason = null;
+    observations.codex.threads = [];
+    heidrunCodeDashboardState.observations = observations;
+    await nextTick();
+    expect(sidebar.find('[data-coverage="codex_unavailable"]').exists()).toBe(false);
+  });
 });
 
 describe("HeidrunCodeDashboardSidebar, workspace selected", () => {
