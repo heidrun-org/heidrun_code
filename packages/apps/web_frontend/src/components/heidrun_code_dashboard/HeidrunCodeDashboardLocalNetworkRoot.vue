@@ -78,5 +78,8 @@ onBeforeUnmount(() => {
 @media (max-width: 760px) {
   .heidrun-code-dashboard-local-network-body :deep(.heidrun-code-dashboard-view) { flex-direction: column; }
   .heidrun-code-dashboard-local-network-body :deep(.heidrun-code-dashboard-sidebar) { width: 100%; height: 45%; border-left: none; border-top: 1px solid var(--line); }
+  /* The folded sidebar becomes one row below the graph (issue #1016). */
+  .heidrun-code-dashboard-local-network-body :deep(.heidrun-code-dashboard-sidebar-strip) { width: 100%; flex-direction: row !important; justify-content: center; border-left: none; border-top: 1px solid var(--line); }
+  .heidrun-code-dashboard-local-network-body :deep(.heidrun-code-dashboard-sidebar-strip > [role="group"]) { flex-direction: row !important; }
 }
 </style>

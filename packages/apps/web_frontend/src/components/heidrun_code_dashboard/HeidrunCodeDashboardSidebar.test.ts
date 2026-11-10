@@ -98,6 +98,29 @@ describe("HeidrunCodeDashboardSidebar, Heidrun selected", () => {
     expect(sidebar.get('[data-coverage="codex_unavailable"]').text()).toContain("no socket");
     expect(sidebar.get('[data-coverage="stale"]').text()).toContain("The live observations are stale");
   });
+  it("shows no Codex notice and no error when no pane runs Codex (issue #1016)", async () => {
+    const sidebar = await mountSidebar("heidrun");
+    const observations = HeidrunCodeDashboardViewTestSupport.observations();
+    observations.codex.coverage = "not_needed";
+    observations.codex.unavailableReason = null;
+    observations.codex.threads = [];
+    observations.codex.errors = [];
+    heidrunCodeDashboardState.observations = observations;
+    await nextTick();
+    expect(sidebar.find('[data-coverage="codex_unavailable"]').exists()).toBe(false);
+    expect(sidebar.text()).not.toContain("Codex");
+  });
+
+  it("shows no Codex notice before the first collection (issue #1016)", async () => {
+    const sidebar = await mountSidebar("heidrun");
+    const observations = HeidrunCodeDashboardViewTestSupport.observations();
+    observations.codex.coverage = "pending";
+    observations.codex.unavailableReason = null;
+    observations.codex.threads = [];
+    heidrunCodeDashboardState.observations = observations;
+    await nextTick();
+    expect(sidebar.find('[data-coverage="codex_unavailable"]').exists()).toBe(false);
+  });
 });
 
 describe("HeidrunCodeDashboardSidebar, workspace selected", () => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { HeidrunCodeDashboardVisibleStatus } from "../../lib/heidrun_code_dashboard/heidrun_code_dashboard_model_types";
+import { HeidrunCodeDashboardViewTexts } from "./heidrun_code_dashboard_view_texts";
 import { t } from "../../i18n/index";
 
 /** One visible status of the Heidrun Code Dashboard: the shared status dot and its text, so that the status never relies on the color alone. */
@@ -9,13 +10,8 @@ const props = defineProps<{
   status: HeidrunCodeDashboardVisibleStatus;
 }>();
 
-/** The class of the shared status dot: Finished uses the class `done` of the panes, Idle has no extra class. */
-const dotClass = computed(() => {
-  if (props.status === "finished") {
-    return "done";
-  }
-  return props.status === "idle" ? "" : props.status;
-});
+/** The class of the shared status dot. */
+const dotClass = computed(() => HeidrunCodeDashboardViewTexts.statusDotClass(props.status));
 
 /** The class of the shared status text. */
 const textClass = computed(() => `t-${props.status === "finished" ? "done" : props.status}`);

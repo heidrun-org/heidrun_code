@@ -11,7 +11,9 @@ The Heidrun Code Dashboard view (the radial graph and the right sidebar), the mo
 - `HeidrunCodeDashboardView.vue`: the graph, the drag handle of the width of the sidebar (not on the local network), and the sidebar. It emits `openedInHeidrunCode`.
 - `HeidrunCodeDashboardGraph.vue`: the SVG drawing, the selection, the keyboard moves, the pause button, and the animations of `heidrun_code_dashboard_graph_animations.css`.
 - `HeidrunCodeDashboardGraphEffects.vue`: the short effects of the real transitions, with the arcs of `heidrun_code_dashboard_message_arcs.ts`.
-- `HeidrunCodeDashboardSidebar.vue`: the counters, the coverage notices, the path, and one details component for each kind of node.
+- `HeidrunCodeDashboardSidebar.vue`: the counters with the fold button, the coverage notices, the path, and one details component for each kind of node.
+- `HeidrunCodeDashboardSidebarStrip.vue`: the folded sidebar, a strip with the unfold button, a warning, and the counters as filters (issue #1016).
+- `HeidrunCodeDashboardOpenFailure.vue`: the message of an "Open in Heidrun Code" that opened nothing, in the sidebar, or over the graph while the sidebar is folded.
 - `heidrun_code_dashboard_view_texts.ts`: `HeidrunCodeDashboardViewTexts`, the texts of the badges, the statuses, and the messages.
 - `heidrun_code_dashboard_view_test_support.ts`: the Herdr snapshot and the observations of the tests of this folder. Only the test files import it.
 - Command to run this folder: `pnpm --dir packages/apps/web_frontend exec vitest run src/components/heidrun_code_dashboard`
