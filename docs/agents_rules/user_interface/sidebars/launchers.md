@@ -1,11 +1,11 @@
 # User interface of Heidrun Code: launchers
 
 - Created: 24 October 2026
-- Last updated: 24 October 2026
+- Last updated: 10 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Glossary of Heidrun Code: sidebars](../../glossary/sidebars.md), [User interface of Heidrun Code: code hosting saved searches](code_hosting_saved_searches.md), [User interface of Heidrun Code: Heidrun Code Mobile screens](../heidrun_code_mobile/screens.md)
-- Related issue: [issue 853](https://github.com/heidrun-org/heidrun_code/issues/853)
+- Related issue: [issue 853](https://github.com/heidrun-org/heidrun_code/issues/853), [issue 1042](https://github.com/heidrun-org/heidrun_code/issues/1042)
 
 This file is a part of the rules of the user interface of Heidrun Code. The words are defined in [glossary/index.md](../../glossary/index.md). It gives the two levels of a launcher, the place where each level is kept, and the way that the Launchers sidebar section and the window "Create a custom launcher" show them. The rest of the sidebars is in [sidebars.md](sidebars.md).
 
@@ -21,7 +21,11 @@ A launcher has one of two levels. The two levels work like the two levels of a s
 
 ## The Launchers sidebar section
 
-- The list shows first the launchers of the user level, then the launchers of the workspace level, each group in the order of saving.
+- The list shows first the launchers of the user level, then the launchers of the workspace level, each group in the order of its file: the list of `launchers.json`, and the list `launchers` of `.heidrun/config.json`.
+- The developer changes this order by drag and drop, with `useReorder` of `lib/reorder.ts`, as for the workspaces, the tabs, and the notes. A press that moves less than 5 pixels is a click, so the buttons of the card still work, and a drag never runs or stops a launcher. While the card moves, a line shows where it lands ([issue 1042](https://github.com/heidrun-org/heidrun_code/issues/1042)).
+- A launcher moves only inside its level. Each level has its own reorder, and a release more than 4 pixels before the first card or after the last card of the level moves nothing, so a drop over the other level moves nothing. The window "Edit a custom launcher" stays the only way to change the level.
+- With the keyboard, Option and the up or down arrow key move the card one place inside its level, while a button of the card has the focus. The tooltip of the card says so.
+- The store function `moveLauncher` writes the new order at once in the file of the level, through `launchers_user_write` or `project_save`, and keeps the other keys of `.heidrun/config.json`. When the file cannot be written, the order does not change. A file `launchers.json` that is not valid is never overwritten, and the message on the screen says why. A move of a launcher of the workspace level changes `.heidrun/config.json`, which is in the repository.
 - The card of a launcher of the user level shows the text "User level" next to its state. Its tooltip says "This custom launcher shows in every workspace." The card of a launcher of the workspace level shows no level.
 - The text that says that there is no launcher shows only when both levels are empty.
 - The window "Import launchers" does not offer a detected command that is already a launcher at either level.
