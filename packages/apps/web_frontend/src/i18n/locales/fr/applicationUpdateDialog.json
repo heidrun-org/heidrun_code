@@ -1,0 +1,12 @@
+{
+  "title": "Rechercher des mises à jour",
+  "running": "Vous utilisez la version {version}.",
+  "latest": "La dernière version sur le serveur est la version {version}.",
+  "restart": "Heidrun Code redémarrera après l’installation.",
+  "current": "Heidrun Code est à jour.",
+  "install": "Installer {version}",
+  "later": "Plus tard",
+  "close": "Fermer",
+  "installing": "Installation de la version {version}…",
+  "failed": "Heidrun Code n’a pas pu installer la mise à jour."
+}

@@ -1,4 +1,5 @@
 {
   "searchTitle": "Rechercher ou lancer une commande",
-  "searchPlaceholder": "Rechercher, lancer une commande…"
+  "searchPlaceholder": "Rechercher, lancer une commande…",
+  "updateAvailable": "Mise à jour {version} disponible"
 }
