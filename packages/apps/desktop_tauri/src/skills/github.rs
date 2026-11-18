@@ -65,16 +65,17 @@ pub(super) async fn list_repository_files(client: &reqwest::Client, source: &str
     if let Some(files) = cached_files(source, Some(FILE_LIST_TTL)) {
         return Ok(files);
     }
-    let fetched = fetch_repository_files(client, source).await;
-    match fetched {
-        Ok(files) => {
-            let entry = FileListEntry { fetched_at: now_seconds(), files: files.clone() };
-            write_entry(&cache_folder(), source, &entry);
-            file_list_cache().lock().unwrap_or_else(|e| e.into_inner()).insert(source.to_string(), entry);
-            Ok(files)
-        }
-        Err(error) => cached_files(source, None).ok_or(error),
-    }
+    refreshRepositoryFiles(client, source).await.or_else(|error| cached_files(source, None).ok_or(error))
+}
+
+/// Fetches the current list and saves it for subsequent skill reads and installations.
+#[allow(non_snake_case)]
+pub(super) async fn refreshRepositoryFiles(client: &reqwest::Client, source: &str) -> Result<Vec<RepositoryFile>, String> {
+    let files = fetch_repository_files(client, source).await?;
+    let entry = FileListEntry { fetched_at: now_seconds(), files: files.clone() };
+    write_entry(&cache_folder(), source, &entry);
+    file_list_cache().lock().unwrap_or_else(|e| e.into_inner()).insert(source.to_string(), entry);
+    Ok(files)
 }
 
 pub(super) async fn fetch_repository_files(client: &reqwest::Client, source: &str) -> Result<Vec<RepositoryFile>, String> {
@@ -88,6 +89,9 @@ pub(super) async fn fetch_repository_files(client: &reqwest::Client, source: &st
         return Err(format!("skills_download_failed: HTTP {status}"));
     }
     let parsed: TreeResponse = response.json().await.map_err(|e| format!("skills_download_failed: {e}"))?;
+    if parsed.truncated {
+        return Err("skills_too_many_files".into());
+    }
     Ok(files_of_tree(parsed))
 }
 
@@ -173,13 +177,16 @@ pub(super) async fn find_skill(client: &reqwest::Client, source: &str, skill_id:
             return Ok((entry.dir.clone(), entry.text.clone()));
         }
     }
-    match find_skill_online(client, source, skill_id).await {
-        Ok((dir, text)) => {
-            write_text_entry(&folder, source, skill_id, &SkillTextEntry { fetched_at: now_seconds(), dir: dir.clone(), text: text.clone() });
-            Ok((dir, text))
-        }
-        Err(error) => fallback_to_cached_text(error, cached),
-    }
+    refreshSkill(client, source, skill_id).await.or_else(|error| fallback_to_cached_text(error, cached))
+}
+
+/// Fetches the current skill text and saves it for subsequent previews and installations.
+#[allow(non_snake_case)]
+pub(super) async fn refreshSkill(client: &reqwest::Client, source: &str, skillId: &str) -> Result<(String, String), String> {
+    let (dir, text) = find_skill_online(client, source, skillId).await?;
+    let entry = SkillTextEntry { fetched_at: now_seconds(), dir: dir.clone(), text: text.clone() };
+    write_text_entry(&text_cache_folder(), source, skillId, &entry);
+    Ok((dir, text))
 }
 
 /// Finds the folder of a skill in its repository, on GitHub, with no cache.

@@ -11,7 +11,6 @@ import { askConfirm } from "./confirm";
 import { hasText, t } from "../i18n/index";
 import { clockTime } from "../lib/format";
 import { parseSkillFolderAddress, type CodeHost } from "../lib/skill_folder_address";
-import { isSameSkillText } from "../lib/skill_difference";
 
 /** Where a skill is installed: the folder of the workspace, or the user. */
 export type SkillLevel = "workspace" | "user";
@@ -76,8 +75,7 @@ export interface SkillView {
 }
 
 /**
- * How the SKILL.md file of a result compares with the SKILL.md file of the skill with the same name installed at the chosen
- * level: being read, the same, different, or not known because one of the two files could not be read.
+ * How the result's files compare with those of the skill installed at the chosen level.
  */
 export type SkillComparison = "checking" | "same" | "different" | "unknown";
 
@@ -426,9 +424,13 @@ async function readInstalledResultText(result: SearchResult): Promise<string> {
   return await invoke<string>("skills_read", { level: settings.skillsLevel, cwd: currentCwd(), name: result.skillId });
 }
 
-/** The key of a result in `skills.comparisons`: the chosen level, then the key of the result. */
+/** The latest comparison request for each installation and source. */
+const comparisonRequests = new Map<string, symbol>();
+
+/** The key of a result in `skills.comparisons`, including the workspace folder at the workspace level. */
 export function comparisonKey(result: SearchResult): string {
-  return `${settings.skillsLevel}:${resultKey(result)}`;
+  const workspace = settings.skillsLevel === "workspace" ? currentCwd() : null;
+  return JSON.stringify([settings.skillsLevel, workspace, resultKey(result)]);
 }
 
 /** How the result compares with the installed skill of the same name. `null` when no such skill is installed. */
@@ -437,24 +439,38 @@ export function comparisonOf(result: SearchResult): SkillComparison | null {
 }
 
 /**
- * Compares the SKILL.md file of a result with the SKILL.md file of the skill with the same name installed at the chosen
- * level, and keeps the answer in `skills.comparisons`. Does nothing for a result that is not installed, or that is being
- * compared. The comparison reads only the two SKILL.md files, not the other files of the skill.
+ * Stores the comparison of the files that would be installed with the files already installed at the chosen level.
+ * @param result The source skill to compare.
+ * @returns A promise that resolves after the comparison result is stored.
  */
 export async function compareWithInstalled(result: SearchResult): Promise<void> {
   if (isInstalledAtLevel(result) === false) {
     return;
   }
   const key = comparisonKey(result);
-  if (skills.comparisons[key] === "checking") {
-    return;
-  }
+  const request = Symbol();
+  comparisonRequests.set(key, request);
   skills.comparisons[key] = "checking";
   try {
-    const [installedText, resultText] = await Promise.all([readInstalledResultText(result), readResultText(result)]);
-    skills.comparisons[key] = isSameSkillText(installedText, resultText) ? "same" : "different";
+		const isSame = await invoke<boolean>('skillsCompare', {
+			level: settings.skillsLevel,
+			cwd: currentCwd(),
+			skillId: result.skillId,
+			source: result.source,
+			folderUrl: result.folderUrl,
+			folderPath: result.folderPath,
+		});
+		if (comparisonRequests.get(key) === request) {
+			skills.comparisons[key] = isSame ? 'same' : 'different';
+		}
   } catch {
-    skills.comparisons[key] = "unknown";
+    if (comparisonRequests.get(key) === request) {
+      skills.comparisons[key] = "unknown";
+    }
+  } finally {
+    if (comparisonRequests.get(key) === request) {
+      comparisonRequests.delete(key);
+    }
   }
 }
 
@@ -486,7 +502,7 @@ export function closeSkillView(): void {
 
 /**
  * Installs a result of the search, a local folder, or the skill folder of a web address, at the chosen level. A result that
- * is already installed at this level (its SKILL.md file differs, or the button would not be there) replaces the installed
+ * is already installed at this level (its files differ) replaces the installed
  * skill: after the confirmation of the developer, the installed skill goes to the Trash, then the result is installed.
  */
 export async function installSkill(result: SearchResult): Promise<void> {

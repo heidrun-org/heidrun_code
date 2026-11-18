@@ -2091,9 +2091,11 @@ dependencies = [
  "tauri-plugin-notification",
  "tauri-plugin-opener",
  "tauri-plugin-window-state",
+ "tempfile",
  "tokio",
  "trash",
  "voice_input",
+ "walkdir",
  "zstd",
 ]
 
