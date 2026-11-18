@@ -3,7 +3,7 @@
 // - issue #305
 import { reactive } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { git, refreshGit, type GitStatus } from "./git";
+import { git, loadStatus, refreshGit, type GitStatus } from "./git";
 import { askConfirm } from "./confirm";
 import { state as session, toast } from "./session";
 import { t } from "../i18n/index";
@@ -29,6 +29,13 @@ export interface SourceControlFile {
 /** What the commit button does: commit, commit then push, or replace the last commit. */
 export type CommitMode = "commit" | "commitAndPush" | "amend";
 
+/** The confirmation to show for each successful commit action. */
+const COMMIT_RESULT_KEYS: Record<CommitMode, string> = {
+	commit: 'sourceControlPanel.committed',
+	commitAndPush: 'sourceControlPanel.committedAndPushed',
+	amend: 'sourceControlPanel.commitAmended',
+};
+
 /** A Git action that talks to the remote repository. */
 export type SyncAction = "pull" | "push" | "fetch";
 
@@ -44,6 +51,8 @@ export const sourceControl = reactive({
   messages: {} as Record<string, string>,
   /** True while a Git action runs. The buttons wait for it. */
   isBusy: false,
+  /** The workspace and current step of a commit, or null when no commit is running. */
+  commitProgress: null as { workspaceId: string; step: 'committing' | 'pushingCommit' } | null,
   /** True while a coding agent writes the commit message. */
   isWritingMessage: false,
   /** The groups that are folded. */
@@ -86,12 +95,18 @@ export function splitFiles(status: GitStatus | null): Record<SourceControlGroup,
 
 /** Stages the files `paths`. */
 export async function stageFiles(paths: string[]): Promise<void> {
-  await runOnRoot("git_stage", (root) => ({ root, paths }));
+	await runOnRoot((root) => invoke('git_stage', {
+		root,
+		paths,
+	}));
 }
 
 /** Unstages the files `paths`. */
 export async function unstageFiles(paths: string[]): Promise<void> {
-  await runOnRoot("git_unstage", (root) => ({ root, paths }));
+	await runOnRoot((root) => invoke('git_unstage', {
+		root,
+		paths,
+	}));
 }
 
 /** Discards the changes of the files `paths`, after the user confirms it. The changes cannot come back. */
@@ -107,69 +122,112 @@ export async function discardFiles(paths: string[]): Promise<void> {
   if (isConfirmed === false) {
     return;
   }
-  await runOnRoot("git_discard", (root) => ({ root, paths }));
+	await runOnRoot((root) => invoke('git_discard', {
+		root,
+		paths,
+	}));
 }
 
 /** Puts the changes aside with `git stash`: the staged files only when `isStagedOnly`. */
 export async function stashChanges(isStagedOnly: boolean): Promise<void> {
-  const result = await runOnRoot("git_stash", (root) => ({ root, stagedOnly: isStagedOnly }));
-  if (result.isDone) {
-    toast(t("sourceControlPanel.stashed"));
-  }
+	const isDone = await runOnRoot((root) => invoke('git_stash', {
+		root,
+		stagedOnly: isStagedOnly,
+	}));
+	if (isDone) {
+		toast(t('sourceControlPanel.stashed'));
+	}
 }
 
 /** Runs `git pull`, `git push`, or `git fetch`. */
 export async function syncRepository(action: SyncAction): Promise<void> {
-  const result = await runOnRoot("git_sync", (root) => ({ root, action }));
-  if (result.isDone) {
-    toast(t(`sourceControlPanel.synced.${action}`));
-  }
+	const isDone = await runOnRoot((root) => invoke('git_sync', {
+		root,
+		action,
+	}));
+	if (isDone) {
+		toast(t(`sourceControlPanel.synced.${action}`));
+	}
 }
 
 /**
  * Makes a commit with the message of the selected workspace. When no file is staged, it stages every change first,
  * with no question. The message box is emptied after the commit.
- * - issue #613
+ * @param mode - whether to commit, amend, or commit and push
+ * @returns a promise that ends after the local status refresh
  */
 export async function commit(mode: CommitMode): Promise<void> {
-  const workspaceId = session.selectedWorkspaceId;
-  if (workspaceId === null) {
-    return;
-  }
-  const status = git.status[workspaceId] ?? null;
-  const message = (sourceControl.messages[workspaceId] ?? "").trim();
-  if (status === null) {
-    return;
-  }
-  if (message === "") {
-    toast(t("sourceControlPanel.emptyMessage"));
-    return;
-  }
-  const groups = splitFiles(status);
-  if (mode !== "amend" && groups.staged.length === 0) {
-    if (groups.changes.length === 0) {
-      toast(t("sourceControlPanel.nothingToCommit"));
-      return;
-    }
-    const stageResult = await runOnRoot("git_stage", (root) => ({ root, paths: groups.changes.map((file) => file.path) }));
-    if (stageResult.isDone === false) {
-      return;
-    }
-  }
-  const commitResult = await runOnRoot("git_commit", (root) => ({ root, message, amend: mode === "amend" }));
-  if (commitResult.isDone === false) {
-    return;
-  }
-  sourceControl.messages[workspaceId] = "";
-  if (mode === "commitAndPush") {
-    await syncRepository("push");
-  }
+	const workspaceId = session.selectedWorkspaceId;
+	if (workspaceId === null || sourceControl.isBusy === true || sourceControl.isWritingMessage === true) {
+		return;
+	}
+	const status = git.status[workspaceId] ?? null;
+	const draft = sourceControl.messages[workspaceId] ?? '';
+	const message = draft.trim();
+	if (status === null) {
+		return;
+	}
+	if (message === '') {
+		toast(t('sourceControlPanel.emptyMessage'));
+		return;
+	}
+	const groups = splitFiles(status);
+	const isAutoStaging = mode !== 'amend' && groups.staged.length === 0;
+	if (isAutoStaging && groups.changes.length === 0) {
+		toast(t('sourceControlPanel.nothingToCommit'));
+		return;
+	}
+
+	sourceControl.commitProgress = {
+		workspaceId,
+		step: 'committing',
+	};
+	try {
+		const isDone = await runOnRoot(async (root) => {
+			if (isAutoStaging) {
+				await invoke('git_stage', {
+					root,
+					paths: groups.changes.map((file) => file.path),
+				});
+			}
+			await invoke('git_commit', {
+				root,
+				message,
+				amend: mode === 'amend',
+			});
+			if (sourceControl.messages[workspaceId] === draft) {
+				sourceControl.messages[workspaceId] = '';
+			}
+			if (mode === 'commitAndPush') {
+				sourceControl.commitProgress = {
+					workspaceId,
+					step: 'pushingCommit',
+				};
+				await loadStatus(workspaceId);
+				try {
+					await invoke('git_sync', {
+						root,
+						action: 'push',
+					});
+				} catch (error) {
+					throw t('sourceControlPanel.pushAfterCommitFailed', {
+						error: String(error),
+					});
+				}
+			}
+		}, loadStatus);
+		if (isDone) {
+			toast(t(COMMIT_RESULT_KEYS[mode]));
+		}
+	} finally {
+		sourceControl.commitProgress = null;
+	}
 }
 
 /** Asks a coding agent to write the commit message from the diff, and puts the message in the message box. */
 export async function writeCommitMessage(): Promise<void> {
   const workspaceId = session.selectedWorkspaceId;
-  if (workspaceId === null || sourceControl.isWritingMessage) {
+  if (workspaceId === null || sourceControl.isWritingMessage || sourceControl.isBusy) {
     return;
   }
   const root = git.status[workspaceId]?.root;
@@ -205,28 +263,35 @@ function makeFile(path: string, letter: string): SourceControlFile {
 }
 
 /**
- * Runs the Tauri command `command` on the root of the repository of the selected workspace, then reads the Git status
- * again. `isDone` is false when there is no repository or when the command fails. A failure shows its reason in a
- * message.
+ * Runs a Git action on the selected repository and refreshes the originating workspace even when the action fails.
+ * @param actionFn - the Git action to run with the captured repository root
+ * @param refreshFn - the status refresh to run for the originating workspace
+ * @returns whether the Git action completed
  */
-async function runOnRoot(command: string, makeArguments: (root: string) => Record<string, unknown>): Promise<{ isDone: boolean }> {
-  const workspaceId = session.selectedWorkspaceId;
-  if (workspaceId === null) {
-    return { isDone: false };
-  }
-  const root = git.status[workspaceId]?.root;
-  if (root === undefined) {
-    return { isDone: false };
-  }
-  sourceControl.isBusy = true;
-  try {
-    await invoke(command, makeArguments(root));
-    return { isDone: true };
-  } catch (error) {
-    toast(String(error).split("\n").slice(0, 4).join("\n"));
-    return { isDone: false };
-  } finally {
-    sourceControl.isBusy = false;
-    await refreshGit(workspaceId);
-  }
+async function runOnRoot(
+	actionFn: (root: string) => Promise<unknown>,
+	refreshFn: (workspaceId: string) => Promise<void> = refreshGit,
+): Promise<boolean> {
+	const workspaceId = session.selectedWorkspaceId;
+	if (workspaceId === null || sourceControl.isBusy === true) {
+		return false;
+	}
+	const root = git.status[workspaceId]?.root;
+	if (root === undefined) {
+		return false;
+	}
+	sourceControl.isBusy = true;
+	try {
+		await actionFn(root);
+		return true;
+	} catch (error) {
+		toast(String(error).split('\n').slice(0, 4).join('\n'), 'error');
+		return false;
+	} finally {
+		try {
+			await refreshFn(workspaceId);
+		} finally {
+			sourceControl.isBusy = false;
+		}
+	}
 }
