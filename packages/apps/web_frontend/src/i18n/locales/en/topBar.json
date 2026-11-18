@@ -1,4 +1,5 @@
 {
   "searchTitle": "Search or run a command",
-  "searchPlaceholder": "Search, run a command…"
+  "searchPlaceholder": "Search, run a command…",
+  "updateAvailable": "Update {version} available"
 }

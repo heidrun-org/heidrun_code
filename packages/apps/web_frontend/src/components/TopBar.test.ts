@@ -1,5 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import { emit } from '@tauri-apps/api/event';
+import { clearMocks, mockIPC } from '@tauri-apps/api/mocks';
 import { nextTick } from 'vue';
 
 let TopBar: typeof import('./TopBar.vue').default;
@@ -69,6 +71,48 @@ describe('TopBar', () => {
 		expect(wrapper.find('.icon-btn').exists()).toBe(true);
 		expect(wrapper.find('.search').exists()).toBe(true);
 		wrapper.unmount();
+	});
+
+	it('keeps the update control in place before and after checking', async () => {
+		const invokeCommand = vi.fn((command: string) => {
+			if (command === 'applicationUpdateAvailable') {
+				return null;
+			}
+		});
+		vi.stubGlobal('isTauri', true);
+		mockIPC(invokeCommand, {
+			shouldMockEvents: true,
+		});
+		const wrapper = mount(TopBar);
+		try {
+			const initialButton = wrapper.get<HTMLButtonElement>('.update-available');
+			const initialTheme = wrapper.get('[aria-label="Theme"]').element;
+			expect(initialButton.classes()).toContain('update-unavailable');
+			expect(initialButton.element.disabled).toBe(true);
+			expect(initialButton.attributes('aria-hidden')).toBe('true');
+			await flushPromises();
+			await emit('application-update-available', '0.4.1');
+			const updateButton = wrapper.get<HTMLButtonElement>('.update-available');
+			expect(updateButton.element).toBe(initialButton.element);
+			expect(updateButton.classes()).not.toContain('update-unavailable');
+			expect(updateButton.element.disabled).toBe(false);
+			expect(updateButton.attributes('aria-label')).toBe('Update 0.4.1 available');
+			expect(updateButton.text()).toBe('');
+			expect(updateButton.find('.bi-arrow-up-circle-fill').exists()).toBe(true);
+			expect(updateButton.element.nextElementSibling?.contains(initialTheme))
+				.toBe(true);
+			await updateButton.trigger('click');
+			expect(invokeCommand.mock.calls.map(([command]) => command)).toContain('checkForApplicationUpdate');
+			expect(wrapper.find('.update-available').exists()).toBe(true);
+			await emit('application-update-available', null);
+			expect(initialButton.classes()).toContain('update-unavailable');
+			expect(initialButton.element.disabled).toBe(true);
+		} finally {
+			wrapper.unmount();
+			await flushPromises();
+			clearMocks();
+			vi.unstubAllGlobals();
+		}
 	});
 
 	it('updates the workspace name after switching workspaces and renaming the selected workspace', async () => {

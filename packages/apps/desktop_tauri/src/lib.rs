@@ -1,6 +1,9 @@
 mod app_data;
 mod application_log;
 mod application_profile;
+#[cfg(target_os = "macos")]
+#[allow(non_snake_case)]
+mod applicationUpdate;
 mod build_settings;
 mod antigravity;
 mod chat_images;
@@ -154,10 +157,17 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let quit_label = if is_french { "Quitter Heidrun Code" } else { "Quit Heidrun Code" };
     let edit_label = if is_french { "Édition" } else { "Edit" };
     let window_label = if is_french { "Fenêtre" } else { "Window" };
-    let app_menu = SubmenuBuilder::new(app, "Heidrun Code")
+    let app_menu = SubmenuBuilder::with_id(app, "heidrun-application", "Heidrun Code")
         // Our own item: the About window is drawn by the web frontend, with an image.
-        .item(&tauri::menu::MenuItemBuilder::with_id("hd-about", about_label).build(app)?)
-        .separator()
+        .item(&tauri::menu::MenuItemBuilder::with_id("hd-about", about_label).build(app)?);
+    #[cfg(target_os = "macos")]
+    let app_menu = if applicationUpdate::ApplicationUpdate::isEnabled(app) {
+        let label = if is_french { "Rechercher des mises à jour…" } else { "Check for Updates…" };
+        app_menu.item(&tauri::menu::MenuItemBuilder::with_id("check-for-updates", label).build(app)?)
+    } else {
+        app_menu
+    };
+    let app_menu = app_menu.separator()
         .services()
         .separator()
         .hide()
@@ -183,6 +193,60 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         .fullscreen()
         .build()?;
     MenuBuilder::new(app).items(&[&app_menu, &edit, &window]).build()
+}
+
+/// Returns the currently available update for the top bar.
+#[tauri::command]
+#[allow(non_snake_case)]
+fn applicationUpdateAvailable(app: AppHandle) -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::Manager;
+        app.state::<applicationUpdate::ApplicationUpdate>().availableVersion()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        None
+    }
+}
+
+/// Runs the same manual update check as the application menu.
+#[tauri::command]
+#[allow(non_snake_case)]
+fn checkForApplicationUpdate(app: AppHandle) {
+    #[cfg(target_os = "macos")]
+    applicationUpdate::ApplicationUpdate::check(app, true);
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
+}
+
+/// Applies the explicit choice from the update dialog.
+#[tauri::command]
+#[allow(non_snake_case)]
+async fn answerApplicationUpdate(app: AppHandle, version: String, confirmed: bool) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    return applicationUpdate::ApplicationUpdate::confirm(app, &version, confirmed).await;
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (app, version, confirmed);
+        Ok(())
+    }
+}
+
+/// Keeps the main window available while the updater replaces the application.
+#[allow(non_snake_case)]
+fn isInstallingApplicationUpdate(app: &AppHandle) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::Manager;
+        app.try_state::<applicationUpdate::ApplicationUpdate>().is_some_and(|state| state.isInstalling())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        false
+    }
 }
 
 /// File view panes with unsaved changes: quitting or closing the window asks first (issue #899).
@@ -307,6 +371,12 @@ pub fn run() {
                 skills::bundled::install(app.handle());
             }
             app.set_menu(build_menu(app.handle())?)?;
+            #[cfg(target_os = "macos")]
+            {
+                use tauri::Manager;
+                app.manage(applicationUpdate::ApplicationUpdate::default());
+                applicationUpdate::ApplicationUpdate::start(app.handle().clone());
+            }
             herdr::spawn_event_loop(app.handle().clone());
             mobile::start_if_enabled(app.handle());
             heidrun_code_dashboard::local_network::start_if_enabled(app.handle());
@@ -319,6 +389,14 @@ pub fn run() {
             Ok(())
         })
         .on_menu_event(|app, event| {
+            if isInstallingApplicationUpdate(app) {
+                return;
+            }
+            #[cfg(target_os = "macos")]
+            match event.id().as_ref() {
+                "check-for-updates" => applicationUpdate::ApplicationUpdate::check(app.clone(), true),
+                _ => {}
+            }
             if event.id().as_ref() == "hd-about" {
                 use tauri::Emitter;
                 let _ = app.emit("show-about", ());
@@ -333,8 +411,15 @@ pub fn run() {
             }
         })
         .on_window_event(|window, event| {
+            use tauri::Manager;
             // Only the main window holds the file views: the separate Heidrun Code Dashboard window always closes (issue 973).
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == heidrun_code_dashboard::heidrun_code_dashboard_window::MAIN_WINDOW_LABEL
+                    && isInstallingApplicationUpdate(window.app_handle())
+                {
+                    api.prevent_close();
+                    return;
+                }
                 if window.label() == heidrun_code_dashboard::heidrun_code_dashboard_window::MAIN_WINDOW_LABEL && UNSAVED.load(std::sync::atomic::Ordering::Relaxed) {
                     api.prevent_close();
                     use tauri::Emitter;
@@ -342,11 +427,13 @@ pub fn run() {
                 }
             }
             if let tauri::WindowEvent::Destroyed = event {
-                use tauri::Manager;
                 heidrun_code_dashboard::heidrun_code_dashboard_window::on_window_destroyed(window.app_handle(), window.label());
             }
         })
         .invoke_handler(tauri::generate_handler![
+            applicationUpdateAvailable,
+            checkForApplicationUpdate,
+            answerApplicationUpdate,
             set_unsaved,
             set_keep_agents_running,
             quit_now,
@@ -508,6 +595,10 @@ pub fn run() {
         .run(|app, event| {
             // ⌘Q with unsaved files: the app stays and shows them.
             if let tauri::RunEvent::ExitRequested { api, code, .. } = &event {
+                if *code != Some(tauri::RESTART_EXIT_CODE) && isInstallingApplicationUpdate(app) {
+                    api.prevent_exit();
+                    return;
+                }
                 if code.is_none() && UNSAVED.load(std::sync::atomic::Ordering::Relaxed) {
                     api.prevent_exit();
                     use tauri::Emitter;
@@ -516,7 +607,13 @@ pub fn run() {
             }
             // The app leaves for good: the Herdr session of Heidrun Code stops with it, like the processes of a normal macOS app.
             if let tauri::RunEvent::Exit = event {
-                herdr::stop_session_on_quit(KEEP_AGENTS_RUNNING.load(std::sync::atomic::Ordering::Relaxed));
+                let keep_agents_running = KEEP_AGENTS_RUNNING.load(std::sync::atomic::Ordering::Relaxed);
+                #[cfg(target_os = "macos")]
+                let keep_agents_running = {
+                    use tauri::Manager;
+                    keep_agents_running || app.state::<applicationUpdate::ApplicationUpdate>().isRestarting()
+                };
+                herdr::stop_session_on_quit(keep_agents_running);
                 mobile::stop_on_quit(app);
                 heidrun_code_dashboard::local_network::stop_on_quit(app);
             }
