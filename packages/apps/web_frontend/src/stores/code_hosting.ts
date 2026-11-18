@@ -130,7 +130,7 @@ export async function readCodeHostingForge(folder: string | null): Promise<Forge
     return null;
   }
   try {
-    return forgeOfContext(await refContext(folder));
+    return forgeOfContext(await refContext(folder, true));
   } catch {
     return null;
   }
@@ -528,20 +528,20 @@ export async function loadCodeHosting(folder: string | null, isRefresh = false):
     codeHosting.listNotice[group] = "";
   }
   codeHosting.error = "";
+  codeHosting.forge = null;
+  codeHosting.webBase = null;
   if (folder === null) {
     codeHosting.status = "idle";
     return;
   }
   codeHosting.status = "loading";
   try {
-    const context = await refContext(folder);
+    const context = await refContext(folder, true);
     if (thisLoad !== lastLoad) {
       return;
     }
     const forge = forgeOfContext(context);
     if (forge === null || context.base === null) {
-      codeHosting.forge = null;
-      codeHosting.webBase = null;
       codeHosting.status = "noRemote";
       return;
     }

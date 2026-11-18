@@ -525,6 +525,55 @@ describe("CodeHostingPanel without lists", () => {
     expect(wrapper.find(".group").exists()).toBe(false);
   });
 
+	it('rereads Git on Refresh and when the known remote changes in the same folder', async () => {
+		const refs = await vi.importActual<typeof import('../lib/refs')>('../lib/refs');
+		vi.mocked(refContext).mockImplementation(refs.refContext);
+
+		let remote: string | null = null;
+		let error: string | null = null;
+		vi.mocked(invoke).mockImplementation(async (command) => {
+			if (command === 'project_refs') {
+				return {
+					remote,
+					remote_error: error,
+					references: null,
+				};
+			}
+			if (command === 'forge_cli_cached_with_source') {
+				return {
+					output: '[]',
+					failure: null,
+					keptAt: null,
+				};
+			}
+			return '[]';
+		});
+
+		const wrapper = await mountPanel();
+		expect(codeHosting.status).toBe('noRemote');
+
+		remote = 'https://github.com/team/first.git';
+		await wrapper.get('button[aria-label="Refresh"]').trigger('click');
+		await flushPromises();
+		expect(codeHosting.webBase).toBe('https://github.com/team/first');
+
+		remote = 'https://github.com/team/second.git';
+		git.status.w1!.reference_remote = remote;
+		await flushPromises();
+		expect(codeHosting.webBase).toBe('https://github.com/team/second');
+
+		remote = null;
+		git.status.w1!.reference_remote = null;
+		await flushPromises();
+		expect(codeHosting.status).toBe('noRemote');
+
+		error = 'fatal: bad config line';
+		git.status.w1!.reference_remote_error = error;
+		await flushPromises();
+		expect(wrapper.get('.failure').text()).toContain(error);
+		expect(wrapper.find('.group').exists()).toBe(false);
+	});
+
   it("shows the failure of gh or glab in each list, under its search line, instead of its rows", async () => {
     vi.mocked(refContext).mockResolvedValue(contextOf("github"));
     vi.mocked(invoke).mockRejectedValue("gh: not logged in");

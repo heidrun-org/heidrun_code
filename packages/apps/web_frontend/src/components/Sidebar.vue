@@ -35,8 +35,12 @@ const codeHostingForge = ref<Forge | null>(null);
 let lastForgeReading = 0;
 
 watch(
-  () => currentGit.value?.root ?? null,
-  async (folder) => {
+  [
+    () => currentGit.value?.root ?? null,
+    () => currentGit.value?.reference_remote ?? currentGit.value?.remote ?? null,
+    () => currentGit.value?.reference_remote_error ?? null,
+  ],
+  async ([folder]) => {
     const thisReading = ++lastForgeReading;
     const forge = await readCodeHostingForge(folder);
     if (thisReading === lastForgeReading) {
