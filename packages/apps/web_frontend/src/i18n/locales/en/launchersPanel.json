@@ -17,5 +17,6 @@
   "menu.edit": "Edit",
   "importTitle": "Import the launchers of the project",
   "levelUser": "User level",
-  "levelUserTitle": "This custom launcher shows in every workspace."
+  "levelUserTitle": "This custom launcher shows in every workspace.",
+  "reorderTitle": "Drag the card to change the order of the launchers of its level. With the keyboard: Option ↑ or Option ↓."
 }

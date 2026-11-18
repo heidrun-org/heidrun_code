@@ -8,8 +8,10 @@ import {
   launchersOf,
   currentProject,
   loadProject,
+  moveLauncher,
   project,
   removeLauncher,
+  shiftLauncher,
   runLauncher,
   stopLauncher,
   type Launcher,
@@ -19,6 +21,7 @@ import { askConfirm } from "../stores/confirm";
 import { openEditCustomLauncherModal, openNewCustomLauncherModal } from "../stores/newCustomLauncher";
 import { openImportLaunchersModal } from "../stores/importLaunchers";
 import { t } from "../i18n/index";
+import { useReorder } from "../lib/reorder";
 
 const ws = computed(() => state.selectedWorkspaceId);
 const p = currentProject;
@@ -26,6 +29,59 @@ const error = computed(() => (ws.value ? project.errors[ws.value] : undefined));
 
 /** The launchers of the selected workspace: the user level first, then the workspace level. */
 const launchers = computed(() => (ws.value ? launchersOf(ws.value) : []));
+
+/** The identifiers of the launchers of the user level, in their order. */
+const userIds = computed(() => launchers.value.filter((a) => launcherLevel(a) === "user").map((a) => a.id));
+/** The identifiers of the launchers of the workspace level, in their order. */
+const workspaceIds = computed(() => launchers.value.filter((a) => launcherLevel(a) === "workspace").map((a) => a.id));
+
+/**
+ * The distance in pixels, past the first or the last card of a level, where a release still lands in this level. It is half of
+ * the gap between two cards, so that a release over the cards of the other level moves nothing (issue #1042).
+ */
+const ALONG_TOLERANCE = 4;
+
+/** Moves a launcher dropped at the gap `at` of its level. */
+function dropLauncher(id: string, at: number) {
+  if (ws.value === null || ws.value === undefined) return;
+  void moveLauncher(ws.value, id, at);
+}
+
+/** One reorder for each level, so that a launcher never leaves its level. */
+const userReorder = useReorder("y", dropLauncher, { alongTolerance: ALONG_TOLERANCE });
+const workspaceReorder = useReorder("y", dropLauncher, { alongTolerance: ALONG_TOLERANCE });
+
+/** The reorder and the identifiers of the level of a launcher. */
+function levelOf(a: Launcher) {
+  return launcherLevel(a) === "user" ? { reorder: userReorder, ids: userIds.value } : { reorder: workspaceReorder, ids: workspaceIds.value };
+}
+
+/** The classes of the drag of a card: the dragged card, and the line that shows where it lands. */
+function dragClasses(a: Launcher) {
+  const { reorder, ids } = levelOf(a);
+  const index = ids.indexOf(a.id);
+  return {
+    dragging: reorder.dragging.value === a.id,
+    "drop-before": reorder.gap.value === index,
+    "drop-after": reorder.gap.value === index + 1 && index === ids.length - 1,
+  };
+}
+
+/** Starts the press that can become the drag of a card. */
+function onCardPointerDown(e: PointerEvent, a: Launcher) {
+  const { reorder, ids } = levelOf(a);
+  reorder.onPointerDown(e, ids);
+}
+
+/** Moves a card one place up or down inside its level with Option and an arrow key, while a button of the card has the focus. */
+function onCardKeyDown(e: KeyboardEvent, a: Launcher) {
+  if (e.altKey === false || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+  if (ws.value === null || ws.value === undefined) return;
+  e.preventDefault();
+  e.stopPropagation();
+  void shiftLauncher(ws.value, a.id, e.key === "ArrowUp" ? -1 : 1);
+}
 
 // Load (or reload) the project file whenever the workspace changes.
 watch(ws, (id) => id && loadProject(id), { immediate: true });
@@ -80,7 +136,16 @@ function status(a: Launcher) {
         {{ t("launchersPanel.empty") }}
       </div>
 
-      <div v-for="a in launchers" :key="a.id" class="launcher" :class="status(a)">
+      <div
+        v-for="a in launchers"
+        :key="a.id"
+        class="launcher position-relative"
+        :class="[status(a), dragClasses(a)]"
+        :data-reorder-id="a.id"
+        :title="t('launchersPanel.reorderTitle')"
+        @pointerdown="onCardPointerDown($event, a)"
+        @keydown="onCardKeyDown($event, a)"
+      >
         <div class="top">
           <span class="dot" :class="status(a) === 'running' ? 'working' : status(a) === 'finished' ? 'done' : ''"></span>
           <span class="label">{{ a.label }}</span>
@@ -115,6 +180,12 @@ function status(a: Launcher) {
 .panel :deep(.icon-button:hover:not(:disabled)) { background: var(--hover); color: var(--text); }
 .empty { margin: 0; font-size: var(--font-size); color: var(--muted); line-height: 1.5; }
 .launcher { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--field); }
+.launcher.dragging { opacity: 0.4; }
+.launcher.drop-before::before, .launcher.drop-after::after {
+  content: ""; position: absolute; left: 6px; right: 6px; height: 2px; border-radius: 1px; background: var(--done);
+}
+.launcher.drop-before::before { top: -5px; }
+.launcher.drop-after::after { bottom: -5px; }
 .launcher.running { border-color: var(--working); background: color-mix(in srgb, var(--working) 12%, var(--field)); }
 .top { display: flex; align-items: center; gap: 8px; }
 .label {

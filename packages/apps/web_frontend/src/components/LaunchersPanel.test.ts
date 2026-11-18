@@ -63,7 +63,7 @@ describe("LaunchersPanel", () => {
     expect(wrapper.find(".path").exists()).toBe(false);
   });
 
-  it("has no drag and drop and no drag handle", async () => {
+  it("has no drag handle and no drag and drop of the browser: the cards move with the pointer (issue #1042)", async () => {
     const wrapper = await mountPanel();
     expect(wrapper.text()).not.toContain("Drag to reorder");
     expect(wrapper.find(".grip").exists()).toBe(false);
@@ -201,5 +201,89 @@ describe("LaunchersPanel", () => {
     edit?.click();
     await flushPromises();
     expect(newCustomLauncherModal.editedId).toBe("everywhere");
+  });
+});
+
+describe("LaunchersPanel reorder (issue #1042)", () => {
+  /** Mounts the panel with one launcher of the user level and two launchers of the workspace level, and gives each card a box. */
+  async function mountThreeCards() {
+    await setUserLaunchers([{ id: "everywhere", label: "in every workspace", command: "make everywhere" }]);
+    const wrapper = await mountPanel();
+    const { project } = await import("../stores/project");
+    project.byWorkspace["w1"]!.config.launchers = [
+      { id: "dev", label: "start the server", command: "make dev" },
+      { id: "build", label: "build", command: "make build" },
+    ];
+    await flushPromises();
+    const cards = wrapper.findAll(".launcher");
+    // The cards are 80 pixels tall, with a gap of 8 pixels: the user level from 0 to 80, the workspace level from 88 to 256.
+    cards.forEach((card, cardIndex) => {
+      const top = cardIndex * 88;
+      (card.element as HTMLElement).getBoundingClientRect = () =>
+        ({ left: 0, right: 200, top, bottom: top + 80, width: 200, height: 80, x: 0, y: top }) as DOMRect;
+    });
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    return { wrapper, cards, invoke: vi.mocked(invoke) };
+  }
+
+  /** The lists of launchers that the panel wrote in the project file. */
+  function savedLaunchers(invoke: { mock: { calls: unknown[][] } }) {
+    return invoke.mock.calls
+      .filter(([command]) => command === "project_save")
+      .map(([, args]) => (args as { config: { launchers: { id: string }[] } }).config.launchers.map((launcher) => launcher.id));
+  }
+
+  it("moves a launcher of the workspace level to the gap where the pointer is released, and writes the project file", async () => {
+    const { wrapper, cards, invoke } = await mountThreeCards();
+    await cards[2].trigger("pointerdown", { button: 0, clientX: 20, clientY: 200 });
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 20, clientY: 95 }));
+    await wrapper.vm.$nextTick();
+    expect(cards[2].classes("dragging")).toBe(true);
+    expect(cards[1].classes("drop-before")).toBe(true);
+    window.dispatchEvent(new MouseEvent("pointerup", { clientX: 20, clientY: 95 }));
+    await flushPromises();
+    expect(savedLaunchers(invoke)).toEqual([["build", "dev"]]);
+    expect(wrapper.findAll(".launcher .label").map((label) => label.text())).toEqual(["in every workspace", "build", "start the server"]);
+    expect(cards[2].classes("dragging")).toBe(false);
+  });
+
+  it("moves nothing when the card of the workspace level is released over the user level", async () => {
+    const { wrapper, cards, invoke } = await mountThreeCards();
+    await cards[2].trigger("pointerdown", { button: 0, clientX: 20, clientY: 200 });
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 20, clientY: 30 }));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findAll(".drop-before, .drop-after")).toHaveLength(0);
+    window.dispatchEvent(new MouseEvent("pointerup", { clientX: 20, clientY: 30 }));
+    await flushPromises();
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("moves nothing after a short press, which stays a click", async () => {
+    const { cards, invoke } = await mountThreeCards();
+    await cards[1].trigger("pointerdown", { button: 0, clientX: 20, clientY: 120 });
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 22, clientY: 121 }));
+    window.dispatchEvent(new MouseEvent("pointerup", { clientX: 22, clientY: 121 }));
+    await flushPromises();
+    expect(savedLaunchers(invoke)).toEqual([]);
+  });
+
+  it("moves a launcher one place up with Option and the up arrow key, from a button of its card", async () => {
+    const { cards, invoke } = await mountThreeCards();
+    await cards[2].get(".bottom button").trigger("keydown", { key: "ArrowUp", altKey: true });
+    await flushPromises();
+    expect(savedLaunchers(invoke)).toEqual([["build", "dev"]]);
+  });
+
+  it("moves nothing with Option and the up arrow key on the first launcher of the workspace level", async () => {
+    const { cards, invoke } = await mountThreeCards();
+    await cards[1].get(".bottom button").trigger("keydown", { key: "ArrowUp", altKey: true });
+    await flushPromises();
+    expect(savedLaunchers(invoke)).toEqual([]);
+  });
+
+  it("tells how to move a card in its tooltip", async () => {
+    const { cards } = await mountThreeCards();
+    expect(cards[0].attributes("title")).toBe("Drag the card to change the order of the launchers of its level. With the keyboard: Option ↑ or Option ↓.");
   });
 });
