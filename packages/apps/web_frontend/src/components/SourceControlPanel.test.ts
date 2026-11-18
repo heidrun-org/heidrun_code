@@ -64,6 +64,8 @@ describe("SourceControlPanel", () => {
   afterEach(() => {
     state.selectedWorkspaceId = null;
     git.status = {};
+    sourceControl.isBusy = false;
+    sourceControl.commitProgress = null;
     sourceControl.folded.staged = false;
     sourceControl.folded.changes = false;
     vi.clearAllMocks();
@@ -75,6 +77,32 @@ describe("SourceControlPanel", () => {
     expect(wrapper.get("textarea").attributes("placeholder")).toBe('Message (⌘Enter to commit on "dev_jerome")');
     expect(wrapper.get(".btn-primary").text()).toBe("Commit");
   });
+
+	it('shows the commit and push progress only for the workspace running the commit', async () => {
+		const wrapper = mountPanel();
+		const commitButton = wrapper.get('.btn-primary');
+		sourceControl.isBusy = true;
+		sourceControl.commitProgress = {
+			workspaceId: 'w1',
+			step: 'committing',
+		};
+		await wrapper.vm.$nextTick();
+		expect(commitButton.get('[role="status"]').text()).toBe('Committing…');
+		expect(commitButton.get('.spinner-border').attributes('aria-hidden')).toBe('true');
+		expect(wrapper.get('header button[aria-label="Committing…"]').find('.spinner-border').exists()).toBe(true);
+		expect(commitButton.attributes('disabled')).toBeDefined();
+
+		sourceControl.commitProgress.step = 'pushingCommit';
+		await wrapper.vm.$nextTick();
+		expect(commitButton.text()).toBe('Pushing commit…');
+
+		git.status.w2 = makeStatus();
+		state.selectedWorkspaceId = 'w2';
+		await wrapper.vm.$nextTick();
+		expect(commitButton.text()).toBe('Commit');
+		expect(commitButton.find('.spinner-border').exists()).toBe(false);
+		wrapper.unmount();
+	});
 
   it("puts the sparkle button beside the message box, outside of it, and not on top of it", () => {
     const message = mountPanel().get(".message");
