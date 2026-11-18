@@ -187,13 +187,58 @@ const keyboardPeriodMs = computed(() => HeidrunCodeDashboardTransitions.keyboard
 
 let stopAnimations: WatchStopHandle | null = null;
 
+/** The frame of the graph, whose size changes when the sidebar folds, unfolds, or is dragged. */
+const frame = ref<HTMLElement>();
+/** Grows after each change of the size of the frame, so that the drawing is made again (issue #1016). */
+const paintKey = ref(0);
+/** The time after the last change of the size before the drawing is made again, in milliseconds. */
+const REPAINT_DELAY_MS = 150;
+let resizeObserver: ResizeObserver | null = null;
+let repaintTimer: ReturnType<typeof setTimeout> | null = null;
+let lastFrameSize = "";
+
+/**
+ * Makes the drawing again after the frame changed its size. The web view of macOS kept pieces of the drawing of the
+ * previous size (the ring of Heidrun and the sectors, shown twice), because the drawing paints outside its box with its
+ * glows and its turning rings. A new SVG element is painted whole (issue #1016).
+ */
+function onFrameResize(entries: ResizeObserverEntry[]): void {
+  const box = entries[entries.length - 1]?.contentRect;
+  const size = box === undefined ? "" : `${Math.round(box.width)}x${Math.round(box.height)}`;
+  if (size === lastFrameSize) {
+    return;
+  }
+  const isFirst = lastFrameSize === "";
+  lastFrameSize = size;
+  if (isFirst) {
+    return;
+  }
+  if (repaintTimer !== null) {
+    clearTimeout(repaintTimer);
+  }
+  repaintTimer = setTimeout(() => {
+    repaintTimer = null;
+    paintKey.value += 1;
+  }, REPAINT_DELAY_MS);
+}
+
 onMounted(() => {
   stopAnimations = HeidrunCodeDashboardAnimations.start();
+  if (typeof ResizeObserver !== "undefined" && frame.value !== undefined) {
+    resizeObserver = new ResizeObserver(onFrameResize);
+    resizeObserver.observe(frame.value);
+  }
 });
 
 onBeforeUnmount(() => {
   stopAnimations?.();
   stopAnimations = null;
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+  if (repaintTimer !== null) {
+    clearTimeout(repaintTimer);
+    repaintTimer = null;
+  }
 });
 
 /** The workspaces of the model, by node identifier. */
@@ -388,7 +433,7 @@ function onKeyDown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="heidrun-code-dashboard-graph d-flex flex-fill position-relative" data-heidrun-code-dashboard-graph>
+  <div ref="frame" class="heidrun-code-dashboard-graph d-flex flex-fill position-relative" data-heidrun-code-dashboard-graph>
     <p v-if="heidrunCodeDashboardModel.workspaces.length === 0" class="m-0 p-2 text-body-secondary" data-heidrun-code-dashboard-empty>
       {{ t("heidrunCodeDashboard.graph.noWorkspace") }}
     </p>
@@ -405,6 +450,7 @@ function onKeyDown(event: KeyboardEvent) {
     </button>
     <svg
       v-if="heidrunCodeDashboardModel.workspaces.length > 0"
+      :key="paintKey"
       ref="svg"
       class="heidrun-code-dashboard-graph-svg"
       :class="{ 'heidrun-code-dashboard-animated': isAnimated }"
@@ -695,8 +741,10 @@ function onKeyDown(event: KeyboardEvent) {
 <style scoped>
 /* The radial graph is an SVG drawing: Bootstrap has no class for its shapes, so its colors come from the theme
    variables of styles.css here. */
-.heidrun-code-dashboard-graph { min-width: 0; min-height: 0; }
-.heidrun-code-dashboard-graph-svg { width: 100%; height: 100%; display: block; overflow: visible; font-family: var(--mono); }
+/* The frame clips the drawing: the glows and the turning rings never paint outside it, where the web view of macOS
+   kept them after a change of size (issue #1016). */
+.heidrun-code-dashboard-graph { min-width: 0; min-height: 0; overflow: hidden; contain: paint; }
+.heidrun-code-dashboard-graph-svg { width: 100%; height: 100%; display: block; overflow: hidden; font-family: var(--mono); }
 .heidrun-code-dashboard-node { cursor: pointer; outline: none; }
 .heidrun-code-dashboard-node:focus-visible .heidrun-code-dashboard-dot,
 .heidrun-code-dashboard-node:focus-visible .heidrun-code-dashboard-hexagon,

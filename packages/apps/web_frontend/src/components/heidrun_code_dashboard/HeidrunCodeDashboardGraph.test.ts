@@ -156,3 +156,41 @@ describe("HeidrunCodeDashboardGraph", () => {
     expect(node(graph, TEST_NODES.explore).classes()).not.toContain("heidrun-code-dashboard-faint");
   });
 });
+
+describe("HeidrunCodeDashboardGraph, a change of size (issue #1016)", () => {
+  it("draws the SVG again once the size of the frame stops changing, so no piece of the previous drawing stays", async () => {
+    let notify: ((entries: { contentRect: { width: number; height: number } }[]) => void) | null = null;
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: typeof notify) {
+        notify = callback;
+      }
+      observe = observe;
+      disconnect = disconnect;
+    });
+    vi.useFakeTimers();
+    try {
+      const graph = await mountGraph();
+      expect(observe).toHaveBeenCalledWith(graph.get("[data-heidrun-code-dashboard-graph]").element);
+      const first = graph.get("svg.heidrun-code-dashboard-graph-svg").element;
+
+      notify!([{ contentRect: { width: 800, height: 600 } }]);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(graph.get("svg.heidrun-code-dashboard-graph-svg").element).toBe(first);
+
+      notify!([{ contentRect: { width: 1200, height: 600 } }]);
+      notify!([{ contentRect: { width: 1180, height: 600 } }]);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(graph.get("svg.heidrun-code-dashboard-graph-svg").element).toBe(first);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(graph.get("svg.heidrun-code-dashboard-graph-svg").element).not.toBe(first);
+
+      graph.unmount();
+      expect(disconnect).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+});
