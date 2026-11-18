@@ -94,46 +94,77 @@ export function remoteToWeb(remote: string): { base: string; origin: string; hos
   return { base: `https://${host}/${path}`, origin: `https://${host}`, host };
 }
 
-const cache = new Map<string, Promise<RefContext>>();
+const cache = new Map<string, ReturnType<typeof load>>();
 
-/** Context for a pane's folder; cached per folder. */
-export function refContext(cwd: string | null | undefined): Promise<RefContext> {
-  const key = cwd || "";
-  if (!key) return Promise.resolve(EMPTY_CONTEXT);
-  let p = cache.get(key);
-  if (!p) {
-    p = load(key);
-    cache.set(key, p);
-    // Remotes rarely change, but a new clone in the same folder should be picked up.
-    window.setTimeout(() => cache.delete(key), 5 * 60_000);
-  }
-  return p;
+/**
+ * Reads repository reference settings, sharing a recent lookup unless a fresh lookup is requested.
+ * @param cwd - the repository folder
+ * @param isFresh - reads Git again and reports lookup failures
+ * @returns the repository reference settings
+ */
+export async function refContext(cwd: string | null | undefined, isFresh = false): Promise<RefContext> {
+	if (cwd === null || cwd === undefined || cwd === '') {
+		return EMPTY_CONTEXT;
+	}
+	let pending = cache.get(cwd);
+	if (isFresh || pending === undefined) {
+		pending = load(cwd);
+		cache.set(cwd, pending);
+		const lookup = pending;
+		window.setTimeout(() => {
+			if (cache.get(cwd) === lookup) {
+				cache.delete(cwd);
+			}
+		}, 5 * 60_000);
+	}
+	try {
+		const { context, error } = await pending;
+		if (isFresh && error !== null) {
+			throw new Error(error);
+		}
+		return context;
+	} catch (error) {
+		if (cache.get(cwd) === pending) {
+			cache.delete(cwd);
+		}
+		if (isFresh) {
+			throw error;
+		}
+		return EMPTY_CONTEXT;
+	}
 }
 
-async function load(cwd: string): Promise<RefContext> {
-  try {
-    const r = await invoke<{ root: string; remote: string | null; references: Record<string, unknown> | null }>(
-      "project_refs",
-      { cwd },
-    );
-    const conf = parseReferences(r.references ?? {});
-    // "repo" in .heidrun/config.json overrides the git remote (any form git accepts, or the web URL).
-    const source = conf.repo ?? r.remote;
-    const web = source ? remoteToWeb(source) : null;
-    // Unknown hosts are most often self-hosted GitLab; GitHub is github.com.
-    const forge: Forge | null = conf.forge ?? (web ? (web.host.includes("github") ? "github" : "gitlab") : null);
-    const tickets = typeof conf.tickets === "string" ? { url: conf.tickets } : conf.tickets ?? {};
-    return {
-      base: web?.base ?? null,
-      origin: web?.origin ?? null,
-      forge,
-      ticketUrl: tickets.url ?? null,
-      ticketPrefixes: (tickets.prefixes ?? []).map((x) => x.toUpperCase()),
-      enabled: conf.enabled !== false,
-    };
-  } catch {
-    return EMPTY_CONTEXT;
-  }
+async function load(cwd: string): Promise<{ context: RefContext; error: string | null }> {
+	const result = await invoke<{
+		remote: string | null;
+		remote_error?: string | null;
+		references: Record<string, unknown> | null;
+	}>('project_refs', {
+		cwd,
+	});
+	const conf = parseReferences(result.references ?? {});
+	// "repo" in .heidrun/config.json overrides the Git remote.
+	const source = conf.repo ?? result.remote;
+	const web = source ? remoteToWeb(source) : null;
+	// Unknown hosts are most often self-hosted GitLab.
+	const forge: Forge | null = conf.forge ?? (web ? (web.host.includes('github') ? 'github' : 'gitlab') : null);
+	const tickets = typeof conf.tickets === 'string'
+		? {
+			url: conf.tickets,
+		}
+		: conf.tickets ?? {};
+	const context: RefContext = {
+		base: web?.base ?? null,
+		origin: web?.origin ?? null,
+		forge,
+		ticketUrl: tickets.url ?? null,
+		ticketPrefixes: (tickets.prefixes ?? []).map((prefix) => prefix.toUpperCase()),
+		enabled: conf.enabled !== false,
+	};
+	return {
+		context,
+		error: result.remote_error ?? null,
+	};
 }
 
 export function issueUrl(base: string | null, forge: Forge | null, n: string): string | null {

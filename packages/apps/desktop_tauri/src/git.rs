@@ -30,6 +30,8 @@ pub struct GitStatus {
     pub last_subject: Option<String>,
     pub last_time: Option<i64>,
     pub remote: Option<String>,
+    pub reference_remote: Option<String>,
+    pub reference_remote_error: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -80,6 +82,46 @@ pub(crate) fn output_error(output: &std::process::Output) -> Option<String> {
     }
     let error = String::from_utf8_lossy(&output.stderr).trim().to_string();
     Some(if error.is_empty() { output.status.to_string() } else { error })
+}
+
+/// Reads the origin URL and the URL used for repository references.
+pub(crate) async fn reference_remotes(root: &std::path::Path) -> Result<(Option<String>, Option<String>), String> {
+    let origin = read_remote_setting(root, &["config", "--get", "remote.origin.url"], true).await?;
+    if origin.is_some() {
+        return Ok((origin.clone(), origin));
+    }
+    let names = read_remote_setting(root, &["remote"], false).await?;
+    let Some(first) = names.as_deref().and_then(|names| names.lines().next()) else {
+        return Ok((None, None));
+    };
+    let key = format!("remote.{first}.url");
+    let remote = read_remote_setting(root, &["config", "--get", &key], true).await?;
+    Ok((None, remote))
+}
+
+async fn read_remote_setting(
+    root: &std::path::Path,
+    args: &[&str],
+    allow_missing: bool,
+) -> Result<Option<String>, String> {
+    let started = Instant::now();
+    let result = match tokio::time::timeout(
+        Duration::from_secs(8),
+        Command::new("git").arg("-C").arg(root).args(args).kill_on_drop(true).output(),
+    ).await {
+        Err(_) => Err("Git remote lookup timed out.".to_string()),
+        Ok(Err(error)) => Err(format!("Git remote lookup failed: {error}")),
+        Ok(Ok(output)) if output.status.success() => {
+            let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            Ok((!value.is_empty()).then_some(value))
+        }
+        Ok(Ok(output)) if allow_missing && output.status.code() == Some(1) && output.stderr.is_empty() => {
+            Ok(None)
+        }
+        Ok(Ok(output)) => Err(output_error(&output).unwrap_or_else(|| "Git remote lookup failed.".to_string())),
+    };
+    record_git_call(args, started, result.as_ref().err().map(String::as_str));
+    result
 }
 
 /// Names with quotes or control characters are still C-quoted by git, even with
@@ -175,7 +217,22 @@ fn parse_status(text: &str, st: &mut GitStatus) {
 /// containing `cwd`; `None` when it is not a Git repository.
 #[tauri::command]
 pub async fn git_status(cwd: String) -> Option<GitStatus> {
-    let root = git(&cwd, &["rev-parse", "--show-toplevel"]).await?.trim().to_string();
+    let root = match git(&cwd, &["rev-parse", "--show-toplevel"]).await {
+        Some(root) => root.trim().to_string(),
+        None => {
+            let root = crate::project::find_root(std::path::Path::new(&cwd));
+            if !root.join(".git").exists() {
+                return None;
+            }
+            // A broken Git configuration can stop both root detection and the remote lookup.
+            let error = reference_remotes(&root).await.err()?;
+            return Some(GitStatus {
+                root: root.display().to_string(),
+                reference_remote_error: Some(error),
+                ..Default::default()
+            });
+        }
+    };
     let mut st = GitStatus { root: root.clone(), ..Default::default() };
     remember_root(&root);
     if let Some(text) = git(&root, &["-c", "core.quotepath=off", "status", "--porcelain=v2", "--branch", "--untracked-files=all"]).await {
@@ -187,7 +244,13 @@ pub async fn git_status(cwd: String) -> Option<GitStatus> {
         st.last_subject = it.next().map(str::to_string);
         st.last_time = it.next().and_then(|t| t.parse().ok());
     }
-    st.remote = git(&root, &["config", "--get", "remote.origin.url"]).await.map(|s| s.trim().to_string());
+    match reference_remotes(std::path::Path::new(&root)).await {
+        Ok((origin, remote)) => {
+            st.remote = origin;
+            st.reference_remote = remote;
+        }
+        Err(error) => st.reference_remote_error = Some(error),
+    }
     Some(st)
 }
 
@@ -802,6 +865,37 @@ mod path_tests {
         assert_eq!(calls[0].1, v(&["api", "-X", "PUT", "projects/:fullpath/merge_requests/7", "-F", "remove_source_branch=false"]));
         assert_eq!(calls[1].1, v(&["api", "-X", "PUT", "projects/:fullpath/merge_requests/7/merge", "-F", "squash=false", "-F", "should_remove_source_branch=false"]));
         assert!(merge_calls("bitbucket", 1, None, "merge", false).is_err());
+    }
+
+    #[tokio::test]
+    async fn reference_remote_tracks_git_changes_and_reports_lookup_failures() {
+        let repository = tempfile::tempdir().unwrap();
+        let root = repository.path();
+        let git = |args: &[&str]| {
+            let output = std::process::Command::new("git").arg("-C").arg(root).args(args).output().unwrap();
+            assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        };
+        git(&["init", "--quiet"]);
+        assert_eq!(reference_remotes(root).await.unwrap(), (None, None));
+
+        let fallback = "https://github.com/team/fallback.git";
+        git(&["remote", "add", "upstream", fallback]);
+        assert_eq!(reference_remotes(root).await.unwrap(), (None, Some(fallback.into())));
+
+        git(&["remote", "add", "origin", "https://github.com/team/first.git"]);
+        let changed = "https://github.com/team/second.git";
+        git(&["remote", "set-url", "origin", changed]);
+        assert_eq!(reference_remotes(root).await.unwrap(), (Some(changed.into()), Some(changed.into())));
+
+        git(&["remote", "remove", "origin"]);
+        assert_eq!(reference_remotes(root).await.unwrap(), (None, Some(fallback.into())));
+        git(&["remote", "remove", "upstream"]);
+        assert_eq!(reference_remotes(root).await.unwrap(), (None, None));
+
+        std::fs::write(root.join(".git/config"), "[invalid\n").unwrap();
+        assert!(reference_remotes(root).await.unwrap_err().contains("bad config line"));
+        let status = git_status(root.display().to_string()).await.unwrap();
+        assert!(status.reference_remote_error.unwrap().contains("bad config line"));
     }
 
     #[tokio::test]

@@ -20,6 +20,8 @@ export interface GitStatus {
   last_subject: string | null;
   last_time: number | null;
   remote: string | null;
+  reference_remote?: string | null;
+  reference_remote_error?: string | null;
 }
 
 export type Level = "ok" | "warn" | "crit" | "pending" | "muted";
