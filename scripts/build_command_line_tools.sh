@@ -8,23 +8,30 @@ TAURI_CONFIGURATION_FILE="${ROOT_FOLDER}/packages/apps/desktop_tauri/tauri.conf.
 # The release build of the application (tauri build) sets MACOSX_DEPLOYMENT_TARGET to the value of
 # minimumSystemVersion. The tools share the folder target/release with the application, so they use the same value.
 # With another value, each build compiles again the dependencies that the other build compiled (issue 877).
-if [ -z "${MACOSX_DEPLOYMENT_TARGET:-}" ]; then
+HOST_SYSTEM="$(uname -s)"
+if [ "$HOST_SYSTEM" = Darwin ] && [ -z "${MACOSX_DEPLOYMENT_TARGET:-}" ]; then
 	MINIMUM_SYSTEM_VERSION="$(sed -n 's/.*"minimumSystemVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${TAURI_CONFIGURATION_FILE}")"
 	if [ -n "${MINIMUM_SYSTEM_VERSION}" ]; then
 		export MACOSX_DEPLOYMENT_TARGET="${MINIMUM_SYSTEM_VERSION}"
 	fi
 fi
 
-(cd "${ROOT_FOLDER}/packages/auxiliary/heidrun_code_ctrl" && cargo build --release)
+(cd "${ROOT_FOLDER}/packages/auxiliary/heidrun_code_ctrl" && cargo build --locked --release)
 # The package heidrun_data comes from the submodule submodules/heidrun_data. Its own file .cargo/config.toml sends the
 # compiled files to the folder target of the submodule, so Cargo runs at the root of the repository, where the file
 # .cargo/config.toml of Heidrun Code sends them to the folder target of the package desktop_tauri.
-(cd "${ROOT_FOLDER}" && cargo build --release --package heidrun_data)
+(cd "${ROOT_FOLDER}" && cargo build --locked --release --package heidrun_data)
 
 # The build script of the application watches the bundled tools. A copy gives a tool a new date, and the application
 # is then compiled again, so a tool is copied only when its content changed (issue 877).
+TOOL_SUFFIX=""
+case "$HOST_SYSTEM" in
+	MINGW*|MSYS*) TOOL_SUFFIX=".exe" ;;
+esac
+
 mkdir -p "${COMMANDS_FOLDER}"
 for TOOL_NAME in heidrun_code_ctrl heidrun_data; do
+	TOOL_NAME="${TOOL_NAME}${TOOL_SUFFIX}"
 	BUILT_TOOL="${ROOT_FOLDER}/packages/apps/desktop_tauri/target/release/${TOOL_NAME}"
 	if ! cmp -s "${BUILT_TOOL}" "${COMMANDS_FOLDER}/${TOOL_NAME}"; then
 		cp "${BUILT_TOOL}" "${COMMANDS_FOLDER}/${TOOL_NAME}"

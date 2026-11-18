@@ -1,0 +1,11 @@
+{
+  "bundle": {
+    "targets": ["nsis"],
+    "resources": {
+      "target/release/bundled_commands/heidrun_code_ctrl": null,
+      "target/release/bundled_commands/heidrun_data": null,
+      "target/release/bundled_commands/heidrun_code_ctrl.exe": "binaries/heidrun_code_ctrl.exe",
+      "target/release/bundled_commands/heidrun_data.exe": "binaries/heidrun_data.exe"
+    }
+  }
+}
