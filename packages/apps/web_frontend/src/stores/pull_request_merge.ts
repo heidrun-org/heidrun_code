@@ -15,8 +15,11 @@ import { toast } from "./session";
 /** A merge method of GitHub. On GitLab, the method is a setting of the project, and only the squash is a choice. */
 export type MergeMethod = "merge" | "squash" | "rebase";
 
-/** The approval state of a pull request or of a merge request. */
-export type ApprovalState = "approved" | "changesRequested" | "reviewRequired";
+/**
+ * The approval state of a pull request or of a merge request. `notApproved`: the repository asks for no review, and
+ * nobody approved the item yet (issue #1044).
+ */
+export type ApprovalState = "approved" | "changesRequested" | "reviewRequired" | "notApproved";
 
 /** What the hosting service says about one pull request or merge request, and about the settings of its repository. */
 export type MergeFacts = {
@@ -34,7 +37,7 @@ export type MergeFacts = {
   baseBranch: string | null;
   /** The last commit of the branch with the changes, or null. The hosting service refuses the merge when it changed. */
   headSha: string | null;
-  /** The approval state, or null when the repository asks for no review. */
+  /** The approval state, or null when the hosting service did not give it (GitLab: the approvals could not be read). */
   approval: ApprovalState | null;
   /** GitLab: the number of approvals that the merge request still needs, or null. */
   approvalsLeft: number | null;
@@ -116,6 +119,25 @@ const GITHUB_APPROVAL: Record<string, ApprovalState> = {
   REVIEW_REQUIRED: "reviewRequired",
 };
 
+/**
+ * The approval state of a pull request of GitHub. When the repository asks for no review, GitHub gives an empty review
+ * decision: the state then comes from the last review of each person, and a request for changes wins over an approval
+ * (issue #1044).
+ * @param pullRequest - what `gh pr view` printed
+ * @returns the approval state
+ */
+export function githubApproval(pullRequest: GithubPullRequest): ApprovalState {
+  const decided = GITHUB_APPROVAL[pullRequest.reviewDecision ?? ""];
+  if (decided !== undefined) {
+    return decided;
+  }
+  const states = (pullRequest.latestReviews ?? []).map((review) => review.state);
+  if (states.includes("CHANGES_REQUESTED")) {
+    return "changesRequested";
+  }
+  return states.includes("APPROVED") ? "approved" : "notApproved";
+}
+
 /** The reason of each detailed merge status of GitLab that refuses the merge. The other statuses accept it, or are unknown. */
 const GITLAB_BLOCK_KEYS: Record<string, string> = {
   not_open: "mergeModal.blockNotOpen",
@@ -184,7 +206,7 @@ export function githubMergeFacts(pullRequest: GithubPullRequest, repository: Git
     headBranch: pullRequest.headRefName ?? null,
     baseBranch: pullRequest.baseRefName ?? null,
     headSha: pullRequest.headRefOid ?? null,
-    approval: GITHUB_APPROVAL[pullRequest.reviewDecision ?? ""] ?? null,
+    approval: githubApproval(pullRequest),
     approvalsLeft: null,
     approvers,
     blockKey: githubBlockKey(pullRequest),
@@ -226,6 +248,9 @@ export function gitlabMergeFacts(
     approval = "reviewRequired";
   } else if (approvals?.approved === true && (approvals.approved_by ?? []).length > 0) {
     approval = "approved";
+  } else if (approvals !== null) {
+    // No approval rule asks for a review, and nobody approved the merge request yet (issue #1044).
+    approval = "notApproved";
   }
   const squashOption = project?.squash_option ?? "default_off";
   const forced = mergeRequest.force_remove_source_branch;
@@ -315,7 +340,7 @@ export function mergeBlockReason(facts: MergeFacts): string | null {
 /**
  * The text of the approval state, for example "Approved", or "Review required · 1 approval left".
  * @param facts - the merge facts
- * @returns the text, or an empty text when the repository asks for no review
+ * @returns the text, or an empty text when the approval state is not known
  */
 export function approvalText(facts: MergeFacts): string {
   if (facts.approval === null) {
@@ -333,7 +358,21 @@ export const APPROVAL_KEYS: Record<ApprovalState, string> = {
   approved: "mergeModal.approved",
   changesRequested: "mergeModal.changesRequested",
   reviewRequired: "mergeModal.reviewRequired",
+  notApproved: "mergeModal.notApproved",
 };
+
+/**
+ * The color of the approval chip: green when the item is approved, orange when a review is missing or asks for changes,
+ * and gray when the repository asks for no review and nobody approved yet (issue #1044).
+ * @param approval - the approval state
+ * @returns the class of the chip
+ */
+export function approvalLevel(approval: ApprovalState): "ok" | "warn" | "muted" {
+  if (approval === "approved") {
+    return "ok";
+  }
+  return approval === "notApproved" ? "muted" : "warn";
+}
 
 /** The merge window: it opens on a pull request or a merge request, and merges only after the click on its button "Merge". */
 export const pullRequestMerge = reactive({
