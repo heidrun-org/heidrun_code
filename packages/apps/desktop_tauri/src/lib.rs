@@ -495,6 +495,7 @@ pub fn run() {
             skills::search::skills_find_local_folders,
             skills::search::skills_find_folders,
             skills::install::skills_preview,
+            skills::install::skillsCompare,
             skills::install::skills_install,
             skills::install::skills_preview_folder,
             skills::install::skills_install_folder,

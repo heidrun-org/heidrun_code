@@ -24,22 +24,21 @@ import { t } from "../../i18n/index";
 // it opens a card that tells the name, the description, and the place of the skill; the pointer over it opens nothing. The second line has the place of the skill: when it is too long
 // for the row, it scrolls from the right to the left while the pointer is over the row (a CSS transition on `transform`, so
 // that the move is smooth, below one pixel). At the right of the row, the small
-// badge "Different" (when the skill is installed with another SKILL.md file) stands at the left of the buttons, at their
+// badge "Different" (when the installed skill files differ) stands at the left of the buttons, at their
 // height. The buttons are one button group of fixed width, cut in two equal halves, so the rows line up: "Inspect", then
-// "Install", or "Installed" when the installed skill has the same SKILL.md file.
+// "Install", or "Installed" when the skill is already installed and there is no confirmed difference.
 
 /** The time that the path needs for each pixel of its scroll, in milliseconds. The delay before it starts is in the style. */
 const SCROLL_MS_PER_PIXEL = 12;
 
 const props = defineProps<{ result: SearchResult }>();
 
-// A result that is installed at the chosen level is compared with the installed skill of the same name, now and each time
-// that the level changes or the installation ends.
+// Repeat the comparison when a new search returns the same result or the chosen installation changes.
 watch(
-  () => (isInstalledAtLevel(props.result) ? comparisonKey(props.result) : ""),
-  (key) => {
+  [() => props.result, () => (isInstalledAtLevel(props.result) ? comparisonKey(props.result) : "")],
+  ([result, key]) => {
     if (key !== "") {
-      compareWithInstalled(props.result);
+      compareWithInstalled(result);
     }
   },
   { immediate: true },
