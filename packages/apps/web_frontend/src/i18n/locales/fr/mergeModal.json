@@ -29,6 +29,7 @@
   "approved": "Approuvée",
   "changesRequested": "Changements demandés",
   "reviewRequired": "Revue requise",
+  "notApproved": "Non approuvée",
   "approvalsLeft_one": "{count} approbation restante",
   "approvalsLeft_other": "{count} approbations restantes",
   "approvedBy": "Approuvée par {names}",

@@ -15,7 +15,7 @@ The live observation sources of the Heidrun Code Dashboard: the one shared colle
 ## Rules
 - The collector reads only: the connection of the collector accepts only `thread/read`, `thread/list`, `thread/items/list`, and `thread/turns/list`. It never starts, resumes, or answers a chat, and never sends input to a pane.
 - Only `codex_chat_preparation.rs` opens a connection with `thread/start` and `thread/name/set`, and only for a new pane that Heidrun Code starts.
-- Nothing here starts a Codex server. A missing socket, an error, or a timeout gives the coverage `unavailable`, never fictional data.
+- Nothing here starts a Codex server. A missing socket, an error, or a timeout gives the coverage `unavailable`, never fictional data. Its reason is not also an error entry. Without a Codex root chat, the server is not asked, and the coverage is `not_needed`; when Herdr gives no snapshot, it is `unavailable`; before the first collection, it is `pending` (issue #1016).
 - The Codex panes come from the Herdr session that `crate::herdr` already uses, through `crate::herdr::request`. Never open another Herdr session.
 - A Codex root chat comes only from the `agent_session` of a pane; a Claude Code session belongs to a pane only through `herdrPaneId` and its Herdr socket. Never match by a title or a folder.
 - Every reading is bounded: at most 200 snapshot files (the newest), 200 messages per session, 100 descendants per root chat, and 100 items per chat.

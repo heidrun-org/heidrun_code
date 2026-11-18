@@ -11,6 +11,7 @@ import { t } from "../i18n/index";
 import { parseProjectConfig, type Launcher, type ProjectConfig, type ProjectGuard, type LauncherAgent } from "../lib/project_config";
 import { withBuiltInGuard, withProjectGuard, withoutProjectGuard } from "../lib/guards_edit";
 import { launcherNameFromCommand } from "../lib/launcher_name";
+import { moveId } from "../lib/reorder";
 import { UserLaunchers, userLaunchers } from "./user_launchers";
 import { prepareAgentCommand, reportPreparedCodexChat, type PreparedAgentCommand } from "./coding_agent_start";
 
@@ -99,7 +100,7 @@ export function launcherKey(launcher: { command: string; cwd?: string }): string
 
 /**
  * The launchers that a workspace shows: the launchers of the user level first, then the launchers of the workspace level,
- * each group in the order of saving.
+ * each group in the order of its file, which the developer changes by drag and drop (issue #1042).
  */
 export function launchersOf(workspaceId: string): Launcher[] {
   return [...userLaunchers.list, ...(project.byWorkspace[workspaceId]?.config.launchers ?? [])];
@@ -211,6 +212,51 @@ export async function updateLauncher(workspaceId: string, id: string, values: Om
     return;
   }
   await UserLaunchers.change((list) => list.filter((x) => x.id !== id));
+}
+
+/**
+ * Moves the launcher `id` to the gap `at` of the launchers of its level (0 is before the first one, the number of launchers of
+ * the level is after the last one), and writes the file of the level: `launchers.json` for the user level, the key `launchers`
+ * of `.heidrun/config.json` for the workspace level. A launcher never leaves its level. When the file cannot be written, the
+ * order does not change (issue #1042).
+ * @returns True when the new order is written.
+ */
+export async function moveLauncher(workspaceId: string, id: string, at: number): Promise<boolean> {
+  const p = project.byWorkspace[workspaceId];
+  if (p === undefined) return false;
+  if (userLaunchers.list.some((launcher) => launcher.id === id)) {
+    return UserLaunchers.change((list) => orderedLaunchers(list, id, at));
+  }
+  if (p.config.launchers.some((launcher) => launcher.id === id) === false) return false;
+  const oldLaunchers = p.config.launchers;
+  p.config.launchers = orderedLaunchers(oldLaunchers, id, at);
+  if ((await saveProject(workspaceId)) === false) {
+    p.config.launchers = oldLaunchers;
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Moves the launcher `id` one place up (`-1`) or down (`1`) inside its level, for the keyboard. At the top or at the bottom of
+ * its level, nothing moves.
+ * @returns True when the new order is written.
+ */
+export async function shiftLauncher(workspaceId: string, id: string, delta: -1 | 1): Promise<boolean> {
+  const p = project.byWorkspace[workspaceId];
+  if (p === undefined) return false;
+  const level = userLaunchers.list.some((launcher) => launcher.id === id) ? userLaunchers.list : p.config.launchers;
+  const from = level.findIndex((launcher) => launcher.id === id);
+  if (from === -1) return false;
+  const to = from + delta;
+  if (to < 0 || to >= level.length) return false;
+  return moveLauncher(workspaceId, id, delta === 1 ? from + 2 : from - 1);
+}
+
+/** The launchers of `list` with `id` moved to the gap `at`, as a new list. */
+function orderedLaunchers(list: Launcher[], id: string, at: number): Launcher[] {
+  const byId = new Map(list.map((launcher) => [launcher.id, launcher]));
+  return moveId(list.map((launcher) => launcher.id), id, at).map((launcherId) => byId.get(launcherId)!);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

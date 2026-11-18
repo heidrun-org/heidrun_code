@@ -7,7 +7,7 @@ import { settings } from "../stores/settings";
 import { renderMarkdown } from "../lib/markdown";
 import AbbreviatedTime from "./AbbreviatedTime.vue";
 import PullRequestMergeBar from "./PullRequestMergeBar.vue";
-import { pullRequestMerge } from "../stores/pull_request_merge";
+import { approvalLevel, approvalText, pullRequestMerge } from "../stores/pull_request_merge";
 import { stateOf } from "../stores/issues";
 import { t } from "../i18n/index";
 
@@ -28,6 +28,12 @@ const mdCtx = computed(() => {
 const body = computed(() => (d.value?.body ? renderMarkdown(d.value.body, mdCtx.value) : ""));
 const comments = computed(() => (d.value?.comments ?? []).map((c) => ({ ...c, html: renderMarkdown(c.body, mdCtx.value) })));
 const webUrl = computed(() => issueView.url ?? d.value?.url ?? null);
+// The approval state of an open pull request or merge request, next to its state in the header (issue #1044).
+const approval = computed(() => {
+  const facts = issueView.merge?.facts ?? null;
+  if (facts === null || facts.isOpen === false || facts.approval === null) return null;
+  return { text: approvalText(facts), level: approvalLevel(facts.approval), approvers: facts.approvers };
+});
 const forgeName = computed(() => d.value?.forge ?? (issueView.url?.includes("github") ? "GitHub" : "GitLab"));
 
 function close() {
@@ -74,6 +80,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
         <div class="title">
           <span class="mono ref">{{ d?.ref ?? "…" }}</span>
           <span v-if="d" class="chip" :class="d.stateLevel">{{ d.state }}</span>
+          <span
+            v-if="d && approval"
+            class="chip"
+            :class="approval.level"
+            :title="approval.approvers.length > 0 ? t('mergeModal.approvedBy', { names: approval.approvers.join(', ') }) : undefined"
+            data-issue-approval
+          >{{ approval.text }}</span>
           <span v-for="l in d?.labels ?? []" :key="l" class="label">{{ l }}</span>
         </div>
         <div class="tools">
@@ -105,6 +118,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
               :forge="issueView.merge.forge"
               :name="d.ref"
               :web-base="issueView.merge.webBase"
+              hides-approval
             />
           </div>
           <article v-if="body" class="md-doc" :class="{ full: settings.mdWidth === 'full' }" v-html="body"></article>
@@ -137,6 +151,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
 .chip { height: 22px; padding: 0 8px; border-radius: 11px; display: inline-flex; align-items: center; font-size: var(--font-size); font-weight: 600; background: var(--chip); color: var(--text-2); }
 .chip.ok { background: var(--tint-ok); color: var(--ok); } .chip.merged { background: var(--tint-merged); color: var(--question); }
 .chip.crit { background: var(--tint-crit); color: var(--blocked-text); } .chip.muted { color: var(--muted); }
+.chip.warn { background: var(--tint-warn); color: var(--accent); }
 .tools { display: flex; align-items: center; gap: 8px; }
 .seg { display: inline-flex; padding: 2px; border-radius: 8px; background: var(--bg); gap: 2px; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 40px 60px; }

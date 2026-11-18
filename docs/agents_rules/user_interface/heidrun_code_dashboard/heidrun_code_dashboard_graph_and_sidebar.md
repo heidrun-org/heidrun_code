@@ -1,11 +1,11 @@
 # Heidrun Code Dashboard graph and sidebar
 
 - Created: 30 October 2026
-- Last updated: 30 October 2026
+- Last updated: 10 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Heidrun Code Dashboard data and statuses](heidrun_code_dashboard_data_and_statuses.md), [Heidrun Code Dashboard radial graph](heidrun_code_dashboard_radial_graph.md), [Glossary of Heidrun Code: Heidrun Code Dashboard](../../glossary/heidrun_code_dashboard.md), [Shared design rules](../../web_styling/shared_design.md)
-- Related issue: [issue 968](https://github.com/heidrun-org/heidrun_code/issues/968), [issue 971](https://github.com/heidrun-org/heidrun_code/issues/971), [issue 972](https://github.com/heidrun-org/heidrun_code/issues/972)
+- Related issue: [issue 968](https://github.com/heidrun-org/heidrun_code/issues/968), [issue 971](https://github.com/heidrun-org/heidrun_code/issues/971), [issue 972](https://github.com/heidrun-org/heidrun_code/issues/972), [issue 1016](https://github.com/heidrun-org/heidrun_code/issues/1016)
 
 This file gives the rules of the Heidrun Code Dashboard view: the opening, the selection, the right sidebar, the counters, and the filters. The static radial graph follows [heidrun_code_dashboard_radial_graph.md](heidrun_code_dashboard_radial_graph.md). The code is in `packages/apps/web_frontend/src/components/heidrun_code_dashboard`, `packages/apps/web_frontend/src/stores/heidrun_code_dashboard`, and `packages/apps/web_frontend/src/lib/heidrun_code_dashboard/heidrun_code_dashboard_layout.ts`. The data that the view shows follows [heidrun_code_dashboard_data_and_statuses.md](heidrun_code_dashboard_data_and_statuses.md).
 
@@ -28,6 +28,8 @@ This file gives the rules of the Heidrun Code Dashboard view: the opening, the s
 
 ## Right sidebar
 
+- The button at the right of the counters folds the sidebar to a strip of 52 pixels: the button that unfolds it; a warning button, which also unfolds it, while a coverage notice warns (no observation, stale observations, Codex server not available, stale items, or an error of a source); one counter for each status, as a dot and a number, which filters as the counters of the sidebar do, with the same title; and the button "All" while a filter is on. While the sidebar is folded, the message of an "Open in Heidrun Code" that opened nothing shows over the top right of the graph. The graph then takes the whole width, and its drawing stays centered on Heidrun. The fold is saved in `localStorage`, under one key for the modal and the separate window, and under another key for the page of the local network. On a narrow page of the local network, the strip is one row below the graph (issue 1016).
+
 
 - Heidrun: the pending attention first (the requests that the developer must answer, then the others, then the blocked items with no observed request), then the workspaces.
 - Workspace or tab: the status, the coverage, the saved workspace folder (never the folder of a pane), the tabs with their coding agents and the nested subagents, the pending attention, and the recent observed messages.
@@ -35,7 +37,7 @@ This file gives the rules of the Heidrun Code Dashboard view: the opening, the s
 - The terminal preview reads the last lines of the pane with the Herdr request `pane.read`, every two seconds. It never attaches to the terminal, never resizes it, and never takes the input focus.
 - Subagent: the native status with its source, the visible status, the outcome, the notices, the parent, the initial instructions or "Not available", the pending attention, a preview labelled "Transcript" (never "terminal"), and the observed messages. The transcript of a Claude Code subagent comes from `claude_session_agents`. Codex exposes no transcript of a child chat, and the sidebar says so.
 - An unavailable field says that it is unavailable. A Codex message with no text says "Content not exposed by Codex".
-- The coverage notices are always visible: no observation yet, stale observations, Claude Code not observed (with the place of the option in Settings), Codex server not available, stale items, unmatched coding agents, chats that no pane claims, and the errors of the sources.
+- The coverage notices are always visible: no observation yet, stale observations, Claude Code not observed (with the place of the option in Settings), Codex server not available, stale items, unmatched coding agents, chats that no pane claims, and the errors of the sources. When no pane of the Herdr session has a Codex chat, the collector does not ask the shared Codex server, its coverage is `not_needed`, and no Codex notice shows. Before the first collection, the coverage is `pending`, with no notice either. When Herdr does not give the panes, the Codex chats are unknown: the coverage is `unavailable`, never `not_needed`. When the server is not available, its reason shows once, as the notice "Codex server not available", and never also as an error of a source (issue 1016).
 - There is no Approve button. "Open in Heidrun Code" reads the Herdr snapshot again, then selects the exact workspace, tab, and pane in the main window and closes the modal, or shows why nothing opened: [heidrun_code_dashboard_display_modes.md](heidrun_code_dashboard_display_modes.md).
 
 ## Counters and filters

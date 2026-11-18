@@ -7,7 +7,8 @@
 // - issue #570
 import { computed, nextTick, onMounted, ref } from "vue";
 import {
-  APPROVAL_KEYS,
+  approvalLevel,
+  approvalText,
   closeMergeWindow,
   confirmMergeWindow,
   isPermanentBranch,
@@ -58,10 +59,7 @@ const gitlabMethodText = computed(() => {
       <template v-else-if="facts !== null">
         <p class="branches mono">{{ facts.headBranch }} → {{ facts.baseBranch }}</p>
         <div v-if="facts.approval !== null || facts.approvers.length > 0" class="chips">
-          <span v-if="facts.approval !== null" class="chip" :class="facts.approval === 'approved' ? 'ok' : 'warn'" data-merge-approval>
-            {{ t(APPROVAL_KEYS[facts.approval]) }}<template v-if="facts.approvalsLeft !== null && facts.approvalsLeft > 0">
-              · {{ t("mergeModal.approvalsLeft", { count: facts.approvalsLeft }) }}</template>
-          </span>
+          <span v-if="facts.approval !== null" class="chip" :class="approvalLevel(facts.approval)" data-merge-approval>{{ approvalText(facts) }}</span>
           <span v-if="facts.approvers.length > 0" class="hint">{{ t("mergeModal.approvedBy", { names: facts.approvers.join(", ") }) }}</span>
         </div>
         <p v-if="blockReason !== null" class="warn" data-merge-block>{{ blockReason }}</p>

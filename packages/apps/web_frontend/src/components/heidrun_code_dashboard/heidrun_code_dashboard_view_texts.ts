@@ -40,6 +40,45 @@ const AGENT_ICON_GLYPHS = {
 
 /** The texts and the cues of the Heidrun Code Dashboard view. */
 export class HeidrunCodeDashboardViewTexts {
+	/** The statuses of the counters, in the order of the aggregation, with unknown last. The sidebar and its folded strip share it. */
+	static readonly COUNTER_STATUSES: HeidrunCodeDashboardVisibleStatus[] = ['working', 'blocked', 'finished', 'idle', 'unknown'];
+
+	/**
+	 * The class of the shared status dot: Finished uses the class `done` of the panes, Idle has no extra class.
+	 * @param status The visible status.
+	 * @returns The class of the dot.
+	 */
+	static statusDotClass(status: HeidrunCodeDashboardVisibleStatus): string {
+		if (status === 'finished') {
+			return 'done';
+		}
+		return status === 'idle' ? '' : status;
+	}
+
+	/**
+	 * The number of coding agents and subagents of a status, from the whole model: it never follows the filter.
+	 * @param model The Heidrun Code Dashboard model.
+	 * @param status The visible status.
+	 * @returns The number.
+	 */
+	static counterTotal(model: HeidrunCodeDashboardModel, status: HeidrunCodeDashboardVisibleStatus): number {
+		return model.counters.codingAgents[status] + model.counters.subagents[status];
+	}
+
+	/**
+	 * True when a coverage notice warns that the view is not complete or not fresh: no observation, stale observations,
+	 * the Codex server not available, stale items, or an error of a source. The folded strip shows a warning then, so that
+	 * a folded sidebar never hides it (issue #1016).
+	 * @param model The Heidrun Code Dashboard model.
+	 * @returns True when a warning shows in the sidebar.
+	 */
+	static hasCoverageWarning(model: HeidrunCodeDashboardModel): boolean {
+		return model.observationsState !== 'fresh'
+			|| model.codexCoverage === 'unavailable'
+			|| model.coverage.stale > 0
+			|| model.errors.length > 0;
+	}
+
 	/**
 	 * Gives the name of a coding agent.
 	 * @param agent The coding agent that Herdr detects, for example `claude`.
