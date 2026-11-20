@@ -57,6 +57,30 @@ describe("the section Voice input", () => {
 		expect(wrapper.get("#voice-input-model").attributes("disabled")).toBeDefined();
 	});
 
+	it('saves numeric recording durations and keeps the warning before the maximum', async () => {
+		settings.voiceInput = true;
+		const wrapper = await mountSection();
+		const maximum = wrapper.get<HTMLInputElement>('#recordingMaximum');
+		const warning = wrapper.get<HTMLInputElement>('#recordingWarning');
+		expect(maximum.element.value).toBe('15');
+		expect(warning.element.value).toBe('10');
+		try {
+			await maximum.setValue('5');
+			expect(warning.element.value).toBe('4');
+			await warning.setValue('3');
+			const saved = JSON.parse(localStorage.getItem('heidrun.settings') ?? '{}');
+			expect(saved.voiceRecordingMaxMinutes).toBe(5);
+			expect(saved.voiceRecordingWarningMinutes).toBe(3);
+			await maximum.setValue('20');
+			expect(maximum.element.value).toBe('15');
+			await warning.setValue('');
+			expect(warning.element.value).toBe('3');
+		} finally {
+			settings.voiceRecordingMaxMinutes = 15;
+			settings.voiceRecordingWarningMinutes = 10;
+		}
+	});
+
 	it("opens no microphone and downloads nothing when the option is off", async () => {
 		await mountSection();
 		const names = invokeMock.mock.calls.map((call) => call[0]);

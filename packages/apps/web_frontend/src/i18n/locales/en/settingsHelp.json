@@ -1,4 +1,6 @@
 {
+  "recordingMaximum.how": "Enter a whole number from 2 to 15. The default is 15 minutes.",
+  "recordingWarning.how": "Enter a whole number below the maximum duration. The default is 10 minutes.",
   "label": "About the option “{name}”",
   "whatTitle": "What it is",
   "howTitle": "How it works",
