@@ -1,4 +1,6 @@
 {
+  "recordingMaximum.how": "Saisissez un nombre entier de 2 à 15. La valeur par défaut est de 15 minutes.",
+  "recordingWarning.how": "Saisissez un nombre entier inférieur à la durée maximale. La valeur par défaut est de 10 minutes.",
   "label": "À propos de l’option « {name} »",
   "whatTitle": "Ce que c’est",
   "howTitle": "Comment ça marche",

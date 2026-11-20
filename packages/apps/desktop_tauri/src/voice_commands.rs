@@ -172,12 +172,14 @@ pub fn voice_start_recording(
     state: State<'_, VoiceState>,
     model_id: String,
     language: String,
+    maximum_seconds: Option<usize>,
 ) -> Result<(), String> {
     let mut recorder = state.recorder.lock().map_err(|_| "recording_failed".to_string())?;
     if recorder.is_some() {
         return Err(report(VoiceError::AlreadyRecording));
     }
-    let started = Recorder::start_with_levels(move |level| {
+    let maximum_seconds = maximum_seconds.unwrap_or(voice_input::recording::MAXIMUM_SECONDS);
+    let started = Recorder::start_limited(maximum_seconds, move |level| {
         let _ = app.emit(LEVEL_EVENT, level);
     });
     let error = started.as_ref().err().map(|error| error.category().to_string());

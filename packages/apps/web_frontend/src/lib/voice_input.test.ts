@@ -92,6 +92,39 @@ afterEach(async () => {
 	vi.useRealTimers();
 });
 
+describe('Recording duration', () => {
+	it('warns at the selected time and transcribes at the selected limit', async () => {
+		vi.useRealTimers();
+		vi.useFakeTimers({
+			toFake: ['Date', 'setTimeout', 'clearTimeout'],
+		});
+		const previousMaximum = settings.voiceRecordingMaxMinutes;
+		const previousWarning = settings.voiceRecordingWarningMinutes;
+		settings.voiceRecordingMaxMinutes = 2;
+		settings.voiceRecordingWarningMinutes = 1;
+		invokeMock.mockImplementation(async (name: string) => answer(name, 'Captured speech'));
+		try {
+			await VoiceInput.press('pane-1');
+			await VoiceInput.release(false, 'pane-1');
+			expect(invokeMock).toHaveBeenCalledWith('voice_start_recording', expect.objectContaining({
+				maximumSeconds: 120,
+			}));
+			await vi.advanceTimersByTimeAsync(59_999);
+			expect(voiceInput.isDurationWarning).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
+			expect(voiceInput.isDurationWarning).toBe(true);
+			await vi.advanceTimersByTimeAsync(60_000);
+			expect(voiceInput.isDurationWarning).toBe(false);
+			expect(voiceInput.state).toBe('idle');
+			expect(compositionBar.text).toBe('Captured speech');
+			expect(commandNames()).toEqual(['voice_start_recording', 'voice_stop_recording', 'voice_transcribe_recording']);
+		} finally {
+			settings.voiceRecordingMaxMinutes = previousMaximum;
+			settings.voiceRecordingWarningMinutes = previousWarning;
+		}
+	});
+});
+
 describe("VoiceInput.loadOptions", () => {
 	it("reads the options of the desktop application, and listens once to the progress of the downloads", async () => {
 		voiceInput.options = null;
@@ -212,7 +245,11 @@ describe("VoiceInput.press and VoiceInput.release: a long press", () => {
 		passTime(LONG_PRESS_MILLISECONDS + 100);
 		await VoiceInput.release(false, 'pane-1');
 		expect(commandNames()).toEqual(["voice_start_recording", "voice_stop_recording", "voice_transcribe_recording"]);
-		expect(invokeMock.mock.calls[0][1]).toEqual({ modelId: "base", language: "auto" });
+		expect(invokeMock.mock.calls[0][1]).toEqual({
+		modelId: 'base',
+		language: 'auto',
+		maximumSeconds: 900,
+	});
 		expect(invokeMock.mock.calls[1][1]).toBeUndefined();
 		expect(invokeMock.mock.calls[2][1]).toEqual({ recordingId: RECORDING_ID, modelId: "base", language: "auto" });
 		expect(compositionBar.text).toBe("Run the tests again.");
@@ -226,7 +263,11 @@ describe("VoiceInput.press and VoiceInput.release: a long press", () => {
 		await VoiceInput.press('pane-1');
 		passTime(LONG_PRESS_MILLISECONDS);
 		await VoiceInput.release(false, 'pane-1');
-		expect(invokeMock.mock.calls[0][1]).toEqual({ modelId: "base", language: "fr" });
+		expect(invokeMock.mock.calls[0][1]).toEqual({
+		modelId: 'base',
+		language: 'fr',
+		maximumSeconds: 900,
+	});
 		expect(invokeMock.mock.calls[2][1]).toEqual({ recordingId: RECORDING_ID, modelId: "base", language: "fr" });
 	});
 

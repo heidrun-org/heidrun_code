@@ -1,20 +1,25 @@
 # User interface of Heidrun Code: voice input
 
 - Created: 18 October 2026
-- Last updated: 26 October 2026
+- Last updated: 20 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Information card of every option of the Settings window](settings_information_cards.md), [Composition bar](../workspaces_tabs_and_panes/composition_bar.md), [Word replacement list](settings_voice_words.md), [Voice input across panes](../workspaces_tabs_and_panes/voice_input_across_panes.md)
 - Related issue: [issue 662](https://github.com/heidrun-org/heidrun/issues/662), [issue 712](https://github.com/heidrun-org/heidrun/issues/712), [issue 736](https://github.com/heidrun-org/heidrun/issues/736), [issue 753](https://github.com/heidrun-org/heidrun/issues/753), [issue 836](https://github.com/heidrun-org/heidrun_code/issues/836), [issue 868](https://github.com/heidrun-org/heidrun_code/issues/868)
 
-This file is a part of the rules of the user interface of Heidrun Code. It gives the rules of the voice input and of the Voice input section. The words are defined in [voice_input.md](../../glossary/voice_input.md).
+See the [voice input glossary](../../glossary/voice_input.md).
 
 ## The section
 
-- The Settings window has a tenth section, "Voice input", last in the list, with the icon of a microphone. It has four options, and each option has a circled question mark with an information card in English and in French: the switch "Enable voice input", the choice "Language of the speech", the choice "Whisper model", and the "Word replacement list", which has its own rules in [settings_voice_words.md](settings_voice_words.md). The language and the model are dimmed while the switch is off.
+- The Settings window has a tenth section, "Voice input", last in the list, with the icon of a microphone. Each option has a circled question mark with an information card in English and in French: the switch "Enable voice input", the choice "Language of the speech", the choice "Whisper model", the two recording duration fields, and the "Word replacement list", which has its own rules in [settings_voice_words.md](settings_voice_words.md). The language, the model, and the recording duration fields are dimmed while the switch is off.
 - The switch is off at first. When it is off, Heidrun Code shows no push-to-talk button, downloads no model, never opens the microphone, and throws away a recording that runs.
 - The language is "Detect the language" or one of 20 languages. Each name is written in the language of the window. A model whose name ends with `.en` understands only English and ignores the choice.
 - The model list has 12 models, with the size of each beside its name, in MB or GB as Finder writes it (Mo and Go in French). The first model is `base`. `tiny` heard one short sentence wrong, so the first model is `base`.
+
+## Recording duration
+
+- Two numeric fields between the Whisper model and the word replacement list show and save whole minutes. "Maximum recording duration" accepts 2 to 15 minutes and defaults to 15. "Start flashing red after" accepts 1 minute up to one minute below the maximum and defaults to 10. When lowering the maximum puts the warning outside its range, the warning field shows the highest allowed value. The question-mark cards explain both fields.
+- At the warning time, the active push-to-talk button flashes red until the recording stops. With reduced motion enabled, the button shows a steady red outline. At the maximum duration, Heidrun Code stops the recording, shows a notification, and transcribes the captured audio through the normal queue.
 
 ## The download
 
@@ -26,10 +31,10 @@ This file is a part of the rules of the user interface of Heidrun Code. It gives
 
 - All panes share one microphone. The queue of Whisper, the states, the notification of a blocked press, and the recording icon are in [voice_input_across_panes.md](../workspaces_tabs_and_panes/voice_input_across_panes.md).
 - With the switch on, the push-to-talk button is in the composition bar, after the button "Send", as the last control at the right end of the last line. The header of the pane has no push-to-talk button: the developer opens the composition bar with its toggle button, then uses the push-to-talk button.
-- The button has two ways to work, chosen by the length of the press. A long press, 0.3 second or more, is push to talk: the developer holds the button, speaks, and releases it. A release anywhere in the window, a loss of the keyboard by the window, and the release of the key Space or Enter on the button end the hold. A short press, less than 0.3 second, is a click: the recording goes on after the release, and the next press of the button stops it. While the microphone is open, the icon of the button is a microphone during a long press, and a square after a click. The color of the icon, and the look of the button in the composition bar, are in [panes_appearance.md](../../web_styling/panes_appearance.md). While a click keeps the recording, its title tells to click again, and the release of the pointer and the loss of the keyboard by the window end nothing. A press that ends before the microphone is open follows the same rule.
+- A press of at least 0.3 second records until release. Release anywhere in the window, loss of keyboard focus, or release of Space or Enter on the button ends the hold. A shorter press keeps recording after release until the next press. The button shows a microphone during a hold and a square after a click. Its title tells the developer to click again. Pointer release and loss of focus leave a recording started by a click running. The same rules apply if the press ends before the microphone opens. See [panes_appearance.md](../../web_styling/panes_appearance.md).
 - The button "Send" and the key Enter of the composition bar never leave a recording open: they stop it, wait for Whisper, add the text, and then send. The key Escape, and the toggle button of the header that hides the composition bar, throw a recording away. The rules of the sending are in [composition_bar.md](../workspaces_tabs_and_panes/composition_bar.md).
 - The text goes at the end of the text of the composition bar whose push-to-talk button started the recording, after one space, even if focus changes. Heidrun Code never sends it by itself: the developer reads it, edits it, and sends it.
-- A press with no speech, a recording shorter than 0.3 second, and a room with only noise give no text and no error. A recording is never longer than 300 seconds.
+- A press with no speech, a recording shorter than 0.3 second, and a room with only noise give no text and no error.
 - The button is dimmed while the model is not on the disk, and shows a spinner while its recording waits for Whisper or Whisper works. The color of the spinner is in [panes_appearance.md](../../web_styling/panes_appearance.md). Whisper works on a background thread, so the window stays fast.
 
 ## The level bars
@@ -51,8 +56,7 @@ This file is a part of the rules of the user interface of Heidrun Code. It gives
 
 - The Rust package `packages/auxiliary/voice_input` records, downloads, and transcribes. It knows nothing about Tauri. `packages/apps/desktop_tauri/src/voice_commands.rs` holds the seven commands: `voice_options`, `voice_download_model`, `voice_start_recording`, `voice_cancel_recording`, `voice_stop_recording`, `voice_transcribe_recording`, and `voice_discard_recording`.
 - The web page files are `lib/voice_input.ts`, `stores/voice_input.ts`, `components/PushToTalkButton.vue`, `components/VoiceLevel.vue`, and `components/settings/SettingsVoiceInputSection.vue`.
-- The tests of the package check the conversion of the audio, the download with a fake server (complete, stopped early, missing file, no server), the text of Whisper, and a spoken sentence with the real model `tiny`, which the first run downloads once into the folder of the build.
-- The Vitest tests check the library (the long press, the click, and the levels), the button (the first click shows a red stop icon), the level bars, the Settings section, the composition bar, and the toggle button of the header of the pane.
+- The Rust tests cover audio conversion, downloads, transcription, and a sentence with the real Whisper model `tiny`. The web tests cover recording, transcription, the push-to-talk button, the level bars, the composition bar, and the Voice input section.
 
 ## Not in this feature
 
