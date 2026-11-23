@@ -42,10 +42,10 @@ import { t } from "../i18n/index";
 const root = ref<HTMLElement | null>(null);
 const { isOpen, toggle, close, onFocusOut } = useStatusCard(root);
 
-// The width of the card, in pixels: 92 pixels more than `$popover-max-width` in `bootstrap_parts.scss`, so longer paths and
-// branch names have more room.
-const CARD_WIDTH_PIXELS = 432;
-const cardStyle = { width: `${CARD_WIDTH_PIXELS}px`, "--popover-max-width": `${CARD_WIDTH_PIXELS}px` };
+const cardStyle = {
+  width: '648px',
+  '--popover-max-width': 'calc(100% - 16px)',
+};
 
 const workspaceReorder = useReorder("y", (id, at) => moveWorkspace(id, at));
 const isWorktreesOpen = ref(false);
