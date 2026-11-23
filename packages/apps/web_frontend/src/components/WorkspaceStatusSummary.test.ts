@@ -376,13 +376,13 @@ describe("WorkspaceStatusSummary card width and folder path", () => {
     Object.defineProperty(line, "clientWidth", { configurable: true, value: clientWidth });
   }
 
-  it("is 432 pixels wide so the folder path and branch names have more room", async () => {
-    const { wrapper } = await mountSection();
-    await wrapper.get(".workspace-status").trigger("click");
-    const card = wrapper.get(".popover").element as HTMLElement;
-    expect(card.style.width).toBe("432px");
-    expect(card.style.getPropertyValue("--popover-max-width")).toBe("432px");
-  });
+	it('is 648 pixels wide and fits within the status bar on narrower windows', async () => {
+		const { wrapper } = await mountSection();
+		await wrapper.get('.workspace-status').trigger('click');
+		const card = wrapper.get('.popover').element as HTMLElement;
+		expect(card.style.width).toBe('648px');
+		expect(card.style.getPropertyValue('--popover-max-width')).toBe('calc(100% - 16px)');
+	});
 
   it("has no minimum width that is smaller than its width", async () => {
     const { wrapper } = await mountSection();
