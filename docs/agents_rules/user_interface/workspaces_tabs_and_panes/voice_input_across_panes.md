@@ -33,7 +33,7 @@ This file is a part of the rules of the user interface of Heidrun Code. It gives
 ## The recording icon
 
 - While the microphone records, a red microphone (the color `--danger-fg` of the theme, the icon `mic-fill`) shows on the button of the tab that records, after its name, and on the workspace button of the workspace that records, after its name, in the "Needs you" sidebar section and in the information card of the workspace section of the status bar. It has the title and the label "Voice input is recording".
-- The icon shows only while the microphone records, not during the wait or the transcription: it tells which tab blocks a new recording.
+- The same icon stays in place while a recording waits for transcription or is being transcribed. It is orange while waiting (the theme color `--voice-wait`) and green during transcription (the theme color `--success-fg`). Its title and label describe the current state. The icon disappears when voice input ends, including on error or cancellation. When several panes share a tab or workspace, recording takes priority, followed by transcription and then waiting. See [issue 1064](https://github.com/heidrun-org/heidrun_code/issues/1064).
 
 ## The code and the tests
 

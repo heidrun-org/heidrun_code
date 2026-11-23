@@ -570,7 +570,7 @@ describe("TabBar place in the window", () => {
 });
 
 describe("TabBar recording icon (issue 762)", () => {
-  it("shows the recording icon on the tab whose pane records, only while the microphone records", async () => {
+  it("shows the recording icon on the tab whose pane records, through recording, waiting, and transcription", async () => {
     const { settings: voiceSettings } = await import("../stores/settings");
     const { voiceInput } = await import("../stores/voice_input");
     const { wrapper } = await mountTabBar();
@@ -582,10 +582,24 @@ describe("TabBar recording icon (issue 762)", () => {
       const icons = wrapper.findAll("[role=tab]").map((tab) => tab.find(".voice-recording-icon").exists());
       expect(icons).toEqual([false, true, false]);
       expect(wrapper.get(".voice-recording-icon").attributes("aria-label")).toBe("Voice input is recording");
-      voiceInput.state = "idle";
+      const recordingIcon = wrapper.get('.voice-recording-icon').element;
+      voiceInput.state = 'idle';
+      voiceInput.ownerPaneId = null;
       voiceInput.transcriptions = [{ id: 1, paneId: "p3", recordingId: 1, state: "waiting", recordingSeconds: 1 }];
       await flushPromises();
-      expect(wrapper.find(".voice-recording-icon").exists()).toBe(false);
+      expect(wrapper.get('.voice-recording-icon').element).toBe(recordingIcon);
+      expect(wrapper.get('.voice-recording-icon').classes()).toContain('is-waiting');
+
+      voiceInput.transcriptions[0]!.state = 'transcribing';
+      await flushPromises();
+      const transcriptionIcon = wrapper.get('.voice-recording-icon');
+      expect(transcriptionIcon.element).toBe(recordingIcon);
+      expect(transcriptionIcon.classes()).toContain('is-transcribing');
+      expect(transcriptionIcon.attributes('aria-label')).toBe('Changing the speech into text…');
+
+      voiceInput.transcriptions = [];
+      await flushPromises();
+      expect(wrapper.find('.voice-recording-icon').exists()).toBe(false);
     } finally {
       voiceInput.ownerPaneId = null;
       voiceInput.state = "idle";
