@@ -314,8 +314,10 @@ function chooseRow(row: TreeRow) {
     toggleFolder(row);
     return;
   }
-  // A file opens in a file view pane, read only (issue #714).
-  void FileViewPanes.open(`${files.root}/${row.path}`);
+  const workspaceId = state.selectedWorkspaceId;
+  if (workspaceId !== null) {
+    void FileViewPanes.openInNewTab(workspaceId, `${files.root}/${row.path}`);
+  }
 }
 
 /** The context menu of a file row or a folder row: the relative path, and where the pointer was. Null when closed. */
