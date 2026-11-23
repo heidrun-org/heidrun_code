@@ -146,6 +146,30 @@ export class VoiceInput {
 	}
 
 	/**
+	 * Gives the voice input state to show on a tab or workspace button.
+	 * @param field The pane field that identifies the tab or workspace.
+	 * @param id The identifier of the tab or workspace.
+	 * @returns The recording icon state, with recording first, then transcription, then waiting.
+	 */
+	static recordingIconState(
+		field: 'tab_id' | 'workspace_id',
+		id: string,
+	): 'idle' | 'recording' | 'waiting' | 'transcribing' {
+		if (settings.voiceInput === false) {
+			return 'idle';
+		}
+		if (VoiceInput.recordingPane()?.[field] === id) {
+			return 'recording';
+		}
+
+		// The queue has at most one active transcription, ahead of all waiting recordings.
+		const transcription = voiceInput.transcriptions.find(({ paneId }) =>
+			allPanes.value.some((pane) => pane.pane_id === paneId && pane[field] === id),
+		);
+		return transcription?.state ?? 'idle';
+	}
+
+	/**
 	 * Reads the options of the desktop application, and listens to the progress of the downloads. It reads a list of files
 	 * and opens no microphone.
 	 */

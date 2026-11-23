@@ -29,7 +29,7 @@ The state of a composition bar whose recording has ended, while Whisper still ch
 
 ### Recording icon
 
-The red microphone on the tab button and on the workspace buttons while the microphone records for a pane of that tab or of that workspace.
+The microphone on the tab button and on the workspace buttons while voice input records, waits for transcription, or transcribes for a pane of that tab or workspace.
 
 ### Whisper model
 
