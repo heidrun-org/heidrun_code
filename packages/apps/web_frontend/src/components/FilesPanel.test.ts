@@ -11,7 +11,7 @@ const openUrlMock = vi.hoisted(() => vi.fn(async (_url: string) => {}));
 const revealItemInDirMock = vi.hoisted(() => vi.fn(async (_path: string) => {}));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
 vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemInDir: revealItemInDirMock, openUrl: openUrlMock }));
-vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
+vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock, openInNewTab: openFileViewMock } }));
 vi.mock("../lib/clipboard", () => ({ copy: copyMock }));
 vi.mock("../stores/chat_open", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../stores/chat_open")>()),
@@ -131,7 +131,7 @@ describe("FilesPanel", () => {
 		await submodule.trigger('click');
 		await wrapper.get('[title="modules/example/src"]').trigger('click');
 		await wrapper.get('[title="modules/example/src/main.ts"]').trigger('click');
-		await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith('/work/heidrun/modules/example/src/main.ts'));
+		await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith('w1', '/work/heidrun/modules/example/src/main.ts'));
 		paths = [...paths, 'modules/example/src/new.txt'];
 		await wrapper.get('[aria-label="Refresh"]').trigger('click');
 		await vi.waitFor(() => expect(wrapper.find('[title="modules/example/src/new.txt"]').exists()).toBe(true));
@@ -155,10 +155,10 @@ describe("FilesPanel", () => {
     expect(openFileViewMock).not.toHaveBeenCalled();
   });
 
-  it("opens a file in a file view pane after a click on it (issue #714)", async () => {
+  it("opens a clicked file in a new tab in the selected workspace (issue #1062)", async () => {
     const wrapper = await mountPanel();
     await wrapper.findAll(".row")[1].trigger("click");
-    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/README.md"));
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("w1", "/work/heidrun/README.md"));
   });
 
   it("opens nothing else when no pane can show a file (issue #886)", async () => {
@@ -710,7 +710,7 @@ describe("FilesPanel, the files and the folders that Git ignores", () => {
     await rowNamed(wrapper, ".heidrun")?.trigger("click");
     await vi.waitFor(() => expect(rowNames(wrapper)).toContain("config.json"));
     await rowNamed(wrapper, "config.json")?.trigger("click");
-    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/.heidrun/config.json"));
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("w1", "/work/heidrun/.heidrun/config.json"));
   });
 
   it("reads again every unfolded ignored folder after the button Refresh", async () => {
@@ -847,7 +847,7 @@ describe("FilesPanel, a symbolic link to a folder (issue #923)", () => {
     await rowNamed(wrapper, "references")?.trigger("click");
     await vi.waitFor(() => expect(rowNames(wrapper)).toContain("notes.md"));
     await rowNamed(wrapper, "SKILL.md")?.trigger("click");
-    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/skills/feature-status/SKILL.md"));
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("w1", "/work/heidrun/skills/feature-status/SKILL.md"));
   });
 
   it("reads the unfolded link again after the button Refresh", async () => {
@@ -867,7 +867,7 @@ describe("FilesPanel, a symbolic link to a folder (issue #923)", () => {
     await vi.waitFor(() => expect(rowNames(wrapper)).toContain("file-link.md"));
     expect(rowNamed(wrapper, "file-link.md")?.find(".arrow i").exists()).toBe(false);
     await rowNamed(wrapper, "file-link.md")?.trigger("click");
-    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("/work/heidrun/skills/file-link.md"));
+    await vi.waitFor(() => expect(openFileViewMock).toHaveBeenCalledWith("w1", "/work/heidrun/skills/file-link.md"));
   });
 });
 
