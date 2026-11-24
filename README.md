@@ -78,7 +78,7 @@ The script [`scripts/install.sh`](scripts/install.sh) downloads the disk image o
 
 ## Quick start
 
-You need [Herdr](https://herdr.dev) 0.9 or later, Rust stable, Node.js 20 or later, and [pnpm](https://pnpm.io).
+You need [Herdr](https://herdr.dev) 0.9 or later, Rust 1.100.0 through [rustup](https://rustup.rs/), Node.js 20 or later, and [pnpm](https://pnpm.io). Rustup selects the version in [rust-toolchain.toml](rust-toolchain.toml) for local builds, macOS releases, and the Linux and Windows workflow.
 
 ```sh
 git clone --recurse-submodules git@github.com:heidrun-org/heidrun_code.git
@@ -93,7 +93,7 @@ To build the application, run `pnpm build`, then drag `Heidrun Code.app` into `/
 
 ## Experimental Linux and Windows builds
 
-Open [GitHub Actions](https://github.com/heidrun-org/heidrun_code/actions), select **Heidrun Code Linux and Windows builds**, choose **Run workflow**, and select the branch to build. GitHub requires the workflow to exist on `main` before the first manual run. The workflow uses standard hosted runners for this public repository. Each run uses Ubuntu 24.04 and Windows Server 2022 on x64, with Node.js 24.14.0, pnpm 10.33.2, and Rust 1.96.1. The [workflow file](.github/workflows/linux-windows-builds.yml) lists the native dependencies and records the runner image and tool versions in the job log.
+Open [GitHub Actions](https://github.com/heidrun-org/heidrun_code/actions), select **Heidrun Code Linux and Windows builds**, choose **Run workflow**, and select the branch to build. GitHub requires the workflow to exist on `main` before the first manual run. The workflow uses standard hosted runners for this public repository. Each run uses Ubuntu 24.04 and Windows Server 2022 on x64, with Node.js 24.14.0, pnpm 10.33.2, and Rust 1.100.0. The [workflow file](.github/workflows/linux-windows-builds.yml) lists the native dependencies and records the runner image and tool versions in the job log.
 
 Compilation uses `pnpm install --frozen-lockfile` followed by `pnpm tauri build --no-bundle -- --locked`. Installer creation uses `pnpm tauri bundle --no-sign --bundles deb` on Linux and `pnpm tauri bundle --no-sign --bundles nsis` on Windows. The workflow reports compilation, installer creation, and automated tests as separate steps.
 
