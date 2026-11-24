@@ -1,10 +1,10 @@
-# Rust style adaptation review — first draft
+# Rust style adaptation review
 
-Source: [the TypeScript and JavaScript style at the revision used for this draft](https://github.com/jeromeetienne/coding_agent_plugin/blob/9a3398bffd2de22b859ccbaa374c29661d17bd21/skills/jerome-typescript-javascript-style/references/typescript-javascript-style.md).
+Source: [the TypeScript and JavaScript style at the revision used for the initial adaptation](https://github.com/jeromeetienne/coding_agent_plugin/blob/9a3398bffd2de22b859ccbaa374c29661d17bd21/skills/jerome-typescript-javascript-style/references/typescript-javascript-style.md).
 
-Tracking issue: [Heidrun Code issue #760](https://github.com/heidrun-org/heidrun/issues/760).
+Tracking issue: [Heidrun issue #760](https://github.com/heidrun-org/heidrun/issues/760).
 
-“Keep” means the rule is in [the Rust draft](rust-style.md). “Remove” means the source instruction depends on the source language or its tools. “Ask Jérôme” means the rule is excluded from the draft until Jérôme decides. The review itself is not a set of coding instructions.
+“Keep” means the rule is in [the active Rust rules](rust-style.md). “Remove” means the source instruction depends on the source language or its tools. “Ask Jérôme” means the rule is excluded from the active rules until Jérôme decides. The review itself is not a set of coding instructions.
 
 **Current naming decision (20 October 2026):** Jérôme now explicitly prohibits underscore-separated names everywhere, including identifiers, file names, and folder names. This newer instruction supersedes earlier decisions below that retained that form. The active style uses `camelCase` for values and non-type names, and `PascalCase` for types and enum variants. It accepts Rust naming-lint warnings rather than changing names to use underscores; if a repository forbids the necessary lint exception, report the conflict.
 
@@ -67,17 +67,17 @@ Jérôme explicitly emphasized that clear, explicit, complete names are far more
 
 ## Questions that still need a decision
 
-Clearly transferable rules are already in the draft; these questions concern changes of meaning or a missing equivalent.
+Clearly transferable rules are already in the active rules; these questions concern changes of meaning or a missing equivalent.
 
-1. **Optional values:** explicit boolean checks are retained. JavaScript null and undefined checks do not establish whether Rust optional values should use comparisons, matching, or methods that test whether an option contains a value. Should this draft simply omit an optional-value rule?
+1. **Optional values:** explicit boolean checks are retained. JavaScript null and undefined checks do not establish whether Rust optional values should use comparisons, matching, or methods that test whether an option contains a value. Should the style continue to omit an optional-value rule?
 2. **Data shapes:** the source prefers type aliases and Zod schemas. Rust aliases do not define distinct types, and choosing structures or a validation library would add a preference. Discard this data-shape rule, or define a specific Rust preference?
 3. **Module re-exports:** the source prohibits re-export-only `index.ts` files except at package boundaries. Rust modules and visibility work differently. Discard this source-specific rule, or define a Rust module rule?
 4. **File headers without a single main type:** the separator itself transfers and is retained. Ordinary function-grouping files now have a file-named type under the approved organization rule. What should replace `ClassName` in a file-header title for other files, such as files containing several type declarations? For example, use the file name or just the responsibility?
 
 ## Formatting during the source-file trial
 
-The draft retains tabs at width 8, the 120-character limit, multiline structure expressions, and section separators. When applying the draft to a real Rust source file, inspect the result and report any conflict with that repository's formatter. Do not silently replace personal preferences with formatter defaults or change repository-wide formatter settings as part of the trial.
+The style retains tabs at width 8, the 120-character limit, multiline structure expressions, and section separators. When applying the style to a real Rust source file, inspect the result and report any conflict with that repository's formatter. Do not silently replace personal preferences with formatter defaults or change repository-wide formatter settings as part of the trial.
 
 ## Planned iteration
 
-Choose one existing Rust source file from disk, apply only the active draft rules in a reviewable change, inspect the result together, and refine the rules. Resolve uncertain rules with Jérôme as part of that iteration; do not apply unresolved rules. No Rust application source has been changed as part of creating this draft.
+Choose one existing Rust source file from disk, apply only the active rules in a reviewable change, inspect the result together, and refine the rules. Resolve uncertain rules with Jérôme as part of that iteration; do not apply unresolved rules. The initial adaptation did not change Rust application source; this review does not claim a source-file trial was completed.

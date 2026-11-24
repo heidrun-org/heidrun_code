@@ -1,0 +1,5 @@
+{
+  "source": "jeromeetienne/coding_agent_plugins",
+  "skill_id": "docs_folder_system",
+  "folder_url": "https://github.com/jeromeetienne/coding_agent_plugins/tree/main/skills/docs_folder_system"
+}

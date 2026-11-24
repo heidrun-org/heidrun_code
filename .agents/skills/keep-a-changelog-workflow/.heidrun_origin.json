@@ -1,5 +1,5 @@
 {
-  "source": "jeromeetienne/coding_agent_plugin",
+  "source": "jeromeetienne/coding_agent_plugins",
   "skill_id": "keep-a-changelog-workflow",
-  "folder_url": "https://github.com/jeromeetienne/coding_agent_plugin/tree/main/skills/keep-a-changelog-workflow"
+  "folder_url": "https://github.com/jeromeetienne/coding_agent_plugins/tree/main/skills/keep-a-changelog-workflow"
 }
