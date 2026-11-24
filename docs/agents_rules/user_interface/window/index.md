@@ -1,7 +1,7 @@
 # Window rules index
 
 - Created: 13 October 2026
-- Last updated: 25 October 2026
+- Last updated: 24 November 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
@@ -33,10 +33,10 @@ This file lists the files and the subfolders of this folder, for agents and tool
 - [settings_voice_input.md](settings_voice_input.md): the Voice input section of the Settings window, the download of a Whisper model, the push-to-talk button, the microphone permission, and the tests. Read it each time that you change the voice input.
 - [settings_voice_words.md](settings_voice_words.md): the word replacement list of the voice input: the list in the Voice input section of the Settings window, the matching rules, the file `voice_words.json`, and the tests. Read it each time that you change the word replacement list or the function `replace_words`.
 - [settings_notifications.md](settings_notifications.md): the rows of the Notifications section of the Settings window: the system notification, the sound, and the button "Test" of each kind of notification. Read it each time that you add a kind of notification or change the function `notify`.
-- [terminal_text_detection.md](terminal_text_detection.md): the detection in the text of the terminals: the 11 detection families, the fixed precedence, the hover buttons, the switches, and the tests. Read it each time that you add or change a detection in the text of a terminal.
-- [terminal_text_detection_references.md](terminal_text_detection_references.md): the forms of issues, requests, tickets, and commits that the detection accepts and refuses, and their destination. Read it each time that you change the file `lib/refs.ts`.
-- [terminal_text_detection_other_families.md](terminal_text_detection_other_families.md): the forms, the refused examples, the context, and the visible result of the web addresses, file paths, shell commands, slash commands, numbered steps, agent list, and questions and choices.
-- [settings_text_detection.md](settings_text_detection.md): the section "Text detection" of the Settings window: the switches, the data of the project, the patterns and the examples of each rule, and the Try a text field. Read it each time that you change the Text detection section of the Settings window, `lib/detection_patterns.ts`, or `lib/detection_catalog.ts`.
+- [terminal_text_detection.md](terminal_text_detection.md): The information cards and actions for terminal references. Read it when changing Text detection.
+- [terminal_text_detection_references.md](terminal_text_detection_references.md): The accepted issue and request references and their destinations. Read it when changing terminal reference parsing.
+- [terminal_text_detection_other_families.md](terminal_text_detection_other_families.md): Ordinary web links and agent session features alongside Text detection.
+- [settings_text_detection.md](settings_text_detection.md): The two Text detection switches in the Settings window. Read it when changing either switch.
 - [status_bar.md](status_bar.md): the status bar and the menu of the status item.
 - [status_bar_git.md](status_bar_git.md): the Git branch section of the status bar: the branch picker, the synchronization with the upstream branch, the fetch in the background, and the counts.
 - [window_state_and_start.md](window_state_and_start.md): the position and size of the window, the last state of each option, the splash screen, the notice of the missing programs Herdr and ngrok, and the goat sounds.

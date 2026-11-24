@@ -38,7 +38,7 @@
   "action.collapseSidebars": "Collapse or expand the left sidebar / the right sidebar",
   "action.fontSize": "Increase / decrease / reset the font size of the whole window",
   "group.mouse": "Mouse",
-  "action.issuePreview": "On #12 / !34: preview of the issue or merge request; on a URL or a commit: open it",
+  "action.issuePreview": "Command-click an issue or request reference to preview it, or an ordinary web address to open it",
   "keys.commandClick": "⌘-click",
   "action.fileAtLine": "On src/app.ts:42 quoted in a terminal: the file at that line, in the explorer",
   "action.actionButtons": "Action buttons: ↗ Open, ⧉ Preview, ▷ Launch, ▷ Run, ▷ View <agent>",

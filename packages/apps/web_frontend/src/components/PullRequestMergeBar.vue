@@ -22,6 +22,8 @@ const props = defineProps<{
   name: string;
   /** The address of the repository on its hosting service. */
   webBase: string;
+  /** The terminal reference address, when the merge is opened from the terminal. */
+  expectedUrl?: string | null;
   /** True when the window around the bar already shows the approval pill: the bar then shows only the approvers (issue #1044). */
   hidesApproval?: boolean;
 }>();
@@ -34,7 +36,11 @@ const approval = computed(() => (props.facts === null || props.hidesApproval ? "
 
 function openWindow() {
   if (props.facts !== null) {
-    void openMergeWindow(props.folder, props.forge, props.facts.number, props.name, props.webBase);
+    if (props.expectedUrl === undefined || props.expectedUrl === null) {
+      void openMergeWindow(props.folder, props.forge, props.facts.number, props.name, props.webBase);
+      return;
+    }
+    void openMergeWindow(props.folder, props.forge, props.facts.number, props.name, props.webBase, props.expectedUrl);
   }
 }
 </script>

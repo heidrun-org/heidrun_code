@@ -36,6 +36,14 @@ describe("openIssue, the merge bar of the issue preview window (issue #570)", ()
     expect(issueView.merge?.facts.approval).toBe("approved");
   });
 
+  it("opens the same merge controls from a shorthand or full GitHub terminal link", async () => {
+    await openIssue("/work/sandbox", { type: "issue", number: 12 }, "https://github.com/o/r/issues/12", true);
+    const shorthand = issueView.merge;
+    expect(shorthand?.expectedUrl).toBe(PULL_REQUEST.url);
+    await openIssue("/work/sandbox", { type: "mr", number: 12, project: "o/r", forge: "github" }, PULL_REQUEST.url, true);
+    expect(issueView.merge).toEqual(shorthand);
+  });
+
   it("shows no merge bar for an issue, or for a pull request of another repository", async () => {
     await openIssue("/work/sandbox", { type: "issue", number: 12 }, null);
     expect(issueView.merge).toBeNull();

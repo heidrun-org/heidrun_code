@@ -288,41 +288,34 @@ describe("terminal text detection", () => {
     return (await import("./settings")).settings;
   }
 
-  it("is on, with every family on, by default", () => {
-    expect(settings.terminalTextDetection).toBe(true);
-    expect(settings.disabledDetectionFamilies).toEqual([]);
-  });
-
-  it("keeps the families that were saved off, and the switch of the whole detection", async () => {
-    const reloaded = await settingsFrom(JSON.stringify({ terminalTextDetection: false, disabledDetectionFamilies: ["filePaths", "tickets"] }));
-    expect(reloaded.terminalTextDetection).toBe(false);
-    expect(reloaded.disabledDetectionFamilies).toEqual(["filePaths", "tickets"]);
-  });
-
-  it("is on for an existing installation whose saved settings have no detection option", async () => {
+  it("enables both settings by default", async () => {
     const reloaded = await settingsFrom(JSON.stringify({ language: "fr" }));
     expect(reloaded.terminalTextDetection).toBe(true);
-    expect(reloaded.disabledDetectionFamilies).toEqual([]);
+    expect(reloaded.terminalWebAddresses).toBe(true);
   });
 
-  it("drops a saved family that does not exist any more, and a saved value of the wrong type", async () => {
-    const reloaded = await settingsFrom(JSON.stringify({ terminalTextDetection: "no", disabledDetectionFamilies: ["filePaths", "oldFamily", 7] }));
-    expect(reloaded.terminalTextDetection).toBe(true);
-    expect(reloaded.disabledDetectionFamilies).toEqual(["filePaths"]);
-    const notAList = await settingsFrom(JSON.stringify({ disabledDetectionFamilies: "filePaths" }));
-    expect(notAList.disabledDetectionFamilies).toEqual([]);
+  it("preserves the previous master switch", async () => {
+    const reloaded = await settingsFrom(JSON.stringify({ terminalTextDetection: false }));
+    expect(reloaded.terminalTextDetection).toBe(false);
+    expect(reloaded.terminalWebAddresses).toBe(false);
   });
 
-  it("saves a change of a switch at once", async () => {
-    settings.terminalTextDetection = false;
-    settings.disabledDetectionFamilies = ["commits"];
-    await Promise.resolve();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    const saved = JSON.parse(localStorage.getItem("heidrun.settings") ?? "{}");
-    expect(saved.terminalTextDetection).toBe(false);
-    expect(saved.disabledDetectionFamilies).toEqual(["commits"]);
-    settings.terminalTextDetection = true;
-    settings.disabledDetectionFamilies = [];
+  it("migrates disabled references and web links", async () => {
+    const reloaded = await settingsFrom(JSON.stringify({
+      disabledDetectionFamilies: ["issueReferences", "requestReferences", "webAddresses", "filePaths"],
+    }));
+    expect(reloaded.terminalTextDetection).toBe(false);
+    expect(reloaded.terminalWebAddresses).toBe(false);
+    expect(reloaded).not.toHaveProperty("disabledDetectionFamilies");
+  });
+
+  it("preserves independently saved settings", async () => {
+    const reloaded = await settingsFrom(JSON.stringify({
+      terminalTextDetection: false,
+      terminalWebAddresses: true,
+    }));
+    expect(reloaded.terminalTextDetection).toBe(false);
+    expect(reloaded.terminalWebAddresses).toBe(true);
   });
 });
 

@@ -147,64 +147,21 @@ afterEach(() => {
 });
 
 describe('the question at the end of the answer of a coding agent', () => {
-	it('is read when the family is on', async () => {
-		mocks.read.mockResolvedValue(SCREEN_WITH_QUESTION);
-		const { session } = await SessionTextDetectionTest.start('working');
-		await SessionTextDetectionTest.next(session, 'done', 2);
-		expect(session.state.questions.p1?.text).toBe('Should I open a pull request?');
-	});
-
-	it('is not read, and the screen is not even asked for, when the family is off', async () => {
-		mocks.read.mockResolvedValue(SCREEN_WITH_QUESTION);
-		const { session, settings } = await SessionTextDetectionTest.start('working');
-		settings.disabledDetectionFamilies = ['questionsAndChoices'];
-		await SessionTextDetectionTest.next(session, 'done', 2);
-		expect(session.state.questions.p1).toBeUndefined();
-		expect(mocks.read).not.toHaveBeenCalled();
-	});
-
-	it('is not read when the whole detection is off', async () => {
+	it('is read when terminal reference detection is off', async () => {
 		mocks.read.mockResolvedValue(SCREEN_WITH_QUESTION);
 		const { session, settings } = await SessionTextDetectionTest.start('working');
 		settings.terminalTextDetection = false;
 		await SessionTextDetectionTest.next(session, 'done', 2);
-		expect(session.state.questions.p1).toBeUndefined();
-	});
-
-	it('disappears from the cards at once when the developer turns the family off', async () => {
-		mocks.read.mockResolvedValue(SCREEN_WITH_QUESTION);
-		const { session, settings } = await SessionTextDetectionTest.start('working');
-		await SessionTextDetectionTest.next(session, 'done', 2);
-		expect(session.state.questions.p1).toBeDefined();
-		settings.disabledDetectionFamilies = ['questionsAndChoices'];
-		await vi.advanceTimersByTimeAsync(0);
-		expect(session.state.questions.p1).toBeUndefined();
+		expect(session.state.questions.p1?.text).toBe('Should I open a pull request?');
 	});
 });
 
 describe('the numbered menu of a blocked coding agent', () => {
-	it('is read when the family is on, and not read when it is off', async () => {
-		mocks.read.mockResolvedValue(SCREEN_WITH_MENU);
-		const on = await SessionTextDetectionTest.start('working');
-		await SessionTextDetectionTest.next(on.session, 'blocked', 2);
-		expect(on.session.state.choices.p1?.options).toHaveLength(2);
-
-		vi.resetModules();
-		mocks.read.mockClear();
-		const off = await SessionTextDetectionTest.start('working');
-		off.settings.disabledDetectionFamilies = ['questionsAndChoices'];
-		await SessionTextDetectionTest.next(off.session, 'blocked', 2);
-		expect(off.session.state.choices.p1).toBeUndefined();
-		expect(mocks.read).not.toHaveBeenCalled();
-	});
-
-	it('is removed at once when the developer turns the family off', async () => {
+	it('is read when terminal reference detection is off', async () => {
 		mocks.read.mockResolvedValue(SCREEN_WITH_MENU);
 		const { session, settings } = await SessionTextDetectionTest.start('working');
-		await SessionTextDetectionTest.next(session, 'blocked', 2);
-		expect(session.state.choices.p1).toBeDefined();
 		settings.terminalTextDetection = false;
-		await vi.advanceTimersByTimeAsync(0);
-		expect(session.state.choices.p1).toBeUndefined();
+		await SessionTextDetectionTest.next(session, 'blocked', 2);
+		expect(session.state.choices.p1?.options).toHaveLength(2);
 	});
 });

@@ -2,6 +2,7 @@
   "eyebrow": "Merge",
   "titlePr": "Merger la pull request {name} ?",
   "titleMr": "Merger la merge request {name} ?",
+  "referenceMismatch": "Le dépôt de l’espace de travail ne correspond pas à la demande liée.",
   "loading": "Lecture de l'état sur {forge}…",
   "method": "Méthode de merge",
   "methodMerge": "Créer un commit de merge",

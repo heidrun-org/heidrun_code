@@ -12,7 +12,7 @@ import {
   type ChatReference,
 } from "../lib/chat_references";
 import { searchHasLabel } from "../lib/code_hosting_search";
-import type { Forge } from "../lib/refs";
+import type { Forge, RefTarget } from "../lib/refs";
 import type { ChatReferenceDetails } from "../stores/chat_references";
 import { chatAboutReference } from "../stores/chat_open";
 import { openIssue } from "../stores/issues";
@@ -50,6 +50,8 @@ const props = withDefaults(defineProps<{
    * label to this search, or removes it. When it is null, a label is only a pill.
    */
   search?: string | null;
+  /** Repository named by a terminal reference, when present. */
+  target?: RefTarget;
 }>(), {
   title: null,
   name: null,
@@ -142,7 +144,12 @@ const excerpt = computed(() => referenceExcerpt(props.details?.body ?? ""));
 /** Opens the description and the comments of the issue or of the pull request in the window of Heidrun Code. */
 function openInHeidrun() {
   const type = props.reference.kind === "issue" ? "issue" : "mr";
-  openIssue(props.folder, { type, number: props.reference.number }, props.reference.url);
+  const target: RefTarget = { ...props.target, type, number: props.reference.number };
+  if (props.target === undefined) {
+    openIssue(props.folder, target, props.reference.url);
+    return;
+  }
+  openIssue(props.folder, target, props.reference.url, true);
 }
 
 /** Opens the web page of the repository in the web browser. */

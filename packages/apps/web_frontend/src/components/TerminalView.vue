@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Terminal, type IBufferLine, type IDecoration, type IDisposable, type ILink, type IMarker } from "@xterm/xterm";
+import { Terminal, type IBufferLine, type IBufferRange, type IDecoration, type IDisposable, type ILink, type IMarker } from "@xterm/xterm";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { EMPTY_CONTEXT, REF_COLORS, claudeCommands, agentListState, refContext, type RefContext } from "../lib/refs";
-import { DetectionFamilies } from "../lib/detection_families";
+import { EMPTY_CONTEXT, REF_COLORS, findRefs, refContext, sameReferenceAddress, type RefContext, type RefMatch } from "../lib/refs";
 import { DetectionPatterns } from "../lib/detection_patterns";
-import { HoverButtonsPlacement } from "../lib/hover_buttons_placement";
-import { TerminalDetection, type DetectedItem, type DetectionAction } from "../lib/terminal_detection";
-import { sendPrompt, toast } from "../stores/session";
+import { toast } from "../stores/session";
 import { openIssue } from "../stores/issues";
-import { openFileRef } from "../stores/files";
+import InformationCard from "./InformationCard.vue";
+import CodeHostingReferenceCard from "./CodeHostingReferenceCard.vue";
+import type { ChatReference } from "../lib/chat_references";
+import type { ChatReferenceDetails as ReferenceDetails } from "../stores/chat_references";
+import { ForgeReferenceDetails } from "../stores/forge_reference_details";
+import { loadMergeFacts, type MergeFacts } from "../stores/pull_request_merge";
+import type { Forge, RefTarget } from "../lib/refs";
 import { fold, search } from "../stores/search";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -28,8 +31,6 @@ import { t } from "../i18n/index";
 const REF_COLORS_LIGHT: typeof REF_COLORS = {
   issue: "#0b5cc2",
   mr: "#7d4cc4",
-  ticket: "#0e7c78",
-  commit: "#9a5b13",
 };
 
 import { FONT_DEFAULT, fontStack, settings } from "../stores/settings";
@@ -148,6 +149,27 @@ onMounted(async () => {
     rightClickSelectsWord: false,
     scrollback: 0, // Herdr owns the scrollback; the attach client redraws the screen.
     allowProposedApi: true,
+    linkHandler: {
+      activate: (event, url) => {
+        const reference = terminalReferences(url)[0];
+        if (reference?.url === url) {
+          activateReference(event, reference);
+        } else if (event.metaKey === true && settings.terminalWebAddresses) {
+          void openUrl(url).catch(() => {});
+        }
+      },
+      hover: (_event, url, range) => {
+        const reference = terminalReferences(url)[0];
+        overLink = reference?.url === url || settings.terminalWebAddresses;
+        if (reference?.url === url) {
+          showReferenceCard(range, reference);
+        }
+      },
+      leave: () => {
+        overLink = false;
+        scheduleReferenceClose();
+      },
+    },
     theme: TERMINAL_THEMES[resolvedTheme.value],
   });
   try {
@@ -278,369 +300,291 @@ onMounted(async () => {
   if (props.focused) term.focus();
 });
 
-// ---- References: #12, !34, PR #5, ABC-123, commits ------------------------
+// ---- Issue and request links ------------------------------------------------
 
 let refCtx: RefContext = EMPTY_CONTEXT;
-let commands = new Set<string>();
-const isClaude = () => (props.agent ?? "").includes("claude");
-watch(
-  () => [props.cwd, props.agent] as const,
-  async ([cwd]) => {
-    refCtx = await refContext(cwd);
-    if (isClaude()) commands = await claudeCommands(cwd);
-    scheduleRefs();
-  },
-  { immediate: true },
-);
-
-// A switch of the detection applies at once to the text already on the screen: the link providers are built again, the
-// hover buttons close, and the colors of every line are computed again.
-watch(
-  () => [settings.terminalTextDetection, settings.disabledDetectionFamilies.join(",")] as const,
-  () => {
-    hideChip(true);
-    buildLinkProviders();
-    for (const y of [...rows.keys()]) clearRow(y);
-    scheduleRefs();
-  },
-);
-
-// ---- Link providers: web addresses, then the detection families ------------
-
 let webLinks: WebLinksAddon | null = null;
 let detectionProvider: IDisposable | null = null;
-// The texts [Image #N] of the chat, with their image under the pointer (issue #924).
 let chatImageProvider: IDisposable | null = null;
 
-/** The detection families that are on now. The switches are read each time, so a change applies at once. */
-function enabledFamilies() {
-  return DetectionFamilies.listEnabled(settings);
+function refreshReferenceDecorations() {
+  for (const row of rows.keys()) {
+    clearRow(row);
+  }
+  scheduleRefs();
 }
 
-/**
- * Registers the link providers of the terminal, in their order of precedence: the web-link add-on first, then the link provider of
- * the detection. xterm keeps the link of the provider that came first when two links overlap, so a web address is a link of the
- * add-on. The add-on asks the detection whether the address is an issue, a pull request, a merge request, or a commit.
- */
+function terminalReferences(text: string) {
+  return settings.terminalTextDetection ? findRefs(text, refCtx) : [];
+}
+
 function buildLinkProviders() {
   if (term === null) {
     return;
   }
+  detectionProvider?.dispose();
   webLinks?.dispose();
   webLinks = null;
-  detectionProvider?.dispose();
-  detectionProvider = null;
-  if (DetectionFamilies.isEnabled(settings, "webAddresses")) {
+  chatImageProvider?.dispose();
+  detectionProvider = term.registerLinkProvider({ provideLinks: provideDetectionLinks });
+  if (settings.terminalWebAddresses) {
     webLinks = new WebLinksAddon(
       (event, address) => {
-        if (event.metaKey === false) {
-          return;
-        }
-        const reference = TerminalDetection.findAddressReference(address, refCtx, enabledFamilies());
-        hideChip(true);
-        if (reference?.commandClick) {
-          runAction(reference.commandClick);
-        } else {
-          openUrl(address).catch(() => {});
+        if (event.metaKey === true && settings.terminalWebAddresses) {
+          void openUrl(address).catch(() => {});
         }
       },
       {
         urlRegex: DetectionPatterns.WEB_ADDRESS,
-        hover: (_event, address, range) => {
-          overLink = true;
-          const reference = TerminalDetection.findAddressReference(address, refCtx, enabledFamilies());
-          if (reference !== null) {
-            showHoverButtons(range, reference);
-          }
-        },
-        leave: () => {
-          overLink = false;
-          hideChip();
-        },
+        hover: () => { overLink = settings.terminalWebAddresses; },
+        leave: () => { overLink = false; },
       },
     );
     term.loadAddon(webLinks);
   }
-  detectionProvider = term.registerLinkProvider({ provideLinks: provideDetectionLinks });
-  chatImageProvider?.dispose();
   chatImageProvider = term.registerLinkProvider(ChatImageHover.createLinkProvider(term, () => props.paneId));
 }
 
-/**
- * The links of one line: references, file paths, slash commands, numbered steps, shell commands, and the rows of the agent list.
- * Hovering shows hover buttons (open, run, ask the agent); ⌘-click does the main action directly.
- */
+/** Supplies reference links from the whole wrapped line so a full address can span terminal rows. */
 function provideDetectionLinks(y: number, callback: (links: ILink[] | undefined) => void) {
-  const line = term?.buffer.active.getLine(y - 1);
-  if (!term || !line) {
-    return callback(undefined);
+  const buffer = term?.buffer.active;
+  if (buffer === undefined || buffer.getLine(y - 1) === undefined) {
+    callback(undefined);
+    return;
   }
-  const { text, col, width } = lineText(line);
-  const range = (s: number, e: number) => ({
-    start: { x: col[s] + 1, y },
-    end: { x: col[e - 1] + width[e - 1], y },
-  });
-  const { items } = TerminalDetection.detectLine({
-    lineAt: screenLine,
-    row: y - 1 - term.buffer.active.viewportY,
-    rows: term.rows,
-    columns: term.cols,
-    context: refCtx,
-    knownCommands: commands,
-    agent: props.agent || null,
-    enabledFamilies: enabledFamilies(),
-  });
-  const links = items
-    .filter((item) => item.isEnabled && item.commandClick !== null)
-    .map((item) => ({
-      text: text.slice(item.start, item.end),
-      range: range(item.start, item.end),
-      decorations: { underline: item.isUnderlined, pointerCursor: item.isUnderlined || item.rule === "promptBox" },
-      activate: (e: MouseEvent) => {
-        if (e.metaKey && item.commandClick !== null) {
-          hideChip(true);
-          runAction(item.commandClick);
-        }
-      },
+  let first = y - 1;
+  while (first > 0 && buffer.getLine(first)?.isWrapped === true) {
+    first--;
+  }
+  let text = "";
+  const cells: { x: number; y: number; width: number }[] = [];
+  for (let row = first; row === first || buffer.getLine(row)?.isWrapped === true; row++) {
+    const line = buffer.getLine(row);
+    if (line === undefined) {
+      break;
+    }
+    const content = lineText(line);
+    text += content.text;
+    for (let index = 0; index < content.text.length; index++) {
+      cells.push({ x: content.col[index] + 1, y: row + 1, width: content.width[index] });
+    }
+  }
+  const links: ILink[] = [];
+  for (const match of terminalReferences(text)) {
+    const firstCell = cells[match.start];
+    const lastCell = cells[match.end - 1];
+    if (y < firstCell.y || y > lastCell.y) {
+      continue;
+    }
+    const range: IBufferRange = {
+      start: { x: firstCell.x, y: firstCell.y },
+      end: { x: lastCell.x + lastCell.width - 1, y: lastCell.y },
+    };
+    links.push({
+      text: text.slice(match.start, match.end),
+      range,
+      activate: (event) => activateReference(event, match),
       hover: () => {
-        overLink = true;
-        showHoverButtons(range(item.start, item.end), item);
+        overLink = settings.terminalTextDetection;
+        if (overLink) {
+          showReferenceCard(range, match);
+        }
       },
       leave: () => {
         overLink = false;
-        hideChip();
+        scheduleReferenceClose();
       },
-    }));
-  callback(links.length ? links : undefined);
-}
-
-/** Does what a detected piece of text proposes. The sample field of the Settings window never calls this function. */
-function runAction(action: DetectionAction) {
-  switch (action.type) {
-    case "openAddress":
-      openUrl(action.url).catch(() => {});
-      break;
-    case "previewIssue":
-      openIssue(props.cwd, action.target, action.url);
-      break;
-    case "openFile":
-      openFileRef(props.cwd, action.path, action.line);
-      break;
-    case "sendPrompt":
-      sendPrompt(props.paneId, action.text);
-      break;
-    case "backToPrompt":
-      backToPrompt(action.steps);
-      break;
-    case "switchAgent":
-      switchToAgent(action.name);
-      break;
+    });
   }
+  callback(links.length > 0 ? links : undefined);
 }
 
-// ---- Hover buttons ----------------------------------------------------------
+function activateReference(event: MouseEvent, match: RefMatch) {
+  if (event.metaKey === false || settings.terminalTextDetection === false) {
+    return;
+  }
+  closeReferenceCard();
+  openIssue(refCtx.root ?? props.cwd, match.target, match.url, true);
+}
+
+/** The terminal position and hosting service data for the currently hovered reference. */
+type ReferenceCard = {
+  /** Unique key for each card opening. */
+  key: number;
+  /** The occurrence currently anchoring the card. */
+  anchor: string;
+  /** Horizontal midpoint and vertical bounds of the reference in the terminal. */
+  left: number;
+  top: number;
+  height: number;
+  /** The original destination and repository identity. */
+  url: string;
+  webBase: string;
+  folder: string;
+  forge: Forge;
+  target: RefTarget;
+  /** The resolved item and details returned by the hosting service. */
+  reference: ChatReference;
+  details: ReferenceDetails | null | undefined;
+  facts: MergeFacts | null;
+};
 
 const wrapEl = ref<HTMLDivElement>();
-interface ChipAction {
-  label: string;
-  run: () => void;
-}
-const chip = ref<{ left: number; top: number; label: string; title: string; run: () => void; alt?: ChipAction; detail?: string } | null>(null);
-let chipTimer = 0;
-// Mouse on the hover buttons: they are frozen. Claude redraws the screen all the time, and
-// xterm then re-reads the link under the last pointer position, which may be another
-// issue by now: without this, the hover buttons would switch target or vanish under the mouse.
-let onChip = false;
-/** Height of the hover buttons, in pixels. */
-const CHIP_H = 26;
-/** Height of the hover buttons with the line of the destination under them, in pixels. */
-const CHIP_DETAIL_H = 42;
-/** Width of one hover button before the label, in pixels: the padding on both sides. */
-const CHIP_PADDING_W = 16;
-/** Width of one character of a label, in pixels. Over-estimated, so that the buttons never reach the text next to them. */
-const CHIP_CHARACTER_W = 8;
-/** Longest width of one hover button, in pixels: the label is cut after it. */
-const CHIP_MAX_W = 360;
-/** Space around and between the hover buttons, in pixels. */
-const CHIP_GAP_W = 12;
+const referenceCard = ref<ReferenceCard | null>(null);
+let referenceKey = 0;
+let referenceCloseTimer = 0;
+let referenceOpenTimer = 0;
+let referenceLoadingTimer = 0;
+let pendingReferenceCard: ReferenceCard | null = null;
+const REFERENCE_HOVER_DELAY_MS = 500;
+const REFERENCE_LOADING_DELAY_MS = 800;
+let isPointerOnCard = false;
 
-/**
- * Tells whether a cell of the screen holds no character, no color, and not the cursor. The hover buttons only go over such cells,
- * so they hide no text and no part of the interface of the coding agent.
- */
-function isBlankCell(row: number, column: number): boolean {
-  if (term === null) {
-    return false;
-  }
-  const buffer = term.buffer.active;
-  if (row === buffer.cursorY && column === buffer.cursorX) {
-    return false;
-  }
-  const cell = buffer.getLine(buffer.viewportY + row)?.getCell(column);
-  if (cell === undefined) {
-    return false;
-  }
-  const chars = cell.getChars();
-  return cell.getWidth() === 1 && (chars === "" || chars === " ") && cell.isBgDefault() && cell.isInverse() === 0;
-}
-
-/**
- * Shows the hover buttons of a detected piece of text. They sit on blank cells of the screen near the text (on its line, or on
- * the line above or below), so they cover no character. When no blank place is near, they do not show, and a ⌘-click on the text
- * runs the main action.
- */
-function showHoverButtons(
-  r: { start: { x: number; y: number }; end: { x: number; y: number } },
-  item: DetectedItem,
-) {
-  if (onChip) return;
-  window.clearTimeout(chipTimer);
-  const screen = el.value?.querySelector(".xterm-screen") as HTMLElement | null;
-  if (!term || !screen || !wrapEl.value || item.primary === null) return;
-  const s = screen.getBoundingClientRect();
-  const w = wrapEl.value.getBoundingClientRect();
-  const cellW = s.width / term.cols;
-  const cellH = s.height / term.rows;
-  const row = r.start.y - 1 - term.buffer.active.viewportY;
-  const labels = [item.primary, item.secondary].filter((button) => button !== null).map((button) => t(button.labelKey, button.labelParams));
-  const buttonsWidth =
-    labels.reduce((sum, label) => sum + Math.min(CHIP_MAX_W, CHIP_PADDING_W + label.length * CHIP_CHARACTER_W), 0) +
-    CHIP_GAP_W * (labels.length + 1);
-  const detailWidth = item.destination === null ? 0 : Math.min(CHIP_MAX_W, CHIP_PADDING_W + item.destination.length * 6);
-  const request = {
-    row,
-    startColumn: r.start.x - 1,
-    endColumn: r.end.y === r.start.y ? r.end.x : term.cols,
-  };
-  // With the line of the destination first, then without it when the first does not fit.
-  const withDetail = item.destination === null ? [false] : [true, false];
-  for (const hasDetail of withDetail) {
-    const height = hasDetail ? CHIP_DETAIL_H : CHIP_H;
-    const rowsCount = Math.max(1, Math.round(height / cellH));
-    const width = Math.max(buttonsWidth, hasDetail ? detailWidth + CHIP_GAP_W : 0);
-    const place = HoverButtonsPlacement.find(
-      { columns: term.cols, rows: term.rows, isBlank: isBlankCell },
-      { ...request, widthCells: Math.ceil(width / cellW) + 1, heightRows: rowsCount },
-    );
-    if (place === null) {
-      continue;
-    }
-    const primary = item.primary;
-    const secondary = item.secondary;
-    chip.value = {
-      left: s.left - w.left + place.column * cellW,
-      top: s.top - w.top + place.row * cellH + (rowsCount * cellH - height) / 2,
-      label: labels[0],
-      title: item.destination ?? "",
-      run: () => runAction(primary.action),
-      alt: secondary === null ? undefined : { label: labels[1], run: () => runAction(secondary.action) },
-      detail: hasDetail && item.destination !== null ? item.destination : undefined,
-    };
+function showReferenceCard(range: IBufferRange, match: RefMatch) {
+  window.clearTimeout(referenceCloseTimer);
+  const anchor = `${range.start.x}:${range.start.y}:${range.end.x}:${range.end.y}`;
+  const current = pendingReferenceCard ?? referenceCard.value;
+  if (isPointerOnCard || (current?.url === match.url && current.anchor === anchor)) {
     return;
   }
-  chip.value = null;
-}
-
-function hideChip(now = false) {
-  window.clearTimeout(chipTimer);
-  if (now) {
-    onChip = false;
-    chip.value = null;
+  cancelPendingReferenceCard();
+  referenceCard.value = null;
+  const { target, url } = match;
+  const bounds = wrapEl.value?.getBoundingClientRect();
+  const screen = el.value?.querySelector(".xterm-screen")?.getBoundingClientRect();
+  const folder = refCtx.root ?? props.cwd;
+  const forge = target.forge ?? refCtx.forge;
+  if (term === null || bounds === undefined || screen === undefined ||
+      folder === null || folder === undefined || forge === null) {
     return;
   }
-  if (onChip) return;
-  else chipTimer = window.setTimeout(() => (chip.value = null), 350);
-}
-
-/** Keys, one at a time: Claude Code's TUI reads them as separate presses. */
-async function pressKeys(keys: string[]) {
-  for (const k of keys) {
-    await invoke("pty_write", { id, data: k }).catch(() => {});
-    await new Promise((r) => window.setTimeout(r, 45));
+  const cellWidth = screen.width / term.cols;
+  const cellHeight = screen.height / term.rows;
+  const viewport = term.buffer.active.viewportY;
+  const firstRow = Math.max(0, range.start.y - 1 - viewport);
+  const lastRow = Math.min(term.rows - 1, range.end.y - 1 - viewport);
+  if (firstRow > lastRow) {
+    return;
   }
-}
-
-async function backToPrompt(steps: number) {
-  if (!term) return;
-  const up = term.modes.applicationCursorKeysMode ? "\x1bOA" : "\x1b[A";
-  term.focus();
-  await pressKeys(Array(steps).fill(up));
-}
-
-function screenLine(i: number): string | null {
-  if (!term || i < 0 || i >= term.rows) return null;
-  const l = term.buffer.active.getLine(term.buffer.active.viewportY + i);
-  return l ? lineText(l).text : null;
-}
-
-/**
- * Moves Claude Code's agent selection to `name` and opens it. The selection may
- * still be in the prompt (first ↓ enters the list) or already on a row (❯), for
- * instance while another agent is shown: the screen is read again after each step.
- */
-async function switchToAgent(name: string) {
-  if (!term) return;
-  const app = term.modes.applicationCursorKeysMode;
-  const down = app ? "\x1bOB" : "\x1b[B";
-  const up = app ? "\x1bOA" : "\x1b[A";
-  const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
-  term.focus();
-  let list = agentListState(screenLine, term.rows);
-  if (!list) return;
-  if (list.selected === null) {
-    await pressKeys([down]);
-    // Claude marks the selected row with ❯, but not always right away (or not at
-    // all, depending on the version): wait a little for it, and without it assume
-    // the first row, as the ↓ from the prompt lands there.
-    let after = null as ReturnType<typeof agentListState>;
-    for (let i = 0; i < 5; i++) {
-      await wait(i ? 120 : 160);
-      after = agentListState(screenLine, term.rows);
-      if (!after || after.selected !== null) break;
+  const midpoint = range.start.y === range.end.y
+    ? (range.start.x - 1 + range.end.x) / 2
+    : term.cols / 2;
+  const address = new URL(url);
+  const webBase = target.project === undefined
+    ? refCtx.base ?? address.origin
+    : `${address.origin}/${target.project}`;
+  const card = reactive<ReferenceCard>({
+    key: ++referenceKey,
+    anchor,
+    left: screen.left - bounds.left + midpoint * cellWidth,
+    top: screen.top - bounds.top + firstRow * cellHeight,
+    height: (lastRow - firstRow + 1) * cellHeight,
+    url,
+    webBase,
+    folder,
+    forge,
+    target,
+    reference: { kind: match.kind === "mr" ? "pull_request" : "issue", number: target.number, url },
+    details: undefined,
+    facts: null,
+  });
+  pendingReferenceCard = card;
+  let hasHoverDelayElapsed = false;
+  function display() {
+    if (pendingReferenceCard === card) {
+      cancelPendingReferenceCard();
+      referenceCard.value = card;
     }
-    // The list is gone: the ↓ opened something else. Undo it and stop rather than
-    // pressing Enter on something unknown.
-    if (!after) {
-      await pressKeys([up]);
-      toast(t("terminalView.agentListUnreachable"));
-      return;
+  }
+  referenceOpenTimer = window.setTimeout(() => {
+    hasHoverDelayElapsed = true;
+    if (card.details !== undefined) {
+      display();
     }
-    list = { names: after.names, selected: after.selected ?? 0 };
+  }, REFERENCE_HOVER_DELAY_MS);
+  referenceLoadingTimer = window.setTimeout(display, REFERENCE_LOADING_DELAY_MS);
+  void prepareReferenceCard(card).then(() => {
+    if (hasHoverDelayElapsed) {
+      display();
+    }
+  });
+}
+
+async function prepareReferenceCard(card: ReferenceCard) {
+  const { folder, forge, target, webBase } = card;
+  const answer = await ForgeReferenceDetails.loadTerminalReference(folder, forge, webBase, card.reference, target)
+    .catch(() => ({ reference: card.reference, details: null }));
+  if (pendingReferenceCard !== card && referenceCard.value !== card) {
+    return;
   }
-  const target = list.names.indexOf(name);
-  if (target === -1) return;
-  const from = list.selected ?? 0;
-  const steps = target - from;
-  await pressKeys([...Array(Math.abs(steps)).fill(steps > 0 ? down : up), "\r"]);
-}
-
-function enterChip() {
-  onChip = true;
-  window.clearTimeout(chipTimer);
-}
-function leaveChip() {
-  onChip = false;
-  hideChip();
-}
-
-function runChip(alt = false) {
-  const c = chip.value;
-  hideChip(true);
-  if (alt) c?.alt?.run();
-  else c?.run();
-  term?.focus();
-}
-
-/** The tooltip of the first hover button: the destination when the line of the destination is not shown, and the ⌘-click hint. */
-function firstButtonTitle(): string {
-  const c = chip.value;
-  if (c === null) {
-    return "";
+  if (answer.reference.kind === "pull_request" && forge === refCtx.forge &&
+      sameReferenceAddress(webBase, refCtx.base, forge)) {
+    card.facts = await loadMergeFacts(folder, forge, target.number, false, answer.reference.url).catch(() => null);
   }
-  const destination = c.detail === undefined ? c.title : "";
-  const hint = c.alt ? "" : t("terminalView.chipSameAsClick");
-  return [destination, hint].filter((part) => part !== "").join("\n");
+  card.reference = answer.reference;
+  card.details = answer.details;
 }
+
+function cancelPendingReferenceCard() {
+  window.clearTimeout(referenceOpenTimer);
+  window.clearTimeout(referenceLoadingTimer);
+  pendingReferenceCard = null;
+}
+
+function closeReferenceCard() {
+  cancelPendingReferenceCard();
+  window.clearTimeout(referenceCloseTimer);
+  referenceCard.value = null;
+  isPointerOnCard = false;
+}
+
+function scheduleReferenceClose() {
+  cancelPendingReferenceCard();
+  window.clearTimeout(referenceCloseTimer);
+  if (isPointerOnCard === false) {
+    referenceCloseTimer = window.setTimeout(closeReferenceCard, 350);
+  }
+}
+
+function enterReferenceCard() {
+  isPointerOnCard = true;
+  window.clearTimeout(referenceCloseTimer);
+}
+
+function leaveReferenceCard() {
+  isPointerOnCard = false;
+  scheduleReferenceClose();
+}
+
+function referenceName(card: ReferenceCard): string {
+  return `${card.forge === "gitlab" && card.reference.kind === "pull_request" ? "!" : "#"}${card.target.number}`;
+}
+
+watch(
+  () => props.cwd,
+  async (cwd, _old, onCleanup) => {
+    let isCurrent = true;
+    onCleanup(() => { isCurrent = false; });
+    refCtx = EMPTY_CONTEXT;
+    closeReferenceCard();
+    const context = await refContext(cwd);
+    if (isCurrent === true) {
+      refCtx = context;
+      refreshReferenceDecorations();
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => [settings.terminalTextDetection, settings.terminalWebAddresses] as const,
+  () => {
+    overLink = false;
+    closeReferenceCard();
+    buildLinkProviders();
+    refreshReferenceDecorations();
+  },
+);
 
 /** The text of a buffer line, with the cell column of each character (wide chars, emoji). */
 function lineText(line: IBufferLine): { text: string; col: number[]; width: number[] } {
@@ -701,7 +645,7 @@ function paintRefs() {
     const prev = rows.get(y);
     if (prev && prev.text === text && (!prev.marker || (!prev.marker.isDisposed && prev.marker.line === buf.baseY + y))) continue;
     clearRow(y);
-    const refs = TerminalDetection.findColoredReferences(text, refCtx, enabledFamilies());
+    const refs = terminalReferences(text);
     if (!refs.length) {
       rows.set(y, { text, marker: null, decorations: [] });
       continue;
@@ -951,7 +895,7 @@ function pinSelection() {
 
 onBeforeUnmount(() => {
   window.clearTimeout(refsTimer);
-  window.clearTimeout(chipTimer);
+  closeReferenceCard();
   webLinks?.dispose();
   detectionProvider?.dispose();
   chatImageProvider?.dispose();
@@ -976,18 +920,34 @@ onBeforeUnmount(() => {
   <div ref="wrapEl" class="wrap">
     <div ref="el" class="term"></div>
     <div
-      v-if="chip"
-      class="chips"
-      :style="{ top: `${chip.top}px`, left: `${chip.left}px` }"
-      @mouseenter="enterChip()"
-      @mouseleave="leaveChip()"
-      @mousedown.stop.prevent
+      v-if="referenceCard"
+      :key="referenceCard.key"
+      class="terminal-reference-anchor"
+      :style="{ top: `${referenceCard.top}px`, left: `${referenceCard.left}px`, height: `${referenceCard.height}px` }"
+      @pointerenter="enterReferenceCard"
+      @pointerleave="leaveReferenceCard"
     >
-      <div class="chip-actions">
-        <button class="btn small chip" type="button" :title="firstButtonTitle()" @click="runChip(false)">{{ chip.label }}</button>
-        <button v-if="chip.alt" class="btn small chip" type="button" :title="t('terminalView.previewInApp')" @click="runChip(true)">{{ chip.alt.label }}</button>
-      </div>
-      <div v-if="chip.detail" class="chip-detail" :title="chip.detail">{{ chip.detail }}</div>
+      <InformationCard
+        opens-on-mount
+        placement="above-or-below"
+        :label="t('codeHostingPanel.cardLabel', { name: referenceName(referenceCard) })"
+        @dismiss="closeReferenceCard"
+      >
+        <template #card>
+          <CodeHostingReferenceCard
+            :reference="referenceCard.reference"
+            :details="referenceCard.details"
+            :folder="referenceCard.folder"
+            :forge="referenceCard.forge"
+            :web-base="referenceCard.webBase"
+            :title="referenceCard.details?.title ?? null"
+            :name="referenceName(referenceCard)"
+            :target="referenceCard.target"
+            :facts="referenceCard.facts"
+            :expected-url="referenceCard.reference.url"
+          />
+        </template>
+      </InformationCard>
     </div>
     <div v-if="hasSelection" class="sel-bar" @mousedown.stop.prevent>
       <button :title="t('terminalView.copyTitle')" class="btn" @click="copySelection">{{ t("terminalView.copy") }} <kbd>⌘C</kbd></button>
@@ -1004,6 +964,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.terminal-reference-anchor { --information-card-part-background: transparent; position: absolute; z-index: 6; pointer-events: none; }
+.terminal-reference-anchor :deep(.information-card-part) { height: 100%; }
+.terminal-reference-anchor :deep(.popover) { pointer-events: auto; }
 .wrap { flex: 1; min-height: 0; position: relative; }
 .term { position: absolute; inset: 8px 4px 4px 12px; }
 .overlay {
@@ -1019,9 +982,5 @@ onBeforeUnmount(() => {
 }
 .sel-bar .btn { background: var(--field); }
 /* The padding is part of the hover zone, and reaches down to the hovered text. */
-.chips { position: absolute; z-index: 6; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 0 4px; }
-.chip-actions { height: 26px; display: flex; align-items: flex-start; gap: 4px; }
-.chip-detail { max-width: 352px; overflow: hidden; color: var(--text-2); font-size: calc(var(--font-size) * 0.7); line-height: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.chip { white-space: nowrap; cursor: pointer; max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
 :deep(.xterm-viewport) { background: transparent !important; }
 </style>

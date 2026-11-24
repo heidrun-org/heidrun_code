@@ -2,6 +2,7 @@
   "eyebrow": "Merge",
   "titlePr": "Merge the pull request {name}?",
   "titleMr": "Merge the merge request {name}?",
+  "referenceMismatch": "The workspace repository does not match the linked request.",
   "loading": "Reading the state on {forge}…",
   "method": "Merge method",
   "methodMerge": "Create a merge commit",

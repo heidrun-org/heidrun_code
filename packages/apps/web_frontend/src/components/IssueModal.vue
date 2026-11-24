@@ -118,6 +118,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
               :forge="issueView.merge.forge"
               :name="d.ref"
               :web-base="issueView.merge.webBase"
+              :expected-url="issueView.merge.expectedUrl"
               hides-approval
             />
           </div>

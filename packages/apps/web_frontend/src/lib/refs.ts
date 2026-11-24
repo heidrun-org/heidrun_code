@@ -1,54 +1,42 @@
-// Issue / MR / PR / ticket / commit references in terminal output:
+// Issue, pull request, and merge request references in terminal output:
 // found per screen line, then colored (decorations) and made clickable (link provider).
 import { invoke } from "@tauri-apps/api/core";
 import { DetectionPatterns } from "./detection_patterns";
 import { parseReferences } from "./project_config";
-import { WrappedLines } from "./wrapped_lines";
 
-export type RefKind = "issue" | "mr" | "ticket" | "commit";
+export type RefKind = "issue" | "mr";
 export type Forge = "github" | "gitlab";
 
-/**
- * The rule that found a reference. "fullAddress" is the address with its host, "pathAddress" the address without its host
- * ("/issues/12", "org/app/pull/5"), "explicit" is "PR #12", "crossRepository" is "group/app#12", "bang" is "!34", "hash" is
- * "#12", "ticket" is "ABC-123", "commitHash" is the hexadecimal identifier, and "commitAddress" is the address of a commit.
- */
-export type RefRule =
-  | "fullAddress"
-  | "commitAddress"
-  | "pathAddress"
-  | "explicit"
-  | "crossRepository"
-  | "bang"
-  | "hash"
-  | "ticket"
-  | "commitHash";
-
-export interface RefMatch {
-  start: number; // index in the line text
-  end: number; // exclusive
+/** An issue or request link found in the terminal buffer. */
+export type RefMatch = {
+  /** Start of the reference in the text. */
+  start: number;
+  /** End of the reference, exclusive. */
+  end: number;
+  /** The reference kind used to color the terminal text. */
   kind: RefKind;
-  url: string | null;
-  /** The rule that found the reference. */
-  rule: RefRule;
-  /** Issue / MR that the app can show itself (in-app preview). */
-  target?: RefTarget;
-}
+  /** The web address of the item. */
+  url: string;
+  /** The repository and number used to load the information card. */
+  target: RefTarget;
+};
 
 /** An issue or a merge request that the application previews itself. */
 export interface RefTarget {
   type: "issue" | "mr";
   number: number;
-  /** The repository, when the text names it ("group/app#12", a full address). Absent: the repository of the pane. */
+  /** The repository named in a full address. Absent for shorthand references. */
   project?: string;
   /** The forge of the explicit repository, when the text tells it (a full address). Absent: the forge of the pane. */
   forge?: Forge;
 }
 
 export interface RefContext {
+  /** Git root of the workspace, when available. */
+  root?: string;
   /** Web URL of the repository, e.g. https://gitlab.com/group/app */
   base: string | null;
-  /** Web origin, e.g. https://gitlab.com (for `group/app#12`) */
+  /** Web origin, e.g. https://gitlab.com, used for full links to the configured host. */
   origin: string | null;
   forge: Forge | null;
   /** Ticket URL template with {key}, e.g. https://acme.atlassian.net/browse/{key} */
@@ -61,8 +49,6 @@ export interface RefContext {
 export const REF_COLORS: Record<RefKind, string> = {
   issue: "#79b8ff",
   mr: "#c29bf0",
-  ticket: "#6fd0c8",
-  commit: "#e0b080",
 };
 
 export const EMPTY_CONTEXT: RefContext = {
@@ -136,6 +122,7 @@ export async function refContext(cwd: string | null | undefined, isFresh = false
 
 async function load(cwd: string): Promise<{ context: RefContext; error: string | null }> {
 	const result = await invoke<{
+		root?: string;
 		remote: string | null;
 		remote_error?: string | null;
 		references: Record<string, unknown> | null;
@@ -154,6 +141,7 @@ async function load(cwd: string): Promise<{ context: RefContext; error: string |
 		}
 		: conf.tickets ?? {};
 	const context: RefContext = {
+		...(result.root === undefined ? {} : { root: result.root }),
 		base: web?.base ?? null,
 		origin: web?.origin ?? null,
 		forge,
@@ -195,10 +183,6 @@ export function mrUrl(base: string | null, forge: Forge | null, n: string): stri
   return forge === "github" ? `${base}/pull/${n}` : `${base}/-/merge_requests/${n}`;
 }
 
-// Words that look like tickets but are not (UTF-8, SHA-256…), when no prefix list is set.
-const NOT_TICKETS = new Set(["UTF", "ISO", "SHA", "RFC", "CVE", "GPT", "MD", "HTTP", "TLS", "SSL", "ES", "IPV", "X", "COVID", "MP", "AES", "RSA"]);
-
-/** The host name of a web address, or null when the text is not a web address. */
 function hostOf(address: string | null): string | null {
   if (address === null) {
     return null;
@@ -211,351 +195,110 @@ function hostOf(address: string | null): string | null {
 }
 
 /**
- * All references in one line of text, without overlaps. The rules run in a fixed order and the first rule that finds a piece
- * of text keeps it: the order is the precedence, and a later rule never takes the text back.
+ * Compares hosting addresses without the web scheme, query, fragment, or trailing slash.
+ * @param first - The first repository or item address.
+ * @param second - The second repository or item address.
+ * @param forge - The hosting service, whose repository path may be case insensitive.
+ * @returns True when both addresses identify the same repository or item.
  */
-export function findRefs(line: string, ctx: RefContext): RefMatch[] {
-  if (!ctx.enabled || line.trim().length < 2) return [];
-  const out: RefMatch[] = [];
-  const taken = (s: number, e: number) => out.some((m) => s < m.end && e > m.start);
-  const add = (s: number, e: number, kind: RefKind, url: string | null, rule: RefRule, target?: RefMatch["target"]) => {
-    if (!taken(s, e)) out.push({ start: s, end: e, kind, url, rule, target });
-  };
-  let m: RegExpExecArray | null;
-  const contextHost = hostOf(ctx.origin);
-
-  // Skip URLs: the web links addon handles them, and "#123" inside one is not ours.
-  const urls: [number, number][] = [];
-  const urlRe = DetectionPatterns.global(DetectionPatterns.REFERENCE_ADDRESS);
-  while ((m = urlRe.exec(line))) urls.push([m.index, m.index + m[0].length]);
-  const inUrl = (i: number) => urls.some(([s, e]) => i >= s && i < e);
-
-  // GitHub and GitLab issue and pull request addresses get the same hover actions as #12 and !34. An address of
-  // another site ("https://example.com/issues/12") is not ours: only github.com and the host of the repository count.
-  for (const [start, end] of urls) {
-    const address = line.slice(start, end).replace(/[.,;:!?]+$/, "");
-    let parsed: URL;
-    try {
-      parsed = new URL(address);
-    } catch {
-      continue;
-    }
-    const path = parsed.pathname.replace(/\/+$/, "");
-    const isGithubHost = parsed.hostname === "github.com" || (ctx.forge === "github" && parsed.hostname === contextHost);
-    const github = DetectionPatterns.GITHUB_ADDRESS_PATH.exec(path);
-    if (github && isGithubHost) {
-      const kind = github[1] === "pull" ? "mr" : "issue";
-      const pathParts = path.slice(0, github.index).replace(/^\/+|\/+$/g, "").split("/");
-      const project = pathParts.slice(-2).join("/");
-      add(start, start + address.length, kind, address, "fullAddress", {
-        type: kind,
-        number: Number(github[2]),
-        forge: "github",
-        ...(project.length > 0 ? { project } : {}),
-      });
-      continue;
-    }
-    const gitlab = DetectionPatterns.GITLAB_ADDRESS_PATH.exec(path);
-    if (gitlab && (parsed.hostname !== "github.com" || ctx.forge === "gitlab")) {
-      const kind = gitlab[1] === "merge_requests" ? "mr" : "issue";
-      const project = path.slice(0, gitlab.index).replace(/^\/+|\/+$/g, "");
-      add(start, start + address.length, kind, address, "fullAddress", {
-        type: kind,
-        number: Number(gitlab[2]),
-        forge: "gitlab",
-        ...(project.length > 0 ? { project } : {}),
-      });
-      continue;
-    }
-    if (DetectionPatterns.GITLAB_COMMIT_PATH.test(path) || (DetectionPatterns.GITHUB_COMMIT_PATH.test(path) && isGithubHost)) {
-      add(start, start + address.length, "commit", address, "commitAddress");
-    }
-  }
-
-  // The address without its host: "/issues/12", "org/app/issues/12", "/pull/5", "/-/issues/3", "group/sub/app/-/merge_requests/3".
-  // It opens the same destination as "#12" or "!34", on the host of the repository of the pane.
-  const addPath = (s: number, e: number, kind: "issue" | "mr", number: number, project: string | undefined) => {
-    const base = project === undefined ? ctx.base : ctx.origin ? `${ctx.origin}/${project}` : null;
-    const url = kind === "mr" ? mrUrl(base, ctx.forge, String(number)) : issueUrl(base, ctx.forge, String(number));
-    add(s, e, kind, url, "pathAddress", { type: kind, number, ...(project === undefined ? {} : { project }) });
-  };
-  const gitlabPath = DetectionPatterns.global(DetectionPatterns.GITLAB_PATH_ADDRESS);
-  while ((m = gitlabPath.exec(line))) {
-    if (inUrl(m.index)) continue;
-    const project = m[1] === undefined ? undefined : m[1].replace(/\/+$/, "");
-    addPath(m.index, m.index + m[0].length, m[2] === "merge_requests" ? "mr" : "issue", Number(m[3]), project);
-  }
-  const githubPath = DetectionPatterns.global(DetectionPatterns.GITHUB_PATH_ADDRESS);
-  while ((m = githubPath.exec(line))) {
-    if (inUrl(m.index)) continue;
-    const word = m[1] ?? m[4];
-    addPath(m.index, m.index + m[0].length, word === "pull" ? "mr" : "issue", Number(m[2] ?? m[5]), m[3]);
-  }
-
-  // 1. "PR #12", "MR !34", "merge request 34", "pull request #5"
-  const explicit = DetectionPatterns.global(DetectionPatterns.EXPLICIT_REQUEST);
-  while ((m = explicit.exec(line))) {
-    if (inUrl(m.index)) continue;
-    add(m.index, m.index + m[0].length, "mr", mrUrl(ctx.base, ctx.forge, m[3]), "explicit", { type: "mr", number: Number(m[3]) });
-  }
-
-  // 2. "group/app#12", "group/app!34" (another repository on the same forge)
-  const cross = DetectionPatterns.global(DetectionPatterns.CROSS_REPOSITORY);
-  while ((m = cross.exec(line))) {
-    if (inUrl(m.index)) continue;
-    const base = ctx.origin ? `${ctx.origin}/${m[1]}` : null;
-    const isMr = m[2] === "!";
-    add(
-      m.index,
-      m.index + m[0].length,
-      isMr ? "mr" : "issue",
-      isMr ? mrUrl(base, ctx.forge, m[3]) : issueUrl(base, ctx.forge, m[3]),
-      "crossRepository",
-      { type: isMr ? "mr" : "issue", number: Number(m[3]), project: m[1] },
-    );
-  }
-
-  // 3. "!34": GitLab merge request
-  if (ctx.forge !== "github") {
-    const bang = DetectionPatterns.global(DetectionPatterns.BANG);
-    while ((m = bang.exec(line))) {
-      if (inUrl(m.index)) continue;
-      add(m.index, m.index + m[0].length, "mr", mrUrl(ctx.base, ctx.forge, m[1]), "bang", { type: "mr", number: Number(m[1]) });
-    }
-  }
-
-  // 4. "#12": issue (GitHub redirects to the PR when it is one)
-  const hash = DetectionPatterns.global(DetectionPatterns.HASH);
-  while ((m = hash.exec(line))) {
-    if (inUrl(m.index)) continue;
-    add(m.index, m.index + m[0].length, "issue", issueUrl(ctx.base, ctx.forge, m[1]), "hash", { type: "issue", number: Number(m[1]) });
-  }
-
-  // 5. Tickets "ABC-123": only when the project sets a ticket URL.
-  if (ctx.ticketUrl) {
-    const ticket = DetectionPatterns.global(DetectionPatterns.TICKET);
-    while ((m = ticket.exec(line))) {
-      if (inUrl(m.index)) continue;
-      const prefix = m[1];
-      if (ctx.ticketPrefixes.length ? !ctx.ticketPrefixes.includes(prefix) : NOT_TICKETS.has(prefix)) continue;
-      add(m.index, m.index + m[0].length, "ticket", ctx.ticketUrl.replace("{key}", m[0]), "ticket");
-    }
-  }
-
-  // 6. Commit hashes: 7–40 hex chars with both letters and digits.
-  const sha = DetectionPatterns.global(DetectionPatterns.COMMIT_HASH);
-  while ((m = sha.exec(line))) {
-    const h = m[0];
-    if (inUrl(m.index) || !/[a-f]/.test(h) || !/\d/.test(h)) continue;
-    add(m.index, m.index + h.length, "commit", ctx.base ? (ctx.forge === "github" ? `${ctx.base}/commit/${h}` : `${ctx.base}/-/commit/${h}`) : null, "commitHash");
-  }
-
-  return out.sort((a, b) => a.start - b.start);
-}
-
-// ---- Things the agent suggests doing: slash commands and numbered steps ------
-
-const commandCache = new Map<string, Promise<Set<string>>>();
-
-/** Slash commands Claude Code knows in this folder (built-ins, user, project, plugins). */
-export function claudeCommands(cwd: string | null | undefined): Promise<Set<string>> {
-  const key = cwd || "";
-  let p = commandCache.get(key);
-  if (!p) {
-    p = invoke<string[]>("claude_commands", { cwd: cwd || null })
-      .then((list) => new Set(list.map((c) => c.toLowerCase())))
-      .catch(() => new Set<string>());
-    commandCache.set(key, p);
-    window.setTimeout(() => commandCache.delete(key), 2 * 60_000);
-  }
-  return p;
-}
-
-export interface CommandMatch {
-  start: number;
-  end: number;
-  command: string; // "/fin-tache"
-}
-
-/** "/fin-tache", "/compact"… but only real commands, never paths like /tmp/x. */
-export function findCommands(line: string, known: ReadonlySet<string>): CommandMatch[] {
-  if (!known.size || !line.includes("/")) return [];
-  const out: CommandMatch[] = [];
-  const re = DetectionPatterns.global(DetectionPatterns.SLASH_COMMAND);
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(line))) {
-    if (known.has(m[1].toLowerCase())) out.push({ start: m.index, end: m.index + m[0].length, command: m[0] });
-  }
-  return out;
-}
-
-export interface StepMatch {
-  start: number; // the "1." marker
-  end: number;
-  number: number;
-  text: string; // first line of the item, for the prompt
-}
-
-/** "  1. Ouvrir une issue…", "2) Committer…": an item of a numbered list. */
-export function findStep(line: string): StepMatch | null {
-  const m = DetectionPatterns.NUMBERED_STEP.exec(line);
-  if (!m || m[3].length < 4) return null;
-  const start = m[1].length;
-  return { start, end: line.length - (line.length - line.trimEnd().length), number: Number(m[2]), text: m[3] };
-}
-
-// ---- Shell commands for Claude's "!" mode ------------------------------------
-
-export interface ShellBlock {
-  /** First and last screen lines of the command (0-based). */
-  first: number;
-  last: number;
-  /** Where the "!" sits on the first line (index in its text). */
-  start: number;
-  /** The command as one line, without the "!". */
-  command: string;
-}
-
-const NEW_ITEM = /^\s*(?:[!•⏺⎿>❯$#*-]|\d{1,2}[.)]\s)/;
-/** A new command or a new item of the agent: it ends a command, also after a line that the agent wrapped. */
-const NEW_COMMAND = /^\s*[!•⏺⎿❯]/;
-const BANG = DetectionPatterns.SHELL_BLOCK_START;
-const indentOf = (s: string) => s.length - s.trimStart().length;
-
-/**
- * "! docker builder prune -af && docker image prune -af", possibly spread over
- * several screen lines: wrapped by the agent, or continued with \, &&, ||, | or ;.
- * `lineAt(i)` returns the text of screen line i (or null past the end).
- * `textEndsAtLastLine` is true for a sample text, which ends at its last line.
- * A line that the agent wrapped is joined with one space, or with no space after a
- * word cut at the right edge (`WrappedLines`). A line that starts with "-" goes on
- * the command when the line before was wrapped or continued ("--reporter verbose").
- * A command of more than `WrappedLines.MAX_ROWS` lines, or that reaches the last line
- * of the screen (it may go on below, out of sight), is not proposed, rather than cut.
- * The "!" needs a space after it, so "!48 is merged" (a merge request) is not a
- * command (issue #574).
- */
-export function findShellBlock(
-  lineAt: (i: number) => string | null,
-  y: number,
-  cols: number,
-  textEndsAtLastLine = false,
-): ShellBlock | null {
-  // The hovered line may be a continuation: look up for the "!".
-  for (let first = y; first >= Math.max(0, y - WrappedLines.MAX_ROWS); first--) {
-    const head = lineAt(first);
-    if (head == null) break;
-    const m = BANG.exec(head);
-    if (!m || /^!\w/.test(m[2]) || !/^\s*!\s/.test(head)) {
-      if (!head.trim()) break; // a blank line ends any block
-      continue;
-    }
-    const bangIndent = m[1].length;
-    let command = m[2].trimEnd();
-    let last = first;
-    let prev = head.trimEnd();
-    for (let i = first + 1; ; i++) {
-      const line = lineAt(i);
-      // Past the bottom of the screen: the command may go on out of sight. Past the end of a sample text, it is complete.
-      if (line == null && !textEndsAtLastLine) return null;
-      if (line == null || !line.trim()) break;
-      if (i - first >= WrappedLines.MAX_ROWS) return null;
-      const indent = indentOf(line);
-      const continued = /(\\|&&|\|\||\||;)$/.test(prev);
-      const wrapped = WrappedLines.isWrapped(prev, line, cols);
-      if (indent < bangIndent || (!continued && NEW_COMMAND.test(line))) break;
-      if (!continued && !wrapped && (NEW_ITEM.test(line) || indent <= bangIndent)) break;
-      if (continued) {
-        command = command.replace(/\s*\\$/, "") + " " + line.trim();
-      } else if (wrapped) {
-        command += WrappedLines.separator(prev, cols) + line.trim();
-      } else {
-        command += " " + line.trim();
-      }
-      prev = line.trimEnd();
-      last = i;
-    }
-    if (y > last) return null;
-    command = command.replace(/\s*\\$/, "").trim();
-    if (command.length < 2) return null;
-    return { first, last, start: bangIndent, command };
-  }
-  return null;
-}
-
-const SHELL_TOOLS = new Set(
-  ("git npm pnpm yarn npx bun deno node python python3 pip pip3 uv docker podman make cargo rustc go ls cd cat less rm mv cp " +
-    "touch mkdir chmod chown ln curl wget brew gh glab kubectl helm ssh scp rsync sudo tail head grep rg find echo export " +
-    "env source sh bash zsh tauri flutter dart php composer symfony herdr claude codex open killall lsof ps kill pkill jq yq " +
-    "psql mysql redis-cli sqlite3 terraform ansible vercel wrangler supabase firebase gcloud aws az du df tar zip unzip " +
-    "sed awk sort uniq wc xargs watch time which diff patch tree code ngrok").split(" "),
-);
-
-/**
- * "… lance ! scripts/identifier-jeton-pages.sh. Si la révocation…": a shell-mode
- * command quoted inside a sentence. It ends at the end of the sentence (". " then
- * a capital letter, or the end of the line), at a closing backtick, or at " ou " / " puis ".
- */
-export function findInlineShell(text: string): { start: number; end: number; command: string }[] {
-  const out: { start: number; end: number; command: string }[] = [];
-  const re = DetectionPatterns.global(DetectionPatterns.INLINE_SHELL);
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) {
-    const start = m.index + m[1].length;
-    const from = re.lastIndex;
-    const rest = text.slice(from);
-    let len: number;
-    if (m[2]) {
-      const close = rest.indexOf("`");
-      if (close <= 0) continue;
-      len = close;
-    } else {
-      const stop = /(\.\s+(?=\p{Lu})|\.\s*$|,\s|;\s|\s+(ou|puis|or|then)\s|\s*»|\s*$)/u.exec(rest);
-      len = stop ? stop.index : rest.length;
-    }
-    const command = rest.slice(0, len).replace(/[.,;:]+$/, "").trim();
-    // "C'est super ! Bravo" is French punctuation, not a command: the first word
-    // must look like one (a path, a script, or a common tool).
-    const head = command.split(/\s+/)[0];
-    if (command.length < 2 || !(/[/.]/.test(head) || SHELL_TOOLS.has(head))) continue;
-    const end = from + rest.slice(0, len).replace(/[.,;:]+$/, "").length + (m[2] ? 1 : 0);
-    out.push({ start, end, command });
-    re.lastIndex = end;
-  }
-  return out;
+export function sameReferenceAddress(first: string | null, second: string | null, forge: Forge): boolean {
+	if (first === null || second === null) {
+		return false;
+	}
+	try {
+		const firstAddress = new URL(first);
+		const secondAddress = new URL(second);
+		const firstPath = firstAddress.pathname.replace(/\/+$/, '');
+		const secondPath = secondAddress.pathname.replace(/\/+$/, '');
+		return firstAddress.host === secondAddress.host &&
+			(forge === 'github' ? firstPath.toLowerCase() === secondPath.toLowerCase() : firstPath === secondPath);
+	} catch {
+		return false;
+	}
 }
 
 /**
- * File paths cited in a terminal: "src/app.ts", "src/app.ts:42", "./lib/x.rs:10:5",
- * or a bare name with a line ("app.ts:42"). A bare name without line is too vague.
- * A path ends where the word ends: a dot ends it only when a space, the end of the line, or a closing mark follows the dot
- * (a full stop), so "~/Library/WebKit/dev.heidrun-org.heidrun-code.development" is one path and never stops at ".heidrun".
- * The last piece after the final dot (the extension) has 1 to 25 letters and digits.
+ * Finds issue and request addresses and shorthand references in one terminal line.
+ * @param text - The terminal line, including wrapped rows.
+ * @param context - The workspace repository and its reference settings.
+ * @returns The references in their order in the text.
  */
-export function findFileRefs(text: string): { start: number; end: number; path: string; line: number | null }[] {
-  const out: { start: number; end: number; path: string; line: number | null }[] = [];
-  const re =
-    DetectionPatterns.global(DetectionPatterns.FILE_PATH);
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) {
-    const start = m.index + m[1].length;
-    const path = m[2];
-    // URLs are handled elsewhere ("https://x.io/a.js" has "//").
-    if (/^\/\//.test(path) || text.slice(Math.max(0, start - 3), start).endsWith(":/")) continue;
-    if (/^\d+(\.\d+)+$/.test(path)) continue; // a version, "1.2.3"
-    // Host names ("db.example.com:5432", "github.com/x/y.git"): not files.
-    const first = path.replace(/^(\.{1,2}\/|~\/|\/)/, "").split("/")[0];
-    if (/\.(com|net|org|io|dev|fr|eu|app|co|ai|cloud)$/i.test(first) && path.includes("/") || (!path.includes("/") && /\.(com|net|org|io|dev|fr|eu|app|co|ai|cloud)$/i.test(path))) continue;
-    const end = start + m[0].length - m[1].length;
-    out.push({ start, end, path, line: m[3] ? Number(m[3]) : null });
-  }
-  return out;
+export function findRefs(text: string, context: RefContext): RefMatch[] {
+	if (context.enabled === false) {
+		return [];
+	}
+	const references: RefMatch[] = [];
+	const addresses = [...text.matchAll(DetectionPatterns.global(DetectionPatterns.REFERENCE_ADDRESS))];
+	const contextHost = hostOf(context.origin);
+
+	for (const match of addresses) {
+		const url = match[0].replace(/[.,;:!?]+$/, '');
+		let address: URL;
+		try {
+			address = new URL(url);
+		} catch {
+			continue;
+		}
+		if (address.username !== '' || address.password !== '') {
+			continue;
+		}
+		const path = address.pathname.replace(/\/+$/, '');
+		const isGithub = address.hostname === 'github.com' ||
+			(context.forge === 'github' && address.hostname === contextHost);
+		const isGitlab = address.hostname === 'gitlab.com' ||
+			(context.forge === 'gitlab' && address.hostname === contextHost);
+		const github = isGithub ? DetectionPatterns.GITHUB_ADDRESS_PATH.exec(path) : null;
+		const gitlab = isGitlab ? DetectionPatterns.GITLAB_ADDRESS_PATH.exec(path) : null;
+		const item = github ?? gitlab;
+		if (item === null) {
+			continue;
+		}
+		const project = path.slice(1, item.index);
+		const segments = project.split('/');
+		if (segments.some((segment) => segment === '') || segments.length < 2 ||
+			(github !== null && segments.length !== 2)) {
+			continue;
+		}
+		const kind = item[1] === 'pull' || item[1] === 'merge_requests' ? 'mr' : 'issue';
+		references.push({
+			start: match.index,
+			end: match.index + url.length,
+			kind,
+			url,
+			target: {
+				type: kind,
+				number: Number(item[2]),
+				forge: github !== null ? 'github' : 'gitlab',
+				project,
+			},
+		});
+	}
+
+	const pattern = context.forge === 'gitlab' ? DetectionPatterns.GITLAB_NUMBER : DetectionPatterns.HASH;
+	for (const match of text.matchAll(DetectionPatterns.global(pattern))) {
+		const start = match.index;
+		if (addresses.some((address) => start >= address.index && start < address.index + address[0].length)) {
+			continue;
+		}
+		const kind = match[0].startsWith('!') ? 'mr' : 'issue';
+		const destination = kind === 'issue' ? issueUrl : mrUrl;
+		const url = destination(context.base, context.forge, match[1]);
+		if (url !== null) {
+			references.push({
+				start,
+				end: start + match[0].length,
+				kind,
+				url,
+				target: {
+					type: kind,
+					number: Number(match[1]),
+				},
+			});
+		}
+	}
+	return references.sort((first, second) => first.start - second.start);
 }
 
-// ---- Claude Code's agent list under the prompt ("● main", "○ jerome-645 …") -----
-
-// Filled marker = the agent shown; hollow = the others. Several glyphs, depending on
-// the Claude Code version and the font.
 const AGENT_ROW = DetectionPatterns.AGENT_ROW;
 
 export interface AgentRow {
@@ -611,24 +354,6 @@ export function agentListState(
   }
   return null;
 }
-
-/**
- * Is screen line `y` inside Claude Code's prompt box (between the two ─── rules,
- * the first line starting with ❯)? Returns the box's first and last lines.
- */
-export function promptBoxAt(lineAt: (i: number) => string | null, y: number): { first: number; last: number } | null {
-  const rule = (i: number) => DetectionPatterns.PROMPT_BOX_RULE.test(lineAt(i) ?? "");
-  if (rule(y)) return null;
-  let top = y - 1;
-  while (top >= 0 && y - top <= 12 && !rule(top)) top--;
-  let bottom = y + 1;
-  while (lineAt(bottom) != null && bottom - y <= 12 && !rule(bottom)) bottom++;
-  if (!rule(top) || !rule(bottom)) return null;
-  if (!/^\s*[❯›>]/.test(lineAt(top + 1) ?? "")) return null;
-  return { first: top + 1, last: bottom - 1 };
-}
-
-// ---- Questions asked by the agent in its answer -------------------------------
 
 /**
  * The question that ends the agent's last message, if any: « Veux-tu que je
