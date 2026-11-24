@@ -130,7 +130,7 @@ async function answer(confirmed: boolean) {
   box-shadow: 0 24px 64px var(--shadow);
 }
 .update-dialog::backdrop { background: var(--overlay); }
-h2 { margin: 0 0 16px; font-size: 18px; }
+h2 { margin: 0 0 16px; font-size: calc(var(--font-size) * 1.125); }
 p { margin: 0; }
 .update-status { margin-top: 12px; }
 .update-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }

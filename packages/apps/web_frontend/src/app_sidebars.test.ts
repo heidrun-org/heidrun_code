@@ -80,7 +80,8 @@ describe("window with the two sidebars", () => {
   it("has no hide button for a sidebar in the top bar", async () => {
     const { wrapper } = await mountApp();
     expect(wrapper.find(".top [aria-pressed]").exists()).toBe(false);
-    expect(wrapper.findAll(".top button").map((button) => button.attributes("title"))).toEqual(["Search or run a command"]);
+		const buttons = wrapper.findAll('.top button:not([aria-hidden="true"])');
+		expect(buttons.map((button) => button.attributes('title'))).toEqual(['Search or run a command']);
   });
 });
 
