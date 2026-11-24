@@ -15,7 +15,6 @@ import { searchHasLabel } from "../lib/code_hosting_search";
 import type { Forge, RefTarget } from "../lib/refs";
 import type { ChatReferenceDetails } from "../stores/chat_references";
 import { chatAboutReference } from "../stores/chat_open";
-import { openIssue } from "../stores/issues";
 import { toast } from "../stores/session";
 import { t } from "../i18n/index";
 
@@ -141,17 +140,6 @@ const openedKey = computed(() => {
 /** The beginning of the description as plain text, or an empty text. */
 const excerpt = computed(() => referenceExcerpt(props.details?.body ?? ""));
 
-/** Opens the description and the comments of the issue or of the pull request in the window of Heidrun Code. */
-function openInHeidrun() {
-  const type = props.reference.kind === "issue" ? "issue" : "mr";
-  const target: RefTarget = { ...props.target, type, number: props.reference.number };
-  if (props.target === undefined) {
-    openIssue(props.folder, target, props.reference.url);
-    return;
-  }
-  openIssue(props.folder, target, props.reference.url, true);
-}
-
 /** Opens the web page of the repository in the web browser. */
 async function openRepository() {
   if (props.webBase === null) {
@@ -240,15 +228,6 @@ function showCopyState(state: "idle" | "copied" | "failed") {
         <a v-if="repository !== null" class="repository" :href="webBase ?? undefined" @click.prevent="openRepository">{{ repository }}</a>{{ createdText }}
       </div>
       <div class="btn-group" role="group" :aria-label="t('chatsPanel.openReferenceLabel')">
-        <button
-          type="button"
-          class="btn"
-          :title="t('chatsPanel.heidrunTitle')"
-          :aria-label="t('chatsPanel.heidrunTitle')"
-          @click="openInHeidrun"
-        >
-          <Icon name="heidrun-goat-only" />
-        </button>
         <button
           type="button"
           class="btn"

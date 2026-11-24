@@ -1,7 +1,7 @@
 {
   "all.name": "Issues, pull requests, and merge requests",
   "all.what": "GitHub uses #123 for issues and pull requests. GitLab uses #123 for issues and !123 for merge requests. Full links are also detected.",
-  "all.on": "Hover over a reference to see its information card. The terminal uses the workspace repository to resolve a reference written as a number.",
+  "all.on": "Hover over a reference to see its information card. Hold Command and click to open the item in the browser. The terminal uses the workspace repository to resolve a reference written as a number.",
   "all.off": "The terminal stops showing information cards for these references.",
   "family.webAddresses.name": "Ordinary web links",
   "family.webAddresses.what": "Clickable web addresses in the terminal that start with http:// or https://.",

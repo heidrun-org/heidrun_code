@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: code hosting
 
 - Created: 13 October 2026
-- Last updated: 29 October 2026
+- Last updated: 24 November 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: code hosting](../user_interface/sidebars/code_hosting.md), [User interface of Heidrun Code: code hosting search](../user_interface/sidebars/code_hosting_search.md), [User interface of Heidrun Code: code hosting saved searches](../user_interface/sidebars/code_hosting_saved_searches.md), [User interface of Heidrun Code: code hosting merge](../user_interface/sidebars/code_hosting_merge.md)
@@ -35,7 +35,7 @@ How the hosting service merges a pull request or a merge request: "Create a merg
 
 ### Merge bar
 
-The line at the end of the information card of an open pull request or merge request, and in the issue preview window: the approval state, the people who approved, and the button "Merge".
+The line at the end of the information card of an open pull request or merge request: the approval state, the people who approved, and the button "Merge".
 
 ### Merge window
 

@@ -268,7 +268,7 @@ describe("CodeHostingPanel on GitHub", () => {
     expect(card).toContain("jeromeetienne opened this issue");
   });
 
-  it("shows in the card the repository line with the four buttons, then the whole title with its number, then the state", async () => {
+  it("shows in the card the repository line with the three buttons, then the whole title with its number, then the state", async () => {
     answerGithub();
     const wrapper = await mountPanel();
     await wrapper.findAll(".row-card")[0].trigger("click");
@@ -277,7 +277,7 @@ describe("CodeHostingPanel on GitHub", () => {
     const line = card.get("[data-reference-repository-line]");
     expect(line.text()).toBe("team/app on Oct 13");
     expect(line.get("a").attributes("href")).toBe("https://example.com/team/app");
-    expect(line.element.parentElement?.querySelectorAll(".btn-group button")).toHaveLength(4);
+    expect(line.element.parentElement?.querySelectorAll(".btn-group button")).toHaveLength(3);
     expect(card.get("[data-reference-title]").text()).toBe("Add the Code hosting sidebar section #370");
     expect(card.get(".badge.state").classes()).toContain("state-open");
     await line.get("a").trigger("click");

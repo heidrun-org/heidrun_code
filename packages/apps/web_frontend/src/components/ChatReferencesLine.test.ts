@@ -4,7 +4,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import ChatReferencesLine from "./ChatReferencesLine.vue";
 import { chatReferences } from "../lib/chat_references";
-import { issueView } from "../stores/issues";
 import { settings } from "../stores/settings";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
@@ -81,7 +80,6 @@ async function openCard(wrapper: ReturnType<typeof mountLine>) {
 beforeEach(() => {
   settings.language = "en";
   vi.mocked(openUrl).mockClear();
-  issueView.open = false;
   vi.mocked(invoke).mockReset();
   vi.mocked(invoke).mockImplementation(async (command, payload) => {
     if (command === "chat_references_synchronize") {
@@ -218,21 +216,13 @@ describe("ChatReferencesLine", () => {
     expect(wrapper.find("[data-reference-details]").exists()).toBe(false);
   });
 
-  it("opens the web page on the forge, and the description in Heidrun Code, from the two buttons of the details", async () => {
+  it("opens the web page on GitHub from the information card", async () => {
     const wrapper = mountLine();
     await openCard(wrapper);
     await wrapper.findAll("[data-reference]")[0].trigger("click");
-    const [heidrun, forge] = wrapper.get("[data-reference-details]").findAll("button");
-    expect(heidrun.attributes("title")).toBe("Open in Heidrun Code");
-    expect(heidrun.find(".bi-heidrun-goat-only").exists()).toBe(true);
-    expect(forge.attributes("title")).toBe("Open in GitHub");
+    const forge = wrapper.get('[data-reference-details] button[title="Open in GitHub"]');
     await forge.trigger("click");
     expect(openUrl).toHaveBeenCalledWith(`${BASE}/issues/31`);
-    vi.mocked(invoke).mockClear();
-    await heidrun.trigger("click");
-    await flushPromises();
-    expect(issueView.open).toBe(true);
-    expect(issueView.url).toBe(`${BASE}/issues/31`);
   });
 
   it("names GitLab on the button of the forge for a repository on GitLab", async () => {
@@ -240,6 +230,6 @@ describe("ChatReferencesLine", () => {
     const wrapper = mountLine({ forge: "gitlab", webBase: "https://gitlab.com/group/app", references });
     await openCard(wrapper);
     await wrapper.get("[data-reference]").trigger("click");
-    expect(wrapper.get("[data-reference-details]").findAll("button")[1].attributes("title")).toBe("Open in GitLab");
+    expect(wrapper.get("[data-reference-details]").find('button[title="Open in GitLab"]').exists()).toBe(true);
   });
 });

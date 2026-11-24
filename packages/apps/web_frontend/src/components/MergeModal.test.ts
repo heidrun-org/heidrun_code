@@ -84,7 +84,7 @@ describe("MergeModal on GitLab (issue #570)", () => {
 });
 
 describe("MergeModal, the approval state when the repository asks for no review (issue #1044)", () => {
-  it("shows Not approved in gray, as the issue preview window does", () => {
+  it("shows Not approved in gray", () => {
     const wrapper = showWindow(githubMergeFacts({ ...PULL_REQUEST, reviewDecision: "", latestReviews: [] }, null, 1043), "#1043");
     const chip = wrapper.get("[data-merge-approval]");
     expect(chip.text()).toBe("Not approved");

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 // The approval state of a pull request or of a merge request, the people who approved it, and the button "Merge" that
 // opens the merge window. The button is disabled, with the reason in its title, when the hosting service refuses the
-// merge now. Two places show it: the information card of a row of the Code hosting sidebar section, and the issue
-// preview window. The issue preview window shows the approval pill in its header instead, next to the state of the item.
+// merge now. The information cards for pull requests and merge requests show this bar.
 // - issue #570
 // - issue #1044
 import { computed } from "vue";
@@ -24,15 +23,13 @@ const props = defineProps<{
   webBase: string;
   /** The terminal reference address, when the merge is opened from the terminal. */
   expectedUrl?: string | null;
-  /** True when the window around the bar already shows the approval pill: the bar then shows only the approvers (issue #1044). */
-  hidesApproval?: boolean;
 }>();
 
 const blockReason = computed(() => (props.facts === null ? null : mergeBlockReason(props.facts)));
 const isOpen = computed(() => props.facts?.isOpen === true);
 
 /** The text of the approval pill, for example "Review required · 1 approval left", or an empty text. */
-const approval = computed(() => (props.facts === null || props.hidesApproval ? "" : approvalText(props.facts)));
+const approval = computed(() => (props.facts === null ? "" : approvalText(props.facts)));
 
 function openWindow() {
   if (props.facts !== null) {

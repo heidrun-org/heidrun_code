@@ -73,12 +73,11 @@ describe("ChatReferenceDetails, the repository line", () => {
     expect(openUrl).toHaveBeenCalledWith(BASE);
   });
 
-  it("puts the two buttons that open the item, the button that copies its web address, and the chat button at the right of the same line", () => {
+  it("puts the button that opens the item, the button that copies its web address, and the chat button at the right of the same line", () => {
     const wrapper = mountDetails();
     const line = wrapper.get("[data-reference-repository-line]").element.parentElement as HTMLElement;
     expect(line.querySelector(".btn-group")).not.toBeNull();
     expect(Array.from(line.querySelectorAll(".btn-group button")).map((button) => button.getAttribute("title"))).toEqual([
-      "Open in Heidrun Code",
       "Open in GitHub",
       "Copy the GitHub web address",
       "Let's chat about this issue",
@@ -86,10 +85,10 @@ describe("ChatReferenceDetails, the repository line", () => {
     expect((wrapper.element as HTMLElement).firstElementChild).toBe(line);
   });
 
-  it("shows no link, and keeps the four buttons, when the address of the repository is not known", () => {
+  it("shows no link, and keeps the three buttons, when the address of the repository is not known", () => {
     const wrapper = mountDetails({ webBase: null });
     expect(wrapper.find("[data-reference-repository-line] a").exists()).toBe(false);
-    expect(wrapper.findAll(".btn-group button")).toHaveLength(4);
+    expect(wrapper.findAll(".btn-group button")).toHaveLength(3);
   });
 
   it("shows the name of the repository alone while the forge has not given the date", () => {
@@ -118,7 +117,7 @@ describe("ChatReferenceDetails, the button that copies the web address", () => {
     const wrapper = mountDetails();
     const buttons = wrapper.findAll(".btn-group > button");
     const button = wrapper.get("[data-reference-copy]");
-    expect(buttons[2].element).toBe(button.element);
+    expect(buttons[1].element).toBe(button.element);
     expect(button.classes()).toEqual(["btn"]);
     expect(button.text()).toBe("");
     expect(button.find(".bi-clipboard").exists()).toBe(true);
@@ -149,7 +148,7 @@ describe("ChatReferenceDetails, the button that copies the web address", () => {
     ["a merge request of GitLab", { reference: MERGE_REQUEST, forge: "gitlab" as const }],
   ])("writes into the clipboard the address that the button Open in GitHub opens, for %s", async (_name, props) => {
     const wrapper = mountDetails(props);
-    await wrapper.get(".btn-group > button:nth-child(2)").trigger("click");
+    await wrapper.get(".btn-group > button:first-child").trigger("click");
     await wrapper.get("[data-reference-copy]").trigger("click");
     await flushPromises();
     expect(writeText).toHaveBeenCalledTimes(1);
@@ -228,8 +227,8 @@ describe("ChatReferenceDetails, the button that starts a chat", () => {
     const wrapper = mountDetails();
     const buttons = wrapper.findAll(".btn-group > button");
     const button = wrapper.get("[data-reference-chat]");
-    expect(buttons).toHaveLength(4);
-    expect(buttons[3].element).toBe(button.element);
+    expect(buttons).toHaveLength(3);
+    expect(buttons[2].element).toBe(button.element);
     expect(button.text()).toBe("");
     expect(button.find(".bi-chat-dots").exists()).toBe(true);
     expect(button.attributes("title")).toBe("Let's chat about this issue");

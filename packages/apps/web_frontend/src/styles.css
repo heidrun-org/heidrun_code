@@ -508,7 +508,7 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 .code .hljs-addition { color: var(--a); } .code .hljs-deletion { color: var(--k); }
 .code .hljs-emphasis { font-style: italic; } .code .hljs-strong { font-weight: 700; }
 
-/* ---- Rendered Markdown (issue preview) ---------------------------------------- */
+/* ---- Rendered Markdown ---------------------------------------- */
 .md-doc { max-width: 860px; margin: 0 auto; font: var(--font-size)/1.7 var(--sans); color: var(--text); user-select: text; }
 .md-doc.full { max-width: none; }
 /* About 80 characters of the sans font on a line: the padding stays outside the width of the text (issue 897). */

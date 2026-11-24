@@ -9,7 +9,7 @@
 
 Text detection is a section after Terminal in the Settings window. `SettingsTextDetectionSection.vue` shows two independent switches with information cards.
 
-- **Issues, pull requests, and merge requests** controls the reference color, hover card, and Command-click preview. It is saved as `terminalTextDetection`.
+- **Issues, pull requests, and merge requests** controls the reference color, hover card, and opening the item in the browser with Command-click. It is saved as `terminalTextDetection`.
 - **Ordinary web links** controls opening an ordinary web address in the browser with Command-click. It is saved as `terminalWebAddresses`.
 
 Both switches are on by default and apply to open terminals. If the older master switch was off, both switches start off. A saved choice to turn off ordinary web links or both reference families carries forward into its corresponding switch.

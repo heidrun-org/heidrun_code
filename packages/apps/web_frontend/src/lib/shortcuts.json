@@ -150,7 +150,7 @@
     "items": [
       {
         "keysKey": "keys.commandClick",
-        "actionKey": "action.issuePreview"
+        "actionKey": "action.openTerminalLink"
       },
       {
         "keysKey": "keys.commandClick",
@@ -158,7 +158,7 @@
       },
       {
         "keysKey": "keys.hover",
-        "actionKey": "action.actionButtons"
+        "actionKey": "action.showReferenceCard"
       },
       {
         "keysKey": "keys.wheel",

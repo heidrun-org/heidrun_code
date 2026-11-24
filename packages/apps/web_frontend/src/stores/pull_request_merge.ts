@@ -1,8 +1,7 @@
 // The merge of a pull request (GitHub) or of a merge request (GitLab) from Heidrun Code: what the hosting service says
 // about the item (its approval state, and whether it can be merged now), the settings of the repository (the allowed merge
 // methods, the squash, and the deletion of the source branch), and the merge window, which merges only after a second
-// click. Two places open the merge window: the information card of a row of the Code hosting sidebar section, and the
-// issue preview window. The rules are in docs/agents_rules/user_interface/sidebars/code_hosting_merge.md.
+// click. Information cards open the merge window from the Code hosting sidebar section, Chats, and the terminal. The rules are in docs/agents_rules/user_interface/sidebars/code_hosting_merge.md.
 // - issue #570
 import { reactive } from "vue";
 import { invoke } from "@tauri-apps/api/core";

@@ -1,8 +1,0 @@
-{
-  "state.open": "open",
-  "state.closed": "closed",
-  "state.merged": "merged",
-  "state.locked": "locked",
-  "moreComments": "_… more comments on the issue page._",
-  "unknownFolder": "Unknown folder for this pane"
-}
