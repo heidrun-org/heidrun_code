@@ -26,7 +26,6 @@ jobs:
             package: packages/apps/desktop_tauri/target/release/bundle/nsis/*.exe
 
     env:
-      RUST_TOOLCHAIN: 1.96.1
       BUNDLE: ${{ matrix.bundle }}
 
     steps:
@@ -88,9 +87,7 @@ jobs:
         run: |
           printf 'Image: %s %s\nRunner: %s %s\n' "$ImageOS" "$ImageVersion" "$RUNNER_OS" "$RUNNER_ARCH"
           test "$RUNNER_ARCH" = X64
-          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
-          export RUSTUP_TOOLCHAIN="$RUST_TOOLCHAIN"
-          echo "RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN" >> "$GITHUB_ENV"
+          rustup toolchain install --no-self-update
           rustc -vV
           cargo -V
           node -v
