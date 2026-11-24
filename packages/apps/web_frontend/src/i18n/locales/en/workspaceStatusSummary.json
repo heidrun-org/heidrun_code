@@ -23,5 +23,6 @@
   "noRepository": "No repository",
   "copyFolder": "Copy folder path",
   "copyBranch": "Copy Git branch",
+  "copyRepository": "Copy repository",
   "copied": "Copied"
 }
