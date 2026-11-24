@@ -33,7 +33,8 @@ describe('IssueFixSkill', () => {
 			expect(skillText).toContain('### When the values are missing');
 			expect(skillText).toContain('The Issue Fix Workflow is not configured in this repository.');
 			expect(skillText).toContain('Do not start the Issue Fix Setup.');
-			expect(skillText).toContain('Never guess a value, never use a default value');
+			expect(skillText).toContain('Never guess or silently apply a value');
+			expect(skillText).toContain('during an issue fix, use only the configured values');
 		});
 
 		it('has a skill with the four parts of the Issue Fix Workflow', () => {
