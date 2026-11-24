@@ -1,67 +1,22 @@
 # worktree_tools
 
-Four command line tools for [Heidrun Code](../../../README.md). They reduce the cost of the Cargo target folder in each Git worktree. Each new worktree has an empty target folder, and its first build compiles every Rust dependency again: it takes 52 to 65 seconds and about 2.5 GB of disk space.
-
-## What it contains
-
-- `src/worktree_create_cli.ts`: the command line `pnpm worktree:create`.
-- `src/target_clean_cli.ts`: the command line `pnpm --filter desktop_tauri target:clean`.
-- `src/target_prune_cli.ts`: the command line `pnpm --filter desktop_tauri target:prune`.
-- `src/bundled_commands_build_cli.ts`: the command line `pnpm bundled_commands:build`, the first step of `pnpm dev`.
-- `src/index.ts`: the public interface for another package: the classes `WorktreeCreate`, `TargetClean`, `TargetPrune`, and `BundledCommandsStamp`.
-- `src/worktree_create.ts`, `src/target_clean.ts`, `src/target_prune.ts`, `src/bundled_commands_stamp.ts`: the logic of the four tools.
-- `src/worktree_git.ts`: the only code that runs `git`.
-- `src/target_paths.ts`: the place of the Cargo target folder inside a checkout.
-- `tests/`: the Vitest tests, and a helper that creates temporary Git repositories.
+Developer commands for [Heidrun Code](../../../README.md).
 
 ## Create a worktree
 
-Run the command from the root of the repository, or from any worktree.
+Run the command from the root of the main checkout or a worktree.
 
 ```sh
-pnpm worktree:create fix-thing-12                    # worktree on a new branch, from the current commit
-pnpm worktree:create fix-thing-12 --base dev_jerome  # worktree on a new branch, from the branch dev_jerome
+pnpm worktree:create fix-thing-12
+pnpm worktree:create fix-thing-12 --base dev_jerome
+pnpm worktree:create fix-thing-12 --without-optimization
 ```
 
-The command creates the worktree `.claude/worktrees/<name>` of the main checkout, on a new branch with the same name. The command first runs `git submodule update --init --recursive` in the new worktree, so every submodule has the commit recorded by that worktree. When initialization fails, the worktree stays, the command exits with an error, and package installation does not start. Fix the cause, then run `git submodule update --init --recursive` and `pnpm install --frozen-lockfile` in the worktree.
+The command runs a pinned revision of [Faster Rust Work Trees](https://github.com/jeromeetienne/faster_rust_worktrees) with [.faster_rust_worktrees.yaml](../../../.faster_rust_worktrees.yaml). The shared tool creates a branch and a worktree at `.claude/worktrees/<name>`, initializes submodules recursively at their recorded commits, and runs `pnpm install --frozen-lockfile`. The default base is the current commit of the main checkout.
 
-On macOS, it then clones the folders `packages/apps/desktop_tauri/target/debug` and `packages/apps/desktop_tauri/target/release` of the main checkout into the worktree, with copy-on-write clones. The folder `release` holds the bundled command line tools in `release/bundled_commands`, and their compiled dependencies, so a change in a package that the tools use compiles only the changed packages again ([issue 877](https://github.com/heidrun-org/heidrun_code/issues/877)):
+Build the main checkout first. On macOS with a filesystem that supports copy-on-write, the shared tool clones `packages/apps/desktop_tauri/target`, including the bundled tools and their source fingerprint. It preserves the dates of unchanged source files and updates the paths in Cargo build-script records. When the Cargo output was cloned and the main checkout has a built mobile website, Heidrun Code also clones `packages/auxiliary/mobile_website/dist`. Use `--without-optimization` to skip both copies.
 
-```sh
-cp -c -R -p <main checkout>/packages/apps/desktop_tauri/target/debug <worktree>/packages/apps/desktop_tauri/target/debug
-cp -c -R -p <main checkout>/packages/apps/desktop_tauri/target/release <worktree>/packages/apps/desktop_tauri/target/release
-```
-
-The command clones each folder in one call to the function `clonefile` of macOS, through `python3` (class `DirectoryClone`), then gives the cloned folders the dates of the main checkout. On 2026-10-25 this took 2.1 seconds for `target/debug`, against 11.7 seconds for `cp -c -R -p`, which clones the files one at a time. When `python3` is missing or `clonefile` fails, the command runs `cp -c -R -p` as shown above.
-
-The command also clones the folder `packages/auxiliary/mobile_website/dist` when the main checkout has it. Then it prepares the clone so that Cargo compiles nothing that did not change ([issue 864](https://github.com/heidrun-org/heidrun_code/issues/864)):
-
-- Cargo decides that a crate of the repository changed when a source file is newer than the last build. Git gives every file of a new worktree the date of the creation. So the command gives each tracked file with the same content as in the main checkout the date of the main checkout, and also each folder whose list of names is the same (class `SourceDates`).
-- A build script can write the absolute path of the main checkout in its record `target/debug/build/*/output`. The command replaces this path with the path of the worktree and keeps the date of the record (class `BuildScriptOutputs`).
-- The file `Cargo.toml` at the root makes all the Rust packages of the application one Cargo workspace, so Cargo uses relative paths for the packages of the repository, and the cloned compiled files keep their names in the worktree.
-
-Measured on 2026-10-25, the first Rust build of `pnpm dev` in a new worktree went from 11 crates and 35 seconds to 0 crates and 0.95 seconds.
-
-To check whether a problem comes from these optimizations, create the worktree with the option `--without-optimization`. The command then only creates the worktree, initializes the submodules, and installs the packages. The first `pnpm dev` compiles everything, which is slow. To build the bundled command line tools without the stamp, run `pnpm bundled_commands:build --force`.
-
-```sh
-pnpm worktree:create <name> --without-optimization
-```
-
-At the end, the command runs `pnpm install --frozen-lockfile` in the worktree, so the worktree has a folder `node_modules` and `pnpm dev` runs at once. The command reads `pnpm-lock.yaml` and never changes it. When the installation fails, the command prints the error of `pnpm` and exits with the code 1. The worktree stays, so fix the cause and run `pnpm install --frozen-lockfile` in the worktree.
-
-Measured on 2026-10-11:
-
-- The clone takes 10.8 seconds and 14 MB of real disk space.
-- The first build takes 23.4 to 31.8 seconds and about 883 MB, against 52 to 65 seconds and 2.5 GB without the clone.
-- A one-character rebuild takes 4.5 to 5.6 seconds, the same as without the clone.
-
-Limits:
-
-- The main checkout must be built first. Without the folders `target/debug` and `target/release`, and the two tools in `target/release/bundled_commands`, the command creates the worktree without the clone and says so.
-- The clone needs macOS and the Apple File System, with both folders on the same disk. A worktree inside the main checkout is always on the same disk.
-- A clone shares its files only at the start. Each file that Cargo rewrites becomes a real copy.
-- The installation needs the command `pnpm` in the `PATH`.
+If submodule initialization or package installation fails, the worktree remains available. After fixing the cause, run `git submodule update --init --recursive` and `pnpm install --frozen-lockfile` from the new worktree.
 
 ## Clean the old target folders
 

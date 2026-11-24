@@ -313,6 +313,9 @@ importers:
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
+      faster_rust_worktrees:
+        specifier: https://codeload.github.com/jeromeetienne/faster_rust_worktrees/tar.gz/1fa5730aa2905d4a56fec15b8584d311748caa81
+        version: https://codeload.github.com/jeromeetienne/faster_rust_worktrees/tar.gz/1fa5730aa2905d4a56fec15b8584d311748caa81
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@26.6.5)(happy-dom@20.14.5)(jsdom@25.0.1)(sass@1.105.1)
@@ -1974,6 +1977,12 @@ packages:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
     engines: {node: '>=8.6.0'}
 
+  faster_rust_worktrees@https://codeload.github.com/jeromeetienne/faster_rust_worktrees/tar.gz/1fa5730aa2905d4a56fec15b8584d311748caa81:
+    resolution: {tarball: https://codeload.github.com/jeromeetienne/faster_rust_worktrees/tar.gz/1fa5730aa2905d4a56fec15b8584d311748caa81}
+    version: 0.1.0
+    engines: {node: '>=20.11'}
+    hasBin: true
+
   fastq@1.20.3:
     resolution: {integrity: sha512-XKv5nnLs6nLF71NgiKJLIZFLkPyIEuOselLG7ujZnGrRfQK8HpvY+WqKhAJUAdLomwVHErVS4LfxFlPq0/FTAw==}
 
@@ -2786,6 +2795,11 @@ packages:
 
   y18n@4.0.3:
     resolution: {integrity: sha512-JKhqTOwSrqNA1NY5lSztJ1GrBiUodLMmIZuLiDaMRJ+itFd+ABVE8XBjOvIWL+rSqNDC74LCSFmlb/U4UZ4hJQ==}
+
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
 
   yargs-parser@18.1.3:
     resolution: {integrity: sha512-o50j0JeToy/4K6OZcaQmW6lyXXKhq7csREXcDwk2omFPJEwUNOVtJKvmDr9EI1fAJZUyZcRF7kxGBWmRXudrCQ==}
@@ -4291,6 +4305,13 @@ snapshots:
       merge2: 1.4.1
       micromatch: 4.0.8
 
+  faster_rust_worktrees@https://codeload.github.com/jeromeetienne/faster_rust_worktrees/tar.gz/1fa5730aa2905d4a56fec15b8584d311748caa81:
+    dependencies:
+      commander: 14.0.3
+      tsx: 4.23.15
+      yaml: 2.9.1
+      zod: 4.6.5
+
   fastq@1.20.3:
     dependencies:
       reusify: 1.1.0
@@ -5164,6 +5185,8 @@ snapshots:
   xmlchars@2.2.0: {}
 
   y18n@4.0.3: {}
+
+  yaml@2.9.1: {}
 
   yargs-parser@18.1.3:
     dependencies:

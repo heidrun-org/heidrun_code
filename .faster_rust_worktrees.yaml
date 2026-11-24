@@ -1,0 +1,10 @@
+baseRef: HEAD
+worktreeDirectory: .claude/worktrees
+targetDirectories:
+  - packages/apps/desktop_tauri/target
+installCommand:
+  cwd: .
+  argv: [pnpm, install, --frozen-lockfile]
+cargoCommands:
+  - cwd: .
+    argv: [cargo, build, --locked, --package, heidrun_code]
