@@ -5,34 +5,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * The result of `WorktreeCreate.run`.
- */
-export type WorktreeCreateResult = {
-	/** The absolute path of the new worktree. */
-	worktreePath: string;
-	/** The name of the new branch that the worktree has checked out. */
-	branchName: string;
-	/** True when the debug folder and the release folder were cloned into the new worktree. */
-	isTargetCloned: boolean;
-	/** The reason why the clone did not happen, or null when the clone happened. */
-	skipReason: string | null;
-	/** The number of files and folders that got the dates of the main checkout. Zero without the clone. */
-	sourceDates: SourceDatesResult;
-	/** The number of cloned build script records whose paths were moved to the worktree. Zero without the clone. */
-	rewrittenBuildScriptOutputCount: number;
-};
-
-/**
- * The result of `SourceDates.copyFromMainCheckout`.
- */
-export type SourceDatesResult = {
-	/** The number of files whose dates were copied. */
-	fileCount: number;
-	/** The number of folders whose dates were copied. */
-	folderCount: number;
-};
-
-/**
  * One file or one folder of the debug folder that the current builds do not use any more.
  */
 export type ObsoleteTargetEntry = {
