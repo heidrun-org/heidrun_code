@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 
-const openDiffMock = vi.hoisted(() => vi.fn(async (_path: string) => true));
+const openDiffMock = vi.hoisted(() => vi.fn(async (_workspaceId: string, _path: string) => true));
 const openFileViewMock = vi.hoisted(() => vi.fn(async (_path: string) => true));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
-vi.mock("../stores/diff_panes", () => ({ DiffPanes: { open: openDiffMock } }));
+vi.mock('../stores/diff_panes', () => ({
+	DiffPanes: {
+		openInNewTab: openDiffMock,
+	},
+}));
 vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
 vi.mock("../stores/source_control", async (importOriginal) => {
   const original = await importOriginal<typeof import("../stores/source_control")>();
@@ -166,13 +170,16 @@ describe("SourceControlPanel", () => {
     expect(unstageFiles).toHaveBeenCalledWith(["docs/agents_rules/user_interface.md"]);
   });
 
-  it("opens the changes of a file in a diff pane after a click on its line (issue #885)", async () => {
-    openDiffMock.mockClear();
-    const files = mountPanel().findAll(".file");
-    await files[1].get(".file-main").trigger("click");
-    await flushPromises();
-    expect(openDiffMock).toHaveBeenCalledWith("/work/heidrun/CHANGELOG.md");
-  });
+	it('opens diffs from Changes and Staged Changes in new tabs (issue #1074)', async () => {
+		openDiffMock.mockClear();
+		const files = mountPanel().findAll('.file');
+		await files[1].get('.file-main').trigger('click');
+		await files[0].get('.file-main').trigger('click');
+		expect(openDiffMock.mock.calls).toEqual([
+			['w1', '/work/heidrun/CHANGELOG.md'],
+			['w1', '/work/heidrun/docs/agents_rules/user_interface.md'],
+		]);
+	});
 
   it("opens nothing else when no pane can show the diff (issue #886)", async () => {
     openDiffMock.mockClear();

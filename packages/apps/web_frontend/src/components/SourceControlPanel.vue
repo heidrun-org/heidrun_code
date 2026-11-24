@@ -110,11 +110,11 @@ function openFile(file: SourceControlFile) {
   }
 }
 
-// A click on a file line shows its changes in a diff pane (issue #885).
 function openDiff(file: SourceControlFile) {
   const root = currentGit.value?.root;
-  if (root !== undefined) {
-    void DiffPanes.open(`${root}/${file.path}`);
+  const workspaceId = state.selectedWorkspaceId;
+  if (root !== undefined && workspaceId !== null) {
+    void DiffPanes.openInNewTab(workspaceId, `${root}/${file.path}`);
   }
 }
 
