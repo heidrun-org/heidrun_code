@@ -49,6 +49,7 @@ mod tests {
     use super::*;
 
     /// A PNG of one pixel, written by hand, so that the test needs no other image tool.
+    #[cfg(target_os = "macos")]
     const ONE_PIXEL_PNG: &[u8] = &[
         0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00,
         0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0d, 0x49,
@@ -62,6 +63,7 @@ mod tests {
         assert_eq!(result, Err("not_an_image".to_string()));
     }
 
+    #[cfg(target_os = "macos")]
     #[tokio::test]
     async fn makes_a_png_data_address_from_a_png_file() {
         let folder = std::env::temp_dir().join(format!("heidrun-preview-test-{}", std::process::id()));
@@ -74,6 +76,7 @@ mod tests {
         assert!(address.starts_with("data:image/png;base64,iVBORw0KGgo"), "got {address}");
     }
 
+    #[cfg(target_os = "macos")]
     #[tokio::test]
     async fn keeps_the_longest_side_in_range_instead_of_failing() {
         let folder = std::env::temp_dir().join(format!("heidrun-preview-range-test-{}", std::process::id()));
@@ -88,6 +91,7 @@ mod tests {
         assert!(too_large.unwrap().starts_with("data:image/png;base64,"));
     }
 
+    #[cfg(target_os = "macos")]
     #[tokio::test]
     async fn reports_a_file_that_does_not_exist() {
         let result = image_preview("/tmp/heidrun-no-such-file.png".into(), 256).await;
