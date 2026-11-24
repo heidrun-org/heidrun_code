@@ -24,7 +24,13 @@ import { project } from '../../stores/project';
 import { settings } from '../../stores/settings';
 import { state } from '../../stores/session';
 
-const mocks = vi.hoisted(() => ({ invoke: vi.fn(async (_name: string): Promise<unknown> => []) }));
+const mocks = vi.hoisted(() => ({
+	invoke: vi.fn(async (_name: string): Promise<unknown> => []),
+	writeText: vi.fn(async (_text: string) => {}),
+}));
+vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
+	writeText: mocks.writeText,
+}));
 vi.mock('@tauri-apps/api/core', () => ({ invoke: mocks.invoke }));
 vi.mock('@tauri-apps/api/webview', () => ({ getCurrentWebview: () => ({ setZoom: vi.fn(async () => {}) }) }));
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn(async () => {}) }));
@@ -131,7 +137,7 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Voice input',
 			component: SettingsVoiceInputSection,
-			optionList: ['voiceInput', 'voiceInputLanguage', 'voiceInputModel', 'voiceRecordingMaxMinutes', 'voiceRecordingWarningMinutes', 'voiceWords'],
+			optionList: ['voiceInput', 'voiceInputLanguage', 'voiceInputModel', 'voiceRecordingMaxMinutes', 'voiceRecordingWarningMinutes', 'voiceWordsAudit', 'voiceWords'],
 		},
 	];
 
@@ -181,6 +187,32 @@ describe('the information cards of the Settings window (issue #608)', () => {
 		project.byWorkspace = {};
 		project.errors = {};
 		SettingsInformationCardsTestHelper.installProject();
+	});
+
+	it('copies the audit instructions and final filter bullets without writing the word replacement list', async () => {
+		const wrapper = mount(SettingsVoiceInputSection);
+		await flushPromises();
+		mocks.invoke.mockClear();
+
+		const row = wrapper.get('[data-option="voiceWordsAudit"]');
+		expect(row.element.nextElementSibling?.getAttribute('data-option')).toBe('voiceWords');
+		await row.get('button').trigger('click');
+		await flushPromises();
+
+		expect(mocks.invoke).not.toHaveBeenCalled();
+		expect(mocks.writeText).toHaveBeenCalledTimes(1);
+		const prompt = mocks.writeText.mock.calls[0][0];
+		expect(prompt).toContain('wait for my explicit approval');
+		expect(prompt).toContain('“coma se parate d’liste” when you said “comma-separated list”');
+		expect(prompt.split('\n').slice(-6)).toEqual([
+			'---',
+			'',
+			'## Filters',
+			'',
+			'- Intended words: All',
+			'- Conversations: All',
+		]);
+		expect(row.get('[role="status"]').text()).toBe('Copied');
 	});
 
 	for (const sectionCase of SettingsInformationCardsTestHelper.SECTION_LIST) {

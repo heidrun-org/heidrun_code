@@ -1,17 +1,17 @@
 # User interface of Heidrun Code: word replacement list of the voice input
 
 - Created: 23 October 2026
-- Last updated: 7 November 2026
+- Last updated: 24 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: voice input](../../glossary/voice_input.md), [Voice input](settings_voice_input.md), [Information card of every option of the Settings window](settings_information_cards.md)
-- Related issue: [issue 836](https://github.com/heidrun-org/heidrun_code/issues/836)
+- Related issue: [issue 836](https://github.com/heidrun-org/heidrun_code/issues/836), [issue 1068](https://github.com/heidrun-org/heidrun_code/issues/1068)
 
 This file is a part of the rules of the user interface of Heidrun Code. It gives the rules of the word replacement list: the list in the Voice input section of the Settings window, the matching, the file, and the tests. The words are defined in [voice_input.md](../../glossary/voice_input.md).
 
 ## The list in the Voice input section
 
-- The word replacement list is the fourth and last option of the Voice input section, with the heading "Word replacement list" and a circled question mark with an information card in English and in French. It is never dimmed: the developer can prepare the list while the voice input is off.
+- The word replacement list is the last option of the Voice input section, with the heading "Word replacement list" and a circled question mark with an information card in English and in French. It is never dimmed: the developer can prepare the list while the voice input is off.
 - Each entry is a row of two text inputs and one button with a trash icon. The two texts have the names "Whisper writes" and "Heidrun Code writes instead". A heading line above the rows shows both names, and each input also has the name as its label for the screen reader. The button has the title "Delete the word" followed by the text that Whisper writes.
 - The button "Add a word" is at the right end of the heading line. It opens an empty row at the end of the list, and the button then reads "Cancel". The row has its own button with a check icon, which writes the entry, and the key Enter in either input does the same. The button is dimmed while the text that Whisper writes is empty or only spaces.
 - An existing entry is written when the developer leaves an input (the event `change`). An empty text that Whisper writes is refused, and the old text comes back. A refusal of the desktop application (for example, two entries with the same text that Whisper writes) shows its reason in a red alert, and the old text comes back.
@@ -42,5 +42,11 @@ The pure function `voice_input::replace_words` takes the text of Whisper and the
 - The Vitest tests check the library (the read each second, the stop of the read, the older read that is ignored, and the refusals) and the section (add, edit, delete, the refusals, the invalid file, and French).
 
 ## Maintenance from saved conversations
+
+The **Copy audit prompt** button sits immediately above the word replacement list and briefly confirms a successful copy.
+Its question-mark card explains how to edit, combine, or remove the two bullets at the end of the prompt. The filters
+are **Intended words** and **Conversations**. Any date range goes in **Conversations**. The coding agent checks the existing list,
+shows a table of proposed replacements with examples, and waits for explicit approval before adding and verifying the
+approved replacements through the controller.
 
 Read [Improve the voice input word replacement list from saved conversations](../../../voice_input/improving_word_replacements.md) for the repeatable conversation audit, evidence requirements, command examples, verification, and reversal steps.
