@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import SettingsOptionHelp from "./SettingsOptionHelp.vue";
 import SettingsSwitchRow from "./SettingsSwitchRow.vue";
 import SettingsVoiceWordsEditor from "./SettingsVoiceWordsEditor.vue";
@@ -29,6 +30,31 @@ const MODEL_HELP_BLOCKS = [
   { titleKey: "settingsHelp.whatTitle", textKey: "settingsHelp.voiceInputModel.what" },
   { titleKey: "settingsHelp.howTitle", textKey: "settingsHelp.voiceInputModel.how" },
 ] as const;
+
+const auditCopyStatus = ref<'copied' | 'failed' | null>(null);
+
+watch(auditCopyStatus, (status, _previousStatus, onCleanup) => {
+  if (status === 'copied') {
+    const timeout = window.setTimeout(() => {
+      auditCopyStatus.value = null;
+    }, 2500);
+    onCleanup(() => window.clearTimeout(timeout));
+  }
+});
+
+/**
+ * Copies the full audit prompt and shows the result next to the button.
+ * @returns A promise that resolves after the copy attempt.
+ */
+async function copyAuditPrompt(): Promise<void> {
+  auditCopyStatus.value = null;
+  try {
+    await writeText(t('settingsVoiceInput.auditPrompt'));
+    auditCopyStatus.value = 'copied';
+  } catch {
+    auditCopyStatus.value = 'failed';
+  }
+}
 
 /** The options of the language: the automatic choice, then each language with its name in the language of the window. */
 const languageOptions = computed(() => {
@@ -194,6 +220,24 @@ function saveRecordingMinutes(event: Event, field: 'voiceRecordingMaxMinutes' | 
         :disabled="settings.voiceInput === false"
         @change="saveRecordingMinutes($event, 'voiceRecordingWarningMinutes')"
       />
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2" data-option="voiceWordsAudit">
+      <button type="button" class="btn small" @click="copyAuditPrompt">
+        {{ t('settingsVoiceInput.auditCopy') }}
+      </button>
+      <SettingsOptionHelp
+        title-key="settingsVoiceInput.auditCopy"
+        :blocks="[
+          { titleKey: 'settingsHelp.howTitle', textKey: 'settingsVoiceInput.auditHelp' },
+          { titleKey: 'settingsVoiceInput.auditWordsTitle', textKey: 'settingsVoiceInput.auditWordsHelp' },
+          { titleKey: 'settingsVoiceInput.auditConversationsTitle', textKey: 'settingsVoiceInput.auditConversationsHelp' },
+        ]"
+      />
+      <span role="status">
+        <template v-if="auditCopyStatus === 'copied'">{{ t('settingsVoiceInput.auditCopied') }}</template>
+        <template v-else-if="auditCopyStatus === 'failed'">{{ t('settingsVoiceInput.auditCopyFailed') }}</template>
+      </span>
     </div>
 
     <SettingsVoiceWordsEditor />
