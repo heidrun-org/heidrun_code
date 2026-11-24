@@ -174,8 +174,8 @@ const detailRows = computed(() => {
       name: t("workspaceStatusSummary.repository"),
       value: repositoryAddress ?? t("workspaceStatusSummary.noRepository"),
       href: repositoryAddress,
-      copyValue: null,
-      copyLabel: null,
+      copyValue: repositoryAddress,
+      copyLabel: t('workspaceStatusSummary.copyRepository'),
     },
     { field: "tabs", name: t("workspaceStatusSummary.tabs"), value: workspace.tab_count, href: null, copyValue: null, copyLabel: null },
     { field: "agents", name: t("workspaceStatusSummary.agents"), value: agentCount, href: null, copyValue: null, copyLabel: null },
@@ -328,7 +328,7 @@ watch(isRenaming, (renaming) => {
               <button
                 v-if="row.copyValue !== null && row.copyLabel !== null"
                 type="button"
-                class="btn btn-sm btn-outline-secondary copy-detail-button"
+                class="btn btn-sm icon copy-detail-button"
                 :title="copiedDetail === row.field ? t('workspaceStatusSummary.copied') : row.copyLabel"
                 :aria-label="copiedDetail === row.field ? t('workspaceStatusSummary.copied') : row.copyLabel"
                 @click="copyDetail(row.field, row.copyValue)"
@@ -442,7 +442,7 @@ watch(isRenaming, (renaming) => {
 .detail-row { min-width: 0; }
 .detail-value { min-width: 0; }
 .detail-value > [data-field="folder"] { min-width: 0; }
-.copy-detail-button { flex: 0 0 auto; }
+.btn.icon.copy-detail-button { --btn-padding-x: 6px; width: auto; }
 .workspace-status > .popover { cursor: default; }
 .workspace-status > .popover .btn:not(:disabled) { cursor: pointer; }
 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -168,7 +168,7 @@ describe('the card of the workspaces (WorkspaceStatusSummary.vue)', () => {
 		}
 	});
 
-	it('writes style rules only for the item in the status bar and for the rows of the list', () => {
+	it('keeps style rules scoped to the workspace status section and its card', () => {
 		const allowedClassNameList = [
 			'workspace-status',
 			'workspace-rename',
@@ -178,6 +178,7 @@ describe('the card of the workspaces (WorkspaceStatusSummary.vue)', () => {
 			'detail-row',
 			'detail-value',
 			'copy-detail-button',
+			'icon',
 			'workspace-row',
 			'workspace-main',
 			'workspace-branch',
