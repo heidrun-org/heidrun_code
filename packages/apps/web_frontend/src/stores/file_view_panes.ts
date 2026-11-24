@@ -24,6 +24,8 @@ export const fileViewLineRequests = reactive({} as Record<string, FileViewLineRe
 /** The anchor to show for each absolute path of a Markdown file, set by a link of a Markdown preview (issue #928). */
 export const fileViewAnchorRequests = reactive({} as Record<string, string>);
 
+const WAIT_LINE = 'Below the file view of Heidrun';
+
 let lineRequestSequence = 0;
 
 /** Opens a file in a file view pane: a pane that shows the file over a terminal that only waits. */
@@ -58,7 +60,20 @@ export class FileViewPanes {
 				const shownPath = FileViewLabel.parse(label);
 				return shownPath !== null && (isSelectedPaneDirty === false || shownPath === absolutePath);
 			},
-			waitLine: 'Below the file view of Heidrun',
+			waitLine: WAIT_LINE,
 		});
+	}
+
+	/**
+	 * Shows a file from File explorer in its own focused tab.
+	 * @param workspaceId The workspace of File explorer.
+	 * @param absolutePath The absolute path of the selected file.
+	 * @returns True when the file opens, or false when Herdr fails.
+	 */
+	static async openInNewTab(workspaceId: string, absolutePath: string): Promise<boolean> {
+		delete fileViewLineRequests[absolutePath];
+		delete fileViewAnchorRequests[absolutePath];
+		const label = FileViewLabel.format(absolutePath);
+		return ViewPanes.openInNewTab(workspaceId, FileViewLabel.fileName(label) ?? absolutePath, label, WAIT_LINE);
 	}
 }

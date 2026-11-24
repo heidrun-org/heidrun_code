@@ -56,6 +56,8 @@ export const voiceInput = reactive<{
 	isLatched: boolean;
 	/** The moment at which the last recording started, in milliseconds since 1970. The composition bar shows the time since then. */
 	startedAt: number;
+	/** True after the recording reaches its warning time. */
+	isDurationWarning: boolean;
 	/** The level of the voice (from 0 to 1) at each of the last moments of the recording, the newest last. */
 	levels: number[];
 	/** The category of the last error of the voice input of each pane, by pane identifier. The composition bar shows a text for it. */
@@ -78,6 +80,7 @@ export const voiceInput = reactive<{
 	transcriptions: [],
 	isLatched: false,
 	startedAt: 0,
+	isDurationWarning: false,
 	levels: [],
 	errors: {},
 	download: {

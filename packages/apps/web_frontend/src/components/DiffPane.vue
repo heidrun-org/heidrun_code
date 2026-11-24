@@ -110,7 +110,7 @@ async function refreshDiff() {
 }
 function openFile() {
   if (absolutePath.value !== null) {
-    void FileViewPanes.open(absolutePath.value);
+    void FileViewPanes.openInNewTab(props.pane.workspace_id, absolutePath.value);
   }
 }
 async function copyPath(isAbsolute: boolean) {

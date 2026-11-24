@@ -46,6 +46,10 @@ export class VoiceInput {
 	/** Changes whenever a recording starts or is cancelled, so late results cannot affect another recording. */
 	private static operationId = 0;
 
+	/** The timers for the current recording warning and automatic stop. */
+	private static warningTimer: ReturnType<typeof setTimeout> | undefined;
+	private static stopTimer: ReturnType<typeof setTimeout> | undefined;
+
 	/** The microphone command that must finish before a cancellation can discard its recorder. */
 	private static starting: Promise<void> | null = null;
 
@@ -139,6 +143,30 @@ export class VoiceInput {
 	 */
 	static isRecordingInWorkspace(workspaceId: string): boolean {
 		return VoiceInput.recordingPane()?.workspace_id === workspaceId;
+	}
+
+	/**
+	 * Gives the voice input state to show on a tab or workspace button.
+	 * @param field The pane field that identifies the tab or workspace.
+	 * @param id The identifier of the tab or workspace.
+	 * @returns The recording icon state, with recording first, then transcription, then waiting.
+	 */
+	static recordingIconState(
+		field: 'tab_id' | 'workspace_id',
+		id: string,
+	): 'idle' | 'recording' | 'waiting' | 'transcribing' {
+		if (settings.voiceInput === false) {
+			return 'idle';
+		}
+		if (VoiceInput.recordingPane()?.[field] === id) {
+			return 'recording';
+		}
+
+		// The queue has at most one active transcription, ahead of all waiting recordings.
+		const transcription = voiceInput.transcriptions.find(({ paneId }) =>
+			allPanes.value.some((pane) => pane.pane_id === paneId && pane[field] === id),
+		);
+		return transcription?.state ?? 'idle';
 	}
 
 	/**
@@ -288,6 +316,7 @@ export class VoiceInput {
 		if (voiceInput.state !== "recording" || paneId === null) {
 			return;
 		}
+		VoiceInput._clearDurationTimers();
 		VoiceInput.stopListeningToRelease();
 		VoiceInput.lastTranscriptionId += 1;
 		const transcriptionId = VoiceInput.lastTranscriptionId;
@@ -382,6 +411,7 @@ export class VoiceInput {
 			VoiceInput.clearError(ownerPaneId);
 		}
 		VoiceInput.operationId += 1;
+		VoiceInput._clearDurationTimers();
 		VoiceInput.stopListeningToRelease();
 		VoiceInput.pendingRelease = "none";
 		voiceInput.isLatched = false;
@@ -447,6 +477,8 @@ export class VoiceInput {
 		VoiceInput.pendingRelease = "none";
 		VoiceInput.pressedAt = Date.now();
 		voiceInput.startedAt = VoiceInput.pressedAt;
+		const maximumSeconds = settings.voiceRecordingMaxMinutes * 60;
+		const warningSeconds = settings.voiceRecordingWarningMinutes * 60;
 		CompositionBar.forPane(paneId).isOpen = true;
 		VoiceInput.listenToRelease();
 		try {
@@ -457,6 +489,7 @@ export class VoiceInput {
 			VoiceInput.starting = invoke<void>('voice_start_recording', {
 				modelId: settings.voiceInputModel,
 				language: settings.voiceInputLanguage,
+				maximumSeconds,
 			});
 			await VoiceInput.starting;
 		} catch (error) {
@@ -472,13 +505,28 @@ export class VoiceInput {
 		if (operationId !== VoiceInput.operationId || voiceInput.state !== 'starting') {
 			return;
 		}
-		voiceInput.state = "recording";
+		voiceInput.startedAt = Date.now();
+		voiceInput.state = 'recording';
+		VoiceInput.warningTimer = setTimeout(() => {
+			voiceInput.isDurationWarning = true;
+		}, warningSeconds * 1000);
+		VoiceInput.stopTimer = setTimeout(() => {
+			toast(t('voiceInput.recordingLimitReached'));
+			void VoiceInput.stopAndWrite();
+		}, maximumSeconds * 1000);
 		const pendingRelease = VoiceInput.takePendingRelease();
 		if (pendingRelease === "stop") {
 			await VoiceInput.stopAndWrite();
 		} else if (pendingRelease === "keep") {
 			VoiceInput.keepRecording();
 		}
+	}
+
+	/** Clears the warning and automatic stop when the active recording ends. */
+	private static _clearDurationTimers(): void {
+		clearTimeout(VoiceInput.warningTimer);
+		clearTimeout(VoiceInput.stopTimer);
+		voiceInput.isDurationWarning = false;
 	}
 
 	/**

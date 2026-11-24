@@ -1,0 +1,12 @@
+{
+  "title": "Check for Updates",
+  "running": "You are running version {version}.",
+  "latest": "The latest version on the server is {version}.",
+  "restart": "Heidrun Code will restart after installation.",
+  "current": "Heidrun Code is up to date.",
+  "install": "Install {version}",
+  "later": "Later",
+  "close": "Close",
+  "installing": "Installing version {version}…",
+  "failed": "Heidrun Code could not install the update."
+}

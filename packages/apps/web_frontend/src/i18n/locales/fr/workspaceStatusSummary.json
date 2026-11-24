@@ -23,5 +23,6 @@
   "noRepository": "Aucun dépôt",
   "copyFolder": "Copier le chemin du dossier",
   "copyBranch": "Copier la branche Git",
+  "copyRepository": "Copier l’adresse du dépôt",
   "copied": "Copié"
 }

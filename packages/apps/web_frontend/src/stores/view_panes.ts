@@ -1,6 +1,7 @@
 import * as api from '../lib/api';
 import { refresh, selectPane, selectedPane, toast } from './session';
 import { WorkspaceFolders } from './workspace_folders';
+import type { PaneInfo } from '../lib/types';
 import { t } from '../i18n/index';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -42,12 +43,42 @@ export class ViewPanes {
 			}
 			const folder = WorkspaceFolders.require(pane.workspace_id);
 			const newPane = await api.split(pane.pane_id, 'right', folder);
-			await api.renamePane(newPane.pane_id, options.label);
-			await api.run(newPane.pane_id, ViewPanes.waitCommand(options.waitLine));
-			await refresh();
-			selectPane(newPane);
+			await ViewPanes._show(newPane, options.label, options.waitLine);
 			return true;
 		} catch (error) {
+			toast(String(error), 'error');
+			return false;
+		}
+	}
+
+	/**
+	 * Creates a tab with one view pane and selects that pane when ready.
+	 * @param workspaceId The workspace in which to create the tab.
+	 * @param tabLabel The name shown in the tab bar.
+	 * @param label The label that identifies the pane as a view pane.
+	 * @param waitLine The text printed by the waiting terminal.
+	 * @returns True when the view opens, or false when Herdr fails.
+	 */
+	static async openInNewTab(
+		workspaceId: string,
+		tabLabel: string,
+		label: string,
+		waitLine: string,
+	): Promise<boolean> {
+		let pane: PaneInfo | undefined;
+		try {
+			pane = await api.newTab(workspaceId, WorkspaceFolders.require(workspaceId), tabLabel);
+			await ViewPanes._show(pane, label, waitLine);
+			return true;
+		} catch (error) {
+			if (pane !== undefined) {
+				try {
+					await api.closePane(pane.pane_id);
+				} catch (closeError) {
+					toast(`${String(error)}. ${String(closeError)}`, 'error');
+					return false;
+				}
+			}
 			toast(String(error), 'error');
 			return false;
 		}
@@ -61,5 +92,19 @@ export class ViewPanes {
 	 */
 	static waitCommand(waitLine: string): string {
 		return `echo '${waitLine}'; sleep 99999999`;
+	}
+
+	/**
+	 * Configures a new view pane before selecting it.
+	 * @param pane The new pane.
+	 * @param label The label that identifies the view.
+	 * @param waitLine The text printed by the waiting terminal.
+	 * @returns A promise that resolves after the pane is selected.
+	 */
+	private static async _show(pane: PaneInfo, label: string, waitLine: string): Promise<void> {
+		await api.renamePane(pane.pane_id, label);
+		await api.run(pane.pane_id, ViewPanes.waitCommand(waitLine));
+		await refresh();
+		selectPane(pane);
 	}
 }

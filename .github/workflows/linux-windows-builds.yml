@@ -1,0 +1,138 @@
+name: Heidrun Code Linux and Windows builds
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event.repository.visibility == 'public'
+    name: ${{ matrix.platform }} x64
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            image: ubuntu-24.04
+            bundle: deb
+            package: packages/apps/desktop_tauri/target/release/bundle/deb/*.deb
+          - platform: Windows
+            image: windows-2022
+            bundle: nsis
+            package: packages/apps/desktop_tauri/target/release/bundle/nsis/*.exe
+
+    env:
+      RUST_TOOLCHAIN: 1.96.1
+      BUNDLE: ${{ matrix.bundle }}
+
+    steps:
+      - name: Check out source and recursive submodules
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+          package-manager-cache: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Install Linux build prerequisites
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libclang-dev libasound2-dev \
+            libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+          dpkg-query -W build-essential cmake libclang-dev libasound2-dev libwebkit2gtk-4.1-dev \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Set up Windows build prerequisites
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $buildTools = & $vswhere -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion
+          if (-not $buildTools) { throw 'Microsoft C++ Build Tools for x64 are missing' }
+          "Microsoft C++ Build Tools: $buildTools"
+          $webView = Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application" -Directory -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName 'msedgewebview2.exe') }
+          if (-not $webView) {
+            $installer = Join-Path $env:RUNNER_TEMP 'MicrosoftEdgeWebview2Setup.exe'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $installer
+            $process = Start-Process $installer -ArgumentList '/silent', '/install' -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw "WebView2 setup exited with $($process.ExitCode)" }
+            $webView = Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application" -Directory |
+              Where-Object { Test-Path (Join-Path $_.FullName 'msedgewebview2.exe') }
+            if (-not $webView) { throw 'Microsoft Edge WebView2 Runtime is missing after setup' }
+          }
+          "Microsoft Edge WebView2 Runtime: $($webView.Name -join ', ')"
+          $llvm = "$env:ProgramFiles\LLVM\bin"
+          if (-not (Test-Path "$llvm\libclang.dll")) { throw 'LLVM libclang is missing' }
+          "LIBCLANG_PATH=$llvm" >> $env:GITHUB_ENV
+          & "$llvm\clang.exe" --version
+          "$env:ProgramFiles\Git\bin" >> $env:GITHUB_PATH
+
+      - name: Install Rust and record build environment
+        shell: bash
+        run: |
+          printf 'Image: %s %s\nRunner: %s %s\n' "$ImageOS" "$ImageVersion" "$RUNNER_OS" "$RUNNER_ARCH"
+          test "$RUNNER_ARCH" = X64
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          export RUSTUP_TOOLCHAIN="$RUST_TOOLCHAIN"
+          echo "RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN" >> "$GITHUB_ENV"
+          rustc -vV
+          cargo -V
+          node -v
+          pnpm -v
+          cmake --version
+          git submodule status --recursive
+
+      - name: Install locked JavaScript dependencies
+        id: dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compile Heidrun Code
+        id: compile
+        shell: bash
+        run: pnpm tauri build --no-bundle -- --locked 2>&1 | tee compile.log
+
+      - name: Create installer
+        shell: bash
+        run: pnpm tauri bundle --no-sign --bundles "$BUNDLE" 2>&1 | tee installer.log
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Heidrun-Code-${{ matrix.platform }}-x64
+          path: ${{ matrix.package }}
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Run frontend and mobile website tests
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: pnpm --filter web_frontend --filter mobile_website test
+
+      - name: Run desktop tests
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        run: cargo test --locked --package heidrun_code
+
+      - name: Upload compiler and installer logs
+        if: ${{ !cancelled() && steps.compile.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.platform }}-x64
+          path: |
+            compile.log
+            installer.log
+          retention-days: 3

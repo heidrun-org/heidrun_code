@@ -82,6 +82,7 @@ import SkillFileModal from "./components/SkillFileModal.vue";
 import InstalledSkillModal from "./components/InstalledSkillModal.vue";
 import FindNewSkillsModal from "./components/FindNewSkillsModal.vue";
 import AboutModal from "./components/AboutModal.vue";
+import ApplicationUpdateDialog from "./components/ApplicationUpdateDialog.vue";
 import MissingProgramsModal from "./components/MissingProgramsModal.vue";
 import ThreeJsDemoModal from "./components/ThreeJsDemoModal.vue";
 import { threeJsDemoModal } from "./stores/three_js_demo_modal";
@@ -370,6 +371,7 @@ onBeforeUnmount(() => {
     <SplashScreen />
     <MissingProgramsModal />
     <AboutModal />
+    <ApplicationUpdateDialog />
     <TopBar v-if="ZenMode.state.isActive === false" />
     <div class="body" :class="{ 'zen-mode': ZenMode.state.isActive }">
       <template v-if="ZenMode.state.isActive === false">

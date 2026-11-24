@@ -1,6 +1,6 @@
-# Jérôme Étienne’s personal Rust style rules — first draft
+# Jérôme Étienne’s personal Rust style rules
 
-These rules are conservatively adapted from Jérôme Étienne’s personal TypeScript and JavaScript coding style. The draft includes clearly transferable rules and adaptations explicitly approved by Jérôme. Rules whose meaning does not clearly transfer remain in the separate adaptation review.
+These rules are conservatively adapted from Jérôme Étienne’s personal TypeScript and JavaScript coding style. The style includes clearly transferable rules and adaptations explicitly approved by Jérôme. Rules whose meaning does not clearly transfer remain in the separate adaptation review.
 
 ## Priority
 

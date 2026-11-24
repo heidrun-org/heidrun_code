@@ -1,4 +1,8 @@
 {
+  "recordingMaximum": "Durée maximale de l’enregistrement (minutes)",
+  "recordingMaximumHelp": "Heidrun Code arrête l’enregistrement à cette durée et transcrit le son déjà enregistré.",
+  "recordingWarning": "Clignoter en rouge après (minutes)",
+  "recordingWarningHelp": "Le bouton de saisie vocale clignote en rouge après ce délai. Choisissez un délai inférieur à la durée maximale de l’enregistrement.",
   "enableLabel": "Activer la saisie vocale",
   "languageTitle": "Langue de la parole",
   "languageAutomatic": "Détecter la langue",

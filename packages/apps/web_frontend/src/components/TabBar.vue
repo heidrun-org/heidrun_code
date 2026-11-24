@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
             <span class="dot" :class="tab.agent_status === 'idle' ? '' : tab.agent_status"></span>
             <Icon :name="iconOf(tab.tab_id)" class="tab-icon" />
             <span class="tab-label">{{ tabLabel(tab.tab_id) }}</span>
-            <VoiceRecordingIcon v-if="VoiceInput.isRecordingInTab(tab.tab_id)" />
+            <VoiceRecordingIcon :state="VoiceInput.recordingIconState('tab_id', tab.tab_id)" />
             <span v-if="isRemoteControlled(tab.tab_id)" class="rc" :title="t('tabBar.remoteControlConnected')">{{ t("tabBar.remoteControlBadge") }}</span>
           </button>
           <ConfirmButton

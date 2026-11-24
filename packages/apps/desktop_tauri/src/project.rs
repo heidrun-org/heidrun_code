@@ -217,6 +217,7 @@ pub struct RepoRefs {
     pub root: String,
     /// `remote.origin.url` (or the first remote), as git stores it.
     pub remote: Option<String>,
+    pub remote_error: Option<String>,
     /// The `references` section of `.heidrun/config.json`, if any.
     pub references: Value,
 }
@@ -231,28 +232,11 @@ pub async fn project_refs(cwd: String) -> Result<RepoRefs, String> {
         .and_then(|t| serde_json::from_str::<Value>(&t).ok())
         .and_then(|v| v.get("references").cloned())
         .unwrap_or(Value::Null);
-    let git = |args: &[&str]| {
-        let root = root.clone();
-        let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
-        async move {
-            let out = tokio::process::Command::new("git")
-                .arg("-C")
-                .arg(&root)
-                .args(&args)
-                .output()
-                .await
-                .ok()?;
-            let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            (out.status.success() && !s.is_empty()).then_some(s)
-        }
+    let (remote, remote_error) = match crate::git::reference_remotes(&root).await {
+        Ok((_, remote)) => (remote, None),
+        Err(error) => (None, Some(error)),
     };
-    let mut remote = git(&["config", "--get", "remote.origin.url"]).await;
-    if remote.is_none() {
-        if let Some(first) = git(&["remote"]).await.and_then(|r| r.lines().next().map(str::to_string)) {
-            remote = git(&["config", "--get", &format!("remote.{first}.url")]).await;
-        }
-    }
-    Ok(RepoRefs { root: root.display().to_string(), remote, references })
+    Ok(RepoRefs { root: root.display().to_string(), remote, remote_error, references })
 }
 
 #[cfg(test)]

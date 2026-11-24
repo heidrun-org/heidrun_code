@@ -1,5 +1,5 @@
 # How to release Heidrun Code
-
+ 
 This file lists every step of a release of Heidrun Code, in order, so that no step is forgotten. The file `README_DEV.md` describes each command in detail. The steps come from the release 0.2.5, where several steps were forgotten. The source of this list is the issue [#245](https://github.com/heidrun-org/heidrun/issues/245).
 
 Replace `<version>` with the new version in every command and file name, for example `0.3.0`.

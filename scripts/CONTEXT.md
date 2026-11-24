@@ -1,13 +1,14 @@
 # Directory Context: `/scripts`
 
 ## Purpose
-The scripts that the maintainers run from the root of the repository: the release of the application and the page of shortcuts.
+The scripts that maintainers run from the root of the repository to build, release, and test the application or prepare its documentation.
 
 ## Key Exports & Entry Points
 - `release_dmg.ts`: builds the macOS disk image and uploads it to the GitHub release, twice: with its version in its name, and as `Heidrun_aarch64.dmg`, the file that `install.sh` downloads. Command: `pnpm release:dmg`.
 - `shortcuts-readme.mjs`: writes the page of shortcuts of the website. Command: `pnpm docs:shortcuts`.
 - `identity-texts.mjs`: writes the title, the motto, and the description of Heidrun Code from `data/identity.json` into `README.md`, and the description into `AGENTS.md` and `docs/release_notes/prefix.md`. Command: `pnpm docs:identity`.
 - `install.sh`: installs the latest Heidrun Code in `/Applications`, with no macOS message "damaged", and links its command lines in `~/.local/bin`. The users run it with `curl -fsSL https://raw.githubusercontent.com/heidrun-org/heidrun_code/main/scripts/install.sh | sh`, so this path never changes. Its tests are the package `packages/dev_tools/install_script_tests`.
+- `python3 scripts/test_application_update.py run` runs a local update trial with two reusable builds of Heidrun Code Development. See [the developer guide](../README_DEV.md#try-an-update-without-publishing-a-release).
 - `build_command_line_tools.sh`: builds `heidrun_code_ctrl` and `heidrun_data` into the resources of the Heidrun Code application bundle before Tauri packages the app. A release build runs it each time. `pnpm dev` runs it through `pnpm bundled_commands:build`, only when the sources of the two tools changed ([issue #864](https://github.com/heidrun-org/heidrun_code/issues/864)).
 - `claude-statusline.sh`: the status line of Claude Code for this repository.
 - `antigravity-statusline.sh`: reports Antigravity quota to Herdr and keeps the previous Antigravity status line visible.

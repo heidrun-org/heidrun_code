@@ -27,6 +27,14 @@ pub fn initialize(identifier: &str) {
     crate::legacy::migrate_config_dir(is_development);
     crate::environment_file::load(is_development);
     if is_development {
+        #[cfg(target_os = "macos")]
+        if let Some((folder, _)) = std::env::current_exe().ok().and_then(|executable| {
+            crate::applicationUpdate::ApplicationUpdate::testLocation(&executable)
+        }) {
+            std::env::set_var("HEIDRUN_CODE_DEVELOPMENT_DIR", folder.join("data"));
+            std::env::set_var("XDG_CONFIG_HOME", folder.join("config"));
+            std::env::set_var("HEIDRUN_CODE_DEVELOPMENT_SESSION", folder.file_name().unwrap());
+        }
         let home = dirs::home_dir().unwrap_or_default();
         let custom = std::env::var("HEIDRUN_CODE_DEVELOPMENT_DIR").ok();
         let folder = development_data_dir(&home, custom.as_deref())

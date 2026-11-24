@@ -1,4 +1,8 @@
 {
+  "recordingMaximum": "Maximum recording duration (minutes)",
+  "recordingMaximumHelp": "Heidrun Code stops recording at this duration and transcribes the audio already captured.",
+  "recordingWarning": "Start flashing red after (minutes)",
+  "recordingWarningHelp": "The push-to-talk button starts flashing red after this much time. Set this time below the maximum recording duration.",
   "enableLabel": "Enable voice input",
   "languageTitle": "Language of the speech",
   "languageAutomatic": "Detect the language",

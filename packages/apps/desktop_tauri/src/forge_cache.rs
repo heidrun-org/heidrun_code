@@ -12,6 +12,7 @@
 use crate::application_log::{self, ForgeAnswerSource, ForgeCall};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -158,6 +159,13 @@ fn key_of(root: &Path, tool: &str, args: &[String]) -> String {
     format!("{}\n{}\n{}", root.display(), tool, args.join("\u{1f}"))
 }
 
+/// Code hosting list commands can infer the project from Git without naming it in their arguments.
+fn code_hosting_list_key(key: String, remote: Option<&str>) -> String {
+    let mut hasher = DefaultHasher::new();
+    remote.hash(&mut hasher);
+    format!("{key}\n{:016x}", hasher.finish())
+}
+
 /// Runs `body` on the cache of the application, and opens the cache first when it is not open.
 fn with_cache<T>(body: impl FnOnce(&mut ForgeCache) -> T) -> T {
     let mut guard = CACHE.lock().unwrap_or_else(|e| e.into_inner());
@@ -218,7 +226,12 @@ async fn run_cached(
     if !crate::git::allowed(&tool, &args) {
         return Err(format!("forge_cli_cached : appel non autorisé ({tool} {})", args.join(" ")));
     }
-    let key = key_of(&crate::project::find_root(Path::new(&cwd)), &tool, &args);
+    let root = crate::project::find_root(Path::new(&cwd));
+    let mut key = key_of(&root, &tool, &args);
+    if caller.as_deref() == Some("code_hosting_list") {
+        let (_, remote) = crate::git::reference_remotes(&root).await?;
+        key = code_hosting_list_key(key, remote.as_deref());
+    }
     let is_refresh = refresh == Some(true);
     let is_kept_until_refresh = keep_until_refresh == Some(true);
     if let Some(output) = with_cache(|cache| cache.usable(&key, now_ms(), is_refresh, is_kept_until_refresh)) {
@@ -250,6 +263,16 @@ mod tests {
     use super::*;
 
     const NOW: i64 = 1_800_000_000_000;
+
+    #[test]
+    fn keeps_separate_code_hosting_lists_for_different_remotes() {
+        let key = key_of(Path::new("/work/app"), "gh", &["issue".into(), "list".into()]);
+        let first = code_hosting_list_key(key.clone(), Some("https://github.com/team/first"));
+        let second = code_hosting_list_key(key.clone(), Some("https://github.com/team/second"));
+        assert_ne!(first, second);
+        assert_ne!(first, key);
+        assert_eq!(first, code_hosting_list_key(key, Some("https://github.com/team/first")));
+    }
 
     #[test]
     fn gives_the_kept_answer_with_the_failure_and_its_time_after_a_failure() {

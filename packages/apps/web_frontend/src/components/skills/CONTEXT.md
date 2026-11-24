@@ -13,7 +13,7 @@ The parts of the two skills windows: the frame, the level switch, the source swi
 - `SkillsNoAgentNotice.vue`: the notice with the button "Open Agents", shown when no coding agent is switched on.
 - `SkillsWindow.vue`: the frame of both skills windows: the title, the question mark with the help text, the close button, the Escape key, and the loading of the skills. A skills window gives it a title, a help text, and its content in the slot.
 - `InstalledSkillsList.vue`: the list of installed skills, one `InstalledSkillRow.vue` for each skill (inspect, add link, delete).
-- `FindSkills.vue`: the source switch, the field of the chosen source, and the line Result with one `SkillSearchResultRow.vue` for each result (inspect, install or replace, a card with the description; "Different" when its SKILL.md differs: `../../lib/skill_difference.ts`).
+- `FindSkills.vue`: the source switch, the field of the chosen source, and the line Result with one `SkillSearchResultRow.vue` for each result (inspect, install or replace, a card with the description; "Different" when the files selected by installation differ).
 - `FindSkillsSearchInput.vue`, `FindSkillsLocalFolder.vue`, `FindSkillsCodeHosting.vue`: the field of each source. skills.sh searches 300 milliseconds after the last key. Local folder takes a full path or the folder chooser, checked 300 milliseconds after the last key. Code hosting takes a web address on GitHub or GitLab (`../../lib/skill_folder_address.ts`), checked 500 milliseconds after the last key. Both give one row for each skill found in the folder.
 - `skills_section.css`: the styles of the lists and rows, shared by both row components.
 - `skills_test_support.ts`: the fake backend and the helpers shared by the tests of this folder.

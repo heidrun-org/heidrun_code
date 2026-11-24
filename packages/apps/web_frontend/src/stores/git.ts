@@ -20,6 +20,8 @@ export interface GitStatus {
   last_subject: string | null;
   last_time: number | null;
   remote: string | null;
+  reference_remote?: string | null;
+  reference_remote_error?: string | null;
 }
 
 export type Level = "ok" | "warn" | "crit" | "pending" | "muted";
@@ -70,18 +72,28 @@ export const git = reactive({
 /** The fixed workspace folder saved by the desktop application. */
 export const workspaceCwd = WorkspaceFolders.get;
 
+/** The most recent status request for each workspace. */
+const statusRequests = new Map<string, symbol>();
+
 /** Reads the Git status of a workspace again. A failure leaves the status empty. */
 export async function loadStatus(wsId: string) {
-  const cwd = workspaceCwd(wsId);
-  if (!cwd) {
-    git.status[wsId] = null;
-    return;
-  }
-  try {
-    git.status[wsId] = await invoke<GitStatus | null>("git_status", { cwd });
-  } catch {
-    git.status[wsId] = null;
-  }
+	const request = Symbol();
+	statusRequests.set(wsId, request);
+	const cwd = workspaceCwd(wsId);
+	let status: GitStatus | null = null;
+	try {
+		if (cwd) {
+			status = await invoke<GitStatus | null>('git_status', {
+				cwd,
+			});
+		}
+	} catch {
+		// A failed status read leaves the workspace without a status.
+	}
+	if (statusRequests.get(wsId) === request) {
+		git.status[wsId] = status;
+		statusRequests.delete(wsId);
+	}
 }
 
 /** Reads the Git branch of a folder, for the header of a shell pane. */

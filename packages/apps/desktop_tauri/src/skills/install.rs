@@ -4,12 +4,12 @@
 use std::path::{Path, PathBuf};
 use super::agent_folders::{AGENTS, REAL_FILES_AGENT, link_agents, skill_locations, skills_dir};
 use super::folder_address::{CodeHost, FolderAddress, parse_folder_address};
-use super::github::{fetch_folder_text, find_skill, http_client, list_folder_files, list_repository_files};
+use super::github::{fetch_folder_text, find_skill, http_client, list_folder_files, list_repository_files, refreshRepositoryFiles, refreshSkill};
 use super::gitlab::{GITLAB_BASE, fetch_gitlab_folder_text, gitlab_file_url, list_gitlab_folder_files};
 use super::installed::{delete_locations, list_level};
 use super::local_folder::{copy_local_folder, read_local_skill};
 use super::repository_paths::{encode_path, files_in_dir};
-use super::types::{InstalledSkill, ORIGIN_FILE, SkillOrigin, is_valid_name, is_valid_source};
+use super::types::{InstalledSkill, ORIGIN_FILE, RepositoryFile, SkillOrigin, is_valid_name, is_valid_source};
 
 pub(super) const MAX_FILES: usize = 200;
 pub(super) const MAX_FILE_BYTES: usize = 2_000_000;
@@ -38,6 +38,85 @@ pub async fn skills_preview_folder(url: String) -> Result<String, String> {
 #[tauri::command]
 pub fn skills_preview_local_folder(path: String) -> Result<String, String> {
     read_local_skill(&path).map(|skill| skill.text)
+}
+
+/// Compares the source files selected by installation with the installed skill at the chosen level.
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn skillsCompare(
+    level: String,
+    cwd: Option<String>,
+    skillId: String,
+    source: String,
+    folderUrl: Option<String>,
+    folderPath: Option<String>,
+) -> Result<bool, String> {
+    let locations = skill_locations(&level, cwd.as_deref(), &skillId)?;
+    let installed = locations.iter()
+        .filter(|location| location.path.join("SKILL.md").is_file())
+        .min_by_key(|location| location.is_link)
+        .ok_or_else(|| format!("skills_not_installed: {skillId}"))?;
+    let staging = tempfile::tempdir().map_err(|error| format!("skills_install_failed: {error}"))?;
+
+    if let Some(path) = folderPath {
+        let skill = read_local_skill(&path)?;
+        copy_local_folder(&skill.folder, staging.path(), MAX_FILES, MAX_FILE_BYTES as u64)?;
+    } else if let Some(url) = folderUrl {
+        let address = parse_folder_address(&url)?;
+        let client = http_client()?;
+        let text = folder_text(&client, &address).await?;
+        write_folder_skill(&client, &address, &text, staging.path()).await?;
+    } else {
+        if is_valid_source(&source) == false {
+            return Err(format!("skills_invalid_name: {source}"));
+        }
+        let client = http_client()?;
+        let repositoryFiles = refreshRepositoryFiles(&client, &source).await?;
+        let (repositoryDir, text) = refreshSkill(&client, &source, &skillId).await?;
+        writeRepositorySkill(&client, &source, &repositoryDir, &text, &repositoryFiles, staging.path()).await?;
+    }
+
+    Install::haveSameFiles(&installed.path, staging.path())
+        .map_err(|error| format!("skills_install_failed: {error}"))
+}
+
+/// Compares staged files against installed files by path and contents.
+struct Install;
+
+#[allow(non_snake_case)]
+impl Install {
+    /// Returns whether both folders contain the same regular files and bytes, excluding installation metadata.
+    fn haveSameFiles(installed: &Path, staging: &Path) -> std::io::Result<bool> {
+        let installedFiles = Self::filePaths(installed)?;
+        if installedFiles != Self::filePaths(staging)? {
+            return Ok(false);
+        }
+        for path in installedFiles {
+            let stagedBytes = std::fs::read(staging.join(&path))?;
+            let installedPath = installed.join(path);
+            if std::fs::metadata(&installedPath)?.len() != stagedBytes.len() as u64
+                || std::fs::read(installedPath)? != stagedBytes
+            {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    /// Returns regular file paths relative to the folder.
+    fn filePaths(folder: &Path) -> std::io::Result<std::collections::BTreeSet<PathBuf>> {
+        let mut files = std::collections::BTreeSet::new();
+        for entry in walkdir::WalkDir::new(folder).min_depth(1) {
+            let entry = entry?;
+            if entry.file_type().is_file() {
+                let path = entry.path().strip_prefix(folder).expect("walked path is relative to its root");
+                if path != Path::new(ORIGIN_FILE) {
+                    files.insert(path.to_path_buf());
+                }
+            }
+        }
+        Ok(files)
+    }
 }
 
 /// Installs a skill of skills.sh at `level` for the agents `agents`: the whole folder of the skill, with the file
@@ -187,16 +266,32 @@ fn finish_install(plan: &InstallPlan, origin: SkillOrigin, written: Result<(), S
 
 /// Writes the files of the skill into `staging`. When the list of the files of the repository is not available, only
 /// `SKILL.md` is written.
+#[allow(non_snake_case)]
 pub(super) async fn write_skill(client: &reqwest::Client, source: &str, repository_dir: &str, skill_text: &str, staging: &Path) -> Result<(), String> {
-    std::fs::write(staging.join("SKILL.md"), skill_text).map_err(|e| format!("skills_install_failed: {e}"))?;
-    // A skill at the root of a repository is the whole repository: only its `SKILL.md` is installed.
-    if repository_dir.is_empty() {
+    let repositoryFiles = if repository_dir.is_empty() {
+        Vec::new()
+    } else {
+        list_repository_files(client, source).await.unwrap_or_default()
+    };
+    writeRepositorySkill(client, source, repository_dir, skill_text, &repositoryFiles, staging).await
+}
+
+/// Writes the skill text and the installable files from the supplied repository listing.
+#[allow(non_snake_case)]
+async fn writeRepositorySkill(
+    client: &reqwest::Client,
+    source: &str,
+    repositoryDir: &str,
+    skillText: &str,
+    repositoryFiles: &[RepositoryFile],
+    staging: &Path,
+) -> Result<(), String> {
+    std::fs::write(staging.join("SKILL.md"), skillText).map_err(|error| format!("skills_install_failed: {error}"))?;
+    // A skill at the root of a repository installs only its SKILL.md.
+    if repositoryDir.is_empty() {
         return Ok(());
     }
-    let Ok(repository_files) = list_repository_files(client, source).await else {
-        return Ok(());
-    };
-    let files = files_in_dir(&repository_files, repository_dir);
+    let files = files_in_dir(repositoryFiles, repositoryDir);
     if files.len() > MAX_FILES {
         return Err("skills_too_many_files".into());
     }
@@ -276,6 +371,41 @@ mod tests {
     use super::*;
     use crate::skills::test_support::*;
     use super::super::{installed::skills_list, search::skills_search, skill_text::parse_name};
+
+    #[tokio::test]
+    #[allow(non_snake_case)]
+    async fn detectsAddedChangedAndRemovedSupportingFiles() {
+        let temporaryFolder = tempfile::tempdir().unwrap();
+        let workspace = temporaryFolder.path().join("workspace");
+        let source = write_skill_folder(temporaryFolder.path(), "pdf", "# PDF");
+        let folderPath = source.display().to_string();
+        let script = source.join("scripts/helper.bin");
+        std::fs::create_dir(script.parent().unwrap()).unwrap();
+        std::fs::write(&script, [0, 1, 2]).unwrap();
+        let installed = skills_install_local_folder(
+            "workspace".into(), cwd_of(&workspace), folderPath.clone(), vec!["codex".into()],
+        ).unwrap();
+        let compareFn = || skillsCompare(
+            "workspace".into(), cwd_of(&workspace), "pdf".into(), String::new(), None, Some(folderPath.clone()),
+        );
+
+        assert_eq!(compareFn().await, Ok(true));
+
+        let template = source.join("template.txt");
+        std::fs::write(&template, "new").unwrap();
+        assert_eq!(compareFn().await, Ok(false));
+        std::fs::remove_file(template).unwrap();
+
+        std::fs::write(&script, [0, 1, 3]).unwrap();
+        assert_eq!(compareFn().await, Ok(false));
+
+        std::fs::remove_file(script).unwrap();
+        assert_eq!(compareFn().await, Ok(false));
+
+        let installedFolder = Path::new(&installed.path);
+        assert_eq!(std::fs::read(installedFolder.join("scripts/helper.bin")).unwrap(), [0, 1, 2]);
+        assert_eq!(std::fs::read_to_string(installedFolder.join("SKILL.md")).unwrap(), "# PDF");
+    }
 
     #[tokio::test]
     async fn refuses_an_install_for_no_agent_or_an_unknown_agent() {
@@ -433,6 +563,12 @@ mod tests {
         assert!(folder.join("SKILL.md").exists());
         assert!(folder.join("scripts").is_dir(), "the files below the folder are downloaded");
         assert!(folder.join(ORIGIN_FILE).exists());
+        let compare = || skillsCompare(
+            "workspace".into(), cwd_of(&workspace), "pdf".into(), "anthropics/skills".into(), Some(address.into()), None,
+        );
+        assert_eq!(compare().await, Ok(true));
+        std::fs::write(folder.join("old-template.txt"), "leftover file").unwrap();
+        assert_eq!(compare().await, Ok(false));
         assert!(workspace.join(".agents/skills/.pdf.installing").exists() == false);
         let _ = std::fs::remove_dir_all(&workspace);
     }

@@ -70,8 +70,12 @@ type Section = {
 };
 
 watch(
-  () => currentGit.value?.root ?? null,
-  (folder) => {
+  [
+    () => currentGit.value?.root ?? null,
+    () => currentGit.value?.reference_remote ?? currentGit.value?.remote ?? null,
+    () => currentGit.value?.reference_remote_error ?? null,
+  ],
+  ([folder]) => {
     void loadCodeHosting(folder);
   },
   { immediate: true },
