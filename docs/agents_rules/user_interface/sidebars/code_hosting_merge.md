@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: code hosting merge
 
 - Created: 29 October 2026
-- Last updated: 10 November 2026
+- Last updated: 24 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Glossary of Heidrun Code: code hosting](../../glossary/code_hosting.md), [User interface of Heidrun Code: code hosting](code_hosting.md), [GitHub and GitLab support](../../github_and_gitlab_support.md)
@@ -12,8 +12,8 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 ## The approval state
 
 - The second line of a row of a pull request or a merge request adds its approval state after the date, as it adds " · Draft": "Approved", "Changes requested", or "Review required". GitHub gives it in the list (`reviewDecision` of `gh pr list`). The list of GitLab gives only whether an approval is missing or whether changes are requested (`detailed_merge_status`), so a row of GitLab never says "Approved".
-- The information card of an open pull request or merge request ends with the merge bar: the approval state in a pill, the people who approved it, and the button "Merge". On GitLab, the pill adds the number of approvals that are still needed, for example "Review required · 1 approval left". The issue preview window ("Open in Heidrun Code") shows the same merge bar under the author and the branches, for an item of the repository of the workspace only, but its pill is in the header of the window, next to the state chip, with the people who approved in its title.
-- The merge bar, the header of the issue preview window, and the merge window always show an approval state for an open item, with the same text and the same color (issue 1044): "Approved" in green, "Changes requested" and "Review required" in orange, and "Not approved" in gray. "Not approved" means that the repository asks for no review and nobody approved yet. When GitHub gives an empty `reviewDecision` (no review asked by the target branch), the state comes from `latestReviews`: a request for changes wins over an approval. On GitLab, "Not approved" comes from approvals read with no approver and no approval left. When the approvals of GitLab cannot be read, no chip is shown. A closed or merged item shows no approval chip.
+- The information card of an open pull request or merge request ends with the merge bar: the approval state in a pill, the people who approved it, and the button "Merge". On GitLab, the pill adds the number of approvals that are still needed, for example "Review required · 1 approval left".
+- The merge bar and the merge window always show an approval state for an open item, with the same text and the same color (issue 1044): "Approved" in green, "Changes requested" and "Review required" in orange, and "Not approved" in gray. "Not approved" means that the repository asks for no review and nobody approved yet. When GitHub gives an empty `reviewDecision` (no review asked by the target branch), the state comes from `latestReviews`: a request for changes wins over an approval. On GitLab, "Not approved" comes from approvals read with no approver and no approval left. When the approvals of GitLab cannot be read, no chip is shown. A closed or merged item shows no approval chip.
 - The card reads the merge facts with its details, before it opens: `gh pr view --json` and `gh api repos/{owner}/{repo}` on GitHub, and `glab api` of the merge request, of its approvals, and of the project on GitLab.
 
 ## The button "Merge"
@@ -28,7 +28,7 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 - GitLab: the method is a setting of the project (`merge_method`), shown as text. The check box "Squash the commits" follows `squash_option`: `default_on` and `always` check it, and `always` and `never` disable it.
 - The check box "Delete the source branch {branch} after the merge" starts with the setting of the repository: `delete_branch_on_merge` on GitHub, and `force_remove_source_branch` of the merge request, else `remove_source_branch_after_merge` of the project, on GitLab.
 - The window says which commit it merges. The hosting service refuses the merge when someone pushed since.
-- After the merge, the window closes, a toast says "#12 merged into main", and the lists of the Code hosting sidebar section are read again from the hosting service, without the kept answers: the merged item leaves the list of the open items. The issue preview window shows the state "Merged". When the merge fails, the window stays open with the first line of the failure.
+- After the merge, the window closes, a toast says "#12 merged into main", and the lists of the Code hosting sidebar section are read again from the hosting service, without the kept answers: the merged item leaves the list of the open items. When the merge fails, the window stays open with the first line of the failure.
 
 ## The permanent branches
 
@@ -47,4 +47,4 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 
 - `stores/pull_request_merge.ts`: the merge facts, the reasons, the defaults, and the merge window. `components/PullRequestMergeBar.vue` is the merge bar, and `components/MergeModal.vue` the merge window.
 - `merge_calls`, `is_permanent_branch`, and `forge_merge` in `desktop_tauri/src/git.rs`.
-- The tests are `pull_request_merge.test.ts`, `MergeModal.test.ts`, `PullRequestMergeBar.test.ts`, `IssueModal.test.ts`, `issues_merge.test.ts`, `code_hosting_rows.test.ts`, and the Rust tests of `git.rs`.
+- The tests are `pull_request_merge.test.ts`, `MergeModal.test.ts`, `PullRequestMergeBar.test.ts`, `code_hosting_rows.test.ts`, and the Rust tests of `git.rs`.

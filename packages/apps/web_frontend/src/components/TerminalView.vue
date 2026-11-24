@@ -7,7 +7,6 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { EMPTY_CONTEXT, REF_COLORS, findRefs, refContext, sameReferenceAddress, type RefContext, type RefMatch } from "../lib/refs";
 import { DetectionPatterns } from "../lib/detection_patterns";
 import { toast } from "../stores/session";
-import { openIssue } from "../stores/issues";
 import InformationCard from "./InformationCard.vue";
 import CodeHostingReferenceCard from "./CodeHostingReferenceCard.vue";
 import type { ChatReference } from "../lib/chat_references";
@@ -404,7 +403,7 @@ function activateReference(event: MouseEvent, match: RefMatch) {
     return;
   }
   closeReferenceCard();
-  openIssue(refCtx.root ?? props.cwd, match.target, match.url, true);
+  void openUrl(match.url).catch(() => {});
 }
 
 /** The terminal position and hosting service data for the currently hovered reference. */

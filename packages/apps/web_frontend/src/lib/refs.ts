@@ -21,7 +21,7 @@ export type RefMatch = {
   target: RefTarget;
 };
 
-/** An issue or a merge request that the application previews itself. */
+/** An issue, pull request, or merge request recognized in terminal text. */
 export interface RefTarget {
   type: "issue" | "mr";
   number: number;

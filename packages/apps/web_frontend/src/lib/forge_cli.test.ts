@@ -24,7 +24,7 @@ describe("runForgeCli", () => {
   });
 
   it("gives the refresh and the keep until refresh to the cache", async () => {
-    await runForgeCli("issue_preview", "/work/app", "glab", ["api", "user"], {
+    await runForgeCli("reference_card", "/work/app", "glab", ["api", "user"], {
       isRefresh: true,
       isKeptUntilRefresh: true,
     });

@@ -1,8 +1,0 @@
-{
-  "state.open": "ouverte",
-  "state.closed": "fermée",
-  "state.merged": "fusionnée",
-  "state.locked": "verrouillée",
-  "moreComments": "_… commentaires suivants sur la page de l’issue._",
-  "unknownFolder": "Dossier du panneau inconnu"
-}

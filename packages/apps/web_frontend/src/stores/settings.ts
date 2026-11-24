@@ -225,8 +225,6 @@ const defaults = {
   diffMode: "unified" as "unified" | "split",
   /** Side-by-side diff: share of the width for the old version (0.5 = middle). */
   splitRatio: 0.5,
-  /** Markdown reading: centred column, or the whole width. */
-  mdWidth: "center" as "center" | "full",
   /** Language of the user interface. */
   language: "en" as "en" | "fr",
   /** Clock display: "auto" follows the language, "12h" shows AM and PM, "24h" shows the hour from 0 to 23. */

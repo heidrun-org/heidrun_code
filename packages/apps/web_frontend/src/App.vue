@@ -15,8 +15,6 @@ import DangerModal from "./components/DangerModal.vue";
 import GuardModal from "./components/GuardModal.vue";
 import { pullRequestMerge } from "./stores/pull_request_merge";
 import MergeModal from "./components/MergeModal.vue";
-import IssueModal from "./components/IssueModal.vue";
-import { issueView } from "./stores/issues";
 import WorkspaceFolderRecovery from './components/WorkspaceFolderRecovery.vue';
 import SearchModal from "./components/SearchModal.vue";
 import ColumnOfPinnedPanes from "./components/ColumnOfPinnedPanes.vue";
@@ -425,7 +423,6 @@ onBeforeUnmount(() => {
     <NoteModal v-if="notes.openId" />
     <RcModal v-if="remote.openFor" />
     <MergeModal v-if="pullRequestMerge.open" />
-    <IssueModal v-if="issueView.open" />
     <WorkspaceFolderRecovery />
     <SearchModal v-if="search.open" />
     <ShortcutsModal v-if="state.shortcutsOpen" />

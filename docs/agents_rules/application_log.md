@@ -1,7 +1,7 @@
 # Rule: the application log of Heidrun Code
 
 - Created: 25 October 2026
-- Last updated: 18 November 2026
+- Last updated: 24 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](glossary/index.md), [GitHub and GitLab support](github_and_gitlab_support.md)
@@ -23,7 +23,7 @@ This file gives the rules of the application log, the file where Heidrun Code wr
 - `forge_call_start`: a call to `gh` or `glab` starts. Fields: `call_id`, `caller`, `tool`, `args`, `is_refresh`.
 - `forge_call_end`: the same call ends. Fields: `call_id`, `caller`, `tool`, `source` (`forge`, `kept_after_failure`, or `failed`), `duration_ms`, `error`.
 - `forge_cache_hit`: the cache of the answers gave the answer, and GitHub or GitLab was not asked. Fields: `caller`, `tool`, `args`.
-- The values of `caller` are `code_hosting_list`, `code_hosting_rate_limit`, `reference_card`, `issue_preview`, `source_control`, and `merge`.
+- The values of `caller` are `code_hosting_list`, `code_hosting_rate_limit`, `reference_card`, `source_control`, and `merge`.
 - `github_rate_limit`: after each call to `gh` that GitHub answered, Heidrun Code reads `gh api rate_limit`, which GitHub does not count. Fields: `after_call_id` (the `call_id` of the call), `caller`, `graphql_used`, `graphql_remaining`, `graphql_reset`, `core_used`, `core_remaining`, `error`.
 - `data_layer_call_start`: the desktop application calls a function of a data layer package. Fields: `call_id`, `package` (`code_hosting`, `source_control`, `user_activity`, or `coding_agents`), `function`.
 - `data_layer_call_end`: the same call ends. Fields: `call_id`, `package`, `function`, `duration_ms`, `error`, `details`. The `details` of a refresh of `code_hosting` are `graphql_query_count`, `graphql_cost`, and `graphql_remaining`, from the field `rateLimit { cost remaining }` of each GraphQL answer. The `details` of a function `find_*` that gives a list are `row_count`.

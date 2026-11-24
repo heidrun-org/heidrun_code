@@ -1,7 +1,7 @@
 {
   "all.name": "Tickets, pull requests et merge requests",
   "all.what": "GitHub utilise #123 pour les tickets et les pull requests. GitLab utilise #123 pour les tickets et !123 pour les merge requests. Les liens complets sont aussi détectés.",
-  "all.on": "Survolez une référence pour afficher sa fiche. Le terminal utilise le dépôt de l’espace de travail pour retrouver une référence écrite sous forme de numéro.",
+  "all.on": "Survolez une référence pour afficher sa fiche. Maintenez la touche Commande et cliquez pour ouvrir la page dans le navigateur. Le terminal utilise le dépôt de l’espace de travail pour retrouver une référence écrite sous forme de numéro.",
   "all.off": "Le terminal cesse d’afficher les fiches de ces références.",
   "family.webAddresses.name": "Liens web ordinaires",
   "family.webAddresses.what": "Adresses web cliquables dans le terminal qui commencent par http:// ou https://.",

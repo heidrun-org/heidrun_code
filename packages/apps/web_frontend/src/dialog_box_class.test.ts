@@ -17,7 +17,6 @@ const __dirname = import.meta.dirname;
 const WINDOW_FILE_NAME_LIST = [
 	'AgentsInformationModal.vue',
 	'HistoryModal.vue',
-	'IssueModal.vue',
 	'MosaicModal.vue',
 	'NewCustomLauncherModal.vue',
 	'SearchModal.vue',

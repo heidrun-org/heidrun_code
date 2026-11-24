@@ -43,9 +43,9 @@ In the application, press **⌘/** (or the **?** button at the top) to show this
 | ⌘B / ⌥⌘B | Collapse or expand the left sidebar / the right sidebar |
 | ⌘+ / ⌘− / ⌘0 | Increase / decrease / reset the font size of the whole window |
 | **Mouse** | |
-| ⌘-click | On #12 / !34: preview of the issue or merge request; on a URL or a commit: open it |
+| ⌘-click | Open an issue or request reference or an ordinary web address in the browser |
 | ⌘-click | On src/app.ts:42 quoted in a terminal: the file at that line, in the explorer |
-| Hover | Action buttons: ↗ Open, ⧉ Preview, ▷ Launch, ▷ Run, ▷ View &lt;agent&gt; |
+| Hover | Show the information card for an issue or request reference |
 | Wheel | Scroll the pane history |
 | ⌥ + wheel | Send ↑ / ↓ (last commands or prompts) |
 | ⌥ + drag | Select text, even in "Mouse for the app" mode |
