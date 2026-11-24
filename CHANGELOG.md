@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-11-24
+
+### Release notes
+
+Heidrun Code can now check for and install updates on Apple silicon. Work with files and diffs in focused tabs, see when a commit finishes, and set a recording limit with a warning for voice input.
+
+### Added
+
+- Check for, download, and install application updates on Apple silicon. ([#1057](https://github.com/heidrun-org/heidrun_code/pull/1057))
+- Trigger Linux and Windows build jobs manually on GitHub. ([#1058](https://github.com/heidrun-org/heidrun_code/pull/1058))
+- Show pull request and merge request approval status in the preview. ([#1045](https://github.com/heidrun-org/heidrun_code/pull/1045))
+- Set a maximum voice recording duration and a warning before recording stops. ([#1061](https://github.com/heidrun-org/heidrun_code/pull/1061))
+
+### Changed
+
+- Open files and diffs from Source Control and files from File explorer in focused tabs. ([#1076](https://github.com/heidrun-org/heidrun_code/pull/1076), [#1063](https://github.com/heidrun-org/heidrun_code/pull/1063))
+- Show commit progress and refresh Source Control status when the commit finishes. ([#1054](https://github.com/heidrun-org/heidrun_code/pull/1054))
+- Keep the microphone visible during transcription. ([#1065](https://github.com/heidrun-org/heidrun_code/pull/1065))
+- Reorder launchers at each level by dragging them or pressing Option and an arrow key. ([#1043](https://github.com/heidrun-org/heidrun_code/pull/1043))
+- Compare every installed skill file with its source. ([#1052](https://github.com/heidrun-org/heidrun_code/pull/1052))
+- Fold the Heidrun Code Dashboard sidebar and show the missing Codex activity notice only when a Codex pane is present. ([#1046](https://github.com/heidrun-org/heidrun_code/pull/1046))
+- Widen the Workspace card and use compact copy buttons. ([#1069](https://github.com/heidrun-org/heidrun_code/pull/1069), [#1073](https://github.com/heidrun-org/heidrun_code/pull/1073))
+
+### Fixed
+
+- Refresh Code hosting when the Git remote changes. ([#1053](https://github.com/heidrun-org/heidrun_code/pull/1053))
+- Keep long macro dialogs scrollable within the window. ([#1041](https://github.com/heidrun-org/heidrun_code/pull/1041))
+
 ## [0.4.0] - 2026-11-09
 
 ### Release notes
@@ -311,4 +339,5 @@ Merge GitHub pull requests and GitLab merge requests from Code hosting, open fil
 - Show a modal dialog to confirm closing the application. ([#29](https://github.com/heidrun-org/heidrun/pull/29))
 - Make the scroll bar of the terminal panel no longer white. ([#108](https://github.com/heidrun-org/heidrun/pull/108))
 
+[0.4.5]: https://github.com/heidrun-org/heidrun_code/compare/v0.4.0...v0.4.5
 [0.4.0]: https://github.com/heidrun-org/heidrun_code/compare/v0.3.5...v0.4.0
