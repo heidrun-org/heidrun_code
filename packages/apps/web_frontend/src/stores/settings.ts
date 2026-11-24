@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { CUSTOM_LAUNCHER_CODING_AGENT_IDS } from "../lib/coding_agents";
 import { AGENTS } from "../lib/agents";
-import { DetectionFamilies } from "../lib/detection_families";
 import { NotificationChannels } from "../lib/notification_channels";
 import { PERSON_WORK_PERIODS, type PersonWorkPeriodId, type PersonWorkSlotHours } from "../lib/person_work";
 import {
@@ -113,16 +112,10 @@ const defaults = {
    * "app": mouse goes to Herdr / the program in the pane (scroll, clicks); ⌥ + drag still selects.
    */
   mouseMode: "select" as "select" | "app",
-  /**
-   * Settings window, section Terminal: the automatic detection in the text of the terminals is on (issue #638). Off: Heidrun Code
-   * colors nothing, adds no hover button, and gives no action to the text of any terminal.
-   */
+  /** Show information cards for issues and requests in the terminal. */
   terminalTextDetection: true,
-  /**
-   * Settings window, section Terminal: the identifiers of the detection families that the developer turned off (issue #638).
-   * A family that is not in the list is on. The list is read only while `terminalTextDetection` is on.
-   */
-  disabledDetectionFamilies: [] as string[],
+  /** Make ordinary web addresses clickable in the terminal. */
+  terminalWebAddresses: true,
   /** Sidebar section that the left sidebar shows. */
   leftSidebarSection: "launchers" as LeftSidebarSection,
   /** Sidebar section that the right sidebar shows. */
@@ -589,6 +582,16 @@ function load(): typeof defaults {
       const oldList = stored.codeHostingSavedSearches;
       stored.codeHostingSavedSearches = { issues: oldList, requests: structuredClone(oldList) };
     }
+    const disabledFamilies = stored.disabledDetectionFamilies;
+    if (stored.terminalWebAddresses === undefined) {
+      stored.terminalWebAddresses = stored.terminalTextDetection !== false &&
+        (Array.isArray(disabledFamilies) === false || disabledFamilies.includes("webAddresses") === false);
+    }
+    if (Array.isArray(disabledFamilies) &&
+        disabledFamilies.includes("issueReferences") && disabledFamilies.includes("requestReferences")) {
+      stored.terminalTextDetection = false;
+    }
+    delete stored.disabledDetectionFamilies;
     const saved = dropCorruptedValues({ ...defaults, ...stored }) as typeof defaults;
     const commandAgentId = saved.newTabCommand === 'terminal' ? null : NEW_TAB_COMMAND_AGENT_IDS[saved.newTabCommand];
     if (commandAgentId !== null && saved.ownedAgents.includes(commandAgentId) === false) {
@@ -599,7 +602,6 @@ function load(): typeof defaults {
     saved.statisticsLegendFilters = keepLegendFilters(saved.statisticsLegendFilters);
     saved.statisticsUserActivityWorkspaces = keepUserActivityWorkspaces(saved.statisticsUserActivityWorkspaces);
     saved.statisticsPersonWorkWorkspaces = keepPersonWorkWorkspaces(saved.statisticsPersonWorkWorkspaces);
-    saved.disabledDetectionFamilies = DetectionFamilies.keepKnownIds(saved.disabledDetectionFamilies);
     saved.notificationChannels = NotificationChannels.keep(saved.notificationChannels);
 		saved.voiceRecordingMaxMinutes = Math.max(2, Math.min(
 			VOICE_RECORDING_MAX_MINUTES, Math.round(saved.voiceRecordingMaxMinutes),

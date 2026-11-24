@@ -16,7 +16,6 @@ import SettingsSidebarsSection from './SettingsSidebarsSection.vue';
 import SettingsTerminalSection from './SettingsTerminalSection.vue';
 import SettingsTextDetectionSection from './SettingsTextDetectionSection.vue';
 import SettingsVoiceInputSection from './SettingsVoiceInputSection.vue';
-import { DETECTION_FAMILY_IDS } from '../../lib/detection_families';
 import { DEFAULT_GUARDS } from '../../lib/guards';
 import { NOTIFICATION_KINDS } from '../../lib/notification_channels';
 import { parseProjectConfig } from '../../lib/project_config';
@@ -84,7 +83,7 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Text detection',
 			component: SettingsTextDetectionSection,
-			optionList: ['textDetection', 'textDetectionSample', ...DETECTION_FAMILY_IDS.map(() => 'detectionFamily')],
+			optionList: ['textDetection', 'terminalWebAddresses'],
 		},
 		{
 			name: 'Coding agents',

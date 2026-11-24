@@ -383,7 +383,7 @@ onBeforeUnmount(() => {
       <main class="center" :class="{ 'zen-mode': ZenMode.state.isActive }" data-information-card-boundary>
         <template v-if="state.snapshot">
           <TabBar v-if="ZenMode.state.isActive === false" />
-          <div class="stage" :class="{ 'zen-mode': ZenMode.state.isActive, 'zen-mode-pinned-pane': isZenPanePinned }">
+          <div class="stage" data-terminal-card-boundary :class="{ 'zen-mode': ZenMode.state.isActive, 'zen-mode-pinned-pane': isZenPanePinned }">
             <PaneGrid :outer-edges="paneOuterEdges" :zen-pane-id="ZenMode.state.isActive ? ZenMode.state.paneId : null" @outer-start="onCornerStart" @outer-move="onCornerMove" @outer-highlight="highlightedEdge = $event" />
             <Resizer
               v-if="allPinnedPanes.length && ZenMode.state.isActive === false"

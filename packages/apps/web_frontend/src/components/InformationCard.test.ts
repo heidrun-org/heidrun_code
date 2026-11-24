@@ -23,6 +23,18 @@ describe("InformationCard", () => {
     expect(wrapper.find(".popover").exists()).toBe(false);
   });
 
+  it("prepares and opens a terminal card when its hover anchor is mounted", async () => {
+    const prepare = vi.fn(async () => {});
+    const wrapper = mount(InformationCard, {
+      props: { label: "Pull request #12", opensOnMount: true, prepare },
+      slots: { card: "<button>Merge</button>" },
+    });
+    await vi.waitFor(() => expect(wrapper.find(".popover").exists()).toBe(true));
+    expect(prepare).toHaveBeenCalledTimes(1);
+    await wrapper.trigger("keydown", { key: "Escape" });
+    expect(wrapper.emitted("dismiss")).toHaveLength(1);
+  });
+
   it("opens the card on a click on the part", async () => {
     const wrapper = mountCard();
     await wrapper.trigger("click");
@@ -243,6 +255,41 @@ describe("InformationCard", () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.get(".popover").attributes("style")).toContain(`left: ${window.innerWidth - 300 - 8}px`);
     expect(wrapper.get(".popover-arrow").attributes("style")).toContain(`left: ${window.innerWidth - 20 - (window.innerWidth - 308) - 8}px`);
+  });
+});
+
+describe("InformationCard placement for a terminal reference", () => {
+  it.each([
+    { boundaryTop: 0, anchorTop: 350, placement: "top", cardTop: 144 },
+    { boundaryTop: 0, anchorTop: 100, placement: "bottom", cardTop: 126 },
+    { boundaryTop: 160, anchorTop: 350, placement: "bottom", cardTop: 376 },
+    { boundaryTop: 160, boundaryBottom: 530, anchorTop: 350, placement: "top", cardTop: 168 },
+  ])("places the card $placement with a centered arrow when the reference is at $anchorTop", async ({
+    boundaryTop, boundaryBottom = window.innerHeight, anchorTop, placement, cardTop,
+  }) => {
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains("popover")) {
+        return new DOMRect(0, 0, 300, 200);
+      }
+      if (this.hasAttribute("data-terminal-card-boundary")) {
+        return new DOMRect(0, boundaryTop, window.innerWidth, boundaryBottom - boundaryTop);
+      }
+      return new DOMRect(400, anchorTop, 80, 20);
+    });
+    const terminal = document.createElement("div");
+    terminal.setAttribute("data-terminal-card-boundary", "");
+    const wrapper = mount(InformationCard, {
+      attachTo: terminal,
+      props: { label: "Terminal reference", placement: "above-or-below", opensOnMount: true },
+      slots: { card: "<p>Reference details</p>" },
+    });
+    await vi.waitFor(() => {
+      const card = wrapper.get(".popover");
+      expect(card.classes()).toContain(`bs-popover-${placement}`);
+      expect(card.attributes("style")).toContain(`top: ${cardTop}px`);
+      expect(card.attributes("style")).toContain("left: 290px");
+      expect(wrapper.get(".popover-arrow").attributes("style")).toContain("left: 142px");
+    });
   });
 });
 

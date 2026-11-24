@@ -1,7 +1,7 @@
 // In-app preview of an issue / MR / PR (description and comments, rendered).
 import { reactive } from "vue";
 import { runForgeCli } from "../lib/forge_cli";
-import { refContext, type Forge, type RefTarget } from "../lib/refs";
+import { findRefs, refContext, sameReferenceAddress, type Forge, type RefTarget } from "../lib/refs";
 import { loadMergeFacts, type MergeFacts } from "./pull_request_merge";
 import { t } from "../i18n/index";
 
@@ -38,7 +38,14 @@ export const issueView = reactive({
    * What the merge bar of a pull request or of a merge request of the repository of the workspace needs, or null for an
    * issue, for an item of another repository, or when the hosting service did not answer (issue #570).
    */
-  merge: null as { folder: string; forge: Forge; number: number; webBase: string; facts: MergeFacts } | null,
+  merge: null as {
+    folder: string;
+    forge: Forge;
+    number: number;
+    webBase: string;
+    facts: MergeFacts;
+    expectedUrl?: string;
+  } | null,
 });
 
 // Through the cache of the answers, which keeps each answer for ten minutes (issue #870).
@@ -60,10 +67,11 @@ export function stateOf(raw: string): [string, IssueData["stateLevel"]] {
   return known ? [t(known[0]), known[1]] : [raw, "muted"];
 }
 
-async function gitlab(cwd: string, type: "issue" | "mr", n: number, project?: string): Promise<IssueData> {
+async function gitlab(cwd: string, type: "issue" | "mr", n: number, project?: string, host?: string): Promise<IssueData> {
   const base = project ? `projects/${encodeURIComponent(project)}` : "projects/:fullpath";
   const kind = type === "mr" ? "merge_requests" : "issues";
-  const it = JSON.parse(await cli(cwd, "glab", ["api", `${base}/${kind}/${n}`])) as {
+  const hostArgs = host === undefined ? [] : ["--hostname", host];
+  const it = JSON.parse(await cli(cwd, "glab", ["api", `${base}/${kind}/${n}`, ...hostArgs])) as {
     title: string;
     description?: string | null;
     state: string;
@@ -76,7 +84,7 @@ async function gitlab(cwd: string, type: "issue" | "mr", n: number, project?: st
   };
   let notes: { body: string; author?: { username?: string }; created_at?: string; system?: boolean }[] = [];
   try {
-    notes = JSON.parse(await cli(cwd, "glab", ["api", `${base}/${kind}/${n}/notes?sort=asc&order_by=created_at&per_page=100`]));
+    notes = JSON.parse(await cli(cwd, "glab", ["api", `${base}/${kind}/${n}/notes?sort=asc&order_by=created_at&per_page=100`, ...hostArgs]));
     if (notes.length === 100) notes.push({ body: t("issuesStore.moreComments"), system: false });
   } catch {
     /* comments are optional */
@@ -91,7 +99,7 @@ async function gitlab(cwd: string, type: "issue" | "mr", n: number, project?: st
     at: time(it.created_at),
     labels: it.labels ?? [],
     url: it.web_url,
-    project: it.web_url.replace(/\/-\/(issues|merge_requests)\/\d+.*$/, ""),
+    project: it.web_url.replace(/\/-\/(issues|work_items|merge_requests)\/\d+.*$/, ""),
     forge: "GitLab",
     body: it.description ?? "",
     branches: it.source_branch ? `${it.source_branch} → ${it.target_branch ?? ""}` : null,
@@ -126,7 +134,7 @@ async function github(cwd: string, type: "issue" | "mr", n: number, project?: st
   }
   const [state, stateLevel] = stateOf(it.state.toLowerCase());
   return {
-    ref: `${project ?? ""}#${n}`,
+    ref: `${project?.split("/").slice(-2).join("/") ?? ""}#${n}`,
     title: it.title,
     state,
     stateLevel,
@@ -147,22 +155,46 @@ let seq = 0;
  * Opens the preview window and loads the issue / MR. The repository and the forge are the ones the text names (`target.project`,
  * `target.forge`), else the ones of the repo of `cwd`.
  */
-export async function openIssue(cwd: string | null | undefined, target: RefTarget, url: string | null) {
+export async function openIssue(
+  cwd: string | null | undefined, target: RefTarget, url: string | null, isTerminalReference = false,
+) {
   Object.assign(issueView, { open: true, loading: true, error: "", url, data: null, merge: null });
   const my = ++seq;
   try {
     if (!cwd) throw new Error(t("issuesStore.unknownFolder"));
     const ctx = await refContext(cwd);
-    const forge: Forge = target.forge ?? ctx.forge ?? "gitlab";
+    const terminalTarget = isTerminalReference && url !== null ? findRefs(url, ctx)[0]?.target : undefined;
+    const referenceTarget = terminalTarget ?? target;
+    const forge = referenceTarget.forge ?? ctx.forge ?? "gitlab";
     // The merge runs in the repository of the workspace: an item of another repository shows no merge bar.
-    const isMergeable = target.type === "mr" && target.project === undefined && ctx.base !== null;
-    const [data, facts] = await Promise.all([
-      forge === "github" ? github(cwd, target.type, target.number, target.project) : gitlab(cwd, target.type, target.number, target.project),
+    const isMergeable = isTerminalReference === false &&
+      target.type === "mr" && target.project === undefined && ctx.base !== null;
+    const host = referenceTarget.forge === undefined || url === null ? undefined : new URL(url).hostname;
+    const project = referenceTarget.project;
+    const githubRepository = host === undefined || project === undefined ? project : `${host}/${project}`;
+    const [data, initialFacts] = await Promise.all([
+      forge === "github" ? github(cwd, referenceTarget.type, target.number, githubRepository)
+        : gitlab(cwd, referenceTarget.type, target.number, project, host),
       isMergeable ? loadMergeFacts(cwd, forge, target.number).catch(() => null) : Promise.resolve(null),
     ]);
+    if (my !== seq) {
+      return;
+    }
+    const isRequest = isTerminalReference && /\/(?:pull|merge_requests)\/\d+$/.test(new URL(data.url).pathname);
+    const expectedUrl = isRequest && forge === ctx.forge &&
+      sameReferenceAddress(data.project, ctx.base, forge) ? data.url : undefined;
+    const facts = expectedUrl === undefined
+      ? initialFacts : await loadMergeFacts(cwd, forge, target.number, false, expectedUrl).catch(() => null);
     if (my === seq) {
       issueView.data = data;
-      issueView.merge = facts === null ? null : { folder: cwd, forge, number: target.number, webBase: ctx.base ?? "", facts };
+      issueView.merge = facts === null ? null : {
+        folder: cwd,
+        forge,
+        number: target.number,
+        webBase: ctx.base ?? "",
+        facts,
+        expectedUrl,
+      };
     }
   } catch (e) {
     if (my === seq) issueView.error = String(e).split("\n")[0].slice(0, 300);

@@ -5,7 +5,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 // and while the card is open. By default the card opens at the left of the part, so the part belongs in a sidebar at the
 // right edge of the window. The card is a child of the part in the page, so the keyboard reaches the buttons in the card. A click on
 // the part opens the card, and a second click closes it. The card also closes when the key Escape is pressed, when the
-// keyboard focus leaves, and on a click outside. The card does not open when the pointer only moves over the part.
+// keyboard focus leaves, and on a click outside. A terminal can mount the card when a reference is hovered.
 // The card is placed again each time its height changes, for example when a row of its list expands, and each time the
 // window changes its size, so that the card always stays inside the window.
 // The property "placement" chooses the side of the card: "start" (the default) puts it at the left of the part, "end"
@@ -34,15 +34,17 @@ const props = withDefaults(
     label: string;
     /**
      * The place of the card: at the left of the part, at the right of the part, below the part with its left edge at the
-     * left edge of the part, or below the part with its middle under the middle of the part.
+     * left edge of the part, centered below, or centered above with a fallback below.
      */
-    placement?: "start" | "end" | "bottom" | "bottom-center";
+    placement?: "start" | "end" | "bottom" | "bottom-center" | "above-or-below";
     /** The width of the card, as a CSS length. Without it, the card is 34rem wide. */
     width?: string;
     /** Reads what the card shows. The card opens when the returned promise is done. Without it, the card opens at once. */
     prepare?: (() => Promise<unknown>) | null;
     /** The name of the wheel for the screen reader while the card is not open yet. Without it, the label of the card. */
     busyLabel?: string | null;
+    /** Opens the card when its temporary anchor is mounted. */
+    opensOnMount?: boolean;
   }>(),
   { placement: "start", prepare: null, busyLabel: null },
 );
@@ -50,6 +52,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   /** The card just opened. */
   open: [];
+  /** The open card or its pending preparation was dismissed. */
+  dismiss: [];
 }>();
 
 /** The space between the part and the card, and between the card and the edge of the window, in pixels. */
@@ -63,6 +67,9 @@ const MAX_WIDTH = 560;
 
 /** The height of the arrow of the card, in pixels: the half of the width, as Bootstrap draws it. */
 const ARROW_HALF_WIDTH = 8;
+
+/** How far the arrow enters the terminal row’s line spacing, in pixels. */
+const REFERENCE_ARROW_INSET = 2;
 
 /**
  * The attribute of the element that a card below its part must stay inside: the viewport. The right sidebar, or its sidebar
@@ -81,6 +88,7 @@ const isBusy = ref(false);
 let preparation = 0;
 /** The timer that shows the spinning wheel, or null when no timer runs. */
 let busyTimer: ReturnType<typeof setTimeout> | null = null;
+const verticalSide = ref<"top" | "bottom">("top");
 const cardStyle = ref<Record<string, string>>({});
 const arrowStyle = ref<Record<string, string>>({});
 /**
@@ -103,6 +111,33 @@ function place() {
   }
   const part = root.value.getBoundingClientRect();
   const { height, width } = card.value.getBoundingClientRect();
+  if (props.placement === "above-or-below") {
+    const { left: minLeft, right: maxRight } = horizontalBounds();
+    const center = part.left + part.width / 2;
+    const gap = ARROW_HALF_WIDTH - REFERENCE_ARROW_INSET;
+    const boundary = root.value.closest("[data-terminal-card-boundary]")?.getBoundingClientRect();
+    const minTop = Math.max(0, boundary?.top ?? 0);
+    const maxBottom = Math.min(window.innerHeight, boundary?.bottom ?? window.innerHeight);
+    const aboveTop = part.top - gap - height;
+    const belowTop = part.bottom + gap;
+    const spaceAbove = part.top - gap - minTop - GAP;
+    const spaceBelow = maxBottom - GAP - belowTop;
+    const fitsAbove = height <= spaceAbove;
+    const fitsBelow = height <= spaceBelow;
+    const isAbove = fitsAbove || (fitsBelow === false && spaceAbove > spaceBelow);
+    verticalSide.value = isAbove ? "top" : "bottom";
+    const wantedTop = isAbove ? aboveTop : belowTop;
+    const top = Math.max(minTop + GAP, Math.min(wantedTop, maxBottom - height - GAP));
+    const left = Math.max(minLeft + GAP, Math.min(center - width / 2, maxRight - width - GAP));
+    cardStyle.value = {
+      top: `${top}px`,
+      left: `${left}px`,
+      "--popover-max-width": `${Math.max(0, Math.min(MAX_WIDTH, maxRight - minLeft - 2 * GAP))}px`,
+    };
+    const arrowLeft = Math.min(width - ARROW_HALF_WIDTH * 2, Math.max(0, center - left - ARROW_HALF_WIDTH));
+    arrowStyle.value = { left: `${arrowLeft}px`, visibility: top === wantedTop ? "visible" : "hidden" };
+    return;
+  }
   if (props.placement === "bottom" || props.placement === "bottom-center") {
     const { left: minLeft, right: maxRight } = horizontalBounds();
     const bottomTop = Math.max(GAP, Math.min(part.bottom + GAP, window.innerHeight - height - GAP));
@@ -192,8 +227,12 @@ async function open() {
 }
 
 function close() {
+  const wasVisible = isOpen.value || isPreparing.value;
   cancelPreparation();
   isOpen.value = false;
+  if (wasVisible) {
+    emit("dismiss");
+  }
 }
 
 /** Closes the card when it is open or opening, and opens it when it is closed. */
@@ -235,12 +274,15 @@ watch(card, (element) => {
 onMounted(() => {
   document.addEventListener("pointerdown", onDocumentPointerDown, true);
   window.addEventListener("resize", place);
+  if (props.opensOnMount === true) {
+    void open();
+  }
 });
 onBeforeUnmount(() => {
   document.removeEventListener("pointerdown", onDocumentPointerDown, true);
   window.removeEventListener("resize", place);
   sizeObserver?.disconnect();
-  stopBusy();
+  cancelPreparation();
 });
 </script>
 
@@ -269,7 +311,7 @@ onBeforeUnmount(() => {
       v-if="isOpen"
       ref="card"
       class="popover popover-instant show position-fixed"
-      :class="`bs-popover-${props.placement === 'bottom-center' ? 'bottom' : props.placement}`"
+      :class="`bs-popover-${props.placement === 'above-or-below' ? verticalSide : props.placement === 'bottom-center' ? 'bottom' : props.placement}`"
       role="group"
       :aria-label="props.label"
       :style="{ ...cardStyle, width: props.width }"
@@ -288,10 +330,10 @@ onBeforeUnmount(() => {
 .popover-body { overflow: hidden; border-radius: var(--popover-inner-border-radius); }
 .information-card-part { position: relative; margin: 0 -4px; padding: 0 4px; border-radius: var(--radius-5); cursor: pointer; }
 /* The part keeps its background while it waits for its card, as it does while its card is open. */
-.information-card-part[aria-busy="true"] { background-color: var(--bg-2); }
+.information-card-part[aria-busy="true"] { background-color: var(--information-card-part-background, var(--bg-2)); }
 /* The spinning wheel is near the right end of the part, with space around it, and does not move what the part holds. */
 .information-card-busy { position: absolute; top: 50%; right: 12px; width: 16px; height: 16px; margin-top: -8px; border-width: 2px; border-radius: 50%; color: var(--muted); background-color: var(--bg-2); box-shadow: 0 0 0 5px var(--bg-2); }
-.information-card-part:hover, .information-card-part.is-open { background-color: var(--bg-2); }
+.information-card-part:hover, .information-card-part.is-open { background-color: var(--information-card-part-background, var(--bg-2)); }
 /* A row of a list group gets a stacking level of its own on hover, so the card inside it stays below the controls after the row. An open card lifts its row above them (issue #608). */
 :global(.list-group-item:has(.information-card-part.is-open)) { z-index: 3; }
 </style>

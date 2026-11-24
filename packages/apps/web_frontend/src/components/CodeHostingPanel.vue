@@ -13,12 +13,11 @@
 // - issue #607
 // - issue #822
 import { computed, reactive, ref, watch } from "vue";
-import ChatReferenceDetails from "./ChatReferenceDetails.vue";
+import CodeHostingReferenceCard from "./CodeHostingReferenceCard.vue";
 import CodeHostingSearchHelp from "./CodeHostingSearchHelp.vue";
 import Icon from "./Icon.vue";
 import InformationCard from "./InformationCard.vue";
 import InformationCardTooltip from "./InformationCardTooltip.vue";
-import PullRequestMergeBar from "./PullRequestMergeBar.vue";
 import ScrollingLine from "./ScrollingLine.vue";
 import { codeHostingDetailLines } from "../lib/code_hosting_rows";
 import { referenceLabelStyle, type ChatReference } from "../lib/chat_references";
@@ -471,28 +470,18 @@ watch(
                       </div>
                     </div>
                     <template #card>
-                      <div class="card-content">
-                        <ChatReferenceDetails
-                          :reference="row.reference"
-                          :details="answers[row.key]"
-                          :folder="currentGit.root"
-                          :forge="forge"
-                          :web-base="codeHosting.webBase"
-                          :title="row.item.title"
-                          :name="row.name"
-                          :search="searchTexts[section.group]"
-                          @toggle-label="toggleLabel(section.group, $event)"
-                        />
-                        <PullRequestMergeBar
-                          v-if="section.group === 'requests' && mergeFacts[row.key] !== undefined"
-                          class="mt-3"
-                          :facts="mergeFacts[row.key]"
-                          :folder="currentGit.root"
-                          :forge="forge"
-                          :name="row.name"
-                          :web-base="codeHosting.webBase ?? ''"
-                        />
-                      </div>
+                      <CodeHostingReferenceCard
+                        :reference="row.reference"
+                        :details="answers[row.key]"
+                        :folder="currentGit.root"
+                        :forge="forge"
+                        :web-base="codeHosting.webBase"
+                        :title="row.item.title"
+                        :name="row.name"
+                        :search="searchTexts[section.group]"
+                        :facts="mergeFacts[row.key]"
+                        @toggle-label="toggleLabel(section.group, $event)"
+                      />
                     </template>
                   </InformationCard>
                 </li>
@@ -551,7 +540,6 @@ watch(
 .detail-line { height: 1.35em; line-height: 1.35; font-size: 0.85em; color: var(--muted); }
 .number { color: var(--muted); }
 /* The card has no padding of its own: its content decides it. */
-.card-content { padding: 12px 16px; }
 .empty { padding: 0 16px 0 32px; }
 .failure { font-size: var(--font-size); color: var(--fail); }
 .muted { font-size: var(--font-size); color: var(--muted); }

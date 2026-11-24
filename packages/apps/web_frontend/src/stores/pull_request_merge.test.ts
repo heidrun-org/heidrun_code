@@ -266,3 +266,33 @@ describe("the merge window (issue #570)", () => {
     expect(invoke).not.toHaveBeenCalledWith("forge_merge", expect.anything());
   });
 });
+
+
+describe("merge from a terminal reference", () => {
+  it("keeps the merge choices for the exact linked request", async () => {
+    const url = "https://github.com/org/repo/pull/12";
+    invoke.mockImplementation(async (command: string, payload: { args?: string[] }) => {
+      if (payload.args?.[0] === "pr") {
+        expect(payload.args[4]).toContain("url");
+        return JSON.stringify({ ...READY_PULL_REQUEST, url });
+      }
+      return answerLikeGithub(command, payload);
+    });
+    await openMergeWindow("/workspace", "github", 12, "#12", "https://github.com/org/repo", url);
+    expect(pullRequestMerge.facts?.methods).toEqual(["merge", "squash"]);
+  });
+
+  it("rejects a request with the same number in a different repository", async () => {
+    invoke.mockImplementation(async (command: string, payload: { args?: string[] }) => {
+      if (payload.args?.[0] === "pr") {
+        return JSON.stringify({ ...READY_PULL_REQUEST, url: "https://github.com/other/repo/pull/12" });
+      }
+      return answerLikeGithub(command, payload);
+    });
+    const webBase = "https://github.com/org/repo";
+    await openMergeWindow("/workspace", "github", 12, "#12", webBase, `${webBase}/pull/12`);
+    expect(pullRequestMerge.facts).toBeNull();
+    expect(await confirmMergeWindow()).toBe(false);
+    expect(invoke.mock.calls.some(([command]) => command === "forge_merge")).toBe(false);
+  });
+});

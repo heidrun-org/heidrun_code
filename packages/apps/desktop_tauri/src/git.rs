@@ -426,11 +426,16 @@ pub async fn git_file(root: String, path: String, rev: Option<String>) -> Result
 pub(crate) fn allowed(tool: &str, args: &[String]) -> bool {
     let a: Vec<&str> = args.iter().map(String::as_str).collect();
     match tool {
-        "glab" => {
-            a.first() == Some(&"api")
-                && a.len() == 2
-                && (a[1].starts_with("projects/") || a[1] == "user")
-        }
+        "glab" => match a.as_slice() {
+            ["api", path] => path.starts_with("projects/") || *path == "user",
+            ["api", path, "--hostname", hostname] => {
+                path.starts_with("projects/")
+                    && hostname.is_empty() == false
+                    && hostname.as_bytes()[0].is_ascii_alphanumeric()
+                    && hostname.bytes().all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-'))
+            }
+            _ => false,
+        },
         "gh" => {
             // The settings of the repository, read before a merge: the allowed merge methods and the deletion of the
             // branch (issue #570). A GET of this one path, with no flag.
@@ -771,6 +776,9 @@ Ratelimit-Remaining: 0\nRatelimit-Reset: 1793012400\nRetry-After: 47\n\nRetry la
         assert!(!allowed("gh", &v(&["issue", "list", "--search", "x", "--search"])));
         assert!(!allowed("gh", &v(&["issue", "view", "12", "--search", "x"])));
         assert!(!allowed("gh", &v(&["run", "list", "--search", "x"])));
+        assert!(allowed("glab", &v(&["api", "projects/group%2Fapp/issues/12", "--hostname", "gitlab.example.com"])));
+        assert!(!allowed("glab", &v(&["api", "projects/1", "--hostname", "--method"])));
+        assert!(!allowed("glab", &v(&["api", "projects/1", "--hostname", "gitlab.com", "-X", "DELETE"])));
         assert!(allowed("glab", &v(&["api", "user"])));
         assert!(!allowed("glab", &v(&["api", "users"])));
         assert!(!allowed("glab", &v(&["api", "user/keys"])));

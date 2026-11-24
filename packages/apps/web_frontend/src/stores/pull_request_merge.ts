@@ -7,7 +7,7 @@
 import { reactive } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { runForgeCli } from "../lib/forge_cli";
-import type { Forge } from "../lib/refs";
+import { sameReferenceAddress, type Forge } from "../lib/refs";
 import { t } from "../i18n/index";
 import { settings } from "./settings";
 import { toast } from "./session";
@@ -71,6 +71,7 @@ type GithubPullRequest = {
   reviewDecision?: string;
   latestReviews?: { state?: string; author?: { login?: string } }[];
   headRefOid?: string;
+  url?: string;
   headRefName?: string;
   baseRefName?: string;
 };
@@ -89,6 +90,7 @@ type GitlabMergeRequest = {
   draft?: boolean;
   detailed_merge_status?: string;
   sha?: string;
+  web_url?: string;
   source_branch?: string;
   target_branch?: string;
   force_remove_source_branch?: boolean | null;
@@ -281,16 +283,24 @@ export function gitlabMergeFacts(
  * @param forge - the hosting service
  * @param number - the number of the item
  * @param isRefresh - true to ask the hosting service again, as the merge window does when it opens
+ * @param expectedUrl - the terminal link, which must match the item that can be merged from the workspace
  * @returns the merge facts
  */
-export async function loadMergeFacts(folder: string, forge: Forge, number: number, isRefresh = false): Promise<MergeFacts> {
+export async function loadMergeFacts(
+  folder: string, forge: Forge, number: number, isRefresh = false, expectedUrl: string | null = null,
+): Promise<MergeFacts> {
   const options = { isRefresh };
   if (forge === "github") {
+    const fields = expectedUrl === null ? GITHUB_MERGE_FIELDS : `${GITHUB_MERGE_FIELDS},url`;
     const [pullRequest, repository] = await Promise.all([
-      runForgeCli("merge", folder, "gh", ["pr", "view", String(number), "--json", GITHUB_MERGE_FIELDS], options),
+      runForgeCli("merge", folder, "gh", ["pr", "view", String(number), "--json", fields], options),
       runForgeCli("merge", folder, "gh", ["api", "repos/{owner}/{repo}"]).catch(() => null),
     ]);
-    return githubMergeFacts(JSON.parse(pullRequest), repository === null ? null : JSON.parse(repository), number);
+    const answer = JSON.parse(pullRequest) as GithubPullRequest;
+    if (expectedUrl !== null && sameReferenceAddress(expectedUrl, answer.url ?? null, forge) === false) {
+      throw new Error(t("mergeModal.referenceMismatch"));
+    }
+    return githubMergeFacts(answer, repository === null ? null : JSON.parse(repository), number);
   }
   const path = `projects/:fullpath/merge_requests/${number}`;
   const [mergeRequest, approvals, project] = await Promise.all([
@@ -298,8 +308,12 @@ export async function loadMergeFacts(folder: string, forge: Forge, number: numbe
     runForgeCli("merge", folder, "glab", ["api", `${path}/approvals`], options).catch(() => null),
     runForgeCli("merge", folder, "glab", ["api", "projects/:fullpath"]).catch(() => null),
   ]);
+  const answer = JSON.parse(mergeRequest) as GitlabMergeRequest;
+  if (expectedUrl !== null && sameReferenceAddress(expectedUrl, answer.web_url ?? null, forge) === false) {
+    throw new Error(t("mergeModal.referenceMismatch"));
+  }
   return gitlabMergeFacts(
-    JSON.parse(mergeRequest),
+    answer,
     approvals === null ? null : JSON.parse(approvals),
     project === null ? null : JSON.parse(project),
     number,
@@ -433,11 +447,14 @@ export function squashChoice(facts: MergeFacts): { isChecked: boolean; isForced:
  * @param number - the number of the item
  * @param name - the number with its mark, for example "#12" or "!7"
  * @param webBase - the address of the repository on its hosting service
+ * @param expectedUrl - the terminal link, when opening from the terminal
  */
-export async function openMergeWindow(folder: string, forge: Forge, number: number, name: string, webBase: string): Promise<void> {
+export async function openMergeWindow(
+  folder: string, forge: Forge, number: number, name: string, webBase: string, expectedUrl: string | null = null,
+): Promise<void> {
   Object.assign(pullRequestMerge, { open: true, loading: true, folder, webBase, name, facts: null, busy: false, error: "" });
   try {
-    const facts = await loadMergeFacts(folder, forge, number, true);
+    const facts = await loadMergeFacts(folder, forge, number, true, expectedUrl);
     if (pullRequestMerge.open === false || pullRequestMerge.name !== name) {
       return;
     }

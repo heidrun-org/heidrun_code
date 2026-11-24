@@ -38,7 +38,7 @@
   "action.collapseSidebars": "Réduire ou développer la barre latérale gauche / la barre latérale droite",
   "action.fontSize": "Agrandir / réduire / rétablir la taille de la police de toute la fenêtre",
   "group.mouse": "Souris",
-  "action.issuePreview": "Sur #12 / !34 : aperçu de l’issue ou de la merge request ; sur une URL ou un commit : l’ouvrir",
+  "action.issuePreview": "Cliquez avec la touche Commande sur une référence pour afficher son aperçu, ou sur une adresse web ordinaire pour l’ouvrir",
   "keys.commandClick": "⌘-clic",
   "action.fileAtLine": "Sur src/app.ts:42 cité dans un terminal : le fichier à cette ligne, dans l’explorateur",
   "action.actionButtons": "Boutons d’action : ↗ Ouvrir, ⧉ Aperçu, ▷ Lancer, ▷ Exécuter, ▷ Voir <agent>",

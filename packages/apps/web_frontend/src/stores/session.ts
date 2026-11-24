@@ -7,7 +7,6 @@ import * as api from "../lib/api";
 import { notify, notifyPhone } from "../lib/notify";
 import { settings } from "./settings";
 import { agentKind, codexWindows, paneName } from "../lib/format";
-import { DetectionFamilies } from "../lib/detection_families";
 import { findChoices, findQuestion, type ChoiceMenu } from "../lib/refs";
 import { allowCommand } from "./guards";
 import { ZenMode } from "./zen_mode";
@@ -679,9 +678,6 @@ function trackRun(
 
 /** Reads the menu of a blocked agent, retrying while it is still being drawn. */
 async function readChoices(paneId: string, delays = [500, 900, 1600]) {
-  if (DetectionFamilies.isEnabled(settings, "questionsAndChoices") === false) {
-    return;
-  }
   for (const delay of delays) {
     await new Promise((r) => window.setTimeout(r, delay));
     const before = state.snapshot?.panes.find((p) => p.pane_id === paneId);
@@ -773,8 +769,7 @@ async function checkQuestion(
   // Let the agent finish drawing its answer.
   await new Promise((r) => window.setTimeout(r, 700));
   let question: string | null = null;
-  const isReadingQuestions = DetectionFamilies.isEnabled(settings, "questionsAndChoices");
-  for (let attempt = 0; isReadingQuestions && attempt < 3 && question === null; attempt++) {
+  for (let attempt = 0; attempt < 3 && question === null; attempt++) {
     try {
       question = findQuestion(await api.read(paneId, 120));
       break;
@@ -804,28 +799,6 @@ async function checkQuestion(
     if (notifyDone) notify("done", t("sessionStore.notify.done", { name }), ws);
   }
 }
-
-// The detection of the questions and of the numbered choices follows its switch at once: turning it off removes the questions
-// and the menus already read, and turning it on reads the menus of the blocked agents again.
-watch(
-  () => DetectionFamilies.isEnabled(settings, "questionsAndChoices"),
-  (isEnabled) => {
-    if (isEnabled === false) {
-      for (const paneId of Object.keys(state.questions)) {
-        delete state.questions[paneId];
-      }
-      for (const paneId of Object.keys(state.choices)) {
-        delete state.choices[paneId];
-      }
-      return;
-    }
-    for (const pane of state.snapshot?.panes ?? []) {
-      if (pane.agent_status === "blocked") {
-        void readChoices(pane.pane_id, [0]);
-      }
-    }
-  },
-);
 
 function applySnapshot(snap: SessionSnapshot) {
   const previousAgents = new Map((rawSnapshot?.agents ?? []).map((pane) => [pane.pane_id, pane]));
