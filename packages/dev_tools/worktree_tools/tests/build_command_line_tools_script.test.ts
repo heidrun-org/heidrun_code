@@ -154,8 +154,8 @@ describe('scripts/build_command_line_tools.sh', () => {
 		ToolsScriptRunner.run(rootPath, {});
 		const calls = Fs.readFileSync(ToolsScriptRunner.callsPath(rootPath), 'utf8').trim().split('\n');
 		expect(calls).toEqual([
-			`${Fs.realpathSync(Path.join(rootPath, 'packages', 'auxiliary', 'heidrun_code_ctrl'))}|build --release`,
-			`${Fs.realpathSync(rootPath)}|build --release --package heidrun_data`,
+			`${Fs.realpathSync(Path.join(rootPath, 'packages', 'auxiliary', 'heidrun_code_ctrl'))}|build --locked --release`,
+			`${Fs.realpathSync(rootPath)}|build --locked --release --package heidrun_data`,
 		]);
 	});
 
