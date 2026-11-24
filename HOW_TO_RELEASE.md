@@ -4,6 +4,26 @@ This file lists every step of a release of Heidrun Code, in order, so that no st
 
 Replace `<version>` with the new version in every command and file name, for example `0.3.0`.
 
+## Prompts for a coding agent
+
+Replace `<version>` with the exact version you want to release. Give the coding agent the prompt for the stage you want to run.
+
+**Prepare for review**
+
+> Prepare Heidrun Code version `<version>` for review. Follow `HOW_TO_RELEASE.md` for testing, version updates, and release notes. Show me the changes before committing or pushing them.
+
+**Publish a prepared release**
+
+> Publish the prepared Heidrun Code version `<version>` using `HOW_TO_RELEASE.md`. Merge the prepared release changes into `main` if needed, then build and publish the release from that branch. Stop after confirming that the release is published on GitHub.
+
+**Finish a published release**
+
+> Finish the published Heidrun Code release `v<version>` using `HOW_TO_RELEASE.md`. Update the changelog, verify the published release, and bring `main` back into `dev`. Report the verification results and any remaining work.
+
+**Run the full release**
+
+> Prepare, publish, and verify Heidrun Code version `<version>` following all steps in `HOW_TO_RELEASE.md`. Report the published release link and the verification results.
+
 ## Where the release happens
 
 A release is made on the branch `main`. No other branch carries a release.
