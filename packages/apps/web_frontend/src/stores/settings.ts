@@ -46,6 +46,9 @@ export const FONT_DEFAULT = 16;
 // The one place of the text size: every font size of the window reads this CSS variable.
 document.documentElement.style.setProperty("--font-size", `${FONT_DEFAULT}px`);
 
+/** The longest desktop voice recording, in whole minutes. */
+export const VOICE_RECORDING_MAX_MINUTES = 15;
+
 const KEY = "heidrun.settings";
 
 /**
@@ -204,6 +207,8 @@ const defaults = {
   voiceInputLanguage: "auto",
   /** Settings window, section Voice input: the identifier of the Whisper model. */
   voiceInputModel: "base",
+	voiceRecordingMaxMinutes: VOICE_RECORDING_MAX_MINUTES,
+	voiceRecordingWarningMinutes: 10,
   /** Settings window, section Needs you: the Needs you sidebar section shows the list of workspaces at its bottom. Off: it shows only the cards. */
   showWorkspacesInNeedsYou: true,
   /**
@@ -596,6 +601,12 @@ function load(): typeof defaults {
     saved.statisticsPersonWorkWorkspaces = keepPersonWorkWorkspaces(saved.statisticsPersonWorkWorkspaces);
     saved.disabledDetectionFamilies = DetectionFamilies.keepKnownIds(saved.disabledDetectionFamilies);
     saved.notificationChannels = NotificationChannels.keep(saved.notificationChannels);
+		saved.voiceRecordingMaxMinutes = Math.max(2, Math.min(
+			VOICE_RECORDING_MAX_MINUTES, Math.round(saved.voiceRecordingMaxMinutes),
+		));
+		saved.voiceRecordingWarningMinutes = Math.max(1, Math.min(
+			saved.voiceRecordingMaxMinutes - 1, Math.round(saved.voiceRecordingWarningMinutes),
+		));
     return saved;
   } catch {
     return { ...defaults };

@@ -1,4 +1,6 @@
 {
+  "recordingDurationWarning": "L’enregistrement approche de sa durée maximale.",
+  "recordingLimitReached": "L’enregistrement a atteint sa durée maximale.",
   "label": "Appuyer pour parler",
   "title": "Maintenez pour parler, et relâchez pour écrire le texte. Ou cliquez pour commencer, et cliquez de nouveau pour écrire le texte.",
   "titleRecording": "À l’écoute… relâchez le bouton pour écrire le texte",

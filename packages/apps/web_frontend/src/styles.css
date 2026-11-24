@@ -425,6 +425,12 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
   --btn-hover-bg: var(--btn-active-bg); --btn-hover-color: var(--btn-active-color);
   --btn-border-color: var(--btn-active-border-color); --btn-hover-border-color: var(--btn-active-border-color);
 }
+.btn.icon.update-available {
+  --btn-color: var(--warning-fg-emphasis);
+  --btn-hover-color: var(--warning-fg-emphasis);
+  --btn-active-color: var(--warning-fg-emphasis);
+}
+.btn.icon.update-available .bi { font-size: calc(var(--font-size) * 1.25); }
 .btn-check:has(input:focus-visible), .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: none; }
 .btn:is(.on, .active, [aria-pressed="true"], [aria-selected="true"], [aria-checked="true"]):not(.is-recording), .btn-check:has(input:checked) {
   background: var(--sel); color: var(--text); border-color: var(--focus);

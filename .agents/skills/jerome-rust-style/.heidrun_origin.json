@@ -1,0 +1,5 @@
+{
+  "source": "jeromeetienne/coding_agent_plugins",
+  "skill_id": "jerome-rust-style",
+  "folder_url": "https://github.com/jeromeetienne/coding_agent_plugins/tree/main/skills/jerome-rust-style"
+}

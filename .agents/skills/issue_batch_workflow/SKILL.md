@@ -13,6 +13,8 @@ Use the [issue_fix_workflow](../issue_fix_workflow/SKILL.md) for one issue. Use 
 
 Read the section "Issue Fix Workflow values" of the file `AGENTS.md` before step 2.1. The Issue Batch Workflow uses the same values as the Issue Fix Workflow: the target branch, the worktree creation command, the worktree folder, the launch command, the issue tracker commands, and the chat rename. When the section or one value is missing, do what the section "When the values are missing" of the [issue_fix_workflow](../issue_fix_workflow/SKILL.md) says, and stop.
 
+During setup, reuse the suggested worktree folder and creation command in the [Issue Fix Workflow](../issue_fix_workflow/SKILL.md#suggested-worktree-location-during-setup). Keep one configuration in "Issue Fix Workflow values"; do not create separate batch values. An explicit repository choice overrides the suggestion.
+
 ### 1.1. The pointer
 
 Write this text in the file `AGENTS.md` of the repository, after the section "Issue Fix Workflow values". The file `AGENTS.md` always loads, but a skill loads only when the coding agent decides that it matches, so the pointer makes sure that the skill is read.

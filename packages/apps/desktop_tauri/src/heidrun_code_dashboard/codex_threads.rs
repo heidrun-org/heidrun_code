@@ -44,8 +44,10 @@ pub fn codex_root_thread_ids(snapshot: &Value) -> Vec<String> {
     identifiers
 }
 
-/// Reads the given root chats and their descendants. A connection that fails gives the coverage `unavailable`; a root
-/// that fails gives an error entry, and the other roots are still read.
+/// Reads the given root chats and their descendants. Without a root chat, the shared server is not asked, and the
+/// coverage is `not_needed`. A connection that fails gives the coverage `unavailable` with its reason, and no error
+/// entry, so the reason is shown once (issue #1016). A root that fails gives an error entry, and the other roots are
+/// still read.
 pub async fn collect(
     socket_path: &Path,
     root_thread_ids: &[String],
@@ -53,13 +55,12 @@ pub async fn collect(
     now_ms: i64,
     mut errors: Vec<ObservationError>,
 ) -> CodexObservations {
-    let source = socket_path.display().to_string();
+    if root_thread_ids.is_empty() {
+        return CodexObservations::not_needed(errors);
+    }
     let mut connection = match CodexConnection::open(socket_path, READ_ONLY_METHODS).await {
         Ok(connection) => connection,
-        Err(message) => {
-            errors.push(ObservationError::new(source, message.clone()));
-            return CodexObservations::unavailable(message, errors);
-        }
+        Err(message) => return CodexObservations::unavailable(message, errors),
     };
     let mut threads = Vec::new();
     let mut truncated_root_thread_ids = Vec::new();
@@ -486,7 +487,22 @@ mod tests {
         let observations = collect(&path, &["root".to_string()], 100, 0, Vec::new()).await;
         assert_eq!(observations.coverage, "unavailable");
         assert!(observations.unavailable_reason.is_some());
-        assert_eq!(observations.errors.len(), 1);
+        assert!(
+            observations.errors.is_empty(),
+            "the reason is shown once, not also as an error: {:?}",
+            observations.errors
+        );
+        assert!(observations.threads.is_empty());
+    }
+
+    #[tokio::test]
+    async fn without_a_codex_chat_the_shared_server_is_not_asked() {
+        let path = std::env::temp_dir().join(format!("heidrun_code_dashboard_not_needed_{}.sock", std::process::id()));
+        let herdr_error = ObservationError::new("session.snapshot", "Herdr did not answer".to_string());
+        let observations = collect(&path, &[], 100, 0, vec![herdr_error.clone()]).await;
+        assert_eq!(observations.coverage, "not_needed");
+        assert!(observations.unavailable_reason.is_none());
+        assert_eq!(observations.errors, vec![herdr_error], "the errors of the other sources stay");
         assert!(observations.threads.is_empty());
     }
 }

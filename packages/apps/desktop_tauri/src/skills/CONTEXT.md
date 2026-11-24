@@ -6,6 +6,7 @@ The backend of the windows Installed skill and Find new skills: it finds, reads,
 ## Key Exports & Entry Points
 - `installed.rs`: the commands `skills_list`, `skills_read`, and `skills_delete`.
 - `install.rs`: the commands `skills_preview` and `skills_install` (a skill of skills.sh), `skills_preview_folder` and `skills_install_folder` (the web address of a skill folder in a public GitHub or GitLab repository), and `skills_preview_local_folder` and `skills_install_local_folder` (a folder on this computer).
+- `install.rs` also provides `skillsCompare`, which compares the files selected by installation with the installed skill.
 - `search.rs`: the command `skills_search` (skills.sh), and the commands `skills_find_local_folders` and `skills_find_folders`, which give the skill folders at a full path or at a web address: the folder itself when it holds a `SKILL.md` file, otherwise each direct subfolder that holds one.
 - `agent_folders.rs`: the command `skills_link_agent`, and the skills folders and the links of each coding agent.
 - `bundled.rs`: installs the bundled skills and links the bundled command lines in `~/.local/bin`. It removes the links and the skills of the former names, and replaces a link to a former application folder, only when Heidrun made them ([issue 850](https://github.com/heidrun-org/heidrun_code/issues/850)).

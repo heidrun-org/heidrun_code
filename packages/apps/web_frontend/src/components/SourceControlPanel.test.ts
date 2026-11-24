@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 
-const openDiffMock = vi.hoisted(() => vi.fn(async (_path: string) => true));
+const openDiffMock = vi.hoisted(() => vi.fn(async (_workspaceId: string, _path: string) => true));
 const openFileViewMock = vi.hoisted(() => vi.fn(async (_path: string) => true));
 
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
-vi.mock("../stores/diff_panes", () => ({ DiffPanes: { open: openDiffMock } }));
+vi.mock('../stores/diff_panes', () => ({
+	DiffPanes: {
+		openInNewTab: openDiffMock,
+	},
+}));
 vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
 vi.mock("../stores/source_control", async (importOriginal) => {
   const original = await importOriginal<typeof import("../stores/source_control")>();
@@ -64,6 +68,8 @@ describe("SourceControlPanel", () => {
   afterEach(() => {
     state.selectedWorkspaceId = null;
     git.status = {};
+    sourceControl.isBusy = false;
+    sourceControl.commitProgress = null;
     sourceControl.folded.staged = false;
     sourceControl.folded.changes = false;
     vi.clearAllMocks();
@@ -75,6 +81,32 @@ describe("SourceControlPanel", () => {
     expect(wrapper.get("textarea").attributes("placeholder")).toBe('Message (⌘Enter to commit on "dev_jerome")');
     expect(wrapper.get(".btn-primary").text()).toBe("Commit");
   });
+
+	it('shows the commit and push progress only for the workspace running the commit', async () => {
+		const wrapper = mountPanel();
+		const commitButton = wrapper.get('.btn-primary');
+		sourceControl.isBusy = true;
+		sourceControl.commitProgress = {
+			workspaceId: 'w1',
+			step: 'committing',
+		};
+		await wrapper.vm.$nextTick();
+		expect(commitButton.get('[role="status"]').text()).toBe('Committing…');
+		expect(commitButton.get('.spinner-border').attributes('aria-hidden')).toBe('true');
+		expect(wrapper.get('header button[aria-label="Committing…"]').find('.spinner-border').exists()).toBe(true);
+		expect(commitButton.attributes('disabled')).toBeDefined();
+
+		sourceControl.commitProgress.step = 'pushingCommit';
+		await wrapper.vm.$nextTick();
+		expect(commitButton.text()).toBe('Pushing commit…');
+
+		git.status.w2 = makeStatus();
+		state.selectedWorkspaceId = 'w2';
+		await wrapper.vm.$nextTick();
+		expect(commitButton.text()).toBe('Commit');
+		expect(commitButton.find('.spinner-border').exists()).toBe(false);
+		wrapper.unmount();
+	});
 
   it("puts the sparkle button beside the message box, outside of it, and not on top of it", () => {
     const message = mountPanel().get(".message");
@@ -138,13 +170,16 @@ describe("SourceControlPanel", () => {
     expect(unstageFiles).toHaveBeenCalledWith(["docs/agents_rules/user_interface.md"]);
   });
 
-  it("opens the changes of a file in a diff pane after a click on its line (issue #885)", async () => {
-    openDiffMock.mockClear();
-    const files = mountPanel().findAll(".file");
-    await files[1].get(".file-main").trigger("click");
-    await flushPromises();
-    expect(openDiffMock).toHaveBeenCalledWith("/work/heidrun/CHANGELOG.md");
-  });
+	it('opens diffs from Changes and Staged Changes in new tabs (issue #1074)', async () => {
+		openDiffMock.mockClear();
+		const files = mountPanel().findAll('.file');
+		await files[1].get('.file-main').trigger('click');
+		await files[0].get('.file-main').trigger('click');
+		expect(openDiffMock.mock.calls).toEqual([
+			['w1', '/work/heidrun/CHANGELOG.md'],
+			['w1', '/work/heidrun/docs/agents_rules/user_interface.md'],
+		]);
+	});
 
   it("opens nothing else when no pane can show the diff (issue #886)", async () => {
     openDiffMock.mockClear();

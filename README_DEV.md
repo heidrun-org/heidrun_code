@@ -86,6 +86,19 @@ The command runs the fast tests, and ends with a non-zero exit code when a test 
 
 When you add a feature, add the matching tests in the same change. When you fix a bug, add a test that fails without the fix.
 
+### Try an update without publishing a release
+
+Start a fresh trial with Python 3 and the normal macOS build tools. The command builds both versions on the first run and reuses them on subsequent runs.
+
+```bash
+python3 scripts/test_application_update.py run
+```
+
+In the temporary copy of Heidrun Code Development, choose **Check for Updates…**. The prompt shows the running version 0.4.0 and the latest version 0.4.1, with **Install 0.4.1** and **Later**. Choose **Later** to keep the orange update icon beside the theme control. Select the icon to check again. After the restart, open **About Heidrun Code** and check for version 0.4.1. The command prints the temporary application path, the initial startup output, and the application log. Look for the `application_update` entries to see the check, download, checksum verification, disk image mount, replacement, restart request, and startup version.
+
+Quit Heidrun Code Development before pressing Control-C in the test server terminal. Run the same command again to start with a fresh copy of version 0.4.0. Add `--scenario automatic` to check on startup and show the orange update icon without opening the dialog. Add `--scenario slow` to hold the download for 12 seconds and inspect the installation spinner. Add `--scenario current`, `--scenario check-failed`, or `--scenario interrupted` to try an up-to-date release, a failed check, or a download that stops early. The temporary folders stay available for inspection. Run `python3 scripts/test_application_update.py build` after making changes to the updater source.
+
+
 ## Release the application
 
 ```bash

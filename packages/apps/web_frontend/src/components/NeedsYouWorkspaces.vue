@@ -181,7 +181,7 @@ function branchOf(workspaceId: string): string | null {
               'text-body-secondary': !workspaceHasAgent(workspace.workspace_id) && workspace.workspace_id !== state.selectedWorkspaceId,
             }"
           >{{ workspace.label }}</span>
-          <VoiceRecordingIcon v-if="VoiceInput.isRecordingInWorkspace(workspace.workspace_id)" />
+          <VoiceRecordingIcon :state="VoiceInput.recordingIconState('workspace_id', workspace.workspace_id)" />
           <span
             v-if="branchOf(workspace.workspace_id) !== null"
             class="branch text-body-secondary"

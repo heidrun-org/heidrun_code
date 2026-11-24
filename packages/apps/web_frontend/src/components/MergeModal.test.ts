@@ -82,3 +82,12 @@ describe("MergeModal on GitLab (issue #570)", () => {
     expect(wrapper.text()).toContain("The project always squashes the commits.");
   });
 });
+
+describe("MergeModal, the approval state when the repository asks for no review (issue #1044)", () => {
+  it("shows Not approved in gray, as the issue preview window does", () => {
+    const wrapper = showWindow(githubMergeFacts({ ...PULL_REQUEST, reviewDecision: "", latestReviews: [] }, null, 1043), "#1043");
+    const chip = wrapper.get("[data-merge-approval]");
+    expect(chip.text()).toBe("Not approved");
+    expect(chip.classes()).toContain("muted");
+  });
+});

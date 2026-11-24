@@ -78,7 +78,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown, true));
 
 <template>
   <div class="overlay" @mousedown.self="close">
-    <dialog class="dialog dialog-lg dialog-instant dialog-nonmodal" open aria-labelledby="macro-editor-title">
+    <dialog class="dialog dialog-lg dialog-instant dialog-nonmodal dialog-scrollable" open aria-labelledby="macro-editor-title">
       <div class="dialog-header">
         <div id="macro-editor-title" class="dialog-title me-auto" role="heading" aria-level="2">{{ t(isReadOnly ? "macroEditor.viewTitle" : isNew ? "macroEditor.createTitle" : "macroEditor.title") }}</div>
         <DialogCloseButton :title="t('macroEditor.close')" :label="t('macroEditor.close')" @click="close" />

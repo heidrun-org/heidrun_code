@@ -4,7 +4,7 @@ import SettingsOptionHelp from "./SettingsOptionHelp.vue";
 import SettingsSwitchRow from "./SettingsSwitchRow.vue";
 import SettingsVoiceWordsEditor from "./SettingsVoiceWordsEditor.vue";
 import { VoiceInput } from "../../lib/voice_input";
-import { settings } from "../../stores/settings";
+import { settings, VOICE_RECORDING_MAX_MINUTES } from "../../stores/settings";
 import { voiceInput } from "../../stores/voice_input";
 import { locale, t } from "../../i18n/index";
 
@@ -88,6 +88,23 @@ onMounted(() => {
     void VoiceInput.loadOptions().catch(() => {});
   }
 });
+function saveRecordingMinutes(event: Event, field: 'voiceRecordingMaxMinutes' | 'voiceRecordingWarningMinutes'): void {
+  const input = event.target as HTMLInputElement;
+  const minutes = input.valueAsNumber;
+  if (Number.isFinite(minutes)) {
+    if (field === 'voiceRecordingMaxMinutes') {
+      settings.voiceRecordingMaxMinutes = Math.max(2, Math.min(VOICE_RECORDING_MAX_MINUTES, Math.round(minutes)));
+      settings.voiceRecordingWarningMinutes = Math.min(
+        settings.voiceRecordingWarningMinutes, settings.voiceRecordingMaxMinutes - 1,
+      );
+    } else {
+      settings.voiceRecordingWarningMinutes = Math.max(1, Math.min(
+        settings.voiceRecordingMaxMinutes - 1, Math.round(minutes),
+      ));
+    }
+  }
+  input.value = String(settings[field]);
+}
 </script>
 
 <template>
@@ -131,6 +148,52 @@ onMounted(() => {
           <button type="button" class="btn" @click="onModelChange">{{ t("settingsVoiceInput.download") }}</button>
         </div>
       </template>
+    </div>
+
+    <div class="d-flex flex-column gap-2" data-option="voiceRecordingMaxMinutes">
+      <div class="d-flex align-items-center gap-2">
+        <label class="form-label m-0" for="recordingMaximum">{{ t('settingsVoiceInput.recordingMaximum') }}</label>
+        <SettingsOptionHelp
+          title-key="settingsVoiceInput.recordingMaximum"
+          :blocks="[
+            { titleKey: 'settingsHelp.whatTitle', textKey: 'settingsVoiceInput.recordingMaximumHelp' },
+            { titleKey: 'settingsHelp.howTitle', textKey: 'settingsHelp.recordingMaximum.how' },
+          ]"
+        />
+      </div>
+      <input
+        id="recordingMaximum"
+        type="number"
+        class="form-control"
+        min="2"
+        :max="VOICE_RECORDING_MAX_MINUTES"
+        :value="settings.voiceRecordingMaxMinutes"
+        :disabled="settings.voiceInput === false"
+        @change="saveRecordingMinutes($event, 'voiceRecordingMaxMinutes')"
+      />
+    </div>
+
+    <div class="d-flex flex-column gap-2" data-option="voiceRecordingWarningMinutes">
+      <div class="d-flex align-items-center gap-2">
+        <label class="form-label m-0" for="recordingWarning">{{ t('settingsVoiceInput.recordingWarning') }}</label>
+        <SettingsOptionHelp
+          title-key="settingsVoiceInput.recordingWarning"
+          :blocks="[
+            { titleKey: 'settingsHelp.whatTitle', textKey: 'settingsVoiceInput.recordingWarningHelp' },
+            { titleKey: 'settingsHelp.howTitle', textKey: 'settingsHelp.recordingWarning.how' },
+          ]"
+        />
+      </div>
+      <input
+        id="recordingWarning"
+        type="number"
+        class="form-control"
+        min="1"
+        :max="settings.voiceRecordingMaxMinutes - 1"
+        :value="settings.voiceRecordingWarningMinutes"
+        :disabled="settings.voiceInput === false"
+        @change="saveRecordingMinutes($event, 'voiceRecordingWarningMinutes')"
+      />
     </div>
 
     <SettingsVoiceWordsEditor />

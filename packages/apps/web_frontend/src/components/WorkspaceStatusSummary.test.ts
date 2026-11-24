@@ -279,11 +279,15 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     await wrapper.get(".workspace-status").trigger("click");
 
     expect(wrapper.get(".workspace-card-title").text()).toBe("Workspace");
-    await wrapper.get('[aria-label="Copy folder path"]').trigger("click");
+    const folderButton = wrapper.get('button[aria-label="Copy folder path"]');
+    expect(folderButton.classes()).toContain('icon');
+    await folderButton.trigger('click');
     expect(writeText).toHaveBeenCalledWith("/work/heidrun");
     expect(wrapper.find('[aria-label="Copied"] .bi-clipboard-check').exists()).toBe(true);
 
-    await wrapper.get('[aria-label="Copy Git branch"]').trigger("click");
+    const branchButton = wrapper.get('button[aria-label="Copy Git branch"]');
+    expect(branchButton.classes()).toEqual(folderButton.classes());
+    await branchButton.trigger('click');
     expect(writeText).toHaveBeenCalledWith("dev_jerome");
   });
 
@@ -310,7 +314,12 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     const link = wrapper.get("a[data-field=repository]");
     expect(link.text()).toBe("https://github.com/heidrun-org/heidrun");
     expect(link.attributes("href")).toBe("https://github.com/heidrun-org/heidrun");
-    expect(wrapper.find('[aria-label="Copy repository"]').exists()).toBe(false);
+    const copyButton = wrapper.get('button[aria-label="Copy repository"]');
+    expect(copyButton.classes()).toContain('icon');
+    expect(link.element.nextElementSibling).toBe(copyButton.element);
+    await copyButton.trigger('click');
+    expect(writeText).toHaveBeenCalledWith(link.attributes('href'));
+    expect(copyButton.attributes('aria-label')).toBe('Copied');
 
     const clickEvent = new MouseEvent("click", { bubbles: true, cancelable: true });
     link.element.dispatchEvent(clickEvent);
@@ -335,6 +344,7 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     await wrapper.get(".workspace-status").trigger("click");
     expect(wrapper.get("[data-field=repository]").text()).toBe("No repository");
     expect(wrapper.find("a[data-field=repository]").exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Copy repository"]').exists()).toBe(false);
   });
 
   it("says that the workspace has no folder and no Git branch when Herdr does not know them", async () => {
@@ -376,13 +386,13 @@ describe("WorkspaceStatusSummary card width and folder path", () => {
     Object.defineProperty(line, "clientWidth", { configurable: true, value: clientWidth });
   }
 
-  it("is 432 pixels wide so the folder path and branch names have more room", async () => {
-    const { wrapper } = await mountSection();
-    await wrapper.get(".workspace-status").trigger("click");
-    const card = wrapper.get(".popover").element as HTMLElement;
-    expect(card.style.width).toBe("432px");
-    expect(card.style.getPropertyValue("--popover-max-width")).toBe("432px");
-  });
+	it('is 648 pixels wide and fits within the status bar on narrower windows', async () => {
+		const { wrapper } = await mountSection();
+		await wrapper.get('.workspace-status').trigger('click');
+		const card = wrapper.get('.popover').element as HTMLElement;
+		expect(card.style.width).toBe('648px');
+		expect(card.style.getPropertyValue('--popover-max-width')).toBe('calc(100% - 16px)');
+	});
 
   it("has no minimum width that is smaller than its width", async () => {
     const { wrapper } = await mountSection();

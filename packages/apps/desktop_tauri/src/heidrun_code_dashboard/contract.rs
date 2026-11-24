@@ -29,7 +29,7 @@ impl HeidrunCodeDashboardObservations {
                 sessions: Vec::new(),
                 errors: Vec::new(),
             },
-            codex: CodexObservations::unavailable("No collection has run yet".to_string(), Vec::new()),
+            codex: CodexObservations::pending(),
         }
     }
 }
@@ -46,7 +46,8 @@ pub struct ClaudeObservations {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexObservations {
-    /// `connected` or `unavailable`.
+    /// `connected`, `unavailable`, `not_needed` when no Codex pane of the Herdr session has a chat to read, so the
+    /// shared Codex server is not asked, or `pending` before the first collection (issue #1016).
     pub coverage: &'static str,
     pub unavailable_reason: Option<String>,
     pub threads: Vec<CodexThreadObservation>,
@@ -55,7 +56,32 @@ pub struct CodexObservations {
 }
 
 impl CodexObservations {
-    /// The observations when the shared Codex server cannot be read: no chat, and the reason.
+    /// The observations before the first collection: nothing is known yet, and the Heidrun Code Dashboard shows no
+    /// Codex notice, so a session without Codex never shows one (issue #1016).
+    pub fn pending() -> Self {
+        CodexObservations {
+            coverage: "pending",
+            ..CodexObservations::not_needed(Vec::new())
+        }
+    }
+
+    /// The observations when no Codex pane of the Herdr session has a chat: the shared Codex server is not asked, and
+    /// the Heidrun Code Dashboard shows no Codex notice (issue #1016).
+    pub fn not_needed(errors: Vec<ObservationError>) -> Self {
+        CodexObservations {
+            coverage: "not_needed",
+            unavailable_reason: None,
+            threads: Vec::new(),
+            errors,
+            limits: CodexLimits {
+                maximum_children_per_root: MAXIMUM_CHILDREN_PER_ROOT,
+                truncated_root_thread_ids: Vec::new(),
+            },
+        }
+    }
+
+    /// The observations when the shared Codex server cannot be read: no chat, and the reason. The reason is not also
+    /// an error entry, so that the Heidrun Code Dashboard shows it once (issue #1016).
     pub fn unavailable(reason: String, errors: Vec<ObservationError>) -> Self {
         CodexObservations {
             coverage: "unavailable",
@@ -197,8 +223,8 @@ mod tests {
                 "observedAtMs": 42,
                 "claude": { "sessions": [], "errors": [] },
                 "codex": {
-                    "coverage": "unavailable",
-                    "unavailableReason": "No collection has run yet",
+                    "coverage": "pending",
+                    "unavailableReason": null,
                     "threads": [],
                     "errors": [],
                     "limits": { "maximumChildrenPerRoot": 100, "truncatedRootThreadIds": [] }

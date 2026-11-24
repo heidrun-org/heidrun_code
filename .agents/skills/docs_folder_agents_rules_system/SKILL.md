@@ -1,9 +1,11 @@
 ---
 name: docs_folder_agents_rules_system
-description: Read, obey, and keep up to date the agent rules of a repository, the rule files in the documentation folder that every coding agent follows, with the glossary of the words of the project. Use it before you change the code, to read the glossary and the rule files that match the part that you change, when a rule or a word of the project changes, and when a rule file grows over the maximum size. It needs the skill docs_folder_system for the form of the files.
+description: Obsolete; superseded by Symbiospec. Retained for existing projects. Read, obey, and keep up to date the agent rules of a repository, the rule files in the documentation folder that every coding agent follows, with the glossary of the words of the project. Use it before you change the code, to read the glossary and the rule files that match the part that you change, when a rule or a word of the project changes, and when a rule file grows over the maximum size. It needs the skill docs_folder_system for the form of the files.
 ---
 
 # Docs folder agents rules system
+
+**Obsolete:** [Symbiospec](../symbio_spec/SKILL.md) supersedes the Docs folder agents rules system. This skill remains available for existing projects.
 
 The agent rules are the files that every coding agent obeys. They sit in the agent rules folder, a subfolder of the documentation folder. The glossary is a subfolder of the agent rules folder: it gives the definition of each word that the project uses for one of its parts. This skill gives what you do with the content of the agent rules: read them, obey them, and keep them up to date. This skill names no detail of one repository, so the folder of this skill can be copied to another repository.
 
@@ -13,7 +15,12 @@ The agent rules folder is inside the documentation folder, so every file and eve
 
 ## The values of the repository
 
-Read the section "Docs folder agents rules system values" of the file `AGENTS.md` before you read or change the agent rules. The section gives these values:
+Read the values of the repository before you read or change the agent rules. The caller always gives the values to this skill, and the skill works the same way for each caller:
+
+- With The Rules of the Repo: the configuration file of this skill, from the rules list of The Rules of the Repo.
+- Without The Rules of the Repo: the section "Docs folder agents rules system values" of the file `AGENTS.md`. See the section "The template".
+
+The values are:
 
 - Agent rules folder: the folder that holds the agent rules, inside the documentation folder.
 - Glossary folder: the folder of the glossary, inside the agent rules folder.
@@ -22,7 +29,7 @@ Read the section "Docs folder agents rules system values" of the file `AGENTS.md
 
 ### When the values are missing
 
-When the section is missing, or when one value is missing, do these steps, in this order:
+When no caller gives the values, or when one value is missing, do these steps, in this order:
 
 1. Do not change the agent rules.
 2. Warn the developer in one short message: "The docs folder agents rules system is not configured in this repository." Then list the missing values, one value on each line.
@@ -56,7 +63,7 @@ Never guess a value, and never use the value of another repository.
 
 ## The template
 
-Write this text in the file `AGENTS.md` of the repository. The first two lines are the pointer: the file `AGENTS.md` always loads, but a skill loads only when the coding agent decides that it matches, so the pointer makes sure that the skill is read.
+Write this text in the file `AGENTS.md` of the repository, when the repository has no The Rules of the Repo. The first two lines are the pointer: the file `AGENTS.md` always loads, but a skill loads only when the coding agent decides that it matches, so the pointer makes sure that the skill is read.
 
 ```markdown
 ## Agent rules

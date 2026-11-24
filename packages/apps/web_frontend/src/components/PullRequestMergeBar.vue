@@ -2,11 +2,12 @@
 // The approval state of a pull request or of a merge request, the people who approved it, and the button "Merge" that
 // opens the merge window. The button is disabled, with the reason in its title, when the hosting service refuses the
 // merge now. Two places show it: the information card of a row of the Code hosting sidebar section, and the issue
-// preview window.
+// preview window. The issue preview window shows the approval pill in its header instead, next to the state of the item.
 // - issue #570
+// - issue #1044
 import { computed } from "vue";
 import Icon from "./Icon.vue";
-import { APPROVAL_KEYS, mergeBlockReason, openMergeWindow, type MergeFacts } from "../stores/pull_request_merge";
+import { approvalText, mergeBlockReason, openMergeWindow, type MergeFacts } from "../stores/pull_request_merge";
 import type { Forge } from "../lib/refs";
 import { t } from "../i18n/index";
 
@@ -21,20 +22,15 @@ const props = defineProps<{
   name: string;
   /** The address of the repository on its hosting service. */
   webBase: string;
+  /** True when the window around the bar already shows the approval pill: the bar then shows only the approvers (issue #1044). */
+  hidesApproval?: boolean;
 }>();
 
 const blockReason = computed(() => (props.facts === null ? null : mergeBlockReason(props.facts)));
 const isOpen = computed(() => props.facts?.isOpen === true);
 
 /** The text of the approval pill, for example "Review required · 1 approval left", or an empty text. */
-const approval = computed(() => {
-  const facts = props.facts;
-  if (facts === null || facts.approval === null) {
-    return "";
-  }
-  const left = facts.approvalsLeft !== null && facts.approvalsLeft > 0 ? ` · ${t("mergeModal.approvalsLeft", { count: facts.approvalsLeft })}` : "";
-  return `${t(APPROVAL_KEYS[facts.approval])}${left}`;
-});
+const approval = computed(() => (props.facts === null || props.hidesApproval ? "" : approvalText(props.facts)));
 
 function openWindow() {
   if (props.facts !== null) {

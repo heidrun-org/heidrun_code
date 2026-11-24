@@ -12,6 +12,7 @@ const fakeDisk = vi.hoisted(() => ({
 	userFileExists: false,
 	userLaunchers: [] as unknown[],
 	userWrites: [] as unknown[][],
+	userError: null as string | null,
 	isUserWriteFailing: false,
 	projectSaves: [] as unknown[],
 	isProjectSaveFailing: false,
@@ -23,7 +24,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(async (command: string, args?: Record<string, unknown>) => {
 		switch (command) {
 			case 'launchers_user_read':
-				return { exists: fakeDisk.userFileExists, launchers: fakeDisk.userLaunchers, error: null };
+				return { exists: fakeDisk.userFileExists, launchers: fakeDisk.userLaunchers, error: fakeDisk.userError };
 			case 'launchers_user_write':
 				if (fakeDisk.isUserWriteFailing === true) {
 					throw 'The disk is full.';
@@ -82,6 +83,7 @@ beforeEach(() => {
 	fakeDisk.userFileExists = false;
 	fakeDisk.userLaunchers = [];
 	fakeDisk.userWrites = [];
+	fakeDisk.userError = null;
 	fakeDisk.isUserWriteFailing = false;
 	fakeDisk.projectSaves = [];
 	fakeDisk.isProjectSaveFailing = false;
@@ -262,6 +264,68 @@ describe('updateLauncher', () => {
 	it('does nothing for an identifier that no launcher has', async () => {
 		const { updateLauncher } = await setup({ user: [userLauncher], workspace: [workspaceLauncher] });
 		await updateLauncher('w1', 'missing', { label: 'X', command: 'x' }, 'user');
+		expect(fakeDisk.userWrites).toEqual([]);
+		expect(fakeDisk.projectSaves).toEqual([]);
+	});
+});
+
+describe('moveLauncher and shiftLauncher (issue #1042)', () => {
+	it('moves a launcher of the user level inside the user level, and writes only the file of the user level', async () => {
+		const { moveLauncher, launchersOf } = await setup({ user: [userLauncher, otherUserLauncher], workspace: [workspaceLauncher] });
+		expect(await moveLauncher('w1', 'also', 0)).toBe(true);
+		expect(fakeDisk.userWrites).toEqual([[otherUserLauncher, userLauncher]]);
+		expect(fakeDisk.projectSaves).toEqual([]);
+		expect(launchersOf('w1').map((launcher) => launcher.id)).toEqual(['also', 'everywhere', 'here']);
+	});
+
+	it('moves a launcher of the workspace level inside the workspace level, and keeps the other keys of the project file', async () => {
+		const { moveLauncher, project, launchersOf } = await setup({ user: [userLauncher], workspace: [workspaceLauncher, otherWorkspaceLauncher] });
+		const guards = { disabled: ['guards.why.gitClean'] };
+		(project.byWorkspace.w1!.config as Record<string, unknown>).guards = guards;
+		expect(await moveLauncher('w1', 'here', 2)).toBe(true);
+		expect(fakeDisk.userWrites).toEqual([]);
+		expect(fakeDisk.projectSaves).toHaveLength(1);
+		const saved = fakeDisk.projectSaves[0] as { launchers: Launcher[]; guards: unknown };
+		expect(saved.launchers.map((launcher) => launcher.id)).toEqual(['there', 'here']);
+		expect(saved.guards).toEqual(guards);
+		expect(launchersOf('w1').map((launcher) => launcher.id)).toEqual(['everywhere', 'there', 'here']);
+	});
+
+	it('keeps the order of the workspace level when the project file cannot be written', async () => {
+		const { moveLauncher, project } = await setup({ user: [], workspace: [workspaceLauncher, otherWorkspaceLauncher] });
+		fakeDisk.isProjectSaveFailing = true;
+		expect(await moveLauncher('w1', 'there', 0)).toBe(false);
+		expect(project.byWorkspace.w1?.config.launchers).toEqual([workspaceLauncher, otherWorkspaceLauncher]);
+	});
+
+	it('keeps the order of the user level when the file of the user level cannot be written', async () => {
+		const { moveLauncher, userLaunchers } = await setup({ user: [userLauncher, otherUserLauncher], workspace: [] });
+		fakeDisk.isUserWriteFailing = true;
+		expect(await moveLauncher('w1', 'also', 0)).toBe(false);
+		expect(userLaunchers.list).toEqual([userLauncher, otherUserLauncher]);
+	});
+
+	it('never overwrites a file of the user level that is not valid, and says why', async () => {
+		fakeDisk.userError = 'The launcher 2 has an unknown field "colour".';
+		const { moveLauncher, toast } = await setup({ user: [userLauncher, otherUserLauncher], workspace: [] });
+		expect(await moveLauncher('w1', 'also', 0)).toBe(false);
+		expect(fakeDisk.userWrites).toEqual([]);
+		expect(toast).toHaveBeenCalledWith(expect.stringContaining('colour'));
+	});
+
+	it('moves a launcher one place up or down inside its level, and never past the end of its level', async () => {
+		const { shiftLauncher, launchersOf } = await setup({ user: [userLauncher, otherUserLauncher], workspace: [workspaceLauncher, otherWorkspaceLauncher] });
+		expect(await shiftLauncher('w1', 'everywhere', 1)).toBe(true);
+		expect(launchersOf('w1').map((launcher) => launcher.id)).toEqual(['also', 'everywhere', 'here', 'there']);
+		expect(await shiftLauncher('w1', 'everywhere', 1)).toBe(false);
+		expect(await shiftLauncher('w1', 'here', -1)).toBe(false);
+		expect(await shiftLauncher('w1', 'there', -1)).toBe(true);
+		expect(launchersOf('w1').map((launcher) => launcher.id)).toEqual(['also', 'everywhere', 'there', 'here']);
+	});
+
+	it('does nothing for an identifier that no launcher has', async () => {
+		const { moveLauncher } = await setup({ user: [userLauncher], workspace: [workspaceLauncher] });
+		expect(await moveLauncher('w1', 'missing', 0)).toBe(false);
 		expect(fakeDisk.userWrites).toEqual([]);
 		expect(fakeDisk.projectSaves).toEqual([]);
 	});

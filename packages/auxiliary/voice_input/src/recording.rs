@@ -7,11 +7,11 @@ use cpal::{FromSample, Sample, SizedSample};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// A recording never grows beyond this length, in seconds. It protects the memory when the developer forgets to stop a recording
-/// that a click started. Five minutes of audio at 48 kilohertz take 58 megabytes.
-pub const MAXIMUM_SECONDS: usize = 300;
+/// that a click started. Fifteen minutes of audio at 48 kilohertz take about 173 megabytes.
+pub const MAXIMUM_SECONDS: usize = 15 * 60;
 
 /// The time between two level values, in milliseconds.
 pub const LEVEL_INTERVAL_MILLISECONDS: u64 = 50;
@@ -51,9 +51,15 @@ impl Recorder {
     /// Like `start`, and `on_level` runs every 50 milliseconds with the level of the voice since the last call, from 0 to 1, for
     /// the level bars of the window. It runs in the thread of the recorder, never in the audio thread of the microphone.
     pub fn start_with_levels(on_level: impl Fn(f32) + Send + 'static) -> Result<Recorder, VoiceError> {
+        Recorder::start_limited(MAXIMUM_SECONDS, on_level)
+    }
+
+    /// Records for at most the selected duration, bounded by the recorder's memory limit.
+    pub fn start_limited(maximum_seconds: usize, on_level: impl Fn(f32) + Send + 'static) -> Result<Recorder, VoiceError> {
+        let maximum_seconds = maximum_seconds.clamp(1, MAXIMUM_SECONDS);
         let (ready_sender, ready_receiver) = mpsc::channel::<Result<(), VoiceError>>();
         let (stop_sender, stop_receiver) = mpsc::channel::<()>();
-        let thread = std::thread::spawn(move || Recorder::run(ready_sender, stop_receiver, on_level));
+        let thread = std::thread::spawn(move || Recorder::run(ready_sender, stop_receiver, maximum_seconds, on_level));
         match ready_receiver.recv() {
             Ok(Ok(())) => Ok(Recorder { stop_sender, thread }),
             Ok(Err(error)) => {
@@ -76,21 +82,29 @@ impl Recorder {
     fn run(
         ready_sender: mpsc::Sender<Result<(), VoiceError>>,
         stop_receiver: mpsc::Receiver<()>,
+        maximum_seconds: usize,
         on_level: impl Fn(f32),
     ) -> Result<Recording, VoiceError> {
         let captured: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let (stream, rate) = match Recorder::open(captured.clone()) {
+        let (stream, rate) = match Recorder::open(captured.clone(), maximum_seconds) {
             Ok(opened) => opened,
             Err(error) => {
                 let _ = ready_sender.send(Err(error.clone()));
                 return Err(error);
             }
         };
+        let deadline = Instant::now() + Duration::from_secs(maximum_seconds as u64);
         let _ = ready_sender.send(Ok(()));
         let mut reported_samples = 0;
-        while let Err(mpsc::RecvTimeoutError::Timeout) =
-            stop_receiver.recv_timeout(Duration::from_millis(LEVEL_INTERVAL_MILLISECONDS))
-        {
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+            let interval = Duration::from_millis(LEVEL_INTERVAL_MILLISECONDS).min(remaining);
+            if !matches!(stop_receiver.recv_timeout(interval), Err(mpsc::RecvTimeoutError::Timeout)) {
+                break;
+            }
             if let Ok(guard) = captured.lock() {
                 on_level(audio::display_level(&guard[reported_samples.min(guard.len())..]));
                 reported_samples = guard.len();
@@ -104,14 +118,14 @@ impl Recorder {
         finish(&mono, rate)
     }
 
-    fn open(captured: Arc<Mutex<Vec<f32>>>) -> Result<(cpal::Stream, u32), VoiceError> {
+    fn open(captured: Arc<Mutex<Vec<f32>>>, maximum_seconds: usize) -> Result<(cpal::Stream, u32), VoiceError> {
         let host = cpal::default_host();
         let device = host.default_input_device().ok_or(VoiceError::NoMicrophone)?;
         let supported = device.default_input_config().map_err(map_error)?;
         let rate = supported.sample_rate();
         let format = supported.sample_format();
         let config: cpal::StreamConfig = supported.into();
-        let maximum_samples = rate as usize * MAXIMUM_SECONDS;
+        let maximum_samples = rate as usize * maximum_seconds;
         let stream = match format {
             cpal::SampleFormat::F32 => Recorder::build::<f32>(&device, config, captured, maximum_samples),
             cpal::SampleFormat::I16 => Recorder::build::<i16>(&device, config, captured, maximum_samples),
@@ -141,9 +155,8 @@ impl Recorder {
                 let floats: Vec<f32> = data.iter().map(|sample| f32::from_sample(*sample)).collect();
                 let mono = audio::mix_to_mono(&floats, channels);
                 if let Ok(mut guard) = captured.lock() {
-                    if guard.len() + mono.len() <= maximum_samples {
-                        guard.extend(mono);
-                    }
+                    let remaining = maximum_samples.saturating_sub(guard.len());
+                    guard.extend(mono.into_iter().take(remaining));
                 }
             },
             |error| eprintln!("voice input: the microphone stream reported {error}"),

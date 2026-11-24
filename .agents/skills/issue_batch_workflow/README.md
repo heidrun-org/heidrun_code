@@ -1,36 +1,16 @@
 # issue_batch_workflow
 
-The skill `issue_batch_workflow` gives a coding agent one fixed way to fix a batch of related issues: one parent issue and its sub-issues. This fixed way is the Issue Batch Workflow.
-
 ## Purpose
 
-When a developer fixes several related issues one by one with the [issue_fix_workflow](../issue_fix_workflow/README.md), the developer waits for each question and reviews each fix. The Issue Batch Workflow makes the batch fast, so that:
+The Issue Batch Workflow completes related issues through one parent issue, grouped sub-issues and helper agents working in separate temporary worktrees. The developer resolves initial questions together; the main session then checks and merges each group without a separate developer review of each group.
 
-- The developer speaks two times: at the start (the description and the answers), and at the end (the result).
-- The coding agent asks every open question in one message, with a recommended answer for each question.
-- The independent groups of sub-issues run at the same time, each in its own temporary worktree, with its own helper agent.
-- The coding agent checks, merges, and closes each group without a review of the developer.
+## When to use
 
-## The steps
+Use for a parent issue with two or more sub-issues, or a long request containing several related changes. The workflow can create a parent issue and sub-issues from the description. A single issue uses [issue_fix_workflow](../issue_fix_workflow/README.md).
 
-1. Read or create the batch: the coding agent reads the parent issue and its sub-issues, or creates them from the description of the developer.
-2. Write the plan and ask every question at once: the coding agent groups the sub-issues by area, orders the groups by their dependencies, writes the plan in the parent issue, and asks every open question.
-3. Record the answers: the coding agent writes the answers in the parent issue. From here, nothing waits for the developer.
-4. Write one brief file for each group: the sub-issues, the decisions, the rules, and the test commands of the group.
-5. Do the work without the developer: one temporary worktree and one helper agent for each group.
-6. Check and merge each group: one full test run for each changed package, a check of the running application, then the commit, the pull request, the merge, and the close of the sub-issues.
-7. Send one short final message: what is merged, the answers taken without the developer, and anything that failed.
+## Requirements
 
-## When the coding agent uses the skill
-
-- The developer gives a long description of several changes.
-- The developer gives a parent issue with sub-issues, for example "fix #194" when issue 194 has sub-issues.
-
-## Configuration
-
-The skill `issue_batch_workflow` names no branch, no tool, and no command of one repository. The skill uses the section "Issue Fix Workflow values" of the file `AGENTS.md` of the receiving project, as the [issue_fix_workflow](../issue_fix_workflow/README.md) does. The section "The pointer" of [SKILL.md](SKILL.md) gives the text to add to the file `AGENTS.md`.
-
-The skill also uses the skills `issue_fix_workflow` and `issue_creation`. Install them together.
+Install both required companions: [issue_fix_workflow](../issue_fix_workflow/README.md) supplies the shared configuration contract and [issue_creation](../issue_creation/README.md) governs issue writing. The coding agent environment must support helper agents and Git worktrees. Provide authenticated issue tracker access, relevant specifications and tests, and the receiving project's check and launch capabilities.
 
 ## Install
 
@@ -38,6 +18,46 @@ The skill also uses the skills `issue_fix_workflow` and `issue_creation`. Instal
 npx skills add jeromeetienne/coding_agent_plugin --skill issue_batch_workflow --skill issue_fix_workflow --skill issue_creation
 ```
 
-## Files
+See [shared installation options](../../README.md#install-the-skills). Installation does not configure a project or provide the developer's initial decisions.
 
-- [SKILL.md](SKILL.md): the instructions for the coding agent.
+## Configuration
+
+Use the receiving project's `AGENTS.md` section “Issue Fix Workflow values”: target branch, worktree creation command, worktree folder, launch command, issue tracker commands and chat rename. The [complete receiving-project example](../issue_fix_workflow/README.md#configuration) shows all values. Add the [Issue Batch Workflow pointer](SKILL.md#11-the-pointer) after that section. Keep project-specific commands outside the reusable skill.
+
+Missing sections or values stop the workflow as specified by issue_fix_workflow; the coding agent reports missing values and does not guess. Repository specifications, such as Symbiospec when adopted, also govern the work.
+
+## Concrete example
+
+Illustrative request: “Fix parent issue 194: make project exports easier to use.” The parent has these sub-issues:
+
+| Group | Sub-issues | Dependency |
+| --- | --- | --- |
+| A: export format | 195: define archive contents; 196: include project settings | First, because other groups consume the format. |
+| B: export interface | 197: expose archive download | After A. |
+| C: export documentation | 198: describe archive contents and download | After A; can run alongside B if the files are independent. |
+
+The coding agent investigates the issues, comments and specifications, writes the grouping and order in the parent issue, then asks all open questions together with recommended answers. For example: “Should archives include project settings? Recommended: include project settings and exclude credentials.” The developer's answers are recorded in the parent issue before implementation proceeds.
+
+The main session creates one scratch brief and one temporary worktree per group. Each brief names allowed paths, decisions, relevant rules, focused checks, existing failures and the limits on the helper agent: no commit, pull request, merge or developer questions. Group A runs first. After A passes checks and merges, fresh worktrees for B and C start from the updated target branch.
+
+## Results and checks
+
+Each helper agent returns changed files and focused check results. The main session runs a full test run for each changed package and checks the running application with the configured launch command. Passing groups receive commits naming each sub-issue with `fixes #<number>`, pull requests, merges, temporary branch/worktree cleanup and closed sub-issues. The target branch remains.
+
+A representative final report says which groups merged, links their pull requests, names decisions taken during work, and lists failed or stopped groups. A group whose checks cannot be repaired keeps its worktree and is not merged. The parent closes only when all sub-issues are closed.
+
+## Approval boundaries
+
+Initial approval covers the prepared questions and plan. After the answers are recorded, the workflow does not wait for developer review of each group: the main session checks and merges passing groups automatically. New questions take the recommended answer, are recorded in the parent issue and are reported at the end.
+
+This differs from Issue Fix Workflow, which waits for acceptance during Issue Fix Review before completion. Helper agents never perform group completion; the main session owns group checks and merges. A narrower task instruction, such as an assigned documentation brief forbidding commits, limits the assigned work accordingly.
+
+## Related skills and guides
+
+- [issue_fix_workflow](../issue_fix_workflow/README.md): required shared configuration and single-issue alternative.
+- [issue_creation](../issue_creation/README.md): required for parent issues, sub-issues and comments.
+- [symbio_spec](../symbio_spec/README.md): relevant specification input when used by the receiving project.
+
+## Instructions and references
+
+- [SKILL.md](SKILL.md): authoritative sequence, helper briefs and main-session responsibilities.

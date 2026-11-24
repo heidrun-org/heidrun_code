@@ -1,0 +1,5 @@
+{
+  "source": "jeromeetienne/coding_agent_plugins",
+  "skill_id": "pull_request_creation",
+  "folder_url": "https://github.com/jeromeetienne/coding_agent_plugins/tree/main/skills/pull_request_creation"
+}

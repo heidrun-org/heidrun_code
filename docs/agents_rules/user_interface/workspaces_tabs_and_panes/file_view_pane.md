@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: file view pane
 
 - Created: 21 October 2026
-- Last updated: 27 October 2026
+- Last updated: 23 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [Panes](panes.md), [Pane headers](pane_headers.md), [Files](../sidebars/files.md), [File view pane editing](file_view_pane_editing.md), [Search in files](../sidebars/file_search.md), [Opening a file view pane](file_view_pane_opening.md), [HTML preview](file_view_pane_html_preview.md)
@@ -45,7 +45,7 @@ The front matter is the block at the start of a Markdown file, between two lines
 
 A pane of Heidrun Code is a pane of Herdr, and Herdr sets the layout of the panes. The file view pane is therefore a Herdr pane with a terminal that only waits, and Heidrun Code draws the file over that terminal.
 
-- Heidrun Code splits the selected pane to the right with the Herdr request `pane.split`, in the workspace folder.
+- In the workspace folder, File explorer file clicks use `tab.create`. Other new file view panes use `pane.split` to the right.
 - Heidrun Code gives the new pane the label `Heidrun file view: <absolute path of the file>` with the Herdr request `pane.rename`. The label marks the pane as a file view pane. Herdr keeps the label, so the file view pane comes back after a restart of Heidrun Code.
 - Heidrun Code runs the command `echo 'Below the file view of Heidrun'; sleep 99999999` in the new pane with the command `herdr pane run`. The command prints a line for a person who looks at the pane in Herdr, and then waits for about three years, so nobody types a command into the hidden terminal. The command has no shell comment, because the shell zsh reads a comment in a typed line only when its option `interactivecomments` is on.
 - A pane whose label is only a name, for example `build`, is a terminal. Every place that shows the name of a pane reads it with `paneName`, which gives the name of the file for a file view pane.

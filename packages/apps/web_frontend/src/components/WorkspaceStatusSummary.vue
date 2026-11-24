@@ -42,10 +42,10 @@ import { t } from "../i18n/index";
 const root = ref<HTMLElement | null>(null);
 const { isOpen, toggle, close, onFocusOut } = useStatusCard(root);
 
-// The width of the card, in pixels: 92 pixels more than `$popover-max-width` in `bootstrap_parts.scss`, so longer paths and
-// branch names have more room.
-const CARD_WIDTH_PIXELS = 432;
-const cardStyle = { width: `${CARD_WIDTH_PIXELS}px`, "--popover-max-width": `${CARD_WIDTH_PIXELS}px` };
+const cardStyle = {
+  width: '648px',
+  '--popover-max-width': 'calc(100% - 16px)',
+};
 
 const workspaceReorder = useReorder("y", (id, at) => moveWorkspace(id, at));
 const isWorktreesOpen = ref(false);
@@ -174,8 +174,8 @@ const detailRows = computed(() => {
       name: t("workspaceStatusSummary.repository"),
       value: repositoryAddress ?? t("workspaceStatusSummary.noRepository"),
       href: repositoryAddress,
-      copyValue: null,
-      copyLabel: null,
+      copyValue: repositoryAddress,
+      copyLabel: t('workspaceStatusSummary.copyRepository'),
     },
     { field: "tabs", name: t("workspaceStatusSummary.tabs"), value: workspace.tab_count, href: null, copyValue: null, copyLabel: null },
     { field: "agents", name: t("workspaceStatusSummary.agents"), value: agentCount, href: null, copyValue: null, copyLabel: null },
@@ -328,7 +328,7 @@ watch(isRenaming, (renaming) => {
               <button
                 v-if="row.copyValue !== null && row.copyLabel !== null"
                 type="button"
-                class="btn btn-sm btn-outline-secondary copy-detail-button"
+                class="btn btn-sm icon copy-detail-button"
                 :title="copiedDetail === row.field ? t('workspaceStatusSummary.copied') : row.copyLabel"
                 :aria-label="copiedDetail === row.field ? t('workspaceStatusSummary.copied') : row.copyLabel"
                 @click="copyDetail(row.field, row.copyValue)"
@@ -376,7 +376,7 @@ watch(isRenaming, (renaming) => {
                     'text-body-secondary': !workspaceHasAgent(workspace.workspace_id) && workspace.workspace_id !== state.selectedWorkspaceId,
                   }"
                 >{{ workspace.label }}</span>
-                <VoiceRecordingIcon v-if="VoiceInput.isRecordingInWorkspace(workspace.workspace_id)" />
+                <VoiceRecordingIcon :state="VoiceInput.recordingIconState('workspace_id', workspace.workspace_id)" />
                 <span
                   v-if="branchOf(workspace.workspace_id) !== null"
                   class="workspace-branch"
@@ -442,7 +442,7 @@ watch(isRenaming, (renaming) => {
 .detail-row { min-width: 0; }
 .detail-value { min-width: 0; }
 .detail-value > [data-field="folder"] { min-width: 0; }
-.copy-detail-button { flex: 0 0 auto; }
+.btn.icon.copy-detail-button { --btn-padding-x: 6px; width: auto; }
 .workspace-status > .popover { cursor: default; }
 .workspace-status > .popover .btn:not(:disabled) { cursor: pointer; }
 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

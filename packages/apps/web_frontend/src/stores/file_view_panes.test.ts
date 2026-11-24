@@ -2,6 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const split = vi.hoisted(() => vi.fn());
+const newTab = vi.hoisted(() => vi.fn());
+const closePane = vi.hoisted(() => vi.fn(async () => ({})));
 const renamePane = vi.hoisted(() => vi.fn(async () => ({})));
 const run = vi.hoisted(() => vi.fn(async () => ''));
 const refresh = vi.hoisted(() => vi.fn(async () => {}));
@@ -10,14 +12,23 @@ const toast = vi.hoisted(() => vi.fn());
 const selectedPane = vi.hoisted(() => ({ value: null as Record<string, unknown> | null }));
 const callOrder = vi.hoisted(() => [] as string[]);
 
-vi.mock('../lib/api', () => ({ split, renamePane, run }));
+vi.mock('../lib/api', () => ({ split, newTab, closePane, renamePane, run }));
 vi.mock('./session', () => ({ refresh, selectPane, selectedPane, toast }));
 vi.mock('./workspace_folders', () => ({ WorkspaceFolders: { require: () => '/work/project' } }));
 vi.mock('../i18n/index', () => ({ t: (key: string) => key }));
 
 const NEW_PANE = { pane_id: 'w1:p2', tab_id: 'w1:t1', workspace_id: 'w1' };
 
+const NEW_TAB_PANE = {
+	pane_id: 'w1:p3',
+	tab_id: 'w1:t2',
+	workspace_id: 'w1',
+};
+
 beforeEach(() => {
+	newTab.mockReset();
+	newTab.mockResolvedValue(NEW_TAB_PANE);
+	closePane.mockClear();
 	callOrder.length = 0;
 	split.mockReset();
 	split.mockImplementation(async () => {
@@ -140,5 +151,27 @@ describe('FileViewPanes (issue #714)', () => {
 		await FileViewPanes.open('/work/project/README.md', 3);
 		expect(split).not.toHaveBeenCalled();
 		delete fileViewEdits['w1:p1'];
+	});
+});
+
+describe('FileViewPanes.openInNewTab (issue #1062)', () => {
+	it('creates and selects a file tab without changing the selected pane', async () => {
+		const { FileViewPanes } = await import('./file_view_panes');
+		expect(await FileViewPanes.openInNewTab('w1', '/work/project/README.md')).toBe(true);
+		expect(newTab).toHaveBeenCalledWith('w1', '/work/project', 'README.md');
+		expect(split).not.toHaveBeenCalled();
+		expect(renamePane).toHaveBeenCalledTimes(1);
+		expect(renamePane).toHaveBeenCalledWith('w1:p3', 'Heidrun file view: /work/project/README.md');
+		expect(callOrder).toEqual(['rename', 'run', 'refresh']);
+		expect(selectPane).toHaveBeenCalledWith(NEW_TAB_PANE);
+	});
+
+	it('closes the new pane and reports an error when setup fails', async () => {
+		run.mockRejectedValueOnce(new Error('cannot start waiting command'));
+		const { FileViewPanes } = await import('./file_view_panes');
+		expect(await FileViewPanes.openInNewTab('w1', '/work/project/README.md')).toBe(false);
+		expect(closePane).toHaveBeenCalledWith('w1:p3');
+		expect(selectPane).not.toHaveBeenCalled();
+		expect(toast).toHaveBeenCalledWith('Error: cannot start waiting command', 'error');
 	});
 });

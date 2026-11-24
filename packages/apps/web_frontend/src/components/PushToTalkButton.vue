@@ -33,6 +33,9 @@ const title = computed(() => {
   if (isTranscribing.value) {
     return t("voiceInput.titleTranscribing");
   }
+  if (isRecording.value && voiceInput.isDurationWarning) {
+    return t('voiceInput.recordingDurationWarning');
+  }
   if (isLatched.value) {
     return t("voiceInput.titleLatched");
   }
@@ -67,7 +70,7 @@ function onKeyUp(event: KeyboardEvent): void {
 <template>
   <button
     type="button"
-    :class="['btn icon lg push-to-talk border-0', { 'is-recording': isRecording, 'is-waiting': isWaiting, 'is-transcribing': isTranscribing }]"
+    :class="['btn icon lg push-to-talk border-0', { 'is-recording': isRecording, 'is-duration-warning': isRecording && voiceInput.isDurationWarning, 'is-waiting': isWaiting, 'is-transcribing': isTranscribing }]"
     :aria-pressed="isRecording"
     :aria-label="t('voiceInput.label')"
     :title="title"
@@ -86,6 +89,16 @@ function onKeyUp(event: KeyboardEvent): void {
 <style scoped>
 /* While the microphone is open, the icon is red: the red of the theme, not the pale red of the Bootstrap emphasis text. */
 .btn.is-recording { --btn-color: var(--danger-fg); --btn-hover-color: var(--danger-fg); --btn-active-color: var(--danger-fg); }
+@keyframes recording-duration-warning {
+  50% { opacity: 0.4; }
+}
+
+.btn.is-duration-warning { outline: 1px solid var(--danger-fg); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn.is-duration-warning { animation: recording-duration-warning 1s ease-in-out infinite; }
+}
+
 /* While the recording waits for Whisper, the wheel is orange, like the level bars, and the dimmed look of a disabled button does
    not fade it (issue 868). */
 .btn.is-waiting { --btn-color: var(--voice-wait); --btn-disabled-color: var(--voice-wait); --btn-disabled-opacity: 1; }

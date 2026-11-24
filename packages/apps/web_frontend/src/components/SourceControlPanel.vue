@@ -28,6 +28,12 @@ import { fileIconName } from "../lib/chat_files";
 import { t } from "../i18n/index";
 
 const groups = computed(() => splitFiles(currentGit.value));
+const commitStep = computed(() => {
+  const progress = sourceControl.commitProgress;
+  return progress?.workspaceId === state.selectedWorkspaceId ? progress.step : null;
+});
+const commitLabel = computed(() => t(`sourceControlPanel.${commitStep.value ?? "commit"}`));
+const isCommitDisabled = computed(() => sourceControl.isBusy || sourceControl.isWritingMessage);
 
 /** The commit message of the selected workspace. */
 const message = computed({
@@ -104,11 +110,11 @@ function openFile(file: SourceControlFile) {
   }
 }
 
-// A click on a file line shows its changes in a diff pane (issue #885).
 function openDiff(file: SourceControlFile) {
   const root = currentGit.value?.root;
-  if (root !== undefined) {
-    void DiffPanes.open(`${root}/${file.path}`);
+  const workspaceId = state.selectedWorkspaceId;
+  if (root !== undefined && workspaceId !== null) {
+    void DiffPanes.openInNewTab(workspaceId, `${root}/${file.path}`);
   }
 }
 
@@ -134,19 +140,20 @@ function chooseMore(id: string) {
         <button
           type="button"
           class="btn icon btn-sm icon-button"
-          :aria-label="t('sourceControlPanel.commit')"
-          :title="t('sourceControlPanel.commit')"
-          :disabled="sourceControl.isBusy"
+          :aria-label="commitLabel"
+          :title="commitLabel"
+          :disabled="isCommitDisabled"
           @click="commit('commit')"
         >
-          <Icon name="check2" />
+          <span v-if="commitStep !== null" class="spinner-border spinner-sm" aria-hidden="true"></span>
+          <Icon v-else name="check2" />
         </button>
         <button
           type="button"
           class="btn icon btn-sm icon-button"
           :aria-label="t('sourceControlPanel.refresh')"
           :title="t('sourceControlPanel.refresh')"
-          :disabled="git.loading"
+          :disabled="git.loading || sourceControl.isBusy"
           @click="refreshGit()"
         >
           <Icon name="arrow-clockwise" />
@@ -175,7 +182,7 @@ function chooseMore(id: string) {
           class="btn icon btn-sm icon-button write-message"
           :aria-label="t('sourceControlPanel.writeMessage')"
           :title="t('sourceControlPanel.writeMessage')"
-          :disabled="sourceControl.isWritingMessage"
+          :disabled="sourceControl.isWritingMessage || sourceControl.isBusy"
           @click="writeCommitMessage()"
         >
           <span v-if="sourceControl.isWritingMessage" class="spinner-border spinner-sm" role="status"></span>
@@ -184,15 +191,22 @@ function chooseMore(id: string) {
       </div>
 
       <div class="btn-group d-flex" role="group" :aria-label="t('sourceControlPanel.commit')">
-        <button type="button" class="btn btn-primary flex-fill justify-content-center" :disabled="sourceControl.isBusy" @click="commit('commit')">
-          <Icon name="check2" /> {{ t("sourceControlPanel.commit") }}
+        <button
+          type="button"
+          class="btn btn-primary flex-fill justify-content-center"
+          :disabled="isCommitDisabled"
+          @click="commit('commit')"
+        >
+          <span v-if="commitStep !== null" class="spinner-border spinner-sm" aria-hidden="true"></span>
+          <Icon v-else name="check2" />
+          <span role="status">{{ commitLabel }}</span>
         </button>
         <SourceControlMenu
           button-class="btn btn-primary commit-arrow"
           icon="chevron-down"
           :label="t('sourceControlPanel.commitActions')"
           :items="commitItems"
-          :is-disabled="sourceControl.isBusy"
+          :is-disabled="isCommitDisabled"
           @choose="(id) => commit(id as CommitMode)"
         />
       </div>

@@ -91,6 +91,16 @@ After pulling changes, run `git submodule update --init --recursive` to check ou
 
 To build the application, run `pnpm build`, then drag `Heidrun Code.app` into `/Applications`.
 
+## Experimental Linux and Windows builds
+
+Open [GitHub Actions](https://github.com/heidrun-org/heidrun_code/actions), select **Heidrun Code Linux and Windows builds**, choose **Run workflow**, and select the branch to build. GitHub requires the workflow to exist on `main` before the first manual run. The workflow uses standard hosted runners for this public repository. Each run uses Ubuntu 24.04 and Windows Server 2022 on x64, with Node.js 24.14.0, pnpm 10.33.2, and Rust 1.96.1. The [workflow file](.github/workflows/linux-windows-builds.yml) lists the native dependencies and records the runner image and tool versions in the job log.
+
+Compilation uses `pnpm install --frozen-lockfile` followed by `pnpm tauri build --no-bundle -- --locked`. Installer creation uses `pnpm tauri bundle --no-sign --bundles deb` on Linux and `pnpm tauri bundle --no-sign --bundles nsis` on Windows. The workflow reports compilation, installer creation, and automated tests as separate steps.
+
+Open a run and select the Linux or Windows job to inspect any failed step. Download the installer or compiler logs from **Artifacts** on the run summary. Artifacts expire after three days. The workflow does not create a release or test the application interactively.
+
+The Windows source still imports Unix sockets in `heidrun_code_ctrl` and uses Unix file operations in the desktop application. Check the Windows job log for the first failure before relying on a Windows build.
+
 ## What is in this repository
 
 | Package | What it is |

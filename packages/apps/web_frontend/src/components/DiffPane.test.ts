@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DOMWrapper, enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 
 const invokeMock = vi.hoisted(() => vi.fn(async (_command: string, _args: Record<string, string>): Promise<unknown> => null));
-const openFileViewMock = vi.hoisted(() => vi.fn(async (_path: string) => true));
+const openFileViewMock = vi.hoisted(() => vi.fn(async (_workspaceId: string, _path: string) => true));
 const refreshGitMock = vi.hoisted(() => vi.fn(async (_workspaceId?: string) => {}));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
@@ -14,7 +14,11 @@ vi.mock("../stores/theme", async () => {
   const { ref } = await import("vue");
   return { codeThemeClass: ref("github-dark") };
 });
-vi.mock("../stores/file_view_panes", () => ({ FileViewPanes: { open: openFileViewMock } }));
+vi.mock('../stores/file_view_panes', () => ({
+	FileViewPanes: {
+		openInNewTab: openFileViewMock,
+	},
+}));
 vi.mock("../stores/git", async (importOriginal) => {
   const original = await importOriginal<typeof import("../stores/git")>();
   return { ...original, refreshGit: refreshGitMock };
@@ -181,12 +185,12 @@ describe("DiffPane (issue #885)", () => {
     expect(refreshGitMock).toHaveBeenCalledWith("w1");
   });
 
-  it("opens the file in a file view pane after a click on Open the file", async () => {
+  it("opens the file in a new tab in the diff workspace after a click on Open the file", async () => {
     mountDiffPane();
     await flushPromises();
     (await menuEntry("open-file"))!.click();
     await flushPromises();
-    expect(openFileViewMock).toHaveBeenCalledWith("/work/project/src/main.ts");
+    expect(openFileViewMock).toHaveBeenCalledWith("w1", "/work/project/src/main.ts");
   });
 
   it("has no entry Open the file for a deleted file", async () => {

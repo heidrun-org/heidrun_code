@@ -1,4 +1,6 @@
 {
+  "recordingDurationWarning": "Recording is near its time limit.",
+  "recordingLimitReached": "Recording stopped at the maximum duration.",
   "label": "Push to talk",
   "title": "Hold to speak, and release to write the text. Or click to start, and click again to write the text.",
   "titleRecording": "Listening… release the button to write the text",
