@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub(super) const ORIGIN_FILE: &str = ".heidrun_origin.json";
+pub const ORIGIN_FILE: &str = ".heidrun_origin.json";
 
 /// Where an installed skill comes from: written in `.heidrun_origin.json` at the installation.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -80,7 +80,7 @@ pub(super) fn is_valid_gitlab_source(source: &str) -> bool {
 }
 
 /// True for a folder name that cannot leave the folder of the skills.
-pub(super) fn is_valid_name(name: &str) -> bool {
+pub fn is_valid_name(name: &str) -> bool {
     !name.is_empty() && name != "." && name != ".." && !name.starts_with('.') && name.chars().all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c))
 }
 

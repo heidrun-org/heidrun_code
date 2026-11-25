@@ -1,6 +1,6 @@
 ---
 name: heidrun-code-ctrl
-description: Control the Heidrun Code application from the command line heidrun_code_ctrl. Use it to list, add, update, or delete the macros of the developer, the reusable texts that Heidrun Code writes into a pane, and to list, add, update, or delete the launchers of a project, the command lines that Heidrun Code runs in their own tab. Use the voice_words group to list, add, update, or delete the entries of the word replacement list of the voice input, the texts that Heidrun Code writes instead of the texts that Whisper writes wrongly. Use the workspaces group to list, open, rename, focus, or close workspaces through Herdr. Use the tabs group to list, create, rename, focus, or close tabs, and the panes group to list, split, rename, focus, or close panes, to type a text or press keys in a pane, to wait for a text in the output of a pane, and to read that output. A running Heidrun Code shows each change in its window within about one second.
+description: Control the Heidrun Code application from the command line heidrun_code_ctrl. Use it to list, add, update, or delete the macros of the developer, the reusable texts that Heidrun Code writes into a pane, and to list, add, update, or delete the launchers of a project, the command lines that Heidrun Code runs in their own tab. Use the voice_words group to list, add, update, or delete the entries of the word replacement list of the voice input, the texts that Heidrun Code writes instead of the texts that Whisper writes wrongly. Use the skills group to list, update, search for, install, or delete skills. Use the workspaces group to list, open, rename, focus, or close workspaces through Herdr. Use the tabs group to list, create, rename, focus, or close tabs, and the panes group to list, split, rename, focus, or close panes, to type a text or press keys in a pane, to wait for a text in the output of a pane, and to read that output. A running Heidrun Code shows each change in its window within about one second.
 compatibility: macOS with Heidrun Code installed and heidrun_code_ctrl available on the shell path.
 ---
 
@@ -114,6 +114,25 @@ The rules of the matching:
    ```bash
    heidrun_code_ctrl voice_words delete <id> --format json
    ```
+
+## The skills
+
+`skills list` shows a skill's coding agents, whether Heidrun Code installed it, and **Different** when its recorded source would change the installed files. Use `--installer all` (`-i all`) to include skills from other installers. The default is `heidrun_code`. If the source cannot be read, the list reuses the last complete source saved to disk and marks the comparison **Stale cache**.
+
+`skills update` takes a skill name or `--all` (`-a`). It updates only skills installed by Heidrun Code. The recorded source takes precedence. Bulk updates continue if one skill fails, then return a nonzero exit code. Remote updates use one repository revision for the complete file set.
+
+For installation-level commands, `--level` (`-l`) defaults to `workspace` and also accepts `user`. At the workspace level, `--workspace-path` (`-w`) accepts an absolute or relative path and defaults to `.`. Use `--format` (`-f`) with `text`, `markdown` (the default), or `json`. Text uses color in an interactive terminal.
+
+```bash
+heidrun_code_ctrl skills list -i all -f text
+heidrun_code_ctrl skills update example-skill -w ../other-project
+heidrun_code_ctrl skills update -a -l user --format json
+heidrun_code_ctrl skills search "release notes"
+heidrun_code_ctrl skills install --local-folder ../example-skill --agent codex
+heidrun_code_ctrl skills delete example-skill
+```
+
+Search also accepts `--folder-url` for a GitHub or GitLab folder or `--local-folder` for a folder on this computer. Install accepts those sources or a skill name with `--repository` from a skills.sh search result. Repeat `--agent` to select coding agents. The default is `codex`. Delete removes the coding agent links and moves the installed folder to the Trash. If several independent installations share a name, delete reports the ambiguity and leaves the folders in place.
 
 ## The workspaces
 
@@ -236,4 +255,4 @@ A command that fails exits with the code 1, prints one JSON object on one line o
 
 ## For a person
 
-The default Markdown output is for a person, or for a renderer. `heidrun_code_ctrl macros list | glow`, `heidrun_code_ctrl launchers list | glow`, and `heidrun_code_ctrl voice_words list | glow` show it with colors. There is no format with colors in `heidrun_code_ctrl`.
+The default Markdown output is for a person, or for a renderer. `heidrun_code_ctrl macros list | glow`, `heidrun_code_ctrl launchers list | glow`, and `heidrun_code_ctrl voice_words list | glow` show it with colors. For skills, use `--format text` for color in an interactive terminal.

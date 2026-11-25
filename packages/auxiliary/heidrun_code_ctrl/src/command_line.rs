@@ -5,8 +5,8 @@ use heidrun_code_ctrl::{Format, MacroKind};
 /// The text of `heidrun_code_ctrl --help`.
 pub const HELP: &str = r#"Usage: heidrun_code_ctrl <group> <command> [options]
 
-Controls the Heidrun Code application. There are six groups of commands: macros, launchers,
-voice_words, workspaces, tabs, and panes.
+Controls the Heidrun Code application. Command groups: macros, launchers, voice_words, skills,
+workspaces, tabs, and panes.
 
 The macros: a macro is a reusable text that the developer writes into a pane. There are
 two kinds of macro:
@@ -54,6 +54,11 @@ Commands:
   voice_words update <id>     Change the text that Whisper writes, or the text that Heidrun Code
                               writes instead, of an entry.
   voice_words delete <id>     Delete an entry.
+  skills list                 List skills and show which installed files are Different.
+  skills update <name>        Update one skill, or use --all to update every eligible skill.
+  skills search <query>       Search skills.sh, or use --folder-url or --local-folder.
+  skills install <name>       Install with --repository, or use a folder source without a name.
+  skills delete <name>        Remove an installed skill and its coding agent links.
   workspaces list             List the workspaces and their Herdr fields.
   workspaces open             Open and select a workspace from --cwd.
   workspaces rename <id>      Rename a workspace using --label.
@@ -77,6 +82,17 @@ Commands:
   panes read <pane id>        Read the output of a pane.
 
 Options:
+  --level, -l <level>          Skill installation level: user or workspace (default).
+  --workspace-path, -w <path>  Workspace folder, absolute or relative (default: .).
+  --installer, -i <installer>  Skills list only: heidrun_code (default) or all.
+  --all, -a                   Skills update only: update every eligible skill.
+  --repository <owner/repo>   Skills install only: repository of a skills.sh result.
+  --folder-url <url>          Skills search or install: GitHub or GitLab folder address.
+  --local-folder <path>       Skills search or install: folder on this computer.
+  --agent <agent>             Skills install only: claude, codex, or antigravity. Repeat
+                              to select several. Default: codex.
+  --format, -f <text|markdown|json>
+                              Skills output defaults to markdown. Text uses color in a terminal.
   --session <name>            Workspaces, tabs, and panes only. Choose the Herdr session.
                               Without this option, use inherited HERDR_SOCKET_PATH or
                               HERDR_SESSION, otherwise heidrun. Development in the main
@@ -145,7 +161,7 @@ Options:
                               at its start or at its end is part of it.
   --folder <path>             A folder of the project, for the project macros and for the
                               launchers. (default: the current folder)
-  --format <name>             markdown or json. (default: markdown)
+  --format <name>             For other groups, markdown or json. (default: markdown)
   --json                      The same as --format json.
   -h, --help                  Print this help.
 
@@ -511,15 +527,19 @@ pub fn is_herdr_command(arguments: &[String]) -> bool {
 
 /// The format that the arguments ask for, read without the other checks, so that an error of the arguments is written in
 /// that format too. `None` when no valid format is given.
+#[allow(non_snake_case)]
 pub fn find_format(arguments: &[String]) -> Option<Format> {
+    let isSkillsCommand = arguments.first().is_some_and(|group| group == "skills");
     let mut format = None;
     let mut rest = arguments.iter();
     while let Some(argument) = rest.next() {
-        if argument == "--json" {
+        if isSkillsCommand == false && argument == "--json" {
             format = Some(Format::Json);
-        } else if argument == "--format" {
+        } else if argument == "--format" || (isSkillsCommand && argument == "-f") {
             format = rest.next().and_then(|name| Format::from_name(name)).or(format);
-        } else if let Some(name) = argument.strip_prefix("--format=") {
+        } else if let Some(name) = argument.strip_prefix("--format=").or_else(|| {
+            if isSkillsCommand { argument.strip_prefix("-f=") } else { None }
+        }) {
             format = Format::from_name(name).or(format);
         }
     }

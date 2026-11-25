@@ -1,37 +1,93 @@
-//! Manages the skills (the folders with a `SKILL.md` file) that the coding agents read.
-//!
-//! Each coding agent reads its skills from its own folder, at the workspace level (the folder of the workspace) or at
-//! the user level (the home folder of the user):
-//!
-//! | Agent       | Workspace folder  | User folder                                      |
-//! |-------------|-------------------|--------------------------------------------------|
-//! | Claude Code | `.claude/skills/` | `skills/` of the Claude configuration folder     |
-//! | Codex       | `.agents/skills/` | `~/.agents/skills/`                              |
-//! | Antigravity | `.agents/skills/` | `~/.gemini/antigravity-cli/skills/`               |
-//!
-//! The real files of an installed skill are in the folder of Codex. For every other agent that the user switched on,
-//! Heidrun Code adds a link (a symbolic link) in the folder of that agent, so the files cannot become different from each
-//! other. The search goes to skills.sh. A skill can also be installed from the web address of its folder in a public
-//! GitHub or GitLab repository, or from its folder on this computer. The text and the files of a skill of skills.sh come
-//! from its GitHub repository. Next to every skill that Heidrun Code installs, Heidrun Code writes the file
-//! `.heidrun_origin.json`, which records where the skill comes from. The list of the files of each GitHub repository and
-//! the text of each `SKILL.md` file of skills.sh are kept in the cache folder `~/Library/Caches/heidrun/skills`, fresh for
-//! one hour, and kept for 30 days for the times when GitHub refuses a call or the network is not available.
+//! Desktop commands for the shared skill management operations.
 
-
-pub(crate) mod agent_folders;
 pub(crate) mod bundled;
-mod cache;
-mod folder_address;
-mod github;
-mod gitlab;
-pub(crate) mod install;
-pub(crate) mod installed;
-mod local_folder;
-mod repository_paths;
-pub(crate) mod search;
-mod skill_text;
-mod types;
+
+use heidrun_code_ctrl::skills::{agentFolders, install, installed, search};
+use heidrun_code_ctrl::skills::types::{InstalledSkill, SearchResult};
+
+#[tauri::command]
+pub fn skills_list(cwd: Option<String>) -> Vec<InstalledSkill> {
+	installed::skills_list(cwd)
+}
+
+#[tauri::command]
+pub fn skills_read(level: String, cwd: Option<String>, name: String) -> Result<String, String> {
+	installed::skills_read(level, cwd, name)
+}
+
+#[tauri::command]
+pub fn skills_delete(level: String, cwd: Option<String>, name: String) -> Result<(), String> {
+	installed::skills_delete(level, cwd, name)
+}
+
+#[tauri::command]
+pub async fn skills_search(query: String) -> Result<Vec<SearchResult>, String> {
+	search::skills_search(query).await
+}
+
+#[tauri::command]
+pub fn skills_find_local_folders(path: String) -> Result<Vec<String>, String> {
+	search::skills_find_local_folders(path)
+}
+
+#[tauri::command]
+pub async fn skills_find_folders(url: String) -> Result<Vec<String>, String> {
+	search::skills_find_folders(url).await
+}
+
+#[tauri::command]
+pub async fn skills_preview(source: String, skill_id: String) -> Result<String, String> {
+	install::skills_preview(source, skill_id).await
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn skillsCompare(
+	level: String,
+	cwd: Option<String>,
+	skillId: String,
+	source: String,
+	folderUrl: Option<String>,
+	folderPath: Option<String>,
+) -> Result<install::SkillComparison, String> {
+	install::skillsCompare(level, cwd, skillId, source, folderUrl, folderPath).await
+}
+
+#[tauri::command]
+pub async fn skills_install(
+	level: String,
+	cwd: Option<String>,
+	source: String,
+	skill_id: String,
+	agents: Vec<String>,
+) -> Result<InstalledSkill, String> {
+	install::skills_install(level, cwd, source, skill_id, agents).await
+}
+
+#[tauri::command]
+pub async fn skills_preview_folder(url: String) -> Result<String, String> {
+	install::skills_preview_folder(url).await
+}
+
+#[tauri::command]
+pub async fn skills_install_folder(level: String, cwd: Option<String>, url: String, agents: Vec<String>) -> Result<InstalledSkill, String> {
+	install::skills_install_folder(level, cwd, url, agents).await
+}
+
+#[tauri::command]
+pub fn skills_preview_local_folder(path: String) -> Result<String, String> {
+	install::skills_preview_local_folder(path)
+}
+
+#[tauri::command]
+pub fn skills_install_local_folder(level: String, cwd: Option<String>, path: String, agents: Vec<String>) -> Result<InstalledSkill, String> {
+	install::skills_install_local_folder(level, cwd, path, agents)
+}
+
+#[tauri::command]
+pub fn skills_link_agent(level: String, cwd: Option<String>, name: String, agent: String) -> Result<(), String> {
+	agentFolders::skills_link_agent(level, cwd, name, agent)
+}
 
 #[cfg(test)]
-mod test_support;
+mod testSupport;

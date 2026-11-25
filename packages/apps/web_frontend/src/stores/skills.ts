@@ -77,7 +77,15 @@ export interface SkillView {
 /**
  * How the result's files compare with those of the skill installed at the chosen level.
  */
-export type SkillComparison = "checking" | "same" | "different" | "unknown";
+export type SkillComparison = 'checking' | 'same' | 'different' | 'cached-same' | 'cached-different' | 'unknown';
+
+/** The result of comparing installed files with the source in the desktop backend. */
+type SkillComparisonResult = {
+	/** Whether the installed files match the source used for comparison. */
+	isSame: boolean;
+	/** Why the comparison used the cached source, or null for a live result. */
+	staleReason: string | null;
+};
 
 export const skills = reactive({
   installed: [] as InstalledSkill[],
@@ -452,7 +460,7 @@ export async function compareWithInstalled(result: SearchResult): Promise<void> 
   comparisonRequests.set(key, request);
   skills.comparisons[key] = "checking";
   try {
-		const isSame = await invoke<boolean>('skillsCompare', {
+		const comparison = await invoke<SkillComparisonResult>('skillsCompare', {
 			level: settings.skillsLevel,
 			cwd: currentCwd(),
 			skillId: result.skillId,
@@ -461,7 +469,11 @@ export async function compareWithInstalled(result: SearchResult): Promise<void> 
 			folderPath: result.folderPath,
 		});
 		if (comparisonRequests.get(key) === request) {
-			skills.comparisons[key] = isSame ? 'same' : 'different';
+			if (comparison.staleReason !== null) {
+				skills.comparisons[key] = comparison.isSame ? 'cached-same' : 'cached-different';
+			} else {
+				skills.comparisons[key] = comparison.isSame ? 'same' : 'different';
+			}
 		}
   } catch {
     if (comparisonRequests.get(key) === request) {

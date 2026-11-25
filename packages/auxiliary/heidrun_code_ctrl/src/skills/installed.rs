@@ -1,11 +1,11 @@
 //! The skills installed on the disk: list, read, and delete.
 
 use std::path::{Path, PathBuf};
-use super::agent_folders::{AGENTS, SkillLocation, skill_locations, skills_dir};
-use super::skill_text::parse_description;
+use super::agentFolders::{AGENTS, SkillLocation, skill_locations, skills_dir, workspaceBoundary};
+use super::skillText::parse_description;
 use super::types::{InstalledSkill, ORIGIN_FILE, SkillOrigin, is_valid_name};
 
-pub(super) fn read_origin(dir: &Path) -> Option<SkillOrigin> {
+pub fn read_origin(dir: &Path) -> Option<SkillOrigin> {
     let text = std::fs::read_to_string(dir.join(ORIGIN_FILE)).ok()?;
     serde_json::from_str(&text).ok()
 }
@@ -53,7 +53,6 @@ pub(super) fn list_level(level: &str, cwd: Option<&str>) -> Vec<InstalledSkill> 
 }
 
 /// The skills of the workspace folder, then the skills of the user.
-#[tauri::command]
 pub fn skills_list(cwd: Option<String>) -> Vec<InstalledSkill> {
     let mut skills = Vec::new();
     if cwd.as_deref().is_some_and(|folder| folder.is_empty() == false) {
@@ -64,7 +63,6 @@ pub fn skills_list(cwd: Option<String>) -> Vec<InstalledSkill> {
 }
 
 /// The text of the `SKILL.md` file of an installed skill.
-#[tauri::command]
 pub fn skills_read(level: String, cwd: Option<String>, name: String) -> Result<String, String> {
     for location in skill_locations(&level, cwd.as_deref(), &name)? {
         if let Ok(text) = std::fs::read_to_string(location.path.join("SKILL.md")) {
@@ -75,7 +73,7 @@ pub fn skills_read(level: String, cwd: Option<String>, name: String) -> Result<S
 }
 
 /// Deletes the links of a skill, then the real folders with `remove_real`. Gives the number of places removed.
-pub(super) fn delete_locations(locations: &[SkillLocation], remove_real: &dyn Fn(&Path) -> Result<(), String>) -> Result<usize, String> {
+pub fn delete_locations(locations: &[SkillLocation], remove_real: &dyn Fn(&Path) -> Result<(), String>) -> Result<usize, String> {
     for location in locations.iter().filter(|location| location.is_link) {
         std::fs::remove_file(&location.path).map_err(|e| format!("skills_delete_failed: {e}"))?;
     }
@@ -86,7 +84,7 @@ pub(super) fn delete_locations(locations: &[SkillLocation], remove_real: &dyn Fn
 }
 
 /// Moves a folder to the Trash, never a permanent delete.
-pub(super) fn move_to_trash(path: &Path) -> Result<(), String> {
+pub fn move_to_trash(path: &Path) -> Result<(), String> {
     #[allow(unused_mut)]
     let mut context = trash::TrashContext::default();
     // NSFileManager: no Finder automation prompt, like the file explorer.
@@ -100,7 +98,6 @@ pub(super) fn move_to_trash(path: &Path) -> Result<(), String> {
 
 /// Deletes an installed skill from the folders of all the agents: the links are removed, the real folder goes to the
 /// Trash.
-#[tauri::command]
 pub fn skills_delete(level: String, cwd: Option<String>, name: String) -> Result<(), String> {
     let locations = skill_locations(&level, cwd.as_deref(), &name)?;
     if locations.is_empty() {
@@ -109,11 +106,51 @@ pub fn skills_delete(level: String, cwd: Option<String>, name: String) -> Result
     delete_locations(&locations, &move_to_trash).map(|_| ())
 }
 
+/// Removes a named skill only when its coding agent entries refer to one valid installation in scope.
+pub fn skillsDeleteUnambiguous(level: &str, workspacePath: Option<&str>, name: &str) -> Result<(), String> {
+    let locations = skill_locations(level, workspacePath, name)?;
+    let workspaceRoot = workspaceBoundary(level, workspacePath)?;
+    let mut destinations = std::collections::BTreeSet::new();
+    let mut validated = Vec::new();
+    let mut validatedPaths = std::collections::BTreeSet::new();
+    for mut location in locations {
+        let parent = location.path.parent().ok_or("The skill path has no parent.")?;
+        let absoluteParent = parent.canonicalize().map_err(|error| format!("Cannot resolve {}: {error}", parent.display()))?;
+        if workspaceRoot.as_ref().is_some_and(|root| absoluteParent.starts_with(root) == false) {
+            return Err(format!("The skill entry {} is outside the selected workspace.", location.path.display()));
+        }
+        location.path = absoluteParent.join(name);
+        if validatedPaths.insert(location.path.clone()) == false {
+            continue;
+        }
+        let destination = match location.path.canonicalize() {
+            Ok(destination) => destination,
+            Err(error) if location.is_link && error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(format!("Cannot resolve {}: {error}", location.path.display())),
+        };
+        if destination.join("SKILL.md").is_file() == false {
+            return Err(format!("{} is not an installed skill. No files were removed.", location.path.display()));
+        }
+        if location.is_link == false && workspaceRoot.as_ref().is_some_and(|root| {
+            destination == *root || destination.starts_with(root) == false
+        }) {
+            return Err(format!("The skill folder {} is outside the selected workspace.", destination.display()));
+        }
+        destinations.insert(destination);
+        validated.push(location);
+    }
+    match destinations.len() {
+        0 => Err(format!("skills_not_installed: {name}")),
+        1 => delete_locations(&validated, &move_to_trash).map(|_| ()),
+        _ => Err(format!("More than one independent installation is named {name}. No folders were removed.")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skills::test_support::*;
-    use super::super::agent_folders::{link_agents, make_link, relative_link_target};
+    use crate::skills::testSupport::*;
+    use super::super::agentFolders::{link_agents, make_link, relative_link_target};
 
     #[test]
     fn lists_the_skills_with_their_origin() {

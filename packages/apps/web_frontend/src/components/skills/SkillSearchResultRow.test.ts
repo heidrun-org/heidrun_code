@@ -282,7 +282,7 @@ describe("SkillSearchResultRow: comparison with the installed skill", () => {
   }
 
   it("shows a small badge Different at the left of the buttons, and the button Install, when an installed file differs", async () => {
-    const { wrapper } = await mountInstalledRow({ skillsCompare: false, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    const { wrapper } = await mountInstalledRow({ skillsCompare: { isSame: false, staleReason: null }, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
     expect(invoke).toHaveBeenCalledWith("skillsCompare", expect.objectContaining({
       level: "user", cwd: "/work/heidrun", skillId: "pdf", source: "anthropics/skills",
     }));
@@ -296,9 +296,21 @@ describe("SkillSearchResultRow: comparison with the installed skill", () => {
   });
 
   it("shows no badge and the disabled button Installed when all installed files match", async () => {
-    const { wrapper } = await mountInstalledRow({ skillsCompare: true });
+    const { wrapper } = await mountInstalledRow({ skillsCompare: { isSame: true, staleReason: null } });
     expect(wrapper.find(".differentBadge").exists()).toBe(false);
     expect(wrapper.findAll(".btn-group button").map((button) => button.text())).toEqual(["Inspect", "Installed"]);
+  });
+
+  it('labels a cached difference and keeps replacement unavailable', async () => {
+    const { wrapper } = await mountInstalledRow({
+      skillsCompare: {
+        isSame: false,
+        staleReason: 'skills_github_rate_limit',
+      },
+    });
+    expect(wrapper.get('.differentBadge').text()).toBe('Different (stale cache)');
+    expect(wrapper.findAll('.btn-group button').map((button) => button.text())).toEqual(['Inspect', 'Installed']);
+    expect(wrapper.findAll('.btn-group button')[1].attributes('disabled')).toBeDefined();
   });
 
   it("shows no badge when one of the two files cannot be read", async () => {
@@ -322,7 +334,7 @@ describe("SkillSearchResultRow: comparison with the installed skill", () => {
   });
 
   it("gives the text of the installed skill to the window of the SKILL.md file when the user inspects it", async () => {
-    const { wrapper, skills } = await mountInstalledRow({ skillsCompare: false, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    const { wrapper, skills } = await mountInstalledRow({ skillsCompare: { isSame: false, staleReason: null }, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
     await wrapper.findAll(".btn-group button")[0].trigger("click");
     await flushPromises();
     expect(skills.skills.view?.text).toBe("# pdf\nnew way");
@@ -337,7 +349,7 @@ describe("SkillSearchResultRow: comparison with the installed skill", () => {
   });
 
   it("replaces the installed skill with the different one: confirmation, then the Trash, then the installation", async () => {
-    const { wrapper, session } = await mountInstalledRow({ skillsCompare: false, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    const { wrapper, session } = await mountInstalledRow({ skillsCompare: { isSame: false, staleReason: null }, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
     const confirm = await import("../../stores/confirm");
     invoke.mockClear();
     await wrapper.findAll(".btn-group button")[1].trigger("click");
@@ -355,7 +367,7 @@ describe("SkillSearchResultRow: comparison with the installed skill", () => {
   });
 
   it("replaces nothing when the developer cancels the confirmation", async () => {
-    const { wrapper } = await mountInstalledRow({ skillsCompare: false, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    const { wrapper } = await mountInstalledRow({ skillsCompare: { isSame: false, staleReason: null }, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
     const confirm = await import("../../stores/confirm");
     invoke.mockClear();
     await wrapper.findAll(".btn-group button")[1].trigger("click");
@@ -366,7 +378,7 @@ describe("SkillSearchResultRow: comparison with the installed skill", () => {
   });
 
   it("says that the previous version is in the Trash when the installation fails after the removal", async () => {
-    const { wrapper, session } = await mountInstalledRow({ skillsCompare: false, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
+    const { wrapper, session } = await mountInstalledRow({ skillsCompare: { isSame: false, staleReason: null }, skills_preview: "# pdf\nnew way", skills_read: "# pdf\nold way" });
     const confirm = await import("../../stores/confirm");
     invoke.mockImplementation(async (command: string) => {
       if (command === "skills_install") {
@@ -423,7 +435,7 @@ describe("SkillSearchResultRow: the card of the circled question mark", () => {
   });
 
   it("says that the skill is installed with different files when it is", async () => {
-    const { wrapper, settings } = await mountRow(PDF, { skillsCompare: false, skills_preview: TEXT });
+    const { wrapper, settings } = await mountRow(PDF, { skillsCompare: { isSame: false, staleReason: null }, skills_preview: TEXT });
     settings.skillsLevel = "user";
     await flushPromises();
     await clickQuestionMark(wrapper);

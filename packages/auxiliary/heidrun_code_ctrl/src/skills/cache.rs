@@ -18,6 +18,9 @@ pub(super) const FILE_LIST_KEPT: Duration = Duration::from_secs(30 * 24 * 3600);
 pub(super) struct FileListEntry {
     /// When GitHub gave the list, in seconds since 1970.
     pub(super) fetched_at: u64,
+    /// The immutable revision of the file list, when the lookup resolved one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) revision: Option<String>,
     pub(super) files: Vec<RepositoryFile>,
 }
 
@@ -41,12 +44,7 @@ pub(super) fn read_entry(folder: &Path, source: &str) -> Option<FileListEntry> {
 
 /// Writes the entry of a repository, and deletes the files of the cache that are older than `FILE_LIST_KEPT`.
 pub(super) fn write_entry(folder: &Path, source: &str, entry: &FileListEntry) {
-    if std::fs::create_dir_all(folder).is_err() {
-        return;
-    }
-    if let Ok(text) = serde_json::to_string(entry) {
-        let _ = std::fs::write(cache_file(folder, source), text);
-    }
+    writeCacheFile(&cache_file(folder, source), entry);
     prune_old(folder);
 }
 
@@ -132,24 +130,71 @@ pub(super) fn file_list_cache() -> &'static Mutex<HashMap<String, FileListEntry>
 /// The cached list of a repository, from memory or from the cache folder: `None` when there is none, or when it is
 /// older than `max_age`.
 pub(super) fn cached_files(source: &str, max_age: Option<Duration>) -> Option<Vec<RepositoryFile>> {
+    cachedFileList(source, max_age).map(|entry| entry.files)
+}
+
+/// Returns an eligible cached tree, including its revision when available.
+pub(super) fn cachedFileList(source: &str, max_age: Option<Duration>) -> Option<FileListEntry> {
     let mut cache = file_list_cache().lock().unwrap_or_else(|e| e.into_inner());
-    if cache.contains_key(source) == false {
-        let entry = read_entry(&cache_folder(), source)?;
-        cache.insert(source.to_string(), entry);
+    if let Some(entry) = cache.get(source).filter(|entry| is_fresh(entry, max_age)) {
+        return Some(entry.clone());
     }
-    let entry = cache.get(source)?;
-    is_fresh(entry, max_age).then(|| entry.files.clone())
+    let entry = read_entry(&cache_folder(), source).filter(|entry| is_fresh(entry, max_age))?;
+    cache.insert(source.to_string(), entry.clone());
+    Some(entry)
+}
+
+/// The file paths and content hashes of a complete skill source.
+pub(super) type SkillManifest = Vec<(std::path::PathBuf, String)>;
+
+/// Builds the cache path for the exact source, including its folder or pinned revision when supplied.
+pub(super) fn manifestPath(
+    source: &str,
+    skillId: &str,
+    folderUrl: Option<&str>,
+    folderPath: Option<&str>,
+) -> PathBuf {
+    use sha2::{Digest, Sha256};
+    let identity = serde_json::to_vec(&(source, skillId, folderUrl, folderPath))
+        .expect("a tuple of strings can be serialized");
+    cache_folder().join("manifests").join(format!("{:x}.json", Sha256::digest(identity)))
+}
+
+/// Returns the cached manifest regardless of age. A partial or unreadable cache entry is ignored.
+pub(super) fn readManifest(cachePath: &Path) -> Option<SkillManifest> {
+    serde_json::from_reader(std::fs::File::open(cachePath).ok()?).ok()
+}
+
+/// Atomically saves a complete manifest. A full or unavailable cache does not prevent a live comparison.
+pub(super) fn writeManifest(cachePath: &Path, manifest: &SkillManifest) {
+    writeCacheFile(cachePath, manifest);
+}
+
+/// Writes a complete cache entry before making it visible to another process.
+fn writeCacheFile(cachePath: &Path, entry: &impl Serialize) {
+    let Some(folder) = cachePath.parent() else {
+        return;
+    };
+    if std::fs::create_dir_all(folder).is_err() {
+        return;
+    }
+    let Ok(mut staging) = tempfile::NamedTempFile::new_in(folder) else {
+        return;
+    };
+    if serde_json::to_writer(staging.as_file_mut(), entry).is_ok() {
+        let _ = staging.persist(cachePath);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skills::test_support::*;
+    use crate::skills::testSupport::*;
 
     #[test]
     fn writes_and_reads_the_list_of_a_repository_in_the_cache_folder() {
         let folder = temp_folder("cache");
-        let entry = FileListEntry { fetched_at: now_seconds(), files: vec![RepositoryFile { path: "a/SKILL.md".into(), size: 1 }] };
+        let entry = FileListEntry { fetched_at: now_seconds(), revision: None, files: vec![RepositoryFile { path: "a/SKILL.md".into(), size: 1 }] };
         assert_eq!(read_entry(&folder, "owner/repository"), None);
         write_entry(&folder, "owner/repository", &entry);
         assert!(folder.join("owner__repository.json").exists());
@@ -160,8 +205,8 @@ mod tests {
     #[test]
     fn tells_a_fresh_list_from_an_old_one() {
         let now = now_seconds();
-        let fresh = FileListEntry { fetched_at: now - 60, files: Vec::new() };
-        let old = FileListEntry { fetched_at: now - 7200, files: Vec::new() };
+        let fresh = FileListEntry { fetched_at: now - 60, revision: None, files: Vec::new() };
+        let old = FileListEntry { fetched_at: now - 7200, revision: None, files: Vec::new() };
         assert!(is_fresh(&fresh, Some(FILE_LIST_TTL)));
         assert!(is_fresh(&old, Some(FILE_LIST_TTL)) == false);
         // An old list is still good when GitHub refuses a new call.
@@ -210,9 +255,9 @@ mod tests {
     fn deletes_the_lists_older_than_thirty_days_when_it_writes() {
         let folder = temp_folder("prune");
         let day = 24 * 3600;
-        write_entry(&folder, "old/repository", &FileListEntry { fetched_at: now_seconds() - 31 * day, files: Vec::new() });
-        write_entry(&folder, "recent/repository", &FileListEntry { fetched_at: now_seconds() - 29 * day, files: Vec::new() });
-        write_entry(&folder, "new/repository", &FileListEntry { fetched_at: now_seconds(), files: Vec::new() });
+        write_entry(&folder, "old/repository", &FileListEntry { fetched_at: now_seconds() - 31 * day, revision: None, files: Vec::new() });
+        write_entry(&folder, "recent/repository", &FileListEntry { fetched_at: now_seconds() - 29 * day, revision: None, files: Vec::new() });
+        write_entry(&folder, "new/repository", &FileListEntry { fetched_at: now_seconds(), revision: None, files: Vec::new() });
         assert!(folder.join("old__repository.json").exists() == false);
         assert!(folder.join("recent__repository.json").exists());
         assert!(folder.join("new__repository.json").exists());
@@ -223,7 +268,7 @@ mod tests {
     fn keeps_a_list_in_memory_in_front_of_the_cache_folder() {
         let source = "test-owner/memory-test";
         let files = vec![RepositoryFile { path: "a/SKILL.md".into(), size: 1 }];
-        let old = FileListEntry { fetched_at: now_seconds() - 7200, files: files.clone() };
+        let old = FileListEntry { fetched_at: now_seconds() - 7200, revision: None, files: files.clone() };
         file_list_cache().lock().unwrap().insert(source.into(), old);
         assert_eq!(cached_files(source, Some(FILE_LIST_TTL)), None);
         assert_eq!(cached_files(source, None), Some(files));
