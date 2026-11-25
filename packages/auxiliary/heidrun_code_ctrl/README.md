@@ -1,6 +1,6 @@
 # heidrun_code_ctrl
 
-`heidrun_code_ctrl` is the command line that controls the Heidrun Code application. A coding agent reads its [SKILL.md](skills/heidrun-code-ctrl/SKILL.md) and uses the commands, in the same way as the developer uses the window. The [Agent Plugin](plugin.json) packages the current macro, launcher, voice word, and workspace commands for use in other repositories.
+`heidrun_code_ctrl` is the command line that controls the Heidrun Code application. A coding agent reads its [SKILL.md](skills/heidrun-code-ctrl/SKILL.md) and uses the commands, in the same way as the developer uses the window. The [Agent Plugin](plugin.json) packages the macro, launcher, voice word, skill, and workspace commands for use in other repositories.
 
 ## Install the Agent Plugin
 
@@ -22,6 +22,8 @@ npx skills add https://github.com/heidrun-org/heidrun_code/tree/dev_jerome/packa
 The skills.sh listing is based on installs made through the skills CLI. Its public listing may appear after people install the skill; the direct address works without waiting for a listing.
 
 ## Commands
+
+Use `skills list` to see skills installed by Heidrun Code and `skills update --all` to update them from their recorded sources. Both default to the current workspace. Use `--level user` for user-level skills. See the [skills commands](skills/heidrun-code-ctrl/SKILL.md#the-skills) for all options.
 
 The groups `macros`, `launchers`, and `voice_words` each have list, add, update, and delete. The group `workspaces` has list, open, rename, focus, and close.
 

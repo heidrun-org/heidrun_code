@@ -92,7 +92,9 @@ function stopPlaceScroll() {
 }
 
 const isInstalled = computed(() => isInstalledAtLevel(props.result));
-const isDifferent = computed(() => comparisonOf(props.result) === "different");
+const comparison = computed(() => comparisonOf(props.result));
+const isDifferent = computed(() => comparison.value === 'different');
+const isCached = computed(() => comparison.value === 'cached-same' || comparison.value === 'cached-different');
 const fields = computed(() => (typeof skillText.value === "string" ? splitSkillText(skillText.value).fields : []));
 const cardTitle = computed(() => fields.value.find((field) => field.key === "name")?.value ?? props.result.name);
 
@@ -155,6 +157,9 @@ const cardBlocks = computed(() => {
       <div ref="placeLine" class="sub" :class="{ scrolling: isPlaceScrolling }" :style="placeScrollStyle"><span class="subText">{{ placeLabel }}</span></div>
     </div>
     <span v-if="isDifferent" class="differentBadge" :title="t('settingsSkills.differentTitle')">{{ t("settingsSkills.different") }}</span>
+    <span v-else-if="isCached" class="differentBadge" :title="t('settingsSkills.staleComparisonTitle')">
+      {{ t(comparison === 'cached-different' ? 'settingsSkills.staleDifferent' : 'settingsSkills.staleComparison') }}
+    </span>
     <div class="btn-group rowActions" role="group" :aria-label="result.name">
       <button type="button" class="btn btn-outline theme-secondary" @click="inspectResult(result)">
         <Icon name="eye" /> {{ t("settingsSkills.inspect") }}

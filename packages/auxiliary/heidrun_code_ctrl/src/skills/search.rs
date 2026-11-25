@@ -1,11 +1,11 @@
 //! The searches of the window Find new skills: on skills.sh, in a folder on this computer, and in a folder on GitHub or GitLab.
 
 use serde::Deserialize;
-use super::folder_address::{CodeHost, FolderAddress, parse_folder_address};
+use super::folderAddress::{CodeHost, FolderAddress, parse_folder_address};
 use super::github::{http_client, list_folder_files};
 use super::gitlab::{GITLAB_BASE, list_gitlab_folder_files};
-use super::local_folder::find_local_skills;
-use super::repository_paths::{SkillFolders, find_skill_folders};
+use super::localFolder::find_local_skills;
+use super::repositoryPaths::{SkillFolders, find_skill_folders};
 use super::types::{SearchResult, is_valid_name, is_valid_source};
 
 pub(super) const SEARCH_URL: &str = "https://skills.sh/api/search";
@@ -19,7 +19,6 @@ pub(super) struct SearchResponse {
 }
 
 /// Searches skills.sh. An empty query gives an empty list.
-#[tauri::command]
 pub async fn skills_search(query: String) -> Result<Vec<SearchResult>, String> {
     let query = query.trim();
     if query.is_empty() {
@@ -40,7 +39,6 @@ pub async fn skills_search(query: String) -> Result<Vec<SearchResult>, String> {
 
 /// Finds the skill folders at a full path on this computer: the folder itself when it holds a file `SKILL.md`, otherwise
 /// each direct subfolder that holds one. Gives the full path of each skill folder, sorted. Nothing uses the network.
-#[tauri::command]
 pub fn skills_find_local_folders(path: String) -> Result<Vec<String>, String> {
     find_local_skills(&path).map(|folders| folders.iter().map(|folder| folder.display().to_string()).collect())
 }
@@ -48,7 +46,6 @@ pub fn skills_find_local_folders(path: String) -> Result<Vec<String>, String> {
 /// Finds the skill folders at a GitHub or GitLab web address: the address itself when its folder holds a file `SKILL.md`,
 /// otherwise the address of each direct subfolder that holds one, sorted. One call to GitHub, or a few pages of calls to
 /// GitLab, lists the files below the folder.
-#[tauri::command]
 pub async fn skills_find_folders(url: String) -> Result<Vec<String>, String> {
     let address = parse_folder_address(&url)?;
     let client = http_client()?;
@@ -80,7 +77,7 @@ async fn find_folders(client: &reqwest::Client, gitlab_base: &str, address: &Fol
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skills::test_support::*;
+    use crate::skills::testSupport::*;
 
     #[test]
     fn reads_the_answer_of_the_search() {

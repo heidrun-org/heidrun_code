@@ -1,12 +1,14 @@
 //! `heidrun_code_ctrl`: the command line that controls the Heidrun Code application, for a coding agent.
 //!
-//! This library shares the macro, launcher, and voice word file operations with the desktop application.
+//! This library shares the macro, launcher, voice word, and skill operations with the desktop application.
 //! The binary also controls workspaces through Herdr; those operations stay outside this library.
 //! The macros, the launchers, and the word replacement list of the voice input each have four orders. The orders are list,
 //! add, update, and delete. The library holds what the command line and the desktop application share, so that the format
 //! of each file has one place: the file of the personal macros, the keys `prompts` and `launchers`
 //! of the file `.heidrun/config.json`, the file of the user level launchers, the file of the word replacement list, the
 //! orders, and the output. The package knows nothing about Tauri.
+
+pub mod skills;
 
 mod ids;
 mod launcher_orders;

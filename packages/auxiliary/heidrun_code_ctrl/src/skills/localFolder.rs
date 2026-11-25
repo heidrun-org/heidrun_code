@@ -107,7 +107,7 @@ pub(super) fn copy_local_folder(source: &Path, staging: &Path, max_files: usize,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skills::test_support::*;
+    use crate::skills::testSupport::*;
 
     #[test]
     fn reads_the_name_and_the_text_of_a_skill_folder() {

@@ -1,10 +1,11 @@
 # Directory Context: `/packages/auxiliary/heidrun_code_ctrl`
 
 ## Purpose
-A Rust library and the `heidrun_code_ctrl` command line that control Heidrun Code macros, launchers, voice words (list, add, update, delete on watched files), and workspaces, tabs, and panes (through the running Herdr), plus an Agent Plugin that distributes its skill.
+A Rust library and the `heidrun_code_ctrl` command line that control Heidrun Code macros, launchers, voice words (list, add, update, delete on watched files), skills, and workspaces, tabs, and panes (through the running Herdr), plus an Agent Plugin that distributes its skill.
 
 ## Key Exports & Entry Points
 - `src/lib.rs`: the only public library interface: the macro, launcher, and voice word types, their files, their four orders, and the output formatting.
+- `src/skills/`: shared skill management for the command line and desktop application.
 - `src/main.rs`: the executable; `src/command_line.rs` parses the arguments and holds the help. The groups `workspaces`, `tabs`, and `panes` are binary-only and share `src/herdr.rs` (the executable, the socket, the focus request, the JSON output).
 - `plugin.json` and `skills/heidrun-code-ctrl/`: the Agent Plugin and its skill.
 - `tests/`: executable tests with temporary data, a temporary project, a fake `herdr`, and a fake Herdr socket. Library tests sit beside the source.

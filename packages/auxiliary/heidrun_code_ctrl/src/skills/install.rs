@@ -2,20 +2,21 @@
 //! GitHub or GitLab, or from a skill folder on this computer.
 
 use std::path::{Path, PathBuf};
-use super::agent_folders::{AGENTS, REAL_FILES_AGENT, link_agents, skill_locations, skills_dir};
-use super::folder_address::{CodeHost, FolderAddress, parse_folder_address};
-use super::github::{fetch_folder_text, find_skill, http_client, list_folder_files, list_repository_files, refreshRepositoryFiles, refreshSkill};
-use super::gitlab::{GITLAB_BASE, fetch_gitlab_folder_text, gitlab_file_url, list_gitlab_folder_files};
+use sha2::{Digest, Sha256};
+use super::cache::{manifestPath, readManifest, writeManifest, SkillManifest};
+use super::agentFolders::{AGENTS, REAL_FILES_AGENT, link_agents, skill_locations, skills_dir};
+use super::folderAddress::{CodeHost, FolderAddress, parse_folder_address};
+use super::github::{findSkillAtRevision, pinnedGitHubFolder, pinnedRepositoryFiles, fetch_folder_text, find_skill, http_client, list_folder_files, list_repository_files, RepositoryTrees};
+use super::gitlab::{pinnedGitLabFolder, GITLAB_BASE, fetch_gitlab_folder_text, gitlab_file_url, list_gitlab_folder_files};
 use super::installed::{delete_locations, list_level};
-use super::local_folder::{copy_local_folder, read_local_skill};
-use super::repository_paths::{encode_path, files_in_dir};
+use super::localFolder::{copy_local_folder, read_local_skill};
+use super::repositoryPaths::{encode_path, files_in_dir};
 use super::types::{InstalledSkill, ORIGIN_FILE, RepositoryFile, SkillOrigin, is_valid_name, is_valid_source};
 
 pub(super) const MAX_FILES: usize = 200;
 pub(super) const MAX_FILE_BYTES: usize = 2_000_000;
 
 /// The text of the `SKILL.md` file of a skill of skills.sh, to read it before the installation.
-#[tauri::command]
 pub async fn skills_preview(source: String, skill_id: String) -> Result<String, String> {
     if !is_valid_source(&source) || !is_valid_name(&skill_id) {
         return Err(format!("skills_invalid_name: {source} {skill_id}"));
@@ -26,7 +27,6 @@ pub async fn skills_preview(source: String, skill_id: String) -> Result<String, 
 
 /// The text of the `SKILL.md` file of the skill folder at a GitHub or GitLab web address, to read it before the
 /// installation.
-#[tauri::command]
 pub async fn skills_preview_folder(url: String) -> Result<String, String> {
     let address = parse_folder_address(&url)?;
     let client = http_client()?;
@@ -35,13 +35,11 @@ pub async fn skills_preview_folder(url: String) -> Result<String, String> {
 
 /// The text of the `SKILL.md` file of the skill folder at a full path on this computer, to read it before the
 /// installation. It is also the check of the folder: a path that is not a folder with a `SKILL.md` file is an error.
-#[tauri::command]
 pub fn skills_preview_local_folder(path: String) -> Result<String, String> {
     read_local_skill(&path).map(|skill| skill.text)
 }
 
 /// Compares the source files selected by installation with the installed skill at the chosen level.
-#[tauri::command]
 #[allow(non_snake_case)]
 pub async fn skillsCompare(
     level: String,
@@ -50,7 +48,7 @@ pub async fn skillsCompare(
     source: String,
     folderUrl: Option<String>,
     folderPath: Option<String>,
-) -> Result<bool, String> {
+) -> Result<SkillComparison, String> {
     let locations = skill_locations(&level, cwd.as_deref(), &skillId)?;
     let installed = locations.iter()
         .filter(|location| location.path.join("SKILL.md").is_file())
@@ -58,49 +56,146 @@ pub async fn skillsCompare(
         .ok_or_else(|| format!("skills_not_installed: {skillId}"))?;
     let staging = tempfile::tempdir().map_err(|error| format!("skills_install_failed: {error}"))?;
 
-    if let Some(path) = folderPath {
-        let skill = read_local_skill(&path)?;
-        copy_local_folder(&skill.folder, staging.path(), MAX_FILES, MAX_FILE_BYTES as u64)?;
-    } else if let Some(url) = folderUrl {
-        let address = parse_folder_address(&url)?;
-        let client = http_client()?;
-        let text = folder_text(&client, &address).await?;
-        write_folder_skill(&client, &address, &text, staging.path()).await?;
-    } else {
-        if is_valid_source(&source) == false {
-            return Err(format!("skills_invalid_name: {source}"));
-        }
-        let client = http_client()?;
-        let repositoryFiles = refreshRepositoryFiles(&client, &source).await?;
-        let (repositoryDir, text) = refreshSkill(&client, &source, &skillId).await?;
-        writeRepositorySkill(&client, &source, &repositoryDir, &text, &repositoryFiles, staging.path()).await?;
-    }
+    let stageResult = stageSource(
+        &mut RepositoryTrees::default(), &source, &skillId, folderUrl.as_deref(), folderPath.as_deref(), staging.path(),
+    ).await;
+    let cachePath = manifestPath(&source, &skillId, folderUrl.as_deref(), folderPath.as_deref());
+    Install::compareSource(&installed.path, staging.path(), &cachePath, stageResult, true)
+}
 
-    Install::haveSameFiles(&installed.path, staging.path())
-        .map_err(|error| format!("skills_install_failed: {error}"))
+/// Stages the complete set of files selected by installation, using the operation’s repository tree lookup.
+pub(super) async fn stageSource(
+    repositoryTrees: &mut RepositoryTrees,
+    source: &str,
+    skillId: &str,
+    folderUrl: Option<&str>,
+    folderPath: Option<&str>,
+    staging: &Path,
+) -> Result<(), String> {
+    if let Some(path) = folderPath {
+        let skill = read_local_skill(path)?;
+        return copy_local_folder(&skill.folder, staging, MAX_FILES, MAX_FILE_BYTES as u64);
+    }
+    if let Some(url) = folderUrl {
+        let address = parse_folder_address(url)?;
+        let client = http_client()?;
+        return stagePinnedFolder(repositoryTrees, &client, &address, staging).await;
+    }
+    if is_valid_source(source) == false || is_valid_name(skillId) == false {
+        return Err(format!("skills_invalid_name: {source} {skillId}"));
+    }
+    let client = http_client()?;
+    let revision = repositoryTrees.headRevision(&client, source).await?
+        .ok_or_else(|| format!("skills_not_found: {source} {skillId}"))?;
+    let files = pinnedRepositoryFiles(repositoryTrees, &client, source, &revision).await?;
+    let (directory, text) = findSkillAtRevision(&client, source, skillId, &revision, files).await?;
+    writeRepositorySkill(&client, source, &revision, &directory, &text, files, staging).await
+}
+
+/// Stages every installable file of a folder at the repository revision used to list those files.
+async fn stagePinnedFolder(
+    repositoryTrees: &mut RepositoryTrees,
+    client: &reqwest::Client,
+    address: &FolderAddress,
+    staging: &Path,
+) -> Result<(), String> {
+    let (revision, folderPath, files) = match address.host {
+        CodeHost::GitHub => pinnedGitHubFolder(repositoryTrees, client, address).await?,
+        CodeHost::GitLab => {
+            let folder = pinnedGitLabFolder(client, GITLAB_BASE, address, MAX_FILES).await?;
+            (folder.branch, folder.path, folder.files)
+        }
+    };
+    let files = files_in_dir(&files, "");
+    if files.len() > MAX_FILES {
+        return Err("skills_too_many_files".into());
+    }
+    for (relativePath, file) in files {
+        let isSkillFile = relativePath == Path::new("SKILL.md");
+        let filePath = format!("{folderPath}/{}", file.path);
+        match address.host {
+            CodeHost::GitHub => {
+                if isSkillFile || file.size <= MAX_FILE_BYTES as u64 {
+                    let path = encode_path(&filePath);
+                    let url = format!("https://raw.githubusercontent.com/{}/{revision}/{path}", address.source);
+                    download_file(client, &url, &staging.join(&relativePath), None).await?;
+                }
+            }
+            CodeHost::GitLab => {
+                let url = gitlab_file_url(GITLAB_BASE, &address.source, &filePath, &revision);
+                let limit = if isSkillFile { None } else { Some(MAX_FILE_BYTES) };
+                download_file(client, &url, &staging.join(&relativePath), limit).await?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The installed files compared with the current source or with the last complete source saved to disk.
+#[derive(serde::Serialize)]
+pub struct SkillComparison {
+    /// Whether the installed files match the source used for the comparison.
+    pub isSame: bool,
+    /// Why a cached source was used, when the live source was unavailable.
+    pub staleReason: Option<String>,
 }
 
 /// Compares staged files against installed files by path and contents.
-struct Install;
+pub(super) struct Install;
 
 #[allow(non_snake_case)]
 impl Install {
-    /// Returns whether both folders contain the same regular files and bytes, excluding installation metadata.
-    fn haveSameFiles(installed: &Path, staging: &Path) -> std::io::Result<bool> {
-        let installedFiles = Self::filePaths(installed)?;
-        if installedFiles != Self::filePaths(staging)? {
-            return Ok(false);
-        }
-        for path in installedFiles {
-            let stagedBytes = std::fs::read(staging.join(&path))?;
-            let installedPath = installed.join(path);
-            if std::fs::metadata(&installedPath)?.len() != stagedBytes.len() as u64
-                || std::fs::read(installedPath)? != stagedBytes
-            {
-                return Ok(false);
+    /// Compares a complete staged source, or reuses its saved manifest when a read-only comparison permits it.
+    pub(super) fn compareSource(
+        installed: &Path,
+        staging: &Path,
+        cachePath: &Path,
+        stageResult: Result<(), String>,
+        isCacheFallbackAllowed: bool,
+    ) -> Result<SkillComparison, String> {
+        let completeSource = stageResult.and_then(|()| {
+            if staging.join("SKILL.md").is_file() == false {
+                return Err("The recorded source did not provide a SKILL.md file.".into());
+            }
+            Self::compareAndCache(installed, staging, cachePath)
+                .map_err(|error| format!("skills_install_failed: {error}"))
+        });
+        match completeSource {
+            Ok(isSame) => Ok(SkillComparison { isSame, staleReason: None }),
+            Err(reason) => {
+                if isCacheFallbackAllowed {
+                    if let Ok(Some(isSame)) = Self::compareWithCache(installed, cachePath) {
+                        return Ok(SkillComparison { isSame, staleReason: Some(reason) });
+                    }
+                }
+                Err(reason)
             }
         }
-        Ok(true)
+    }
+
+    /// Saves the complete staged source and compares it with the files installed now.
+    pub(super) fn compareAndCache(installed: &Path, staging: &Path, cachePath: &Path) -> std::io::Result<bool> {
+        let sourceManifest = Self::_manifest(staging)?;
+        writeManifest(cachePath, &sourceManifest);
+        Ok(Self::_manifest(installed)? == sourceManifest)
+    }
+
+    /// Compares the current installation with the last complete source saved on disk.
+    pub(super) fn compareWithCache(installed: &Path, cachePath: &Path) -> std::io::Result<Option<bool>> {
+        let Some(sourceManifest) = readManifest(cachePath) else {
+            return Ok(None);
+        };
+        Ok(Some(Self::_manifest(installed)? == sourceManifest))
+    }
+
+    /// Returns relative paths and hashes of regular files using the same file selection as installation comparison.
+    fn _manifest(folder: &Path) -> std::io::Result<SkillManifest> {
+        Self::filePaths(folder)?.into_iter().map(|relativePath| {
+            let mut file = std::fs::File::open(folder.join(&relativePath))?;
+            let mut hasher = Sha256::new();
+            std::io::copy(&mut file, &mut hasher)?;
+            Ok((relativePath, format!("{:x}", hasher.finalize())))
+        }).collect()
     }
 
     /// Returns regular file paths relative to the folder.
@@ -121,7 +216,6 @@ impl Install {
 
 /// Installs a skill of skills.sh at `level` for the agents `agents`: the whole folder of the skill, with the file
 /// `.heidrun_origin.json`, goes in the skills folder of Codex, and every other agent gets a link to it.
-#[tauri::command]
 pub async fn skills_install(
     level: String,
     cwd: Option<String>,
@@ -142,7 +236,6 @@ pub async fn skills_install(
 
 /// Installs the skill folder at a GitHub or GitLab web address, in the same way as `skills_install`: every file below
 /// the folder is downloaded, and the folder gets the name of the last part of the address. The repository must be public.
-#[tauri::command]
 pub async fn skills_install_folder(
     level: String,
     cwd: Option<String>,
@@ -166,7 +259,6 @@ pub async fn skills_install_folder(
 
 /// Installs the skill folder at a full path on this computer, in the same way as `skills_install_folder`: every file
 /// below the folder is copied, and the folder gets the name of the last part of the path. Nothing uses the network.
-#[tauri::command]
 pub fn skills_install_local_folder(level: String, cwd: Option<String>, path: String, agents: Vec<String>) -> Result<InstalledSkill, String> {
     let skill = read_local_skill(&path)?;
     let plan = plan_install(level, cwd, &skill.name, agents)?;
@@ -182,7 +274,7 @@ pub fn skills_install_local_folder(level: String, cwd: Option<String>, path: Str
 }
 
 /// Installs one skill that is included with Heidrun Code for every coding agent at the user level.
-pub(super) fn install_bundled_skill(source: &Path, skill_id: &str) -> Result<InstalledSkill, String> {
+pub fn install_bundled_skill(source: &Path, skill_id: &str) -> Result<InstalledSkill, String> {
     let agents = AGENTS.iter().map(|agent| agent.to_string()).collect();
     let plan = plan_install("user".into(), None, skill_id, agents)?;
     prepare_staging(&plan)?;
@@ -273,7 +365,7 @@ pub(super) async fn write_skill(client: &reqwest::Client, source: &str, reposito
     } else {
         list_repository_files(client, source).await.unwrap_or_default()
     };
-    writeRepositorySkill(client, source, repository_dir, skill_text, &repositoryFiles, staging).await
+    writeRepositorySkill(client, source, "HEAD", repository_dir, skill_text, &repositoryFiles, staging).await
 }
 
 /// Writes the skill text and the installable files from the supplied repository listing.
@@ -281,6 +373,7 @@ pub(super) async fn write_skill(client: &reqwest::Client, source: &str, reposito
 async fn writeRepositorySkill(
     client: &reqwest::Client,
     source: &str,
+    revision: &str,
     repositoryDir: &str,
     skillText: &str,
     repositoryFiles: &[RepositoryFile],
@@ -299,7 +392,7 @@ async fn writeRepositorySkill(
         if relative == Path::new("SKILL.md") || file.size as usize > MAX_FILE_BYTES {
             continue;
         }
-        let url = format!("https://raw.githubusercontent.com/{source}/HEAD/{}", encode_path(&file.path));
+        let url = format!("https://raw.githubusercontent.com/{source}/{revision}/{}", encode_path(&file.path));
         download_file(client, &url, &staging.join(&relative), None).await?;
     }
     Ok(())
@@ -369,8 +462,29 @@ async fn download_file(client: &reqwest::Client, url: &str, target: &Path, skip_
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skills::test_support::*;
-    use super::super::{installed::skills_list, search::skills_search, skill_text::parse_name};
+    use crate::skills::testSupport::*;
+
+    #[test]
+    fn cachedSourceIsComparedWithTheFilesInstalledNow() {
+        let temporary = tempfile::tempdir().unwrap();
+        let installed = write_skill_folder(temporary.path(), "installed", "# Skill");
+        let source = write_skill_folder(temporary.path(), "source", "# Skill");
+        let cachePath = temporary.path().join("cache/manifest.json");
+
+        assert_eq!(Install::compareWithCache(&installed, &cachePath).unwrap(), None);
+        assert_eq!(Install::compareAndCache(&installed, &source, &cachePath).unwrap(), true);
+        std::fs::remove_dir_all(source).unwrap();
+        assert_eq!(Install::compareWithCache(&installed, &cachePath).unwrap(), Some(true));
+        std::fs::write(installed.join("local.bin"), [0, 255]).unwrap();
+        assert_eq!(Install::compareWithCache(&installed, &cachePath).unwrap(), Some(false));
+        let unavailable = Err("source unavailable".to_string());
+        let comparison = Install::compareSource(&installed, temporary.path(), &cachePath, unavailable.clone(), true).unwrap();
+        assert_eq!(comparison.isSame, false);
+        assert_eq!(comparison.staleReason.as_deref(), Some("source unavailable"));
+        assert!(Install::compareSource(&installed, temporary.path(), &cachePath, unavailable, false).is_err());
+    }
+
+    use super::super::{installed::skills_list, search::skills_search, skillText::parse_name};
 
     #[tokio::test]
     #[allow(non_snake_case)]
@@ -389,18 +503,18 @@ mod tests {
             "workspace".into(), cwd_of(&workspace), "pdf".into(), String::new(), None, Some(folderPath.clone()),
         );
 
-        assert_eq!(compareFn().await, Ok(true));
+        assert_eq!(compareFn().await.map(|comparison| comparison.isSame), Ok(true));
 
         let template = source.join("template.txt");
         std::fs::write(&template, "new").unwrap();
-        assert_eq!(compareFn().await, Ok(false));
+        assert_eq!(compareFn().await.map(|comparison| comparison.isSame), Ok(false));
         std::fs::remove_file(template).unwrap();
 
         std::fs::write(&script, [0, 1, 3]).unwrap();
-        assert_eq!(compareFn().await, Ok(false));
+        assert_eq!(compareFn().await.map(|comparison| comparison.isSame), Ok(false));
 
         std::fs::remove_file(script).unwrap();
-        assert_eq!(compareFn().await, Ok(false));
+        assert_eq!(compareFn().await.map(|comparison| comparison.isSame), Ok(false));
 
         let installedFolder = Path::new(&installed.path);
         assert_eq!(std::fs::read(installedFolder.join("scripts/helper.bin")).unwrap(), [0, 1, 2]);
@@ -566,9 +680,9 @@ mod tests {
         let compare = || skillsCompare(
             "workspace".into(), cwd_of(&workspace), "pdf".into(), "anthropics/skills".into(), Some(address.into()), None,
         );
-        assert_eq!(compare().await, Ok(true));
+        assert_eq!(compare().await.map(|comparison| comparison.isSame), Ok(true));
         std::fs::write(folder.join("old-template.txt"), "leftover file").unwrap();
-        assert_eq!(compare().await, Ok(false));
+        assert_eq!(compare().await.map(|comparison| comparison.isSame), Ok(false));
         assert!(workspace.join(".agents/skills/.pdf.installing").exists() == false);
         let _ = std::fs::remove_dir_all(&workspace);
     }
