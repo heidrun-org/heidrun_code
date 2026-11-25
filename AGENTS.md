@@ -144,7 +144,7 @@ A batch of related issues (one parent issue with two or more sub-issues) follows
 
 ## Pull Request Visual Diff
 
-Use the [pr_visual_diff skill](.agents/skills/pr_visual_diff/SKILL.md) when the developer explicitly asks for a Visual Diff on an existing pull request. The skill reads the screenshot instructions below.
+Use the [Pull Request Visual Diff](.agents/skills/pull-request-visual-diff/SKILL.md) when the developer explicitly asks for a Visual Diff on an existing pull request. The skill reads the screenshot instructions below.
 
 ### Pull Request Visual Diff screenshot configuration
 
