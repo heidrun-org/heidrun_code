@@ -142,6 +142,46 @@ The skill names no detail of this repository: it reads the values of this reposi
 
 A batch of related issues (one parent issue with two or more sub-issues) follows the skill [issue_batch_workflow](.agents/skills/issue_batch_workflow/SKILL.md), in place of the Issue Fix Workflow. Read the skill before you start, each time that the developer asks to fix such a batch. The skill uses the section "Issue Fix Workflow values" above.
 
+## Pull Request Visual Diff
+
+Use the [pr_visual_diff skill](.agents/skills/pr_visual_diff/SKILL.md) when the developer explicitly asks for a Visual Diff on an existing pull request. The skill reads the screenshot instructions below.
+
+### Pull Request Visual Diff screenshot configuration
+
+Use the macOS window of Heidrun Code Development. Read the application interaction and Herdr rules in [Before application interaction](#before-application-interaction) and [Command-line access to Herdr](#command-line-access-to-herdr) before running either revision. For this prototype, reuse existing revision checkouts when they match the intended comparison. Keep the main checkout on its current branch.
+
+#### Launch each revision
+
+1. Check that the checkout is at the intended revision and that the submodules and dependencies are ready. Verify that its development configuration declares `dev.heidrun-org.heidrun-code.development`.
+2. For native Computer Use, build the macOS application bundle from the revision checkout. Use the development configuration and a fresh Rust build directory. Computer Use can select the bundle by its full path.
+
+   ```sh
+   visual_diff_profile="$(mktemp -d /tmp/heidrun-visual-diff.XXXXXXXX)"
+   CARGO_TARGET_DIR="$visual_diff_profile/target" CARGO_PROFILE_DEV_DEBUG=0 \
+     pnpm --filter desktop_tauri tauri build --debug --config tauri.development.conf.json --bundles app
+   ```
+
+3. Verify the identifier of the bundle and launch its executable with a fresh test profile and an isolated session name.
+
+   ```sh
+   visual_diff_bundle="$visual_diff_profile/target/debug/bundle/macos/Heidrun Code Development.app"
+   test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$visual_diff_bundle/Contents/Info.plist")" \
+     = dev.heidrun-org.heidrun-code.development &&
+     env -u HERDR_SOCKET_PATH -u HERDR_SESSION \
+       HEIDRUN_CODE_DEVELOPMENT_DIR="$visual_diff_profile/data" \
+       HEIDRUN_CODE_DEVELOPMENT_SESSION="heidrun_dev_diff_${visual_diff_profile##*.}" \
+       "$visual_diff_bundle/Contents/MacOS/heidrun_code" --no-splash-screen
+   ```
+
+4. Wait for the main window to appear. Check the startup log for the development identifier, test data folder, session, and socket. Verify that the running executable came from the bundle built from the revision checkout.
+
+#### Prepare and capture the window
+
+- In Computer Use, select the application by the exact development identifier or the full path from the verified checkout. Confirm that the returned window belongs to Heidrun Code Development before sending input. If identification fails, stop application interaction.
+- Prepare an equivalent workspace for each revision with the same sample project, terminal text, settings, window size, and theme. Use public examples for anything that will appear in the screenshot. If using Herdr to prepare terminal output, verify the session and socket against the startup log, clear inherited Herdr overrides, and target the verified development session explicitly as required above.
+- Use Computer Use to operate and capture the verified development window. Keep the window capture itself as the screenshot. An image of the browser development preview does not exercise the desktop window capture.
+- Save the screenshot outside the repository. Review it for legibility and private content. Use the same framing for the paired capture, then stop the development process you started before launching the other revision.
+
 ## Bug Triage Workflow
 
 The Bug Triage Workflow keeps the list of open issues small. It has four steps: collect the open issues, classify each issue, report to the developer in the chat, and decide. A triage starts only when the developer asks for it in the chat. The coding agent closes an issue only when the developer names the number of the issue. The full steps are in the skill [bug_triage_workflow](.agents/skills/bug_triage_workflow/SKILL.md). Read the skill before you start a triage ([issue 655](https://github.com/heidrun-org/heidrun/issues/655)).
