@@ -1,6 +1,6 @@
 ---
-name: pr_visual_diff
-description: Plan and publish a Visual Diff comment for an existing pull request when the developer explicitly asks to run pr_visual_diff. Compare the user experience before and after the changes with screenshots from the application.
+name: pull_request_visual_diff
+description: Plan and publish a Visual Diff comment for an existing pull request when the developer explicitly asks to run pull_request_visual_diff. Compare the user experience before and after the changes with screenshots from the application.
 ---
 
 # Pull Request Visual Diff
@@ -9,7 +9,7 @@ description: Plan and publish a Visual Diff comment for an existing pull request
 
 1. Read the pull request description, changed files, and linked issues. Identify the before and after revisions. For a merged pull request with a merge commit, compare the merge commit's first parent with the merge commit itself. For an open pull request, compare the common ancestor with the pull request head. Record the revisions so the screenshots and comment refer to the same comparison.
 2. Identify what the user wants to do and what the pull request changes about that outcome. Start with one scenario that shows the main change. Add a scenario when it shows a distinct goal or outcome that matters to the review. If there is no visible change to show, report that and stop.
-3. Read the Pull Request Visual Diff screenshot configuration in the project root's `AGENTS.md`. Propose each scenario with its starting state, actions in order, and the specific moments to capture. Include an unchanged step only when seeing that step helps explain the sequence. Group different ways of reaching the same outcome under the same goal.
+3. Read the section named `Pull Request Visual Diff screenshot configuration` in the project root's `AGENTS.md` and follow the instructions it links to. If the launch, capture, or applicable permission instructions are missing, ask the developer for the missing details before running either revision. Propose each scenario with its starting state, actions in order, and the specific moments to capture. Include an unchanged step only when seeing that step helps explain the sequence. Group different ways of reaching the same outcome under the same goal.
 4. Ask the developer to approve the capture plan and authorize posting one Visual Diff comment on the named pull request. Wait for capture approval before running the scenarios. If posting authorization is still pending after capture, prepare the comment locally and ask before posting.
 
 ## Capture and compare

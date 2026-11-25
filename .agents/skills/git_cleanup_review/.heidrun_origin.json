@@ -1,0 +1,5 @@
+{
+  "source": "jeromeetienne/coding_agent_plugins",
+  "skill_id": "git_cleanup_review",
+  "folder_url": "https://github.com/jeromeetienne/coding_agent_plugins/tree/main/skills/git_cleanup_review"
+}
