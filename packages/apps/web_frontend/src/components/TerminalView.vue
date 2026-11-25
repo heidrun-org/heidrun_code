@@ -967,7 +967,8 @@ onBeforeUnmount(() => {
 .terminal-reference-anchor :deep(.information-card-part) { height: 100%; }
 .terminal-reference-anchor :deep(.popover) { pointer-events: auto; }
 .wrap { flex: 1; min-height: 0; position: relative; }
-.term { position: absolute; inset: 8px 4px 4px 12px; }
+/* Keep terminal link decorations below the information card. */
+.term { position: absolute; inset: 8px 4px 4px 12px; isolation: isolate; }
 .overlay {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; background: var(--raised); color: var(--text-2);
