@@ -1,4 +1,4 @@
-# Directory Context: `/skills/pull-request-visual-diff`
+# Directory Context: `/skills/pull_request_visual_diff`
 
 ## Purpose
 
@@ -6,7 +6,7 @@ Guide a coding agent through preparing and publishing an approved screenshot com
 
 ## Key Exports & Entry Points
 
-- [SKILL.md](SKILL.md) provides the `pull-request-visual-diff` skill.
+- [SKILL.md](SKILL.md) provides the `pull_request_visual_diff` skill.
 
 ## Rules
 

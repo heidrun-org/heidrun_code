@@ -1,6 +1,6 @@
 ---
-name: pull-request-visual-diff
-description: Plan and publish a Visual Diff comment for an existing pull request when the developer explicitly asks to run pull-request-visual-diff. Compare the user experience before and after the changes with screenshots from the application.
+name: pull_request_visual_diff
+description: Plan and publish a Visual Diff comment for an existing pull request when the developer explicitly asks to run pull_request_visual_diff. Compare the user experience before and after the changes with screenshots from the application.
 ---
 
 # Pull Request Visual Diff
