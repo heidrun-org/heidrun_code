@@ -2107,8 +2107,15 @@ name = "heidrun_code_ctrl"
 version = "0.4.5"
 dependencies = [
  "dirs 6.0.0",
+ "reqwest 0.12.28",
+ "rustix",
  "serde",
  "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "trash",
+ "walkdir",
 ]
 
 [[package]]

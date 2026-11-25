@@ -23,7 +23,7 @@
     "data_layer:source_control": "cargo run --quiet --package data_layer_source_control --",
     "data_layer:user_activity": "cargo run --quiet --package data_layer_user_activity --",
     "data_layer:heidrun_data": "cargo run --quiet --package heidrun_data --",
-    "heidrun_code_ctrl": "pnpm --silent --filter heidrun_code_ctrl cli",
+    "heidrun_code_ctrl": "cargo run --quiet --package heidrun_code_ctrl --",
     "experiment:multi_layer_graph": "pnpm --filter multi_layer_graph dev",
     "experiment:work_by_folder_over_time": "tsx packages/experiments/work_by_folder_over_time/src/cli.ts",
     "worktree:create": "tsx packages/dev_tools/worktree_tools/src/worktree_create_cli.ts",

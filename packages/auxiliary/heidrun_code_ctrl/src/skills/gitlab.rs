@@ -3,9 +3,9 @@
 //! a folder that does not exist.
 
 use serde::Deserialize;
-use super::folder_address::FolderAddress;
+use super::folderAddress::FolderAddress;
 use super::github::folder_not_found;
-use super::repository_paths::encode_path;
+use super::repositoryPaths::encode_path;
 use super::types::RepositoryFile;
 
 /// The web address of gitlab.com. The tests give the address of a fake server instead.
@@ -138,11 +138,66 @@ async fn fetch_gitlab_folder_files(
     Err("skills_too_many_files".into())
 }
 
+/// The immutable GitLab commit returned for a repository reference.
+#[derive(Deserialize)]
+struct GitLabRevision {
+	/// The full commit identifier.
+	id: String,
+}
+
+/// Resolves a GitLab folder and lists its files against the same immutable commit.
+pub(super) async fn pinnedGitLabFolder(
+	client: &reqwest::Client, base: &str, address: &FolderAddress, maxFiles: usize,
+) -> Result<GitlabFolder, String> {
+	for branchLength in address.branch_lengths() {
+		let (reference, path) = address.split(branchLength);
+		let url = format!("{}/repository/commits/{}", project_url(base, &address.source), encode_component(&reference));
+		let response = client.get(&url).send().await.map_err(|error| format!("skills_download_failed: {error}"))?;
+		let status = response.status().as_u16();
+		if is_missing(status) {
+			continue;
+		}
+		if status != 200 {
+			return Err(format!("skills_download_failed: HTTP {status}"));
+		}
+		let revision: GitLabRevision = response.json().await.map_err(|error| format!("skills_download_failed: {error}"))?;
+		let branch = revision.id;
+		if let Some(files) = fetch_gitlab_folder_files(client, base, &address.source, &branch, &path, maxFiles).await? {
+			if files.iter().any(|file| file.path == "SKILL.md") {
+				return Ok(GitlabFolder { branch, path, files });
+			}
+		}
+	}
+	Err(folder_not_found(address))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::folder_address::parse_folder_address;
-    use crate::skills::test_support::*;
+    use super::super::folderAddress::parse_folder_address;
+    use crate::skills::testSupport::*;
+
+    #[tokio::test]
+    async fn pinnedFolderUsesTheResolvedRevisionForEveryPage() {
+        let server = fake_server(|target| {
+            if target.ends_with("/repository/commits/main") {
+                return FakeResponse::ok(r#"{"id":"immutable-revision"}"#);
+            }
+            if target.contains("ref=immutable-revision") && target.ends_with("&page=1") {
+                return FakeResponse::ok(r#"[{"path":"pdf/SKILL.md","type":"blob"}]"#).with_header("x-next-page", "2");
+            }
+            if target.contains("ref=immutable-revision") && target.ends_with("&page=2") {
+                return FakeResponse::ok(r#"[{"path":"pdf/extra.txt","type":"blob"}]"#);
+            }
+            FakeResponse::status(404)
+        }).await;
+        let client = reqwest::Client::new();
+        let folder = pinnedGitLabFolder(&client, &server.base, &address("https://gitlab.com/acme/tools/-/tree/main/pdf"), 10)
+            .await.unwrap();
+        assert_eq!(folder.branch, "immutable-revision");
+        assert_eq!(folder.files.iter().map(|file| file.path.as_str()).collect::<Vec<_>>(), ["SKILL.md", "extra.txt"]);
+        assert_eq!(server.requests().len(), 3);
+    }
 
     fn address(text: &str) -> FolderAddress {
         parse_folder_address(text).unwrap()

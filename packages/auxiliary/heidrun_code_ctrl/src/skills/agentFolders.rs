@@ -20,11 +20,21 @@ pub(super) fn level_root(level: &str, cwd: Option<&str>) -> Result<PathBuf, Stri
     }
 }
 
+/// Resolves the workspace boundary for a workspace-level operation. User-level folders use their own settings.
+pub(super) fn workspaceBoundary(level: &str, workspacePath: Option<&str>) -> Result<Option<PathBuf>, String> {
+    if level != "workspace" {
+        return Ok(None);
+    }
+    let workspace = level_root(level, workspacePath)?;
+    workspace.canonicalize().map(Some).map_err(|error| format!("Cannot resolve workspace {}: {error}", workspace.display()))
+}
+
 /// The folder where `agent` reads the skills of `level`.
 pub(super) fn skills_dir(agent: &str, level: &str, cwd: Option<&str>) -> Result<PathBuf, String> {
     let root = level_root(level, cwd)?;
     match (agent, level) {
-        ("claude", "user") => Ok(crate::claude::claude_dir().join("skills")),
+        ("claude", "user") => Ok(std::env::var("CLAUDE_CONFIG_DIR").ok().filter(|directory| !directory.is_empty())
+            .map(PathBuf::from).unwrap_or_else(|| root.join(".claude")).join("skills")),
         ("claude", _) => Ok(root.join(".claude").join("skills")),
         ("codex", _) => Ok(root.join(".agents").join("skills")),
         ("antigravity", "user") => Ok(root.join(".gemini").join("antigravity-cli").join("skills")),
@@ -35,15 +45,15 @@ pub(super) fn skills_dir(agent: &str, level: &str, cwd: Option<&str>) -> Result<
 
 /// Where a skill is, for one agent.
 #[derive(Debug, PartialEq)]
-pub(super) struct SkillLocation {
-    pub(super) agent: &'static str,
-    pub(super) path: PathBuf,
+pub struct SkillLocation {
+    pub agent: &'static str,
+    pub path: PathBuf,
     /// True when the path is a link to the real files, false for a real folder.
-    pub(super) is_link: bool,
+    pub is_link: bool,
 }
 
 /// The places of a skill in the skills folders of all the agents: a real folder, or a link (broken or not).
-pub(super) fn skill_locations(level: &str, cwd: Option<&str>, name: &str) -> Result<Vec<SkillLocation>, String> {
+pub fn skill_locations(level: &str, cwd: Option<&str>, name: &str) -> Result<Vec<SkillLocation>, String> {
     if !is_valid_name(name) {
         return Err(format!("skills_invalid_name: {name}"));
     }
@@ -124,7 +134,6 @@ pub(super) fn link_installed_skill(level: &str, cwd: Option<&str>, name: &str, a
 }
 
 /// Adds the link of an installed skill for an agent whose skills folder lacks the skill.
-#[tauri::command]
 pub fn skills_link_agent(level: String, cwd: Option<String>, name: String, agent: String) -> Result<(), String> {
     link_installed_skill(&level, cwd.as_deref(), &name, &agent)
 }
@@ -132,7 +141,7 @@ pub fn skills_link_agent(level: String, cwd: Option<String>, name: String, agent
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skills::test_support::*;
+    use crate::skills::testSupport::*;
 
     #[test]
     fn writes_the_link_of_an_agent_relative_to_the_real_files() {

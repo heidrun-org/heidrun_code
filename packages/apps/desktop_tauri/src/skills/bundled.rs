@@ -3,7 +3,8 @@
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
-use super::agent_folders::SkillLocation;
+use heidrun_code_ctrl::skills::{agentFolders, install, installed};
+use agentFolders::SkillLocation;
 
 const COMMANDS: [&str; 2] = ["heidrun_code_ctrl", "heidrun_data"];
 const SKILLS: [&str; 2] = ["heidrun-code-ctrl", "heidrun-data"];
@@ -101,8 +102,8 @@ fn is_bundled_command_link(target: &Path, link: &Path) -> bool {
 /// its own resources: the links are removed, the real folder goes to the Trash.
 fn remove_former_skills() -> Result<(), String> {
     for skill in FORMER_SKILLS {
-        let locations = super::agent_folders::skill_locations("user", None, skill)?;
-        remove_bundled_skill(&locations, skill, &super::installed::move_to_trash)?;
+        let locations = agentFolders::skill_locations("user", None, skill)?;
+        remove_bundled_skill(&locations, skill, &installed::move_to_trash)?;
     }
     Ok(())
 }
@@ -115,13 +116,13 @@ fn remove_bundled_skill(locations: &[SkillLocation], skill: &str, remove_real: &
         return Ok(false);
     }
     let is_bundled = real_folders.iter().all(|location| {
-        super::installed::read_origin(&location.path)
+        installed::read_origin(&location.path)
             .is_some_and(|origin| origin.source == BUNDLED_SOURCE && origin.skill_id == skill)
     });
     if is_bundled == false {
         return Ok(false);
     }
-    super::installed::delete_locations(locations, remove_real)?;
+    installed::delete_locations(locations, remove_real)?;
     Ok(true)
 }
 
@@ -140,7 +141,7 @@ fn install_skills(resource_folder: &Path) -> Result<(), String> {
         if source.join("SKILL.md").is_file() == false {
             return Err(format!("the bundled skill {skill} is missing"));
         }
-        if let Err(error) = super::install::install_bundled_skill(&source, skill) {
+        if let Err(error) = install::install_bundled_skill(&source, skill) {
             if error.starts_with("skills_already_installed:") == false {
                 return Err(error);
             }
@@ -158,8 +159,8 @@ pub(crate) fn user_bin_folder() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skills::test_support::*;
-    use crate::skills::types::ORIGIN_FILE;
+    use crate::skills::testSupport::*;
+    use heidrun_code_ctrl::skills::types::ORIGIN_FILE;
     use serde_json::Value;
 
     const DESTINATION_PREFIX: &str = "bundled_skills/";

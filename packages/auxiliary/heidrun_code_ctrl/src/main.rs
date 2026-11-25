@@ -1,9 +1,11 @@
-//! The command line for Heidrun Code macros, launchers, voice words, workspaces, tabs, and panes.
+//! The command line for Heidrun Code macros, launchers, voice words, skills, workspaces, tabs, and panes.
 
 mod command_line;
 mod herdr;
 mod panes;
 mod tabs;
+#[allow(non_snake_case)]
+mod skillCommands;
 mod workspaces;
 
 use command_line::{find_format, parse, CommonOptions, Parsed, TextInput, HELP};
@@ -122,10 +124,14 @@ fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     let format =
         if command_line::is_herdr_command(&arguments) { Format::Json } else { find_format(&arguments).unwrap_or(Format::Markdown) };
-    match run(&arguments) {
-        Ok(text) => {
+    let result = match arguments.split_first() {
+        Some((group, arguments)) if group == "skills" => skillCommands::SkillCommands::run(arguments),
+        _ => run(&arguments).map(|text| (text, false)),
+    };
+    match result {
+        Ok((text, has_failed)) => {
             print!("{text}");
-            ExitCode::SUCCESS
+            if has_failed { ExitCode::FAILURE } else { ExitCode::SUCCESS }
         }
         Err(message) => {
             eprintln!("{}", error_text(&message, format));

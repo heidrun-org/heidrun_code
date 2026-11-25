@@ -628,6 +628,10 @@ fn the_skill_names_no_command_no_kind_and_no_option_that_the_help_does_not_have(
             assert!(help.contains(&format!("{group} {command}")), "{group} {command}");
         }
     }
+    for command in ["list", "update", "search", "install", "delete"] {
+        assert!(skill.contains(&format!("heidrun_code_ctrl skills {command}")), "skills {command}");
+        assert!(help.contains(&format!("skills {command}")), "skills {command}");
+    }
     for command in ["list", "open", "rename", "focus", "close"] {
         assert!(skill.contains(&format!("heidrun_code_ctrl workspaces {command}")));
         assert!(help.contains(&format!("workspaces {command}")));
@@ -679,6 +683,10 @@ fn the_commands_of_the_skill_run_on_a_project_and_give_a_macro_or_a_launcher_bac
     let mut is_workspace_open_again = false;
     for block in skill.split("```bash").skip(1) {
         let block = block.split("```").next().unwrap().trim();
+        // Skill examples use their own fixtures and may contact a public source.
+        if block.starts_with("heidrun_code_ctrl skills ") {
+            continue;
+        }
         let is_herdr_block = ["workspaces", "tabs", "panes"]
             .iter()
             .any(|group| block.starts_with(&format!("heidrun_code_ctrl {group} ")) || block.contains(&format!("| heidrun_code_ctrl {group} ")));
@@ -1434,4 +1442,169 @@ fn tab_and_pane_errors_are_one_json_error_even_for_markdown_and_wrong_arguments_
     assert!(json_error(&fixture.herdr(&["tabs", "list"])).contains("no herdr server is running"));
     assert!(json_error(&fixture.herdr(&["panes", "read", "w1:p1"])).contains("no herdr server is running"));
     assert!(fixture.herdr_calls().iter().all(|call| !call.to_string().contains("server")));
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn skillsListAndBulkUpdateUseTheRecordedSourceAndKeepCodingAgentLinks() {
+	let fixture = Fixture::new("skills-update");
+	let workspace = fixture.project.join("workspace");
+	let source = fixture.project.join("shared-example");
+	let unavailableSource = fixture.project.join("another-example");
+	for folder in [&source, &unavailableSource, &workspace] {
+		std::fs::create_dir_all(folder).unwrap();
+	}
+	std::fs::write(source.join("SKILL.md"), "# Before").unwrap();
+	std::fs::write(source.join("removed.bin"), [0, 255]).unwrap();
+	std::fs::write(unavailableSource.join("SKILL.md"), "# Still installed").unwrap();
+
+	for sourceName in ["shared-example", "another-example"] {
+		let result = fixture.run(&[
+			"skills", "install", "-w", "workspace", "--local-folder", sourceName, "--agent", "claude", "--format", "json",
+		]);
+		assert_eq!(result.exit_code, 0, "{}", result.stderr);
+	}
+	let installedSkill = workspace.join(".agents/skills/shared-example");
+	let manualSkill = workspace.join(".agents/skills/manual-example");
+	std::fs::create_dir_all(&manualSkill).unwrap();
+	std::fs::write(manualSkill.join("SKILL.md"), "# Manual").unwrap();
+	std::fs::write(source.join("SKILL.md"), "# After").unwrap();
+	std::fs::remove_file(source.join("removed.bin")).unwrap();
+	std::fs::write(source.join("added.bin"), [255, 0]).unwrap();
+	std::fs::rename(&unavailableSource, fixture.project.join("moved-source")).unwrap();
+	let codingAgentLink = workspace.join(".claude/skills/shared-example");
+	let linkTarget = std::fs::read_link(&codingAgentLink).unwrap();
+
+	let listed = fixture.run(&["skills", "list", "-w", "workspace", "--format", "json"]).json();
+	assert_eq!(listed.as_array().unwrap().len(), 2);
+	assert_eq!(listed[1]["status"], "Different");
+	assert_eq!(listed[1]["agents"], json!(["claude", "codex", "antigravity"]));
+	assert_eq!(std::fs::read(installedSkill.join("SKILL.md")).unwrap(), b"# Before");
+	let all = fixture.run(&["skills", "list", "-w", "workspace", "-i", "all", "--format", "text"]);
+	assert!(all.stdout.contains("Installed by Heidrun Code"));
+	assert!(all.stdout.contains("manual-example\tcodex, antigravity\tNo"));
+	assert_eq!(all.stdout.contains('\x1b'), false);
+	assert!(fixture.run(&["skills", "list", "-w", "workspace"]).stdout.contains("| Different |"));
+	assert_eq!(fixture.run(&["skills", "list", "--format", "json"]).json(), json!([]));
+
+	let updated = fixture.run(&["skills", "update", "shared-example", "-a"]).exit_code;
+	assert_ne!(updated, 0);
+	let bulkUpdate = fixture.run(&["skills", "update", "-a", "-w", "workspace", "--format", "json"]);
+	assert_eq!(bulkUpdate.exit_code, 1);
+	let updated = bulkUpdate.json();
+	assert_eq!(updated[0]["status"], "Failed");
+	assert_eq!(updated[1]["status"], "Skipped");
+	assert_eq!(updated[2]["status"], "Updated");
+	assert_eq!(std::fs::read_link(&codingAgentLink).unwrap(), linkTarget);
+	assert_eq!(std::fs::read(codingAgentLink.join("SKILL.md")).unwrap(), b"# After");
+	assert_eq!(std::fs::read(installedSkill.join("added.bin")).unwrap(), [255, 0]);
+	assert_eq!(installedSkill.join("removed.bin").exists(), false);
+	assert_eq!(
+		std::fs::read(workspace.join(".agents/skills/another-example/SKILL.md")).unwrap(),
+		b"# Still installed",
+	);
+
+	let current = fixture.run(&["skills", "update", "shared-example", "-w", "workspace", "--format", "json"]).json();
+	assert_eq!(current[0]["status"], "Already current");
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn skillsShortFormatOptionAppliesToOutputAndErrors() {
+	let fixture = Fixture::new("skills-format");
+	assert_eq!(fixture.run(&["skills", "list", "-f", "json"]).json(), json!([]));
+
+	let invalid = fixture.run(&["skills", "update", "-f=json"]);
+	assert_eq!(invalid.exit_code, 1);
+	let error: Value = serde_json::from_str(&invalid.stderr).unwrap();
+	assert_eq!(error["error"], "Supply one valid skill name or --all.");
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn skillsDeleteRefusesIndependentInstallationsWithTheSameName() {
+	let fixture = Fixture::new("skills-delete-ambiguous");
+	let codexSkill = fixture.project.join(".agents/skills/example");
+	let claudeSkill = fixture.project.join(".claude/skills/example");
+	for skillFolder in [&codexSkill, &claudeSkill] {
+		std::fs::create_dir_all(skillFolder).unwrap();
+		std::fs::write(skillFolder.join("SKILL.md"), "# Example").unwrap();
+	}
+	let deleted = fixture.run(&["skills", "delete", "example", "-f", "json"]);
+	assert_eq!(deleted.exit_code, 1);
+	assert!(deleted.stderr.contains("More than one independent installation"));
+	assert!(codexSkill.join("SKILL.md").is_file());
+	assert!(claudeSkill.join("SKILL.md").is_file());
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn skillsDeleteRequiresAnInstalledSkill() {
+	let fixture = Fixture::new("skills-delete-non-skill");
+	let skillsFolder = fixture.project.join(".agents/skills");
+	let ordinaryFolder = skillsFolder.join("notes");
+	std::fs::create_dir_all(&ordinaryFolder).unwrap();
+	let notesFile = skillsFolder.join("notes.txt");
+	std::fs::write(&notesFile, "Notes").unwrap();
+
+	for name in ["notes", "notes.txt"] {
+		let removed = fixture.run(&["skills", "delete", name, "-f", "json"]);
+		assert_eq!(removed.exit_code, 1);
+		assert!(removed.stderr.contains("is not an installed skill"));
+	}
+	assert!(ordinaryFolder.is_dir());
+	assert!(notesFile.is_file());
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn workspaceSkillsUseTheResolvedWorkspaceBoundary() {
+	let fixture = Fixture::new("skills-workspace-boundary");
+	let sharedFolder = fixture.project.parent().unwrap().join("shared-skills");
+	let copy = sharedFolder.join("example");
+	std::fs::create_dir_all(&copy).unwrap();
+	std::fs::write(copy.join("SKILL.md"), "# Example").unwrap();
+	std::fs::write(copy.join(".heidrun_origin.json"), r#"{"source":"a/b","skill_id":"example"}"#).unwrap();
+	std::fs::create_dir_all(fixture.project.join(".agents")).unwrap();
+	std::os::unix::fs::symlink(&sharedFolder, fixture.project.join(".agents/skills")).unwrap();
+
+	let update = fixture.run(&["skills", "update", "example", "-f", "json"]);
+	assert_eq!(update.json()[0]["status"], "Skipped");
+	assert_eq!(update.json()[0]["reason"], "The installed files are outside the selected installation level.");
+	let removed = fixture.run(&["skills", "delete", "example", "-f", "json"]);
+	assert_eq!(removed.exit_code, 1);
+	assert!(removed.stderr.contains("outside the selected workspace"));
+	assert!(copy.join("SKILL.md").is_file());
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn skillsHelpShowsOnlyTheRequestedGroupOrCommand() {
+	let fixture = Fixture::new("skills-scoped-help");
+	let groupHelp = fixture.run(&["skills", "--help"]);
+	assert_eq!(groupHelp.exit_code, 0);
+	assert_eq!(groupHelp.stdout, fixture.run(&["skills", "-h"]).stdout);
+	assert!(groupHelp.stdout.starts_with("Usage: heidrun_code_ctrl skills <command>"));
+	assert_eq!(groupHelp.stdout.contains("macros list"), false);
+	assert_eq!(groupHelp.stdout.contains("--json"), false);
+	let removedAlias = fixture.run(&["skills", "list", "--json"]);
+	assert_eq!(removedAlias.exit_code, 1);
+	assert_eq!(removedAlias.stderr.trim(), "Error: skills list does not accept --json.");
+	for (command, option, excludedOption) in [
+		("list", "--installer", "--all"),
+		("update", "--all", "--installer"),
+		("search", "--folder-url", "--level"),
+		("install", "--agent", "--installer"),
+		("delete", "--level", "--installer"),
+	] {
+		assert!(groupHelp.stdout.contains(command));
+		let help = fixture.run(&["skills", command, "--help"]);
+		assert_eq!(help.exit_code, 0);
+		assert!(help.stdout.starts_with(&format!("Usage: heidrun_code_ctrl skills {command}")));
+		assert!(help.stdout.contains(option));
+		assert!(help.stdout.contains("--format"));
+		assert_eq!(help.stdout.contains("--json"), false);
+		assert_eq!(help.stdout.contains(excludedOption), false);
+		assert_eq!(help.stdout.contains("macros list"), false);
+	}
 }
