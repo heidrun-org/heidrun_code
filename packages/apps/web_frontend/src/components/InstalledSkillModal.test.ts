@@ -56,6 +56,35 @@ describe("InstalledSkillModal", () => {
     expect(rows[0].findAll("button").map((button) => button.text())).toContain("Delete");
   });
 
+	it('filters installed skills with two independent checkboxes selected by default', async () => {
+		const { wrapper } = await mountWindow();
+		const group = wrapper.get('[aria-label="Filter installed skills"]');
+		const [user, workflow] = group.findAll('label');
+		expect(user.text()).toBe('User');
+		expect(workflow.text()).toBe('Workflow');
+
+		const userInput = user.get<HTMLInputElement>('input[type="checkbox"]');
+		const workflowInput = workflow.get<HTMLInputElement>('input[type="checkbox"]');
+		expect(userInput.element.checked).toBe(true);
+		expect(workflowInput.element.checked).toBe(true);
+		expect(wrapper.findAll('.list .row')).toHaveLength(2);
+
+		await userInput.setValue(false);
+		expect(wrapper.findAll('.list .row')).toHaveLength(1);
+		expect(wrapper.get('.list .row').text()).toContain('release-notes');
+
+		await workflowInput.setValue(false);
+		expect(wrapper.find('.list .row').exists()).toBe(false);
+		expect(wrapper.text()).toContain('No installed skills match the selected filters.');
+
+		await userInput.setValue(true);
+		expect(wrapper.findAll('.list .row')).toHaveLength(1);
+		expect(wrapper.get('.list .row').text()).toContain('pdf');
+
+		await workflowInput.setValue(true);
+		expect(wrapper.findAll('.list .row')).toHaveLength(2);
+	});
+
   it("shows no level switch, no notice, and no search", async () => {
     localStorage.setItem("heidrun.settings", JSON.stringify({ ownedAgents: [] }));
     const { wrapper } = await mountWindow();

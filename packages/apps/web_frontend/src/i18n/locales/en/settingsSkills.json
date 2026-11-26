@@ -1,6 +1,9 @@
 {
   "installedTitle": "Installed skill",
   "installedHelp": "Skills are folders with a SKILL.md file that tell coding agents (e.g. Codex) how to do a task. Here you see the installed skills, read the SKILL.md file of a skill, and delete a skill.",
+  "installedFilterLabel": "Filter installed skills",
+  "installedFilterWorkflow": "Workflow",
+  "installedFilterEmpty": "No installed skills match the selected filters.",
   "findTitle": "Find new skills",
   "findHelp": "Skills are folders with a SKILL.md file that tell coding agents (e.g. Codex) how to do a task. Here you find a skill on skills.sh, in a folder on this computer, or in a folder on GitHub or GitLab, read the SKILL.md file of the skill before you install it, and install it for the user or for the workspace.",
   "helpLabel": "What is this window about?",

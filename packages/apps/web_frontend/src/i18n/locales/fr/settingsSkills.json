@@ -1,6 +1,9 @@
 {
   "installedTitle": "Compétence installée",
   "installedHelp": "Les compétences sont des dossiers avec un fichier SKILL.md qui expliquent aux agents de code (par exemple Codex) comment faire une tâche. Ici, vous voyez les compétences installées, vous lisez le fichier SKILL.md d’une compétence, et vous supprimez une compétence.",
+  "installedFilterLabel": "Filtrer les compétences installées",
+  "installedFilterWorkflow": "Flux de travail",
+  "installedFilterEmpty": "Aucune compétence installée ne correspond aux filtres sélectionnés.",
   "findTitle": "Trouver de nouvelles compétences",
   "findHelp": "Les compétences sont des dossiers avec un fichier SKILL.md qui expliquent aux agents de code (par exemple Codex) comment faire une tâche. Ici, vous trouvez une compétence sur skills.sh, dans un dossier de cet ordinateur, ou dans un dossier sur GitHub ou GitLab, vous lisez le fichier SKILL.md de la compétence avant de l’installer, et vous l’installez pour l’utilisateur ou pour l’espace de travail.",
   "helpLabel": "De quoi parle cette fenêtre ?",
