@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: Find new skills window
 
 - Created: 16 October 2026
-- Last updated: 25 October 2026
+- Last updated: 26 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: coding agent configuration](../../glossary/coding_agent_configuration.md), [GitHub and GitLab support](../../github_and_gitlab_support.md)
@@ -54,5 +54,6 @@ The window has four lines, from the top to the bottom. Each line has a title, a 
 
 ## The installed skills
 
+- The Installed skill window has two independent checkbox buttons above the list. User shows skills installed for the user, and Workflow shows skills installed in the selected workspace. Both are selected whenever the window opens. Clearing both shows no skills.
 - An installed skill from a local folder shows "Local folder · <full path>" as its origin. An installed skill from GitLab shows "GitLab · <project>".
 - The origin file `.heidrun_origin.json` of a local folder has an empty `source` and a `folder_path`.
