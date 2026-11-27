@@ -43,7 +43,8 @@ const isClaudeQuotaUnspecified = computed(
 
 <style scoped>
 .status {
-  height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 22px; padding: 0 16px;
+  --status-bar-height: 40px;
+  height: var(--status-bar-height); flex-shrink: 0; display: flex; align-items: center; gap: 22px; padding: 0 16px;
   background: var(--shell); font-size: var(--font-size); color: var(--muted-2);
   white-space: nowrap; position: relative;
 }

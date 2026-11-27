@@ -310,7 +310,7 @@ watch(isRenaming, (renaming) => {
       @pointerleave="stopScrolling"
     >
       <div class="popover-arrow position-absolute ms-3"></div>
-      <div class="popover-body d-flex flex-column gap-2 overflow-y-auto" :style="{ maxHeight: '70vh' }">
+      <div class="popover-body d-flex flex-column gap-2 overflow-y-auto" :style="{ maxHeight: 'calc(100vh - var(--status-bar-height, 40px) - 16px)' }">
         <h2 class="h6 mb-0 fw-semibold workspace-card-title flex-shrink-0">{{ t("workspaceStatusSummary.workspaceTitle") }}</h2>
         <div v-if="detailRows.length > 0" class="d-flex flex-column flex-shrink-0 gap-2" data-field="details">
           <div v-for="row in detailRows" :key="row.field" class="detail-row d-flex justify-content-between gap-3">
