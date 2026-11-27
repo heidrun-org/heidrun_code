@@ -311,8 +311,8 @@ watch(isRenaming, (renaming) => {
     >
       <div class="popover-arrow position-absolute ms-3"></div>
       <div class="popover-body d-flex flex-column gap-2 overflow-y-auto" :style="{ maxHeight: '70vh' }">
-        <h2 class="h6 mb-0 fw-semibold workspace-card-title">{{ t("workspaceStatusSummary.workspaceTitle") }}</h2>
-        <div v-if="detailRows.length > 0" class="d-flex flex-column gap-2" data-field="details">
+        <h2 class="h6 mb-0 fw-semibold workspace-card-title flex-shrink-0">{{ t("workspaceStatusSummary.workspaceTitle") }}</h2>
+        <div v-if="detailRows.length > 0" class="d-flex flex-column flex-shrink-0 gap-2" data-field="details">
           <div v-for="row in detailRows" :key="row.field" class="detail-row d-flex justify-content-between gap-3">
             <span class="text-body-secondary flex-shrink-0">{{ row.name }}</span>
             <div class="detail-value d-flex align-items-center gap-1">
@@ -337,7 +337,8 @@ watch(isRenaming, (renaming) => {
           </div>
         </div>
         <div
-          class="d-flex flex-column"
+          v-if="workspaces.length > 0"
+          class="workspace-list d-flex flex-column overflow-y-auto"
           :class="{ 'border-top pt-2': detailRows.length > 0 }"
           role="group"
           :aria-label="t('workspaceStatusSummary.listLabel')"
@@ -406,20 +407,20 @@ watch(isRenaming, (renaming) => {
         <div v-if="workspaces.length > 0" class="border-top" role="separator"></div>
         <button
           type="button"
-          class="btn border-0 d-flex align-items-center gap-2 h-auto text-start"
+          class="btn border-0 d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
           :title="t('workspaceStatusSummary.newTitle')"
           @click="createWorkspace"
         >
-          <Icon name="folder-symlink" /> {{ t("workspaceStatusSummary.new") }}
+          <Icon name="folder-symlink" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.new") }}
         </button>
         <button
           type="button"
-          class="btn border-0 d-flex align-items-center gap-2 h-auto text-start"
+          class="btn border-0 d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
           :disabled="selectedWorkspace === null || currentGit?.root === undefined"
           :title="selectedWorkspace !== null && currentGit?.root !== undefined ? t('workspaceStatusSummary.openGitWorktreeTitle') : undefined"
           @click="openGitWorktrees"
         >
-          <Icon name="diagram-3" /> {{ t("workspaceStatusSummary.openGitWorktree") }}
+          <Icon name="diagram-3" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.openGitWorktree") }}
         </button>
       </div>
     </div>
@@ -448,6 +449,8 @@ watch(isRenaming, (renaming) => {
 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The name takes only its width, so the recording icon of the voice input sits right after it (issue 762). */
 .workspace-main > .name { flex: 0 1 auto; }
+.workspace-list, .workspace-opening-action { min-block-size: 32px; }
+.workspace-list .btn:focus-visible { outline-offset: -2px; }
 .workspace-row { min-height: 32px; border-radius: 6px; }
 .workspace-main { flex: 1; min-width: 0; align-self: stretch; }
 .workspace-branch {
