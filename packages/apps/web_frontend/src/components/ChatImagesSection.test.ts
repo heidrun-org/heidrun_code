@@ -36,10 +36,6 @@ function answerImages(numbers: number[]) {
  */
 function answerCodexImages(images: [number, number | null][]) {
   vi.mocked(invoke).mockImplementation(async (command, payload) => {
-    if (command === "chat_images_find_codex_chat") {
-      const { terminalTitle, folder } = payload as { terminalTitle: string; folder: string };
-      return terminalTitle.startsWith("Fix the images") && folder === "/work/heidrun" ? CODEX_CHAT : null;
-    }
     if (command !== "chat_images_find") {
       return null;
     }
@@ -55,7 +51,7 @@ function answerCodexImages(images: [number, number | null][]) {
   });
 }
 
-/** The chat that the fake desktop application finds for the title "Fix the images" in the folder /work/heidrun. */
+/** The Codex chat identifier reported for the pane. */
 const CODEX_CHAT = "01a17e05-bc59-7e70-8f26-aa9c8f220604";
 
 /** The pane fields of a Codex pane whose terminal shows the title of its chat. */
@@ -65,6 +61,10 @@ const CODEX_PANE = {
   terminal_title: "Fix the images | heidrun",
   terminal_title_stripped: "Fix the images | heidrun",
   foreground_cwd: "/work/heidrun",
+  agent_session: {
+    agent: "codex",
+    value: CODEX_CHAT,
+  },
 };
 
 beforeEach(async () => {
@@ -191,7 +191,6 @@ describe("ChatImagesSection", () => {
     answerCodexImages([[1, 1], [1, 2], [2, 2]]);
     const wrapper = mount(ChatImagesSection);
     await flushPromises();
-    expect(invoke).toHaveBeenCalledWith("chat_images_find_codex_chat", { terminalTitle: "Fix the images | heidrun", folder: "/work/heidrun" });
     expect(invoke).toHaveBeenCalledWith("chat_images_find", { sessionId: CODEX_CHAT, afterKey: 0 });
     expect(wrapper.findAll("li button").map((button) => button.findAll("span").map((span) => span.text()))).toEqual([
       ["[Image #1]", "Message 1"],
@@ -210,24 +209,44 @@ describe("ChatImagesSection", () => {
     ]);
   });
 
-  it("says that the Codex chat has no title yet when no chat matches the title of the terminal, and asks for no image", async () => {
-    answerCodexImages([]);
-    state.snapshot = snapshotWith({}, { ...CODEX_PANE, terminal_title: "heidrun", terminal_title_stripped: "heidrun" });
-    const wrapper = mount(ChatImagesSection);
-    await flushPromises();
-    expect(wrapper.text()).toContain("This chat has no title yet: send a first message.");
-    expect(vi.mocked(invoke).mock.calls.map((call) => call[0])).toEqual(["chat_images_find_codex_chat"]);
-  });
+	it('clears the closed Codex chat when a fresh pane has the same terminal title and folder', async () => {
+		state.snapshot = snapshotWith({}, CODEX_PANE);
+		answerCodexImages([[1, 1]]);
+		const wrapper = mount(ChatImagesSection);
+		await flushPromises();
+		await wrapper.get('li button').trigger('click');
+		expect(ChatImages.state.viewerKey).toBe(1);
 
-  it("finds the Codex chat once Codex gives the chat a title", async () => {
-    answerCodexImages([[1, 1]]);
-    state.snapshot = snapshotWith({}, { ...CODEX_PANE, terminal_title: "heidrun", terminal_title_stripped: "heidrun" });
-    const wrapper = mount(ChatImagesSection);
-    await flushPromises();
-    state.snapshot = snapshotWith({}, CODEX_PANE);
-    await flushPromises();
-    expect(wrapper.findAll("li img").map((image) => image.attributes("alt"))).toEqual(["Message 1 · [Image #1]"]);
-  });
+		vi.mocked(invoke).mockClear();
+		state.selectedPaneId = 'p2';
+		state.snapshot = snapshotWith({}, {
+			...CODEX_PANE,
+			pane_id: 'p2',
+			agent_session: null,
+		});
+		await flushPromises();
+		expect(wrapper.findAll('li img')).toHaveLength(0);
+		expect(ChatImages.state.viewerKey).toBeNull();
+		expect(invoke).not.toHaveBeenCalled();
+
+		const sessionId = '01a17e05-bc59-7e70-8f26-aa9c8f220605';
+		answerCodexImages([[2, 1]]);
+		state.snapshot = snapshotWith({}, {
+			...CODEX_PANE,
+			pane_id: 'p2',
+			agent_session: {
+				agent: 'codex',
+				value: sessionId,
+			},
+		});
+		await flushPromises();
+		expect(invoke).toHaveBeenCalledTimes(1);
+		expect(invoke).toHaveBeenCalledWith('chat_images_find', {
+			sessionId,
+			afterKey: 0,
+		});
+		expect(wrapper.findAll('li img').map((image) => image.attributes('alt'))).toEqual(['Message 1 · [Image #2]']);
+	});
 
   it("reads the chat of Claude Code in a pane that ran Codex before, and does not look for a Codex chat", async () => {
     state.snapshot = snapshotWith({ hd_sid: "chat-1" }, { ...CODEX_PANE, agent: "claude" });
@@ -237,6 +256,35 @@ describe("ChatImagesSection", () => {
     expect(invoke).toHaveBeenCalledWith("chat_images_find", { sessionId: "chat-1", afterKey: 0 });
     expect(vi.mocked(invoke).mock.calls.map((call) => call[0])).not.toContain("chat_images_find_codex_chat");
   });
+
+	it('shows a Codex attachment while the reply is still in progress', async () => {
+		vi.useFakeTimers();
+		try {
+			state.snapshot = snapshotWith({}, {
+				...CODEX_PANE,
+				agent_status: 'working',
+			});
+			answerCodexImages([]);
+			const wrapper = mount(ChatImagesSection);
+			await flushPromises();
+			await vi.advanceTimersByTimeAsync(2000);
+			expect(wrapper.findAll('li img')).toHaveLength(0);
+
+			answerCodexImages([[1, 1]]);
+			await vi.advanceTimersByTimeAsync(2000);
+			expect(wrapper.get('li img').attributes('alt')).toBe('Message 1 · [Image #1]');
+			expect(ChatImages.state.images).toHaveLength(1);
+
+			state.snapshot = snapshotWith({}, CODEX_PANE);
+			await flushPromises();
+			await vi.advanceTimersByTimeAsync(2000);
+			vi.mocked(invoke).mockClear();
+			await vi.advanceTimersByTimeAsync(4000);
+			expect(invoke).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
 
   it("reads the new images of a Codex chat after the state of Codex changes", async () => {
     vi.useFakeTimers();

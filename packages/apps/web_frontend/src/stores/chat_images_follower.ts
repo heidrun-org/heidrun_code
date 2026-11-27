@@ -1,4 +1,4 @@
-import { computed, effectScope, reactive, ref, watch, type EffectScope } from 'vue';
+import { computed, effectScope, reactive, watch, type EffectScope } from 'vue';
 import { ChatImages } from './chat_images';
 import { selectedPane } from './session';
 import type { AgentInfo } from '../lib/types';
@@ -16,8 +16,6 @@ export type ChatImagesFollowerState = {
 	paneId: string | null;
 	/** The chat session identifier of the chat of the pane, or null when the pane has no chat that Heidrun Code knows. */
 	sessionId: string | null;
-	/** True for a Codex pane whose chat has no title yet, so Heidrun Code cannot find it. */
-	isCodexWithoutChat: boolean;
 };
 
 /** Follows the selected pane and reads the images of its chat. */
@@ -26,7 +24,6 @@ export class ChatImagesFollower {
 	static readonly state = reactive<ChatImagesFollowerState>({
 		paneId: null,
 		sessionId: null,
-		isCodexWithoutChat: false,
 	});
 
 	/** The scope of the watchers, or null when the follower does not run. */
@@ -58,19 +55,19 @@ export class ChatImagesFollower {
 	}
 
 	/**
-	 * The chat session identifier of the chat of a pane. A Claude Code pane gives the identifier of its status line
-	 * (`hd_sid`), a Codex pane gives the chat found from the title of its terminal. A pane where no coding agent runs any
-	 * more gives the last identifier of its status line.
-	 * @param pane The pane, or null.
-	 * @param codexChat The chat found for the pane when it is a Codex pane, or null.
-	 * @returns The identifier, or null when the pane has no chat that Heidrun Code knows.
+	 * Reads the chat identifier reported for the pane. Claude Code supplies it through its status line.
+	 * @param pane The selected pane, or null.
+	 * @returns The identifier, or null when the pane has no known chat.
 	 */
-	static chatSessionId(pane: AgentInfo | null, codexChat: string | null): string | null {
+	static chatSessionId(pane: AgentInfo | null): string | null {
 		if (pane === null) {
 			return null;
 		}
+		if (pane.agent_session?.agent === 'codex' && pane.agent !== 'claude') {
+			return pane.agent_session.value || null;
+		}
 		if (pane.agent === 'codex') {
-			return codexChat;
+			return null;
 		}
 		return pane.tokens?.hd_sid ?? null;
 	}
@@ -84,44 +81,20 @@ export class ChatImagesFollower {
 	/** Creates the watchers. Runs inside the scope of the follower. */
 	private static _follow(): void {
 		const state = ChatImagesFollower.state;
-		// The chat of the selected Codex pane, found from the title of its terminal and its folder.
-		const codexChat = ref<string | null>(null);
-		const codexTerminal = computed(() => {
-			const pane = selectedPane.value;
-			if (pane === null || pane.agent !== 'codex') {
-				return null;
-			}
-			return {
-				title: pane.terminal_title_stripped ?? pane.terminal_title ?? '',
-				folder: pane.foreground_cwd || pane.cwd || '',
-			};
-		});
-		const sessionId = computed(() => ChatImagesFollower.chatSessionId(selectedPane.value, codexChat.value));
-		// The status line of Claude Code writes a new time after each change of the chat. Codex has no status line: a change
-		// of the state of the coding agent (working, idle, done) tells that the chat changed.
+		const sessionId = computed(() => ChatImagesFollower.chatSessionId(selectedPane.value));
+		const isCodexWorking = computed(() =>
+			sessionId.value !== null
+			&& selectedPane.value?.agent_session?.agent === 'codex'
+			&& selectedPane.value.agent_status === 'working',
+		);
+		const readSoonFn = () => ChatImagesFollower._readSoon(() => sessionId.value, () => isCodexWorking.value);
 		const reportTime = computed(() => `${selectedPane.value?.tokens?.hd_ts ?? ''}|${selectedPane.value?.agent_status ?? ''}`);
 
 		watch(
-			() => (codexTerminal.value === null ? null : `${codexTerminal.value.folder}\n${codexTerminal.value.title}`),
-			async () => {
-				const terminal = codexTerminal.value;
-				codexChat.value = null;
-				if (terminal === null) {
-					return;
-				}
-				const found = await ChatImages.findCodexChat(terminal.title, terminal.folder);
-				if (codexTerminal.value?.title === terminal.title && codexTerminal.value.folder === terminal.folder) {
-					codexChat.value = found;
-				}
-			},
-			{ immediate: true },
-		);
-		watch(
-			[() => selectedPane.value?.pane_id ?? null, sessionId, codexTerminal],
-			([paneId, current, terminal]) => {
+			[() => selectedPane.value?.pane_id ?? null, sessionId],
+			([paneId, current]) => {
 				state.paneId = paneId;
 				state.sessionId = current;
-				state.isCodexWithoutChat = terminal !== null && current === null;
 			},
 			{ immediate: true },
 		);
@@ -131,25 +104,33 @@ export class ChatImagesFollower {
 				// A new chat shows at once, without the images of the chat before.
 				ChatImagesFollower._lastReadAt = Date.now();
 				void ChatImages.load(current);
+				if (isCodexWorking.value === true) {
+					readSoonFn();
+				}
 			},
 			{ immediate: true },
 		);
-		watch(reportTime, () => ChatImagesFollower._readSoon(() => sessionId.value));
+		watch(reportTime, readSoonFn);
 	}
 
 	/**
 	 * Reads the images again, at most once every `READ_INTERVAL_MILLISECONDS`.
 	 * @param sessionIdFn Gives the chat session identifier to read at the time of the read.
+	 * @param isCodexWorkingFn Tells whether to keep reading while Codex is working.
 	 */
-	private static _readSoon(sessionIdFn: () => string | null): void {
+	private static _readSoon(sessionIdFn: () => string | null, isCodexWorkingFn: () => boolean): void {
 		if (ChatImagesFollower._timer !== null) {
 			return;
 		}
+		const scope = ChatImagesFollower._scope;
 		const wait = Math.max(0, ChatImagesFollower._lastReadAt + READ_INTERVAL_MILLISECONDS - Date.now());
-		ChatImagesFollower._timer = setTimeout(() => {
+		ChatImagesFollower._timer = setTimeout(async () => {
 			ChatImagesFollower._timer = null;
 			ChatImagesFollower._lastReadAt = Date.now();
-			void ChatImages.load(sessionIdFn());
+			await ChatImages.load(sessionIdFn());
+			if (ChatImagesFollower._scope === scope && isCodexWorkingFn() === true) {
+				ChatImagesFollower._readSoon(sessionIdFn, isCodexWorkingFn);
+			}
 		}, wait);
 	}
 }

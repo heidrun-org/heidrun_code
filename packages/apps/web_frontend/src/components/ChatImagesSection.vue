@@ -18,8 +18,7 @@ onMounted(() => ChatImagesFollower.start());
 <template>
   <section class="chat-images d-flex flex-column gap-2 border-top pt-2" :aria-label="t('chatImagesSection.title')">
     <h3 class="fw-semibold m-0">{{ t("chatImagesSection.title") }}</h3>
-    <p v-if="followed.isCodexWithoutChat" class="empty text-body-secondary m-0">{{ t("chatImagesSection.codexWithoutChat") }}</p>
-    <p v-else-if="followed.sessionId === null" class="empty text-body-secondary m-0">{{ t("chatImagesSection.noChat") }}</p>
+    <p v-if="followed.sessionId === null" class="empty text-body-secondary m-0">{{ t("chatImagesSection.noChat") }}</p>
     <p v-else-if="state.error !== ''" class="empty text-danger-emphasis m-0">{{ t("chatImagesSection.failed", { error: state.error }) }}</p>
     <p v-else-if="state.images.length === 0" class="empty text-body-secondary m-0">{{ t("chatImagesSection.noImage") }}</p>
     <ul v-else class="images">
