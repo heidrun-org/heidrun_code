@@ -310,10 +310,10 @@ watch(isRenaming, (renaming) => {
       @pointerleave="stopScrolling"
     >
       <div class="popover-arrow position-absolute ms-3"></div>
-      <div class="popover-body d-flex flex-column gap-2 overflow-y-auto" :style="{ maxHeight: 'calc(100vh - var(--status-bar-height, 40px) - 16px)' }">
-        <h2 class="h6 mb-0 fw-semibold workspace-card-title flex-shrink-0">{{ t("workspaceStatusSummary.workspaceTitle") }}</h2>
-        <div v-if="detailRows.length > 0" class="d-flex flex-column flex-shrink-0 gap-2" data-field="details">
-          <div v-for="row in detailRows" :key="row.field" class="detail-row d-flex justify-content-between gap-3">
+      <div class="popover-body d-flex flex-column gap-1 overflow-y-auto" :style="{ maxHeight: 'calc(100vh - var(--status-bar-height, 40px) - 16px)' }">
+        <h2 class="h6 m-0 fw-semibold workspace-card-title flex-shrink-0">{{ t("workspaceStatusSummary.workspaceTitle") }}</h2>
+        <div v-if="detailRows.length > 0" class="d-flex flex-column flex-shrink-0" data-field="details">
+          <div v-for="row in detailRows" :key="row.field" class="detail-row d-flex align-items-center justify-content-between gap-3">
             <span class="text-body-secondary flex-shrink-0">{{ row.name }}</span>
             <div class="detail-value d-flex align-items-center gap-1">
               <a
@@ -338,7 +338,7 @@ watch(isRenaming, (renaming) => {
         </div>
         <div
           v-if="workspaces.length > 0"
-          class="workspace-list d-flex flex-column overflow-y-auto"
+          class="workspace-list d-flex flex-column gap-1 overflow-y-auto"
           :class="{ 'border-top pt-2': detailRows.length > 0 }"
           role="group"
           :aria-label="t('workspaceStatusSummary.listLabel')"
@@ -349,6 +349,7 @@ watch(isRenaming, (renaming) => {
             :title="workspace.label"
             :blocks="workspaceTooltipBlocks(workspace)"
             placement="side"
+            :open-delay="500"
             v-slot="{ triggerProps }"
           >
             <div
@@ -404,24 +405,26 @@ watch(isRenaming, (renaming) => {
             </div>
           </InformationCardTooltip>
         </div>
-        <div v-if="workspaces.length > 0" class="border-top" role="separator"></div>
-        <button
-          type="button"
-          class="btn border-0 d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
-          :title="t('workspaceStatusSummary.newTitle')"
-          @click="createWorkspace"
-        >
-          <Icon name="folder-symlink" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.new") }}
-        </button>
-        <button
-          type="button"
-          class="btn border-0 d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
-          :disabled="selectedWorkspace === null || currentGit?.root === undefined"
-          :title="selectedWorkspace !== null && currentGit?.root !== undefined ? t('workspaceStatusSummary.openGitWorktreeTitle') : undefined"
-          @click="openGitWorktrees"
-        >
-          <Icon name="diagram-3" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.openGitWorktree") }}
-        </button>
+        <div v-if="workspaces.length > 0" class="border-top mt-1" role="separator"></div>
+        <div class="d-flex flex-column flex-shrink-0">
+          <button
+            type="button"
+            class="btn border-0 d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
+            :title="t('workspaceStatusSummary.newTitle')"
+            @click="createWorkspace"
+          >
+            <Icon name="folder-symlink" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.new") }}
+          </button>
+          <button
+            type="button"
+            class="btn border-0 d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
+            :disabled="selectedWorkspace === null || currentGit?.root === undefined"
+            :title="selectedWorkspace !== null && currentGit?.root !== undefined ? t('workspaceStatusSummary.openGitWorktreeTitle') : undefined"
+            @click="openGitWorktrees"
+          >
+            <Icon name="diagram-3" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.openGitWorktree") }}
+          </button>
+        </div>
       </div>
     </div>
     <GitWorktreesModal
@@ -444,28 +447,27 @@ watch(isRenaming, (renaming) => {
 .detail-value { min-width: 0; }
 .detail-value > [data-field="folder"] { min-width: 0; }
 .btn.icon.copy-detail-button { --btn-padding-x: 6px; width: auto; }
-.workspace-status > .popover { cursor: default; }
+.workspace-status > .popover { --popover-body-padding-y: var(--spacer-2); cursor: default; }
 .workspace-status > .popover .btn:not(:disabled) { cursor: pointer; }
 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The name takes only its width, so the recording icon of the voice input sits right after it (issue 762). */
 .workspace-main > .name { flex: 0 1 auto; }
-.workspace-list, .workspace-opening-action { min-block-size: 32px; }
+.workspace-list, .workspace-row, .detail-row, .workspace-opening-action { min-block-size: 32px; }
 .workspace-list .btn:focus-visible { outline-offset: -2px; }
-.workspace-row { min-height: 32px; border-radius: 6px; }
-.workspace-main { flex: 1; min-width: 0; align-self: stretch; }
+.workspace-row { border-radius: 6px; }
+.workspace-main { flex: 1; min-width: 0; align-self: stretch; --btn-hover-bg: transparent; }
 .workspace-branch {
   display: flex; align-items: center; gap: 4px; flex: 0 1 auto; min-width: 0; max-width: 50%; margin-left: auto;
   overflow: hidden; color: var(--muted); font-size: calc(var(--font-size) * 0.8); font-weight: 400; line-height: 1.2;
 }
 .workspace-branch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.workspace-row:hover, .workspace-row:focus-within { background: var(--hover-soft); }
-.workspace-row.active { background: var(--hover); }
+.workspace-row:hover, .workspace-row:focus-within, .workspace-row.active { background: var(--hover); }
 .row-actions {
   position: absolute; top: 50%; right: 6px; z-index: 1; display: none; align-items: center; gap: 2px; padding-right: 2px;
-  transform: translateY(-50%); background: var(--hover-soft);
+  transform: translateY(-50%); background: inherit;
 }
-.workspace-row.active .row-actions { background: var(--hover); }
 .workspace-row:hover .row-actions, .workspace-row:focus-within .row-actions { display: flex; }
+.row-button:not(:active) { --btn-hover-bg: var(--line-strong); }
 .row-button { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; }
 .workspace-row.dragging { opacity: 0.4; }
 .workspace-row.drop-before::before, .workspace-row.drop-after::after {

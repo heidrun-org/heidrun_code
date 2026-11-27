@@ -370,11 +370,11 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     session.state.selectedWorkspaceId = null;
     await wrapper.get(".workspace-status").trigger("click");
     expect(wrapper.find("[data-field=details]").exists()).toBe(false);
-    const worktreeButton = wrapper.get(".popover-body > button:last-child");
+    const worktreeButton = wrapper.get('.workspace-opening-action:last-child');
     expect(worktreeButton.attributes("disabled")).toBeDefined();
     expect(worktreeButton.attributes("title")).toBeUndefined();
     const sourceText = Fs.readFileSync(Path.resolve(import.meta.dirname, "WorkspaceStatusSummary.vue"), "utf8");
-    expect(sourceText).toContain(".workspace-status > .popover { cursor: default; }");
+    expect(sourceText).toMatch(/\.workspace-status > \.popover \{[^}]*cursor: default;/);
     expect(sourceText).toContain(".workspace-status > .popover .btn:not(:disabled) { cursor: pointer; }");
   });
 });
@@ -475,7 +475,9 @@ describe("WorkspaceStatusSummary list", () => {
       await wrapper.get(".workspace-status").trigger("click");
       const row = wrapper.findAll(".workspace-row")[0];
       await row.trigger("pointerenter");
-      await vi.advanceTimersByTimeAsync(1500);
+      await vi.advanceTimersByTimeAsync(499);
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await vi.advanceTimersByTimeAsync(1);
       await flushPromises();
       const tooltip = document.querySelector('[role="tooltip"]');
       expect(tooltip?.textContent).toContain("heidrun");
@@ -502,13 +504,13 @@ describe("WorkspaceStatusSummary list", () => {
     expect(sourceText).not.toContain("dropdown-divider");
   });
 
-  it("leaves no space between two workspaces, so the pointer is always on a workspace between the two lines, and makes each row as tall as the space between two details", async () => {
+  it("gives workspace rows a small gap and the same minimum height as detail rows", async () => {
     const { wrapper } = await mountSection();
     await wrapper.get(".workspace-status").trigger("click");
     const list = wrapper.get("[role=group]");
-    expect(list.classes().filter((className) => className.startsWith("gap-"))).toEqual([]);
+    expect(list.classes()).toContain('gap-1');
     const sourceText = Fs.readFileSync(Path.resolve(import.meta.dirname, "WorkspaceStatusSummary.vue"), "utf8");
-    expect(sourceText).toMatch(/\.workspace-row \{[^}]*min-height: 32px;/);
+    expect(sourceText).toMatch(/\.workspace-row, \.detail-row, \.workspace-opening-action \{ min-block-size: 32px; \}/);
     expect(sourceText).toMatch(/\.workspace-main \{[^}]*align-self: stretch;/);
   });
 
@@ -551,8 +553,8 @@ describe("WorkspaceStatusSummary new workspace", () => {
     const body = wrapper.get(".popover-body").element;
     const separators = wrapper.findAll(".popover-body > [role=separator]");
     expect(separators).toHaveLength(1);
-    expect(separators[0].element.nextElementSibling).toBe(body.children[body.children.length - 2]);
-    const entries = wrapper.findAll(".popover-body > button");
+    expect(separators[0].element.nextElementSibling).toBe(body.lastElementChild);
+    const entries = wrapper.findAll('.workspace-opening-action');
     expect(entries.map((entry) => entry.text())).toEqual([
       "Open workspace from folder",
       "Open workspace from this repo worktree",
@@ -565,7 +567,7 @@ describe("WorkspaceStatusSummary new workspace", () => {
     vi.mocked(openDialog).mockResolvedValueOnce(null);
     const { wrapper } = await mountSection();
     await wrapper.get(".workspace-status").trigger("click");
-    await wrapper.get(".popover-body > button").trigger("click");
+    await wrapper.get('.workspace-opening-action').trigger("click");
     await flushPromises();
     expect(openDialog).toHaveBeenCalledWith({
       directory: true,
@@ -580,7 +582,7 @@ describe("WorkspaceStatusSummary new workspace", () => {
     vi.mocked(openDialog).mockResolvedValueOnce("/home/me/my_project");
     const { wrapper, api } = await mountSection();
     await wrapper.get(".workspace-status").trigger("click");
-    await wrapper.get(".popover-body > button").trigger("click");
+    await wrapper.get('.workspace-opening-action').trigger("click");
     await flushPromises();
     expect(api.newWorkspace).toHaveBeenCalledWith("/home/me/my_project", "my_project");
   });
@@ -596,7 +598,7 @@ describe("WorkspaceStatusSummary new workspace", () => {
       panes: [...makeSnapshot().panes, rootPane],
     } as never);
     await wrapper.get(".workspace-status").trigger("click");
-    await wrapper.get(".popover-body > button").trigger("click");
+    await wrapper.get('.workspace-opening-action').trigger("click");
     await flushPromises();
     expect(session.state.selectedWorkspaceId).toBe("w4");
     expect(session.state.selectedTabId).toBe("w4:t1");
@@ -619,7 +621,7 @@ describe("WorkspaceStatusSummary new workspace", () => {
         panes: [...makeSnapshot().panes, rootPane],
       } as never);
       await wrapper.get(".workspace-status").trigger("click");
-      await wrapper.get(".popover-body > button").trigger("click");
+      await wrapper.get('.workspace-opening-action').trigger("click");
       await vi.advanceTimersByTimeAsync(1_000);
       expect(api.newTab).not.toHaveBeenCalled();
       expect(api.renameTab).toHaveBeenCalledWith("w4:t1", "claude");
@@ -634,7 +636,7 @@ describe("WorkspaceStatusSummary new workspace", () => {
     vi.mocked(openDialog).mockResolvedValueOnce(null);
     const { wrapper, api } = await mountSection();
     await wrapper.get(".workspace-status").trigger("click");
-    await wrapper.get(".popover-body > button").trigger("click");
+    await wrapper.get('.workspace-opening-action').trigger("click");
     await flushPromises();
     expect(api.newWorkspace).not.toHaveBeenCalled();
   });
@@ -644,7 +646,7 @@ describe("WorkspaceStatusSummary new workspace", () => {
     const { wrapper } = await mountSection(snapshot);
     await wrapper.get(".workspace-status").trigger("click");
     expect(wrapper.findAll(".workspace-row")).toHaveLength(0);
-    expect(wrapper.findAll(".popover-body > button")).toHaveLength(2);
+    expect(wrapper.findAll('.workspace-opening-action')).toHaveLength(2);
     expect(wrapper.findAll("[role=separator]")).toHaveLength(0);
   });
 });
