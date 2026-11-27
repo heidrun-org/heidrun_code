@@ -140,7 +140,7 @@ describe('shared design rules (issue 749)', () => {
 					.toBeGreaterThanOrEqual(4.5);
 			}
 			for (const background of ['danger-action-bg', 'danger-action-hover', 'danger-action-pressed',
-				'reference-open', 'reference-merged', 'reference-closed']) {
+				'reference-open', 'reference-merged', 'reference-closed', 'image-preview-bg']) {
 				expect(DesignRules.contrast(palette['on-solid'], palette[background]), background)
 					.toBeGreaterThanOrEqual(4.5);
 			}

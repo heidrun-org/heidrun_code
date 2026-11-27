@@ -1,7 +1,7 @@
 # Web styling of Heidrun Code: shared design rules
 
 - Created: 21 October 2026
-- Last updated: 23 October 2026
+- Last updated: 27 November 2026
 - Status: Maintained shared design rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Colors and scroll bars](colors_and_scroll_bars.md), [Status dot](../../architecture/status_dot.md)
@@ -29,6 +29,7 @@ These rules govern desktop colors, buttons, contrast, and status displays. Keep 
 | Coding agent status | `--blocked`, `--working`, `--done`, `--idle` | Existing status dot colors; see the status rules below. |
 | Code hosting status | `--reference-open`, `--reference-merged`, `--reference-closed`, `--on-solid` | Open, merged, closed labels with white text. These are code hosting states, not coding agent statuses. |
 | Layers | `--overlay`, `--overlay-heavy`, `--shadow`, `--shadow-soft`, `--toast-shadow` | Window overlays, image overlay, and shadows. |
+| Image preview | `--image-preview-bg`, `--on-solid` | Opaque dark background and readable caption for the terminal image preview in both themes. |
 | File content | `--code-block-bg`, `--editor-*`, `--search-match*`, `--image-checker-*` | Code blocks, editing and search highlights, and transparency checkerboard. |
 | Illustration | `--illustration-*` | Text and shading over the goat pictures; deliberately independent of the application theme. |
 

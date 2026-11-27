@@ -22,6 +22,7 @@ import ShortcutsModal from "./components/ShortcutsModal.vue";
 import MosaicModal from "./components/MosaicModal.vue";
 import ImageViewer from "./components/ImageViewer.vue";
 import ChatImageHoverPreview from "./components/ChatImageHoverPreview.vue";
+import ChatImagesViewer from "./components/ChatImagesViewer.vue";
 import { ChatImagesFollower } from "./stores/chat_images_follower";
 import { CompositionBar, compositionBarsByPane } from './stores/composition_bar';
 import { mosaic } from "./stores/mosaic";
@@ -429,6 +430,7 @@ onBeforeUnmount(() => {
     <MosaicModal v-if="mosaic.paneId" />
     <ImageViewer v-if="compositionViewerPaneId !== null" :pane-id="compositionViewerPaneId" />
     <ChatImageHoverPreview />
+    <ChatImagesViewer />
     <AgentsInformationModal v-if="agentsInformationModal.open" />
     <NewCustomLauncherModal v-if="newCustomLauncherModal.open" />
     <SavedSearchModal v-if="savedSearchModal.open" />

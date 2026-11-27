@@ -90,6 +90,7 @@
   --level-warn: #f4b75a;
   --level-crit: #f07f75;
   --overlay: rgba(0, 0, 0, 0.55);
+  --image-preview-bg: #16181b;
   --overlay-heavy: rgba(0, 0, 0, 0.8);
   --shadow: rgba(0, 0, 0, 0.6);
   --shadow-soft: rgba(0, 0, 0, 0.35);
@@ -469,6 +470,16 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
   --btn-disabled-bg: transparent; --btn-disabled-color: var(--muted);
 }
 .btn.image-action { --btn-bg: var(--raised); --btn-color: var(--text); }
+.btn.image-preview-action {
+  --btn-padding-x: 8px;
+  --btn-padding-y: 8px;
+  --btn-border-width: 0;
+  --btn-color: var(--on-solid);
+  --btn-hover-color: var(--on-solid);
+  --btn-active-color: var(--on-solid);
+  --btn-hover-bg: transparent;
+  --btn-active-bg: transparent;
+}
 .menu-item.danger { --menu-item-color: var(--blocked-text); --menu-item-hover-color: var(--blocked-text); }
 
 .btn.arm { --btn-color: var(--accent); --btn-hover-color: var(--accent); }

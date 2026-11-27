@@ -48,11 +48,10 @@ export class ChatImageLinks {
 
 	/**
 	 * The image behind one text `[Image #N]`. In a chat of Claude Code each number names one image. Codex starts the numbers
-	 * again in each message, so the text is matched from the end of the chat: the last text `[Image #1]` of the terminal is
-	 * the last image 1 of the chat, the one before it is the image 1 before, and so on.
+	 * again in each message, so the number of later sent attachments gives the offset from the last image of that number.
 	 * @param images The images of the chat, in the order of their keys.
 	 * @param number The number `N` of the text.
-	 * @param laterCount The number of texts `[Image #N]` with the same number below this one in the terminal.
+	 * @param laterCount The number of later sent attachments with the same number in the terminal.
 	 * @returns The image, or null when the chat has no such image, for example a text that is not sent yet.
 	 */
 	static imageFor(images: ChatImage[], number: number, laterCount: number): ChatImage | null {
