@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ILink, Terminal } from '@xterm/xterm';
 import { ChatImageHover } from './chat_image_hover';
 import { ChatImages, type ChatImage } from './chat_images';
@@ -10,6 +10,7 @@ import { ChatImagesFollower } from './chat_images_follower';
 function fakeTerminal(lines: string[]): Terminal {
 	const bufferLines = lines.map((text) => ({
 		length: text.length,
+		translateToString: () => text.trimEnd(),
 		getCell: (x: number) => ({
 			getWidth: () => 1,
 			getChars: () => text[x],
@@ -19,6 +20,7 @@ function fakeTerminal(lines: string[]): Terminal {
 		buffer: {
 			active: {
 				length: bufferLines.length,
+				viewportY: 0,
 				getLine: (index: number) => bufferLines[index],
 			},
 		},
@@ -56,6 +58,7 @@ afterEach(() => {
 	ChatImageHover.hide();
 	ChatImages.state.images = [];
 	ChatImagesFollower.state.paneId = null;
+	vi.useRealTimers();
 });
 
 describe('ChatImageHover', () => {
@@ -70,10 +73,22 @@ describe('ChatImageHover', () => {
 		expect(ChatImageHover.state.image).toBeNull();
 	});
 
-	it('underlines each text [Image #N] of the selected pane, at its columns', () => {
+	it('underlines the marker and shows its preview only after half a second on the label', () => {
+		vi.useFakeTimers();
 		ChatImagesFollower.state.paneId = 'w1:p1';
 		ChatImages.state.images = [image(0, 1, 1)];
-		const links = linksOf(fakeTerminal(['> look [Image #1] here']), 1);
+		const terminal = fakeTerminal(['> look [Image #1] here']);
+		const element = document.createElement('div');
+		const screen = document.createElement('div');
+		screen.className = 'xterm-screen';
+		vi.spyOn(screen, 'getBoundingClientRect').mockReturnValue(new DOMRect(50, 100, 800, 240));
+		element.append(screen);
+		Object.assign(terminal, {
+			element,
+			cols: 80,
+			rows: 10,
+		});
+		const links = linksOf(terminal, 1);
 		expect(links).toHaveLength(1);
 		expect(links?.[0].range).toEqual({
 			start: {
@@ -84,6 +99,21 @@ describe('ChatImageHover', () => {
 				x: 17,
 				y: 1,
 			},
+		});
+		const link = links?.[0];
+		link?.hover?.(pointerAt(130, 105), link.text);
+		vi.advanceTimersByTime(499);
+		expect(ChatImageHover.state.image).toBeNull();
+		link?.leave?.(pointerAt(130, 105), link.text);
+		vi.advanceTimersByTime(500);
+		expect(ChatImageHover.state.image).toBeNull();
+		link?.hover?.(pointerAt(130, 105), link.text);
+		vi.advanceTimersByTime(500);
+		expect(ChatImageHover.state.image?.key).toBe(0);
+		expect(ChatImageHover.state).toMatchObject({
+			x: 170,
+			y: 100,
+			bottom: 124,
 		});
 	});
 
@@ -97,15 +127,30 @@ describe('ChatImageHover', () => {
 		expect(linksOf(terminal, 1)).toBeUndefined();
 	});
 
-	it('shows the image of the Codex message of the text, matched from the end of the terminal', () => {
+	it('matches sent Codex attachments and resolves reply mentions without counting them as attachments', () => {
+		vi.useFakeTimers();
 		ChatImagesFollower.state.paneId = 'w1:p1';
 		ChatImages.state.images = [image(0, 1, 1), image(1, 1, 2)];
-		const terminal = fakeTerminal(['> first [Image #1]', 'answer', '> second [Image #1]']);
-		linksOf(terminal, 1)?.[0].hover?.(pointerAt(10, 20), '[Image #1]');
-		expect(ChatImageHover.state.image?.key).toBe(0);
-		linksOf(terminal, 3)?.[0].hover?.(pointerAt(10, 20), '[Image #1]');
-		expect(ChatImageHover.state.image?.key).toBe(1);
-		linksOf(terminal, 3)?.[0].leave?.(pointerAt(10, 20), '[Image #1]');
-		expect(ChatImageHover.state.image).toBeNull();
+		const terminal = fakeTerminal([
+			'› [Image #1]First message',
+			'• Reply mentioning [Image #1]',
+			'  [Image #1]',
+			'',
+			'› Second message',
+			'• Reply mentioning [Image #1] twice: [Image #1]',
+			'  > [Image #1]',
+		]);
+		for (const [y, key] of [[1, 0], [2, 0], [3, 1], [6, 1], [7, 1]]) {
+			const links = linksOf(terminal, y);
+			expect(links).toHaveLength(y === 6 ? 2 : 1);
+			for (const link of links ?? []) {
+				link.hover?.(pointerAt(10, 20), link.text);
+				vi.advanceTimersByTime(500);
+				expect(ChatImageHover.state.image?.key).toBe(key);
+				link.leave?.(pointerAt(10, 20), link.text);
+				vi.advanceTimersByTime(250);
+				expect(ChatImageHover.state.image).toBeNull();
+			}
+		}
 	});
 });

@@ -2,7 +2,7 @@ import { reactive } from 'vue';
 import type { IBufferLine, ILink, ILinkProvider, Terminal } from '@xterm/xterm';
 import { ChatImages, type ChatImage } from './chat_images';
 import { ChatImagesFollower } from './chat_images_follower';
-import { ChatImageLinks, type ChatImageText } from '../lib/chat_image_links';
+import { ChatImageLinks } from '../lib/chat_image_links';
 
 // The image that shows when the pointer is over a text [Image #N] of a terminal.
 // Issue: https://github.com/heidrun-org/heidrun_code/issues/924
@@ -11,10 +11,12 @@ import { ChatImageLinks, type ChatImageText } from '../lib/chat_image_links';
 export type ChatImageHoverState = {
 	/** The image, or null when the pointer is over no text `[Image #N]`. */
 	image: ChatImage | null;
-	/** The horizontal place of the pointer in the window, in pixels. */
+	/** The horizontal center of the terminal label, in window pixels. */
 	x: number;
-	/** The vertical place of the pointer in the window, in pixels. */
+	/** The top of the terminal label, in window pixels. */
 	y: number;
+	/** The bottom of the terminal label, in window pixels. */
+	bottom: number;
 };
 
 /** The image that shows over a terminal when the pointer is over a text `[Image #N]`. */
@@ -24,22 +26,47 @@ export class ChatImageHover {
 		image: null,
 		x: 0,
 		y: 0,
+		bottom: 0,
 	});
 
+	/** Pending preview while the pointer rests on a terminal label. */
+	private static _showTimer = 0;
+
+	/** Pending dismissal while the pointer crosses from the label to the preview. */
+	private static _hideTimer = 0;
+
 	/**
-	 * Shows an image near the pointer.
+	 * Shows an image beside the terminal label.
 	 * @param image The image.
-	 * @param x The horizontal place of the pointer in the window, in pixels.
-	 * @param y The vertical place of the pointer in the window, in pixels.
+	 * @param x The horizontal center of the label.
+	 * @param y The top of the label.
+	 * @param bottom The bottom of the label.
+	 * @returns Nothing.
 	 */
-	static show(image: ChatImage, x: number, y: number): void {
+	static show(image: ChatImage, x: number, y: number, bottom = y): void {
+		ChatImageHover.keepOpen();
 		ChatImageHover.state.image = image;
 		ChatImageHover.state.x = x;
 		ChatImageHover.state.y = y;
+		ChatImageHover.state.bottom = bottom;
+	}
+
+	/** Cancels dismissal when the pointer enters the preview or another label. */
+	static keepOpen(): void {
+		window.clearTimeout(ChatImageHover._hideTimer);
+	}
+
+	/** Gives the pointer time to cross between the terminal label and the preview. */
+	static hideSoon(): void {
+		window.clearTimeout(ChatImageHover._showTimer);
+		ChatImageHover.keepOpen();
+		ChatImageHover._hideTimer = window.setTimeout(ChatImageHover.hide, 250);
 	}
 
 	/** Hides the image. */
 	static hide(): void {
+		window.clearTimeout(ChatImageHover._showTimer);
+		ChatImageHover.keepOpen();
 		ChatImageHover.state.image = null;
 	}
 
@@ -71,13 +98,32 @@ export class ChatImageHover {
 					},
 					activate: () => {},
 					hover: (event: MouseEvent) => {
-						const laterCount = ChatImageHover._countLater(terminal, y, found);
-						const image = ChatImageLinks.imageFor(ChatImages.state.images, found.number, laterCount);
-						if (image !== null) {
-							ChatImageHover.show(image, event.clientX, event.clientY);
-						}
+						ChatImageHover.hide();
+						ChatImageHover._showTimer = window.setTimeout(() => {
+							if (ChatImagesFollower.state.paneId !== paneIdFn() || ChatImages.state.viewerKey !== null) {
+								return;
+							}
+							const images = ChatImages.state.images;
+							const laterCount = images.some((image) => image.message !== null)
+								? ChatImageHover._countLaterCodexAttachments(terminal, y, found.number)
+								: 0;
+							const image = ChatImageLinks.imageFor(images, found.number, laterCount);
+							if (image === null) {
+								return;
+							}
+							const screen = terminal.element?.querySelector('.xterm-screen')?.getBoundingClientRect();
+							if (screen === undefined || screen.width === 0 || screen.height === 0) {
+								ChatImageHover.show(image, event.clientX, event.clientY);
+								return;
+							}
+							const cellWidth = screen.width / terminal.cols;
+							const cellHeight = screen.height / terminal.rows;
+							const midpoint = (columns[found.start] + columns[found.end - 1] + 1) / 2;
+							const top = screen.top + (y - 1 - terminal.buffer.active.viewportY) * cellHeight;
+							ChatImageHover.show(image, screen.left + midpoint * cellWidth, top, top + cellHeight);
+						}, 500);
 					},
-					leave: () => ChatImageHover.hide(),
+					leave: () => ChatImageHover.hideSoon(),
 				}));
 				callback(links.length > 0 ? links : undefined);
 			},
@@ -117,27 +163,24 @@ export class ChatImageHover {
 	}
 
 	/**
-	 * The number of texts `[Image #N]` with the number of `found` below it in the terminal: after it on its line, and on the
-	 * lines below.
+	 * Counts later Codex attachment rows for the same image number. Codex prints file arguments on their own indented
+	 * rows and inline attachments in sent prompts. Reply mentions use the preceding attachment of the same number.
 	 * @param terminal The terminal.
-	 * @param y The line of `found`, from 1.
-	 * @param found The text under the pointer.
-	 * @returns The number of texts below.
+	 * @param y The line under the pointer, from 1.
+	 * @param number The image number.
+	 * @returns The number of attachment rows below this line.
 	 */
-	private static _countLater(terminal: Terminal, y: number, found: ChatImageText): number {
+	private static _countLaterCodexAttachments(terminal: Terminal, y: number, number: number): number {
 		const buffer = terminal.buffer.active;
+		const marker = `[Image #${number}]`;
 		let count = 0;
-		for (let index = y - 1; index < buffer.length; index++) {
-			const line = buffer.getLine(index);
-			if (line === undefined) {
+		for (let index = y; index < buffer.length; index++) {
+			const text = buffer.getLine(index)?.translateToString(true);
+			if (text === undefined || text.includes(marker) === false) {
 				continue;
 			}
-			const texts = ChatImageLinks.findInLine(ChatImageHover._lineText(line).text);
-			for (const text of texts) {
-				const isBelow = index > y - 1 || text.start > found.start;
-				if (isBelow && text.number === found.number) {
-					count++;
-				}
+			if (text === `  ${marker}` || /^ {0,2}› /.test(text)) {
+				count++;
 			}
 		}
 		return count;

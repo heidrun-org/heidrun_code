@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { invoke } from "@tauri-apps/api/core";
 import ChatImagesSection from "./ChatImagesSection.vue";
+import ChatImagesViewer from "./ChatImagesViewer.vue";
 import chatImagesSectionSource from "./ChatImagesSection.vue?raw";
 import { ChatImages } from "../stores/chat_images";
 import { ChatImagesFollower } from "../stores/chat_images_follower";
@@ -122,6 +123,7 @@ describe("ChatImagesSection", () => {
   it("opens the big view on a click, moves with the arrow keys, and closes with Escape", async () => {
     state.snapshot = snapshotWith({ hd_sid: "chat-1" });
     answerImages([1, 2]);
+    mount(ChatImagesViewer, { attachTo: document.body });
     const wrapper = mount(ChatImagesSection, { attachTo: document.body });
     await flushPromises();
     await wrapper.findAll("li button")[1].trigger("click");
