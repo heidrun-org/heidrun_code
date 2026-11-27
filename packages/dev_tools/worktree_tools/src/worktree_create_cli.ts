@@ -3,6 +3,7 @@ import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Path from 'node:path';
 import { DirectoryClone } from './directory_clone.ts';
+import { TauriPermissionPaths } from './tauri_permission_paths.ts';
 import { TargetPaths } from './target_paths.ts';
 import { WorktreeGit } from './worktree_git.ts';
 
@@ -11,7 +12,7 @@ const __dirname = Path.dirname(__filename);
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	WorktreeCreateCli — delegates worktree creation and copies the built mobile website
+//	WorktreeCreateCli — creates a worktree and prepares its copied build output
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -28,7 +29,7 @@ type WorktreeCreateReport = {
 /** Runs Faster Rust Work Trees followed by the Heidrun Code worktree setup. */
 export class WorktreeCreateCli {
 	/**
-	 * Creates the worktree and copies the optional mobile website output after Cargo output is cloned.
+	 * Creates the worktree and prepares copied Cargo and mobile website output.
 	 * @param args Arguments after the executable name.
 	 * @returns The exit code.
 	 */
@@ -52,6 +53,7 @@ export class WorktreeCreateCli {
 
 		const { worktreePath, decisions } = JSON.parse(result.stdout) as WorktreeCreateReport;
 		if (decisions.includes(`${TargetPaths.targetRelativePath}: copy-on-write cloned`) === true) {
+			TauriPermissionPaths.repair(worktreePath);
 			WorktreeCreateCli._copyMobileWebsite(mainCheckoutPath, worktreePath);
 		}
 		return 0;
