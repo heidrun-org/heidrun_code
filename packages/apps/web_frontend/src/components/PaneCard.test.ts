@@ -62,6 +62,25 @@ async function mountPaneCard(
 }
 
 describe("PaneCard", () => {
+	it.each([false, true])('clears the window buttons at any zoom in Zen Mode (pinned: %s)', async (isPinned) => {
+		const { FONT_DEFAULT, FONT_MIN, settings, zoomFactor } = await import('../stores/settings');
+		const wrapper = await mountPaneCard({}, isPinned);
+		const header = wrapper.get<HTMLElement>('header.head').element;
+
+		settings.fontSize = FONT_DEFAULT;
+		expect(header.style.paddingLeft).toBe('');
+
+		await wrapper.get('button[aria-label="Enter Zen Mode"]').trigger('click');
+		expect(header.style.paddingLeft).toBe('84px');
+
+		settings.fontSize = FONT_MIN;
+		await nextTick();
+		expect(Number.parseFloat(header.style.paddingLeft) * zoomFactor()).toBeCloseTo(84);
+
+		await wrapper.get('button[aria-label="Leave Zen Mode"]').trigger('click');
+		expect(header.style.paddingLeft).toBe('');
+	});
+
   it("lets the name get narrower than its text and ends it with an ellipsis, so it never runs under the buttons", () => {
     const rule = styleRule(".name");
     expect(rule).toContain("min-width: 0");

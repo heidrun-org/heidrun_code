@@ -14,7 +14,7 @@ import { allPinnedPanes, gridPanes, isPinned, pinnedPaneState, togglePinnedPane,
 import { NewPane } from "../stores/new_pane";
 import { PaneMoveDrag } from "../stores/pane_move";
 import { git } from "../stores/git";
-import { settings } from "../stores/settings";
+import { settings, zoomFactor } from '../stores/settings';
 import { mosaic } from "../stores/mosaic";
 import { CompositionBar as CompositionBarStore } from '../stores/composition_bar';
 import { ImageDrop } from "../lib/image_drop";
@@ -104,7 +104,12 @@ const subtitle = computed(() => {
     @mousedown="onDown"
   >
     <div v-if="status === 'working'" class="sweep" aria-hidden="true"><span></span></div>
-    <header class="head" @pointerdown="onHeaderPointerDown">
+    <!-- The macOS window buttons keep their size when the web view zooms. -->
+    <header
+      class="head"
+      :style="{ paddingLeft: ZenMode.state.isActive ? `${84 / zoomFactor()}px` : undefined }"
+      @pointerdown="onHeaderPointerDown"
+    >
       <span class="dot" :class="status"></span>
       <InlineRename
         v-if="state.renaming === `pane:${pane.pane_id}`"
