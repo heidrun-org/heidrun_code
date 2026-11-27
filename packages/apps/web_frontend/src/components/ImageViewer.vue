@@ -91,7 +91,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
       <img v-if="picture" :src="picture" :alt="fileName" />
       <p v-else-if="isFailed" class="message">{{ t("imageViewer.failed") }}</p>
       <p v-else class="message">{{ t("imageViewer.loading") }}</p>
-      <figcaption>
+      <figcaption class="badge image-viewer-caption">
         <span class="name">{{ fileName }}</span>
         <span class="position">{{ t("imageViewer.position", { position: (compositionBar.viewerIndex ?? 0) + 1, total: count }) }}</span>
       </figcaption>
@@ -112,8 +112,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
 .stage { flex: 1; min-width: 0; max-height: 100%; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
 .stage img { max-width: 100%; max-height: calc(100vh - 110px); object-fit: contain; border-radius: 6px; background: var(--field); }
 .message { color: var(--muted); }
-figcaption { display: flex; gap: 12px; color: var(--text-2); font-size: var(--font-size); }
-.position { color: var(--muted); font-variant-numeric: tabular-nums; }
 .arrow, .close { display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .arrow { flex: none; }
 .close { position: absolute; top: 14px; right: 14px; }
