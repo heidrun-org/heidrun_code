@@ -1,7 +1,7 @@
 # Window rules index
 
 - Created: 13 October 2026
-- Last updated: 24 November 2026
+- Last updated: 27 November 2026
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md)
@@ -36,7 +36,7 @@ This file lists the files and the subfolders of this folder, for agents and tool
 - [terminal_text_detection.md](terminal_text_detection.md): The information cards and actions for terminal references. Read it when changing Text detection.
 - [terminal_text_detection_references.md](terminal_text_detection_references.md): The accepted issue and request references and their destinations. Read it when changing terminal reference parsing.
 - [terminal_text_detection_other_families.md](terminal_text_detection_other_families.md): Ordinary web links and agent session features alongside Text detection.
-- [settings_text_detection.md](settings_text_detection.md): The two Text detection switches in the Settings window. Read it when changing either switch.
+- [settings_text_detection.md](settings_text_detection.md): The Text detection switches in the Settings window. Read it when changing any of these switches.
 - [status_bar.md](status_bar.md): the status bar and the menu of the status item.
 - [status_bar_git.md](status_bar_git.md): the Git branch section of the status bar: the branch picker, the synchronization with the upstream branch, the fetch in the background, and the counts.
 - [window_state_and_start.md](window_state_and_start.md): the position and size of the window, the last state of each option, the splash screen, the notice of the missing programs Herdr and ngrok, and the goat sounds.

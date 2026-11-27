@@ -6,5 +6,9 @@
   "family.webAddresses.name": "Ordinary web links",
   "family.webAddresses.what": "Clickable web addresses in the terminal that start with http:// or https://.",
   "family.webAddresses.on": "Hold Command and click a web address to open it in the browser.",
-  "family.webAddresses.off": "Ordinary web addresses appear as text."
+  "family.webAddresses.off": "Ordinary web addresses appear as text.",
+  "family.inputImagePreviews.name": "Input image previews",
+  "family.inputImagePreviews.what": "Labels such as [Image #1] refer to images attached to messages in a coding agent chat.",
+  "family.inputImagePreviews.on": "Hover over an image label in the terminal to see the image.",
+  "family.inputImagePreviews.off": "Image labels appear as plain text in the terminal."
 }

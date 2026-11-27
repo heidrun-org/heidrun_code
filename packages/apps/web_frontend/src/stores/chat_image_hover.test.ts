@@ -3,6 +3,7 @@ import type { ILink, Terminal } from '@xterm/xterm';
 import { ChatImageHover } from './chat_image_hover';
 import { ChatImages, type ChatImage } from './chat_images';
 import { ChatImagesFollower } from './chat_images_follower';
+import { settings } from './settings';
 
 // Tests of the image that shows when the pointer is over a text [Image #N] of a terminal (issue #924).
 
@@ -55,6 +56,7 @@ function pointerAt(x: number, y: number): MouseEvent {
 }
 
 afterEach(() => {
+	settings.terminalInputImagePreviews = true;
 	ChatImageHover.hide();
 	ChatImages.state.images = [];
 	ChatImagesFollower.state.paneId = null;
@@ -107,6 +109,12 @@ describe('ChatImageHover', () => {
 		link?.leave?.(pointerAt(130, 105), link.text);
 		vi.advanceTimersByTime(500);
 		expect(ChatImageHover.state.image).toBeNull();
+		link?.hover?.(pointerAt(130, 105), link.text);
+		settings.terminalInputImagePreviews = false;
+		vi.advanceTimersByTime(500);
+		expect(ChatImageHover.state.image).toBeNull();
+
+		settings.terminalInputImagePreviews = true;
 		link?.hover?.(pointerAt(130, 105), link.text);
 		vi.advanceTimersByTime(500);
 		expect(ChatImageHover.state.image?.key).toBe(0);

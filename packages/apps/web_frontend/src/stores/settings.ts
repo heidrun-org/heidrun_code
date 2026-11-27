@@ -116,6 +116,7 @@ const defaults = {
   terminalTextDetection: true,
   /** Make ordinary web addresses clickable in the terminal. */
   terminalWebAddresses: true,
+	terminalInputImagePreviews: true,
   /** Sidebar section that the left sidebar shows. */
   leftSidebarSection: "launchers" as LeftSidebarSection,
   /** Sidebar section that the right sidebar shows. */

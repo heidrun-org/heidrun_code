@@ -6,5 +6,9 @@
   "family.webAddresses.name": "Liens web ordinaires",
   "family.webAddresses.what": "Adresses web cliquables dans le terminal qui commencent par http:// ou https://.",
   "family.webAddresses.on": "Maintenez la touche Commande et cliquez sur une adresse web pour l’ouvrir dans le navigateur.",
-  "family.webAddresses.off": "Les adresses web ordinaires s’affichent sous forme de texte."
+  "family.webAddresses.off": "Les adresses web ordinaires s’affichent sous forme de texte.",
+  "family.inputImagePreviews.name": "Aperçus des images jointes",
+  "family.inputImagePreviews.what": "Les libellés comme [Image #1] désignent les images jointes aux messages d’une conversation avec un agent de programmation.",
+  "family.inputImagePreviews.on": "Survolez le libellé d’une image dans le terminal pour afficher son aperçu.",
+  "family.inputImagePreviews.off": "Les libellés des images s’affichent sous forme de texte dans le terminal."
 }

@@ -1,7 +1,7 @@
 # Glossary of Heidrun Code: terminal text detection
 
 - Created: 22 October 2026
-- Last updated: 24 November 2026
+- Last updated: 27 November 2026
 - Status: Maintained glossary for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](index.md), [User interface of Heidrun Code: the detection in the text of the terminals](../user_interface/window/terminal_text_detection.md), [User interface of Heidrun Code: the text detection in the Settings window](../user_interface/window/settings_text_detection.md)
@@ -9,7 +9,11 @@
 
 ### Text detection
 
-The Settings section for terminal issue and request information cards and ordinary web links.
+The Settings section for terminal issue and request information cards, ordinary web links, and Input image previews.
+
+### Input image previews
+
+Previews of images attached to chat messages that appear when the pointer rests on a label such as `[Image #1]` in the terminal.
 
 ### Terminal reference
 

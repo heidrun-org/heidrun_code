@@ -325,6 +325,7 @@ function buildLinkProviders() {
   webLinks?.dispose();
   webLinks = null;
   chatImageProvider?.dispose();
+  chatImageProvider = null;
   detectionProvider = term.registerLinkProvider({ provideLinks: provideDetectionLinks });
   if (settings.terminalWebAddresses) {
     webLinks = new WebLinksAddon(
@@ -341,7 +342,9 @@ function buildLinkProviders() {
     );
     term.loadAddon(webLinks);
   }
-  chatImageProvider = term.registerLinkProvider(ChatImageHover.createLinkProvider(term, () => props.paneId));
+  if (settings.terminalInputImagePreviews) {
+    chatImageProvider = term.registerLinkProvider(ChatImageHover.createLinkProvider(term, () => props.paneId));
+  }
 }
 
 /** Supplies reference links from the whole wrapped line so a full address can span terminal rows. */
@@ -576,10 +579,13 @@ watch(
 );
 
 watch(
-  () => [settings.terminalTextDetection, settings.terminalWebAddresses] as const,
+  () => [settings.terminalTextDetection, settings.terminalWebAddresses, settings.terminalInputImagePreviews] as const,
   () => {
     overLink = false;
     closeReferenceCard();
+    if (settings.terminalInputImagePreviews === false) {
+      ChatImageHover.hide();
+    }
     buildLinkProviders();
     refreshReferenceDecorations();
   },

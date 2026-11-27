@@ -16,6 +16,21 @@ const webAddressesHelp = [
   { titleKey: "settingsHelp.offTitle", textKey: "textDetection.family.webAddresses.off" },
 ] as const;
 
+const inputImagePreviewsHelp = [
+  {
+    titleKey: 'settingsHelp.whatTitle',
+    textKey: 'textDetection.family.inputImagePreviews.what',
+  },
+  {
+    titleKey: 'settingsHelp.onTitle',
+    textKey: 'textDetection.family.inputImagePreviews.on',
+  },
+  {
+    titleKey: 'settingsHelp.offTitle',
+    textKey: 'textDetection.family.inputImagePreviews.off',
+  },
+] as const;
+
 </script>
 
 <template>
@@ -28,6 +43,14 @@ const webAddressesHelp = [
     <div data-option="terminalWebAddresses">
       <SettingsSwitchRow v-model="settings.terminalWebAddresses" :label="t('textDetection.family.webAddresses.name')">
         <SettingsOptionHelp title-key="textDetection.family.webAddresses.name" :blocks="webAddressesHelp" />
+      </SettingsSwitchRow>
+    </div>
+    <div data-option="terminalInputImagePreviews">
+      <SettingsSwitchRow
+        v-model="settings.terminalInputImagePreviews"
+        :label="t('textDetection.family.inputImagePreviews.name')"
+      >
+        <SettingsOptionHelp title-key="textDetection.family.inputImagePreviews.name" :blocks="inputImagePreviewsHelp" />
       </SettingsSwitchRow>
     </div>
   </div>

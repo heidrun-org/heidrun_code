@@ -83,7 +83,7 @@ class SettingsInformationCardsTestHelper {
 		{
 			name: 'Text detection',
 			component: SettingsTextDetectionSection,
-			optionList: ['textDetection', 'terminalWebAddresses'],
+			optionList: ['textDetection', 'terminalWebAddresses', 'terminalInputImagePreviews'],
 		},
 		{
 			name: 'Coding agents',

@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: the detection in the text of the terminals
 
 - Created: 22 October 2026
-- Last updated: 24 November 2026
+- Last updated: 27 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code: terminal text detection](../../glossary/terminal_text_detection.md), [The references](terminal_text_detection_references.md), [The other families](terminal_text_detection_other_families.md), [Settings window: text detection](settings_text_detection.md)
@@ -13,4 +13,4 @@ The information card shows the existing merge controls when the request belongs 
 
 The terminal adds the reference colors as decorations over the buffer cells. The text stays intact. Links encoded by the terminal and links printed as plain text follow the same reference rules.
 
-The Settings window has independent switches for reference information cards and ordinary web links. Agent questions, choice menus, and notifications follow the agent session and its own settings.
+The Settings window has independent switches for reference information cards, ordinary web links, and Input image previews. Agent questions, choice menus, and notifications follow the agent session and its own settings.

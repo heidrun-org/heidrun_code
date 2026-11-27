@@ -9,7 +9,7 @@ The content of each section of the Settings window. The Settings window itself i
 - `settings_design_section.vue`: the Color themes section, with immediately applied, saved colour choices.
 - `SettingsGeneralSection.vue`: the language, the time format, the working days, and the switch `goatSound`.
 - `SettingsTerminalSection.vue`: the font, the font size that zooms the whole window, and the mouse behaviour (`mouseMode`).
-- `SettingsTextDetectionSection.vue`: The switches for issue and request previews and ordinary web links. See [the rules](../../../../../../docs/agents_rules/user_interface/window/settings_text_detection.md).
+- `SettingsTextDetectionSection.vue`: The switches for terminal text detection. See [the rules](../../../../../../docs/agents_rules/user_interface/window/settings_text_detection.md).
 - `SettingsAgentsSection.vue`: coding agent switches, quotas, default tab command, composition bar visibility, and `keepAgentsRunningAfterQuit`; disabling the default agent selects Terminal.
 - `SettingsHeidrunCodeDashboardSection.vue`: the Dashboard local network switch, QR code, address, copy button, and pairing key. See [the rules](../../../../../../docs/agents_rules/user_interface/heidrun_code_dashboard/heidrun_code_dashboard_local_network.md).
 - `SettingsConfirmationsSection.vue`: closing and deletion confirmations, and `filesOutsideWorkspace` (Ask, Open in Heidrun Code, Open in the default app, Never open).

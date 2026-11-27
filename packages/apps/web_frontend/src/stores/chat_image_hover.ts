@@ -3,6 +3,7 @@ import type { IBufferLine, ILink, ILinkProvider, Terminal } from '@xterm/xterm';
 import { ChatImages, type ChatImage } from './chat_images';
 import { ChatImagesFollower } from './chat_images_follower';
 import { ChatImageLinks } from '../lib/chat_image_links';
+import { settings } from './settings';
 
 // The image that shows when the pointer is over a text [Image #N] of a terminal.
 // Issue: https://github.com/heidrun-org/heidrun_code/issues/924
@@ -100,7 +101,8 @@ export class ChatImageHover {
 					hover: (event: MouseEvent) => {
 						ChatImageHover.hide();
 						ChatImageHover._showTimer = window.setTimeout(() => {
-							if (ChatImagesFollower.state.paneId !== paneIdFn() || ChatImages.state.viewerKey !== null) {
+							if (settings.terminalInputImagePreviews === false ||
+								ChatImagesFollower.state.paneId !== paneIdFn() || ChatImages.state.viewerKey !== null) {
 								return;
 							}
 							const images = ChatImages.state.images;
