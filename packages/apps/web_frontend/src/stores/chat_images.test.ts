@@ -106,19 +106,6 @@ describe('ChatImages', () => {
 		expect(ChatImages.state.viewerKey).toBe(1);
 	});
 
-	it('finds the Codex chat of a terminal title and a folder, and asks only once for a found chat', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce(null);
-		expect(await ChatImages.findCodexChat('heidrun', '/work/cache-test')).toBe(null);
-		vi.mocked(invoke).mockResolvedValueOnce('01a17e13-c2cd-7811-adda-f790dcf914a0');
-		expect(await ChatImages.findCodexChat('Respond to greeting | heidrun', '/work/cache-test')).toBe('01a17e13-c2cd-7811-adda-f790dcf914a0');
-		expect(await ChatImages.findCodexChat('Respond to greeting | heidrun', '/work/cache-test')).toBe('01a17e13-c2cd-7811-adda-f790dcf914a0');
-		expect(invoke).toHaveBeenCalledTimes(2);
-		expect(invoke).toHaveBeenLastCalledWith('chat_images_find_codex_chat', {
-			terminalTitle: 'Respond to greeting | heidrun',
-			folder: '/work/cache-test',
-		});
-	});
-
 	it('moves the big view to the next and the previous image, and goes round at the two ends', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce(answer([1, 2, 6], [[1, 'AAA'], [2, 'BBB'], [6, 'FFF']]));
 		await ChatImages.load('chat-1');

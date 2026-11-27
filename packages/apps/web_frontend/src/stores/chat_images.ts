@@ -69,9 +69,6 @@ export class ChatImages {
 	/** True when a load was asked while a call ran: the load runs again at the end of the call. */
 	private static _isLoadAsked = false;
 
-	/** The chat of Codex found for each folder and title of a terminal. */
-	private static _codexChats = new Map<string, string>();
-
 	/**
 	 * Reads the images of the chat session `sessionId`. A new chat session starts from an empty list. The same chat session
 	 * asks only for the images above the last key that it has, and forgets the images that the chat no longer has.
@@ -103,34 +100,6 @@ export class ChatImages {
 		if (ChatImages._isLoadAsked === true) {
 			ChatImages._isLoadAsked = false;
 			await ChatImages.load(state.sessionId);
-		}
-	}
-
-	/**
-	 * Finds the chat of Codex that a Codex pane shows, from the title of its terminal and the folder where Codex runs. Codex
-	 * writes the title of its chat in the title of the terminal, and gives no other link between a pane and its chat. A found
-	 * chat is kept, so the same title and folder ask the desktop application only once.
-	 * @param terminalTitle The title of the terminal of the pane.
-	 * @param folder The folder where Codex runs.
-	 * @returns The chat session identifier, or null when no chat matches.
-	 */
-	static async findCodexChat(terminalTitle: string, folder: string): Promise<string | null> {
-		const cacheKey = `${folder}\n${terminalTitle}`;
-		const known = ChatImages._codexChats.get(cacheKey);
-		if (known !== undefined) {
-			return known;
-		}
-		try {
-			const found = await invoke<string | null>('chat_images_find_codex_chat', {
-				terminalTitle,
-				folder,
-			});
-			if (found !== null) {
-				ChatImages._codexChats.set(cacheKey, found);
-			}
-			return found;
-		} catch {
-			return null;
 		}
 	}
 
