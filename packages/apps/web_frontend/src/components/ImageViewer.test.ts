@@ -39,8 +39,9 @@ describe("ImageViewer", () => {
 		const wrapper = mountViewerOn("/shots/b.png");
 		await vi.waitFor(() => expect(wrapper.find("img").attributes("src")).toBe("data:big-/shots/b.png"));
 		expect(invokeMock).toHaveBeenCalledWith("image_preview", { path: "/shots/b.png", longestSide: 1600 });
-		expect(wrapper.text()).toContain("b.png");
-		expect(wrapper.text()).toContain("2 of 3");
+		const caption = wrapper.get('figcaption.badge.image-viewer-caption');
+		expect(caption.get('.name').text()).toBe('b.png');
+		expect(caption.get('.position').text()).toBe('2 of 3');
 		wrapper.unmount();
 	});
 

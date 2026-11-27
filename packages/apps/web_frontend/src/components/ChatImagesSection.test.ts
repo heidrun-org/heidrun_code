@@ -137,6 +137,33 @@ describe("ChatImagesSection", () => {
     expect(document.body.querySelector(".overlay")).toBe(null);
   });
 
+	it('keeps the viewer open for the image and caption and closes it from the backdrop', async () => {
+		state.snapshot = snapshotWith({
+			hd_sid: 'chat-1',
+		});
+		answerImages([1]);
+		mount(ChatImagesViewer, {
+			attachTo: document.body,
+		});
+		const wrapper = mount(ChatImagesSection, {
+			attachTo: document.body,
+		});
+		await flushPromises();
+		const thumbnail = wrapper.get('li button');
+
+		for (const selector of ['.overlay .stage', '.overlay']) {
+			await thumbnail.trigger('click');
+			document.body.querySelector<HTMLElement>('.overlay img')?.click();
+			document.body.querySelector<HTMLElement>('.overlay figcaption.badge .mono')?.click();
+			await flushPromises();
+			expect(document.body.querySelector('.overlay')).not.toBeNull();
+
+			document.body.querySelector<HTMLElement>(selector)?.click();
+			await flushPromises();
+			expect(document.body.querySelector('.overlay')).toBeNull();
+		}
+	});
+
   it("reads the new images after the status line of Claude Code reports a change, and the images of another chat at once", async () => {
     vi.useFakeTimers();
     try {

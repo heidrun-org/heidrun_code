@@ -470,6 +470,18 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
   --btn-disabled-bg: transparent; --btn-disabled-color: var(--muted);
 }
 .btn.image-action { --btn-bg: var(--raised); --btn-color: var(--text); }
+
+.badge.image-viewer-caption {
+  --badge-font-size: calc(var(--font-size) * 1.1);
+  --badge-bg: var(--raised);
+  --badge-color: var(--text);
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.image-viewer-caption .position { font-variant-numeric: tabular-nums; }
 .btn.image-preview-action {
   --btn-padding-x: 8px;
   --btn-padding-y: 8px;
