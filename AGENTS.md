@@ -138,7 +138,7 @@ The skill names no detail of this repository: it reads the values of this reposi
   - Comment on an issue: `gh issue comment <number> --body "<comment>"`. On GitLab: `glab issue note <number> --message "<comment>"`.
   - Create an issue: see the section "GitHub and GitLab".
   - Create a pull request: `gh pr create`. On GitLab, create a merge request: `glab mr create`.
-  - Merge a pull request: `gh pr merge`. On GitLab, merge the merge request: `glab mr merge`. The section "Project memory" says which branches are never deleted.
+  - Merge a pull request with a merge commit: `gh pr merge <number> --merge`. Use this method unless the developer explicitly asks for a different one. On GitLab, use `glab mr merge <number>` when the project is configured to create a merge commit. The section "Project memory" says which branches are never deleted.
   - Close an issue: `gh issue close <number>`. On GitLab: `glab issue close <number>`.
   - The text of an issue and of a comment follows the section "GitHub and GitLab", part "Writing the text of an issue".
 - Chat rename: available in Claude Code only. The identifier of this chat is in the environment variable `CLAUDE_CODE_HOST_SESSION_ID`. Read it with `echo $CLAUDE_CODE_HOST_SESSION_ID`, then give it as `session_id` to the tool `mcp__ccd_session_mgmt__set_session_title`. Never search for this chat in the list of sessions: this chat is often missing from the list. For Codex, or when the variable is empty, the rename is not available.
