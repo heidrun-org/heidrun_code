@@ -7,4 +7,4 @@
 
 Original records of human decisions about the product.
 
-There are no recorded decisions. Use the summaries to find related decisions once records exist.
+Start with the [decision index](index.md) to find original records and topic summaries.

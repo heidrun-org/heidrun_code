@@ -5,6 +5,7 @@
 - Status: Maintained index for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 
-No decision summaries have been recorded yet. This index lists the files and folders in this area.
+This index lists the files and folders in this area.
 
 - [README.md](README.md): the overview of this area.
+- [glossary_migration.md](glossary_migration.md): the decisions from the first glossary migration review.
