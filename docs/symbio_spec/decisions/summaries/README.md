@@ -7,4 +7,4 @@
 
 Topic summaries that point to original decision records.
 
-There are no decision summaries. The original records provide the approval evidence.
+Use the [summary index](index.md) to find related decisions. The original records provide the approval evidence.
