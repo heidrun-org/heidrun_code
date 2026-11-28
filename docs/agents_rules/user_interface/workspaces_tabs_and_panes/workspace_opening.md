@@ -21,3 +21,8 @@ The information card of the workspace status bar section shows one "Open workspa
 ## Open workspace from this repo's submodules
 
 - The entry "Open workspace from this repo's submodules" follows "Open workspace from this repo's worktrees" and has the same requirements for a selected workspace and a repository root. The entry uses the same selection window, sorting, refresh, and copy controls as the worktree entry. The window lists the direct Git submodules of the selected workspace's repository by name and path relative to the repository, with the folder creation and latest commit times when available. Selecting an available submodule opens its folder as a workspace or selects the existing workspace for that folder. A submodule without a checkout is disabled and shows an explanation ([issue 1115](https://github.com/heidrun-org/heidrun_code/issues/1115)).
+
+
+## Open as workspace from the File explorer sidebar section
+
+- The context menu shows **Open as workspace** after **Open with VS Code**. Choosing **Open as workspace** opens the folder of the right-clicked row as a workspace in Heidrun Code and selects the workspace. The same action opens a Git worktree folder. On a file row, **Open as workspace** stays visible and disabled ([issue #1131](https://github.com/heidrun-org/heidrun_code/issues/1131)).

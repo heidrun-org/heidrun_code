@@ -7,6 +7,11 @@ const invokeMock = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const copyMock = vi.hoisted(() => vi.fn(async () => {}));
 const chatAboutFileMock = vi.hoisted(() => vi.fn(async (_absolutePath: string, _label: string, _folder: string | null) => {}));
 const openFileViewMock = vi.hoisted(() => vi.fn(async (_absolutePath: string) => true));
+const openFolderAsWorkspaceMock = vi.hoisted(() => vi.fn(async (_folder: string, _label: string) => {}));
+vi.mock('../stores/session', async (importOriginal) => ({
+	...await importOriginal<typeof import('../stores/session')>(),
+	openFolderAsWorkspace: openFolderAsWorkspaceMock,
+}));
 const openUrlMock = vi.hoisted(() => vi.fn(async (_url: string) => {}));
 const revealItemInDirMock = vi.hoisted(() => vi.fn(async (_path: string) => {}));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
@@ -25,6 +30,7 @@ import { git, type GitStatus } from "../stores/git";
 import { files, filesPanelIgnoredChildren, filesPanelNewFolders, filesPanelSelections } from "../stores/files";
 import { state } from "../stores/session";
 import { settings } from "../stores/settings";
+import { WorkspaceFolders } from '../stores/workspace_folders';
 
 function makeStatus(): GitStatus {
   return {
@@ -53,6 +59,8 @@ async function mountPanel() {
 }
 
 beforeEach(() => {
+  vi.spyOn(WorkspaceFolders, 'get').mockReturnValue('/work/heidrun');
+  openFolderAsWorkspaceMock.mockClear();
   openFileViewMock.mockClear();
   chatAboutFileMock.mockClear();
   revealItemInDirMock.mockClear();
@@ -78,6 +86,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.mocked(WorkspaceFolders.get).mockRestore();
   settings.filesPanelIndent = "medium";
   settings.filesPanelRowHeight = "comfortable";
   settings.filesPanelIndentGuides = true;
@@ -445,21 +454,21 @@ describe("FilesPanel", () => {
     const items = () => Array.from(document.body.querySelectorAll<HTMLButtonElement>("[role=menuitem]"));
     items()[11].click();
     expect(settings.filesShowIgnored).toBe(true);
-    await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith("files_list", { cwd: "/work/heidrun", ignored: true }));
+    await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith("files_list", { cwd: "/work/heidrun", ignored: true, scopeToFolder: true }));
     await wrapper.get("[aria-label='More options']").trigger("click");
     expect(items().map((item) => item.textContent?.trim()).slice(-3)).toEqual(["Ignored files", "✓ Show", "Hide"]);
     items()[12].click();
     expect(settings.filesShowIgnored).toBe(false);
-    await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith("files_list", { cwd: "/work/heidrun", ignored: false }));
+    await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledWith("files_list", { cwd: "/work/heidrun", ignored: false, scopeToFolder: true }));
     wrapper.unmount();
   });
 
-  it("opens a context menu with two copy items, a separator, the item Chat about this file, a separator, Reveal in Finder, and Open with VS Code after a right click on the row of a file", async () => {
+  it('shows the context menu with Open as workspace disabled for a file', async () => {
     const wrapper = await mountPanel();
     expect(document.body.querySelector("[role=menu]")).toBeNull();
     await wrapper.findAll(".row")[1].trigger("contextmenu", { clientX: 40, clientY: 60 });
     const children = Array.from(document.body.querySelector("[role=menu]")?.children ?? []);
-    expect(children.map((child) => child.getAttribute("role"))).toEqual(["menuitem", "menuitem", "separator", "menuitem", "separator", "menuitem", "menuitem"]);
+    expect(children.map((child) => child.getAttribute("role"))).toEqual(["menuitem", "menuitem", "separator", "menuitem", "separator", "menuitem", "menuitem", "menuitem"]);
     const items = Array.from(document.body.querySelectorAll<HTMLButtonElement>("[role=menu] [role=menuitem]"));
     expect(items.map((item) => item.textContent?.trim())).toEqual([
       "Copy absolute path",
@@ -467,14 +476,22 @@ describe("FilesPanel", () => {
       "Chat about this file",
       "Reveal in Finder",
       "Open with VS Code",
+      'Open as workspace',
     ]);
+    const openWorkspace = items.find((item) => item.textContent?.trim() === 'Open as workspace');
+    expect(openWorkspace?.disabled).toBe(true);
+    openWorkspace?.click();
+    expect(openFolderAsWorkspaceMock).not.toHaveBeenCalled();
     expect(openFileViewMock).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
-  it("opens the same context menu after a right click on the row of a folder, and hides the default context menu of the web view", async () => {
+  it('opens the right-clicked folder as a workspace and hides the default context menu', async () => {
     const wrapper = await mountPanel();
-    const folderRow = wrapper.findAll(".row")[0];
+    files.list = [...files.list, 'src/nested worktree/README.md'];
+    await wrapper.vm.$nextTick();
+    await wrapper.get('[title="src"]').trigger('click');
+    const folderRow = wrapper.get('[title="src/nested worktree"]');
     expect(folderRow.attributes("aria-expanded")).toBeDefined();
     const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 40, clientY: 60 });
     folderRow.element.dispatchEvent(event);
@@ -487,7 +504,14 @@ describe("FilesPanel", () => {
       "Chat about this file",
       "Reveal in Finder",
       "Open with VS Code",
+      'Open as workspace',
     ]);
+    const openWorkspace = items.find((item) => item.textContent?.trim() === 'Open as workspace');
+    expect(openWorkspace?.disabled).toBe(false);
+    openWorkspace?.click();
+    expect(openFolderAsWorkspaceMock).toHaveBeenCalledWith('/work/heidrun/src/nested worktree', 'nested worktree');
+    await wrapper.vm.$nextTick();
+    expect(document.body.querySelector('[role=menu]')).toBeNull();
     wrapper.unmount();
   });
 
@@ -595,11 +619,67 @@ describe("FilesPanel", () => {
     expect(wrapper.text()).toBe("Select a workspace.");
   });
 
-  it("tells the developer when the workspace is not a Git repository", () => {
-    state.selectedWorkspaceId = "w1";
-    git.status = { w1: null };
+  it('asks for a workspace folder when the original folder needs recovery', () => {
+    state.selectedWorkspaceId = 'w1';
+    vi.mocked(WorkspaceFolders.get).mockReturnValue(null);
     const wrapper = mount(FilesPanel);
-    expect(wrapper.text()).toBe("This workspace is not a Git repository.");
+    expect(wrapper.text()).toBe('Choose the workspace folder.');
+    wrapper.unmount();
+  });
+
+  it('switches to the workspace folder even when both workspaces share a Git root', async () => {
+    const folder = '/work/heidrun/docs/architecture';
+    vi.mocked(WorkspaceFolders.get).mockImplementation((workspaceId) => workspaceId === 'w2' ? folder : '/work/heidrun');
+    const wrapper = await mountPanel();
+    expect(wrapper.find('[title="README.md"]').exists()).toBe(true);
+
+    const invokeDefault = invokeMock.getMockImplementation();
+    invokeMock.mockImplementation(async (command: string, args: { cwd?: string }) => {
+      if (command === 'files_list' && args.cwd === folder) {
+        return {
+          root: folder,
+          git: true,
+          files: ['product.md'],
+          status: { 'product.md': 'M' },
+          truncated: false,
+        };
+      }
+      return invokeDefault?.(command, args);
+    });
+    git.status = {
+      ...git.status,
+      w2: makeStatus(),
+    };
+    state.selectedWorkspaceId = 'w2';
+
+    await vi.waitFor(() => expect(wrapper.find('[title="product.md"]').exists()).toBe(true));
+    expect(wrapper.findAll('.row').map((row) => row.attributes('title'))).toEqual(['product.md']);
+    expect(wrapper.get('[title="product.md"]').text()).toContain('M');
+    await wrapper.get('[title="product.md"]').trigger('click');
+    expect(openFileViewMock).toHaveBeenCalledWith('w2', `${folder}/product.md`);
+    wrapper.unmount();
+  });
+
+  it('lists files in a workspace outside Git', async () => {
+    const folder = '/work/notes';
+    vi.mocked(WorkspaceFolders.get).mockReturnValue(folder);
+    state.selectedWorkspaceId = 'w1';
+    const invokeDefault = invokeMock.getMockImplementation();
+    invokeMock.mockImplementation(async (command: string, args: { cwd?: string }) => {
+      if (command === 'files_list' && args.cwd === folder) {
+        return {
+          root: folder,
+          git: false,
+          files: ['notes.md'],
+          status: {},
+          truncated: false,
+        };
+      }
+      return invokeDefault?.(command, args);
+    });
+    const wrapper = mount(FilesPanel);
+    await vi.waitFor(() => expect(wrapper.find('[title="notes.md"]').exists()).toBe(true));
+    wrapper.unmount();
   });
 });
 
@@ -664,7 +744,7 @@ describe("FilesPanel, the files and the folders that Git ignores", () => {
   it("does not list a folder or a file that Git ignores when the option is off, and reads no folder", async () => {
     const wrapper = await mountPanel();
     expect(rowNames(wrapper)).toEqual(["src", "README.md"]);
-    expect(invokeMock).toHaveBeenCalledWith("files_list", { cwd: "/work/heidrun", ignored: false });
+    expect(invokeMock).toHaveBeenCalledWith("files_list", { cwd: "/work/heidrun", ignored: false, scopeToFolder: true });
     expect(invokeMock).not.toHaveBeenCalledWith("folder_children", expect.anything());
   });
 

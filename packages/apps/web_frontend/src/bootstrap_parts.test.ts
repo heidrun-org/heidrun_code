@@ -74,7 +74,6 @@ describe('bootstrap_parts.scss', () => {
 			'[data-bs-theme=light]',
 			'.form-control,\nselect.form-control',
 			'.form-control:focus-visible,\n.form-control:focus-within',
-			'.menu',
 			'.popover',
 			'.tooltip',
 			'.progress',
@@ -233,10 +232,10 @@ describe('bootstrap_parts.scss', () => {
 	});
 
 	it('uses Bootstrap menus and menu items for the application popup menus', () => {
-		for (const fileName of ['MoreMenu.vue', 'ThemeMenu.vue']) {
+		for (const fileName of ['MoreMenu.vue', 'ThemeMenu.vue', 'WorkspaceStatusSummary.vue']) {
 			const source = Fs.readFileSync(Path.resolve(__dirname, 'components', fileName), 'utf8');
-			expect(source).toContain('class="menu show popup-menu"');
-			expect(source).toMatch(/class="menu-item [^"]*"/);
+			expect(source).toMatch(/class="menu show (popup-menu|workspace-opening-menu)"/);
+			expect(source).toMatch(/class="menu-item[ "]/);
 		}
 	});
 

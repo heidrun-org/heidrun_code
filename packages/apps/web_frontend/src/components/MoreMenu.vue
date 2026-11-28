@@ -70,37 +70,37 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocClick));
       <Icon name="three-dots-vertical" />
     </button>
     <div v-if="open" class="menu show popup-menu" role="menu" :aria-label="t('moreMenu.menuLabel')">
-      <button class="menu-item item" role="menuitem" :title="t('moreMenu.shortcutsHelpTitle')" @click="chooseShortcutsHelp()">
+      <button class="menu-item" role="menuitem" :title="t('moreMenu.shortcutsHelpTitle')" @click="chooseShortcutsHelp()">
         <Icon name="question-lg" />
         <span class="label">{{ t("moreMenu.shortcutsHelpLabel") }}</span>
         <kbd>⌘/</kbd>
       </button>
-      <button class="menu-item item" role="menuitem" :title="t('moreMenu.agentsInformationTitle')" @click="chooseAgentsInformation()">
+      <button class="menu-item" role="menuitem" :title="t('moreMenu.agentsInformationTitle')" @click="chooseAgentsInformation()">
         <Icon name="people" />
         <span class="label">{{ t("moreMenu.agentsInformationLabel") }}</span>
       </button>
-      <button class="menu-item item" role="menuitem" :title="t('moreMenu.heidrunCodeDashboardTitle')" @click="chooseHeidrunCodeDashboard()">
+      <button class="menu-item" role="menuitem" :title="t('moreMenu.heidrunCodeDashboardTitle')" @click="chooseHeidrunCodeDashboard()">
         <Icon name="bullseye" />
         <span class="label">{{ t("moreMenu.heidrunCodeDashboardLabel") }}</span>
       </button>
-      <button class="menu-item item" role="menuitem" :title="t('moreMenu.statisticsTitle')" @click="chooseStatistics()">
+      <button class="menu-item" role="menuitem" :title="t('moreMenu.statisticsTitle')" @click="chooseStatistics()">
         <Icon name="bar-chart" />
         <span class="label">{{ t("moreMenu.statisticsLabel") }}</span>
       </button>
-      <div class="divider" role="separator"></div>
+      <div class="menu-divider" role="separator"></div>
       <div class="group" role="group" aria-labelledby="more-menu-skills">
-        <div id="more-menu-skills" class="heading">{{ t("moreMenu.skillsHeading") }}</div>
-        <button class="menu-item item" role="menuitem" :title="t('moreMenu.installedSkillTitle')" @click="chooseInstalledSkill()">
+        <div id="more-menu-skills" class="menu-header">{{ t("moreMenu.skillsHeading") }}</div>
+        <button class="menu-item" role="menuitem" :title="t('moreMenu.installedSkillTitle')" @click="chooseInstalledSkill()">
           <Icon name="list-check" />
           <span class="label">{{ t("moreMenu.installedSkillLabel") }}</span>
         </button>
-        <button class="menu-item item" role="menuitem" :title="t('moreMenu.findNewSkillsTitle')" @click="chooseFindNewSkills()">
+        <button class="menu-item" role="menuitem" :title="t('moreMenu.findNewSkillsTitle')" @click="chooseFindNewSkills()">
           <Icon name="search" />
           <span class="label">{{ t("moreMenu.findNewSkillsLabel") }}</span>
         </button>
       </div>
-      <div class="divider" role="separator"></div>
-      <button class="menu-item item" role="menuitem" :title="t('moreMenu.settingsTitle')" @click="chooseSettings()">
+      <div class="menu-divider" role="separator"></div>
+      <button class="menu-item" role="menuitem" :title="t('moreMenu.settingsTitle')" @click="chooseSettings()">
         <Icon name="gear" />
         <span class="label">{{ t("moreMenu.settingsLabel") }}</span>
       </button>
@@ -111,15 +111,8 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocClick));
 <style scoped>
 .wrap { position: relative; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; }
-.popup-menu {
-  position: absolute; right: 0; top: 38px; min-width: 240px; z-index: 30; padding: 6px; border-radius: 12px;
-  border: 1px solid var(--line-modal); background: var(--field); box-shadow: 0 18px 48px var(--shadow-soft);
-  display: flex; flex-direction: column; gap: 2px;
-}
-.item { display: flex; align-items: center; gap: 10px; height: 34px; text-align: left; }
+.popup-menu { inset-inline-end: 0; top: 38px; min-width: 240px; }
 .label { flex: 1; white-space: nowrap; }
 .group { display: flex; flex-direction: column; gap: 2px; }
-.heading { padding: 6px 10px 2px; color: var(--muted); font-size: calc(var(--font-size) * 0.9); font-weight: 600; }
-.divider { height: 1px; margin: 4px 6px; background: var(--line); }
-.item kbd { font-family: var(--mono); color: var(--muted); }
+.menu-item kbd { font-family: var(--mono); color: var(--muted); }
 </style>

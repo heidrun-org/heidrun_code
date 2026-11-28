@@ -282,7 +282,6 @@
   --secondary-focus-ring: var(--focus);
 }
 .popover { --popover-zindex: 20; }
-.menu { --menu-zindex: 50; }
 
 /* Status bar sections ------------------------------------------------------ */
 /* Each status bar section looks like a button of the status bar of Visual Studio Code: a rounded background while the pointer is over it,
@@ -500,12 +499,23 @@ html[data-pane-drag-cursor="col-resize"], html[data-pane-drag-cursor="col-resize
 .list-action:hover:not(:disabled) { background: var(--hover); }
 .list-action:is(.on, [aria-selected="true"], [aria-pressed="true"]) { background: var(--sel); color: var(--text); }
 .list-action:disabled, .navigation-action:disabled { opacity: 0.45; cursor: default; }
-.menu { --menu-bg: var(--raised); --menu-color: var(--text); --menu-border-color: var(--line-modal); }
+/* Menus share one surface, typography, and set of action states. */
+.menu {
+  --menu-zindex: 50;
+  --menu-font-size: var(--font-size);
+  --menu-bg: var(--raised);
+  --menu-color: var(--text);
+  --menu-border-color: var(--line-modal);
+  --menu-divider-bg: var(--line);
+  --menu-header-color: var(--muted);
+  --menu-item-disabled-color: var(--text);
+}
 .menu-item {
   --menu-item-color: var(--text); --menu-item-hover-color: var(--text); --menu-item-hover-bg: var(--menu-hover);
   --menu-item-active-color: var(--text); --menu-item-active-bg: var(--sel);
 }
 .menu-item:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.menu-item:is(:disabled, .disabled) { opacity: 0.45; cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-// The File explorer sidebar section of the left sidebar: the whole folder tree of the Git repository of the selected
-// workspace. A click on a folder folds or unfolds it. A click on a file opens it in a file view pane. The only
-// changes that the section makes are a new empty file and a new empty folder. It has no button to rename, move,
+// The File explorer sidebar section shows the tree rooted at the selected workspace folder. A click on a folder folds
+// or unfolds it. A click on a file opens a file view pane. The only changes the section makes are a new empty file and a
+// new empty folder. It has no button to rename, move,
 // delete, or edit a file. A right click on the row of a file or of a folder opens a context menu that copies the
-// absolute path or the relative path to the clipboard, and starts a chat about the file. The option "Ignored files" of
-// the menu shows the files and the folders that Git ignores, in the muted color. A folder that Git ignores unfolds one
-// level at a time.
+// absolute path or the relative path to the clipboard, starts a chat about the file, or opens a folder as a workspace.
+// The option "Ignored files" of the menu shows the files and the folders that Git ignores, in the muted color.
+// A folder that Git ignores unfolds one level at a time.
 // - issue #349
 // - issue #383
 // - issue #430
@@ -18,6 +18,7 @@ import { FileGitLinks, type FileGitLinksResult } from "../lib/file_git_links";
 import Icon from "./Icon.vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
 import { currentGit } from "../stores/git";
+import { WorkspaceFolders } from '../stores/workspace_folders';
 import {
   buildTree,
   files,
@@ -33,12 +34,17 @@ import {
   type TreeRow,
 } from "../stores/files";
 import { FileViewPanes } from "../stores/file_view_panes";
-import { state, toast } from "../stores/session";
+import { openFolderAsWorkspace, state, toast } from '../stores/session';
 import { settings } from "../stores/settings";
 import { chatAboutFile } from "../stores/chat_open";
 import { fileIconName } from "../lib/chat_files";
 import { copy } from "../lib/clipboard";
 import { t } from "../i18n/index";
+
+const workspaceFolder = computed(() => {
+	const workspaceId = state.selectedWorkspaceId;
+	return workspaceId === null ? null : WorkspaceFolders.get(workspaceId);
+});
 
 /** The selected row of the selected workspace, or null. Each workspace has its own selected row. */
 const selection = computed(() => (state.selectedWorkspaceId === null ? null : filesPanelSelections[state.selectedWorkspaceId] ?? null));
@@ -119,17 +125,22 @@ function chooseMenuItem(id: string) {
  * developer removed them in the Finder or in a terminal.
  */
 async function loadTree(root: string) {
-  await loadFiles(root);
+  if ((await loadFiles(root)) === false || workspaceFolder.value !== root) {
+    return false;
+  }
   await loadExpandedIgnoredFolders();
-  const remembered = filesPanelNewFolders[files.root] ?? [];
-  if (remembered.length === 0) {
-    return;
+  const remembered = filesPanelNewFolders[root] ?? [];
+  if (remembered.length > 0) {
+    try {
+      filesPanelNewFolders[root] = await invoke<string[]>('dirs_existing', {
+        root,
+        paths: remembered,
+      });
+    } catch {
+      // The folders stay in the list when the backend cannot answer: the next reading tries again.
+    }
   }
-  try {
-    filesPanelNewFolders[files.root] = await invoke<string[]>("dirs_existing", { root: files.root, paths: remembered });
-  } catch {
-    // The folders stay in the list when the backend cannot answer: the next reading tries again.
-  }
+  return workspaceFolder.value === root;
 }
 
 /** Unfolds the folders above the selected row, so that the selected row shows after the tree is read again. */
@@ -146,23 +157,26 @@ function revealSelection() {
   files.expanded = folders;
 }
 
-// The tree is read again when the repository changes, and when the number of changed files changes. When the
-// repository changes, the folders above the selected row of the new workspace unfold.
+// Workspace selection sets the root. Git status changes refresh badges within that root.
 watch(
-  () => [currentGit.value?.root, currentGit.value?.changed, currentGit.value?.untracked],
-  ([root], previous) => {
-    if (typeof root !== "string") {
-      return;
-    }
-    const isAnotherRepository = previous === undefined || previous[0] !== root;
-    void loadTree(root).then(() => {
-      if (isAnotherRepository) {
-        revealSelection();
-        void loadExpandedIgnoredFolders();
-      }
-    });
-  },
-  { immediate: true },
+	[workspaceFolder, () => state.selectedWorkspaceId, () => currentGit.value?.changed, () => currentGit.value?.untracked],
+	([folder, workspaceId], previous) => {
+		const isAnotherWorkspace = folder !== previous[0] || workspaceId !== previous[1];
+		if (isAnotherWorkspace && previous.length > 0) {
+			closeFileMenu();
+			cancelNaming();
+		}
+		if (folder === null) {
+			return;
+		}
+		void loadTree(folder).then((isLoaded) => {
+			if (isLoaded && isAnotherWorkspace && state.selectedWorkspaceId === workspaceId) {
+				revealSelection();
+				void loadExpandedIgnoredFolders();
+			}
+		});
+	},
+	{ immediate: true },
 );
 
 // The tree is read again when the developer shows or hides the files that Git ignores. A selected row inside a folder
@@ -232,7 +246,9 @@ function cancelNaming() {
 
 async function submitNaming() {
   const current = naming.value;
-  if (current === null) {
+  const workspaceId = state.selectedWorkspaceId;
+  const root = files.root;
+  if (current === null || workspaceId === null || workspaceFolder.value !== root) {
     return;
   }
   const name = current.value.trim();
@@ -247,10 +263,13 @@ async function submitNaming() {
   }
   const path = current.folder === "" ? name : `${current.folder}/${name}`;
   try {
-    await invoke("file_create", { root: files.root, path, dir: current.kind === "dir" });
+    await invoke("file_create", { root, path, dir: current.kind === "dir" });
   } catch (error) {
     toast(String(error), "error");
     void nextTick(() => nameInput?.focus());
+    return;
+  }
+  if (state.selectedWorkspaceId !== workspaceId || workspaceFolder.value !== root) {
     return;
   }
   naming.value = null;
@@ -265,9 +284,9 @@ async function submitNaming() {
   }
   files.expanded = folders;
   select(path, current.kind === "dir");
-  await loadTree(files.root);
-  if (current.kind === "file") {
-    void FileViewPanes.open(`${files.root}/${path}`);
+  await loadTree(root);
+  if (current.kind === "file" && state.selectedWorkspaceId === workspaceId) {
+    void FileViewPanes.open(`${root}/${path}`);
   }
 }
 
@@ -281,8 +300,8 @@ function collapseAll() {
 }
 
 function refresh() {
-  const root = currentGit.value?.root;
-  if (root !== undefined) {
+  const root = workspaceFolder.value;
+  if (root !== null) {
     void loadTree(root);
   }
 }
@@ -320,8 +339,24 @@ function chooseRow(row: TreeRow) {
   }
 }
 
-/** The context menu of a file row or a folder row: the relative path, and where the pointer was. Null when closed. */
-const fileMenu = ref<{ path: string; top: number; left: number } | null>(null);
+/** A file or folder row's context menu. */
+type FileMenu = {
+	/** The repository root when the menu opened. */
+	root: string;
+	/** The row's path relative to the root. */
+	path: string;
+	/** The displayed name of the row. */
+	name: string;
+	/** Whether the row represents a folder. */
+	isFolder: boolean;
+	/** The menu's vertical position in pixels. */
+	top: number;
+	/** The menu's horizontal position in pixels. */
+	left: number;
+};
+
+/** The context menu, or null when closed. */
+const fileMenu = ref<FileMenu | null>(null);
 let fileMenuRequest = 0;
 const fileGitLinks = ref<FileGitLinksResult | null>(null);
 const fileMenuElement = ref<HTMLElement>();
@@ -332,7 +367,14 @@ const FILE_MENU_MARGIN = 8;
 /** Opens the context menu at the pointer for the row of a file or of a folder, and hides the default context menu. */
 function openFileMenu(event: MouseEvent, row: TreeRow) {
   event.preventDefault();
-  fileMenu.value = { path: row.path, top: event.clientY, left: event.clientX };
+  fileMenu.value = {
+    root: files.root,
+    path: row.path,
+    name: row.name,
+    isFolder: row.dir,
+    top: event.clientY,
+    left: event.clientX,
+  };
   fileGitLinks.value = null;
   const request = ++fileMenuRequest;
   if (row.dir === false) {
@@ -475,6 +517,19 @@ async function openRowWithVisualStudioCode() {
   await invoke("file_open_external", { root: files.root, path: relativePath }).catch((error) => toast(String(error), "error"));
 }
 
+/**
+ * Closes the context menu and opens its folder as a workspace.
+ * @returns A promise that ends when the workspace is selected or the failure is shown.
+ */
+async function openRowAsWorkspace(): Promise<void> {
+	const menu = fileMenu.value;
+	if (menu === null || menu.isFolder === false) {
+		return;
+	}
+	closeFileMenu();
+	await openFolderAsWorkspace(`${menu.root}/${menu.path}`, menu.name);
+}
+
 onBeforeUnmount(closeFileMenu);
 
 /** The icon of a row: a folder that is closed or open, or the kind of the file. */
@@ -514,7 +569,7 @@ function letterClass(letter: string): string {
 <template>
   <div class="files-panel" @click.self="clearSelection">
     <div v-if="state.selectedWorkspaceId === null" class="muted">{{ t("filesPanel.selectWorkspace") }}</div>
-    <template v-else-if="currentGit">
+    <template v-else-if="workspaceFolder !== null">
       <header class="panel-header d-flex align-items-center">
         <span class="title me-auto">{{ t("filesPanel.title") }}</span>
         <button
@@ -522,6 +577,7 @@ function letterClass(letter: string): string {
           class="btn icon btn-sm icon-button"
           :aria-label="t('filesPanel.newFile')"
           :title="t('filesPanel.newFile')"
+          :disabled="files.root !== workspaceFolder || files.error !== ''"
           @click="startNaming('file')"
         >
           <Icon name="file-earmark-plus" />
@@ -531,6 +587,7 @@ function letterClass(letter: string): string {
           class="btn icon btn-sm icon-button"
           :aria-label="t('filesPanel.newFolder')"
           :title="t('filesPanel.newFolder')"
+          :disabled="files.root !== workspaceFolder || files.error !== ''"
           @click="startNaming('dir')"
         >
           <Icon name="folder-plus" />
@@ -563,7 +620,7 @@ function letterClass(letter: string): string {
         />
       </header>
       <div v-if="files.error !== ''" class="error">{{ files.error }}</div>
-      <ul v-else class="rows" @click.self="clearSelection" :style="{ '--row-height': `${rowHeight}px`, '--indent-width': `${indentWidth}px` }">
+      <ul v-else-if="files.root === workspaceFolder" class="rows" @click.self="clearSelection" :style="{ '--row-height': `${rowHeight}px`, '--indent-width': `${indentWidth}px` }">
         <template v-for="entry in entries" :key="entry.type === 'row' ? entry.row.path + (entry.row.dir ? '/' : '') : 'naming'">
           <li v-if="entry.type === 'naming' && naming !== null" class="naming-row d-flex align-items-center">
             <template v-if="settings.filesPanelIndentGuides">
@@ -608,9 +665,9 @@ function letterClass(letter: string): string {
           </li>
         </template>
       </ul>
-      <div v-if="files.truncated" class="muted">{{ t("filesPanel.truncated") }}</div>
+      <div v-if="files.root === workspaceFolder && files.truncated" class="muted">{{ t("filesPanel.truncated") }}</div>
     </template>
-    <div v-else class="muted">{{ t("filesPanel.notRepository") }}</div>
+    <div v-else class="muted">{{ t("filesPanel.chooseWorkspaceFolder") }}</div>
     <Teleport to="body">
       <div
         v-if="fileMenu !== null"
@@ -636,6 +693,15 @@ function letterClass(letter: string): string {
         </button>
         <button type="button" class="menu-item" role="menuitem" @click="openRowWithVisualStudioCode()">
           {{ t("filesPanel.fileMenu.openWithVisualStudioCode") }}
+        </button>
+        <button
+          type="button"
+          class="menu-item"
+          role="menuitem"
+          :disabled="fileMenu.isFolder === false"
+          @click="openRowAsWorkspace()"
+        >
+          {{ t("filesPanel.fileMenu.openAsWorkspace") }}
         </button>
         <template v-if="fileGitLinks !== null">
           <div class="menu-divider" role="separator"></div>
