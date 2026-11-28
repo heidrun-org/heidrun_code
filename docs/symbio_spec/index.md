@@ -17,3 +17,4 @@ This index lists the files and folders in this area.
 - [system_overview/](system_overview/index.md): Major parts of the system, their responsibilities, and how they work together.
 - [decisions/](decisions/index.md): Original records of human decisions about the product.
 - [coverage/](coverage/index.md): Records of what was examined and what the examination found.
+- [proposals/](proposals/index.md): Draft material for human review.
