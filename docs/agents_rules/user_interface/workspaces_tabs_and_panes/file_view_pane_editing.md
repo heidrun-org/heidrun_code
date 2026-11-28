@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: file view pane editing
 
 - Created: 26 October 2026
-- Last updated: 27 October 2026
+- Last updated: 28 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [File view pane](file_view_pane.md), [Opening a file view pane](file_view_pane_opening.md)
@@ -31,7 +31,7 @@ This file is a part of the rules of the user interface of Heidrun Code. The word
 
 - A file view pane with unsaved changes asks before it closes: "1 file has unsaved changes: <name>. Close without saving?" with the button "Close without saving". The question comes for the button "Close the pane", for ⌘W ⌘W, for the closing of the tab, and for the closing of the workspace. Cancel keeps the pane and its changes.
 - Heidrun Code asks before it quits, with ⌘Q or with the closing of the window, while a file view pane holds unsaved changes: "<count> files have unsaved changes: <names>. Quit Heidrun Code without saving?" with the button "Quit without saving".
-- A file chosen while the selected file view pane holds unsaved changes opens in a new pane, as [file_view_pane_opening.md](file_view_pane_opening.md) says.
+- A file chosen while the selected file view pane holds unsaved changes opens in a new tab, as [file_view_pane_opening.md](file_view_pane_opening.md) says.
 - The unsaved changes of a pane stay when the pane is drawn again, for example in Zen Mode, and go away when Herdr closes the pane.
 
 ## Actions on the selected lines

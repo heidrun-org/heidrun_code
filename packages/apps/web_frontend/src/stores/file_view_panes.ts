@@ -1,7 +1,7 @@
 import { reactive } from 'vue';
 import { FileViewLabel } from '../lib/file_view_label';
-import { FileViewEditState } from './file_view_edit_state';
-import { selectedPane } from './session';
+import { t } from '../i18n/index';
+import { state, toast } from './session';
 import { ViewPanes } from './view_panes';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,15 +31,35 @@ let lineRequestSequence = 0;
 /** Opens a file in a file view pane: a pane that shows the file over a terminal that only waits. */
 export class FileViewPanes {
 	/**
-	 * Shows a file in a file view pane. When the selected pane is a terminal, a new pane opens to its right and the terminal
-	 * stays as it was. When the selected pane is a file view pane, the file replaces the file of that pane, except when that
-	 * pane holds unsaved changes: then a new pane opens to its right, and the changes stay.
+	 * Shows a file in a new focused tab in the selected workspace.
 	 * @param absolutePath The absolute path of the file to show.
 	 * @param line The line to show, from 1, or null to show the file from its start.
-	 * @param anchor The anchor of a heading to show in the Markdown preview, or null to show the file from its start.
-	 * @returns True when a file view pane shows the file, false when there is no selected pane or when Herdr failed.
+	 * @param anchor The Markdown heading to show, or null to show the file from its start.
+	 * @returns True when the file opens, or false when no workspace is selected or Herdr fails.
 	 */
 	static async open(absolutePath: string, line: number | null = null, anchor: string | null = null): Promise<boolean> {
+		const workspaceId = state.selectedWorkspaceId;
+		if (workspaceId === null) {
+			toast(t('viewPanes.noSelectedWorkspace'), 'error');
+			return false;
+		}
+		return FileViewPanes.openInNewTab(workspaceId, absolutePath, line, anchor);
+	}
+
+	/**
+	 * Shows a file in a new focused tab in the given workspace.
+	 * @param workspaceId The workspace in which to open the file.
+	 * @param absolutePath The absolute path of the file to show.
+	 * @param line The line to show, from 1, or null to show the file from its start.
+	 * @param anchor The Markdown heading to show, or null to show the file from its start.
+	 * @returns True when the file opens, or false when Herdr fails.
+	 */
+	static async openInNewTab(
+		workspaceId: string,
+		absolutePath: string,
+		line: number | null = null,
+		anchor: string | null = null,
+	): Promise<boolean> {
 		if (line !== null) {
 			fileViewLineRequests[absolutePath] = {
 				line,
@@ -53,26 +73,6 @@ export class FileViewPanes {
 		} else {
 			delete fileViewAnchorRequests[absolutePath];
 		}
-		const isSelectedPaneDirty = FileViewEditState.isDirty(selectedPane.value?.pane_id);
-		return ViewPanes.open({
-			label: FileViewLabel.format(absolutePath),
-			isSameKindFn: (label) => {
-				const shownPath = FileViewLabel.parse(label);
-				return shownPath !== null && (isSelectedPaneDirty === false || shownPath === absolutePath);
-			},
-			waitLine: WAIT_LINE,
-		});
-	}
-
-	/**
-	 * Shows a file from File explorer in its own focused tab.
-	 * @param workspaceId The workspace of File explorer.
-	 * @param absolutePath The absolute path of the selected file.
-	 * @returns True when the file opens, or false when Herdr fails.
-	 */
-	static async openInNewTab(workspaceId: string, absolutePath: string): Promise<boolean> {
-		delete fileViewLineRequests[absolutePath];
-		delete fileViewAnchorRequests[absolutePath];
 		const label = FileViewLabel.format(absolutePath);
 		return ViewPanes.openInNewTab(workspaceId, FileViewLabel.fileName(label) ?? absolutePath, label, WAIT_LINE);
 	}
