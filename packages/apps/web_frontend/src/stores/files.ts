@@ -42,7 +42,7 @@ export const files = reactive({
 });
 
 /**
- * Sidebar section File explorer: the empty folders that the developer created in this session, by root of repository. Git does
+ * Sidebar section File explorer: the empty folders that the developer created in this session, by workspace folder. Git does
  * not list an empty folder, so the tree adds them.
  */
 export const filesPanelNewFolders = reactive({} as Record<string, string[]>);
@@ -132,7 +132,11 @@ export async function loadFiles(cwd: string): Promise<boolean> {
   files.error = "";
   const my = ++loadSeq;
   try {
-    const r = await invoke<FileList>("files_list", { cwd, ignored: settings.filesShowIgnored });
+    const r = await invoke<FileList>("files_list", {
+      cwd,
+      ignored: settings.filesShowIgnored,
+      scopeToFolder: true,
+    });
     // A later request (another project) won: this answer is dropped.
     if (my !== loadSeq) return false;
     const sameRoot = r.root === files.root;

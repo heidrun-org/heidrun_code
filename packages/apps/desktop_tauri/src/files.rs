@@ -148,6 +148,7 @@ fn without_entries_inside_listed_folders(entries: Vec<String>) -> Vec<String> {
 /// one entry that ends with "/", not its thousands of files. Git never lists the folder `.git` (issue #430). Git lists
 /// a folder and an entry inside it when the ignore rule names the entry, for example `.heidrun/` and
 /// `.heidrun/config.json`, so every entry inside an ignored folder is dropped: the folder shows once (issue #441).
+#[allow(non_snake_case)]
 async fn git_listed_files(root: &Path, show_ignored: bool) -> (Vec<String>, Vec<String>) {
     let listed = run(root, &["-c", "core.quotepath=off", "ls-files", "-z", "--cached", "--others", "--exclude-standard"]).await.unwrap_or_default();
     let mut files: Vec<String> = split_z(&listed).collect();
@@ -157,6 +158,13 @@ async fn git_listed_files(root: &Path, show_ignored: bool) -> (Vec<String>, Vec<
     if show_ignored {
         let ign = run(root, &["-c", "core.quotepath=off", "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory"]).await.unwrap_or_default();
         ignored_entries = without_entries_inside_listed_folders(split_z(&ign).collect());
+		// From inside an ignored folder, Git collapses all ignored children into the folder itself.
+		if ignored_entries.iter().any(|path| path == "./") {
+			let ignoredFiles = run(root, &[
+				"-c", "core.quotepath=off", "ls-files", "-z", "--others", "--ignored", "--exclude-standard",
+			]).await.unwrap_or_default();
+			ignored_entries = split_z(&ignoredFiles).collect();
+		}
         files.extend(ignored_entries.iter().cloned());
     }
     (files, ignored_entries)
@@ -246,11 +254,15 @@ async fn git_project_files(root: &Path, show_ignored: bool) -> ProjectFiles {
     ProjectFiles { files, ignored, submodules, linked_folders }
 }
 
-/// Files of the project containing `cwd`: the git repository (tracked and new files,
-/// .gitignore respected), or the folder itself when it is not a repository.
+/// Lists files for `cwd`, using Git when available. `ignored` includes entries ignored by Git.
+/// With `scopeToFolder`, paths are relative to `cwd`. Otherwise, paths in Git are relative to the repository root.
+#[allow(non_snake_case)]
 #[tauri::command]
-pub async fn files_list(cwd: String, ignored: Option<bool>) -> Result<FileList, String> {
+pub async fn files_list(cwd: String, ignored: Option<bool>, scopeToFolder: Option<bool>) -> Result<FileList, String> {
     let dir = std::fs::canonicalize(&cwd).map_err(|_| "folder not found".to_string())?;
+	if scopeToFolder == Some(true) {
+		not_in_git_dir(&dir.to_string_lossy())?;
+	}
     let top = run(&dir, &["rev-parse", "--show-toplevel"]).await.map(|b| String::from_utf8_lossy(&b).trim().to_string());
     let Some(root) = top.filter(|t| !t.is_empty()) else {
         acceptable_root(&dir)?;
@@ -270,32 +282,64 @@ pub async fn files_list(cwd: String, ignored: Option<bool>) -> Result<FileList, 
     };
     let rootp = std::fs::canonicalize(&root).unwrap_or_else(|_| PathBuf::from(&root));
     acceptable_root(&rootp)?;
-    used_by_a_pane(&rootp).await?;
-    let ProjectFiles { mut files, ignored: ignored_entries, submodules, linked_folders } = git_project_files(&rootp, ignored.unwrap_or(false)).await;
-    let truncated = files.len() > MAX_FILES;
-    files.truncate(MAX_FILES);
-    let mut status = HashMap::new();
-    let st = run(&rootp, &["-c", "core.quotepath=off", "status", "--porcelain=v1", "-z", "--untracked-files=all"]).await.unwrap_or_default();
-    let mut it = split_z(&st);
-    while let Some(entry) = it.next() {
-        if entry.len() < 4 {
-            continue;
-        }
-        let (code, path) = entry.split_at(3);
-        let code = code.trim();
-        let letter = if code == "??" { "?" } else if code.contains('D') { "D" } else if code.contains('A') { "A" } else if code.contains('R') { "R" } else { "M" };
-        // A rename is followed by its old path: skip it.
-        if code.contains('R') || code.contains('C') {
-            it.next();
-        }
-        status.insert(path.to_string(), letter.to_string());
-        // A deleted file is still worth showing in the tree.
-        if letter == "D" && !submodules.iter().any(|folder| folder == path) && !files.iter().any(|f| f == path) {
-            files.push(path.to_string());
-        }
-    }
-    remember_root(&root);
-    Ok(FileList { root, git: true, files, ignored: ignored_entries, submodules, linked_folders, status, truncated })
+	let folder = if scopeToFolder == Some(true) {
+		acceptable_root(&dir)?;
+		&dir
+	} else {
+		&rootp
+	};
+	used_by_a_pane(folder).await?;
+	let list = FileList::fromGit(folder, &rootp, ignored.unwrap_or(false)).await?;
+	remember_root(&list.root);
+	Ok(list)
+}
+
+#[allow(non_snake_case)]
+impl FileList {
+	/// Lists paths relative to `folder` inside `repository`, including Git-ignored entries when requested.
+	async fn fromGit(folder: &Path, repository: &Path, showIgnored: bool) -> Result<Self, String> {
+		let prefix = folder.strip_prefix(repository).map_err(|error| error.to_string())?;
+		let ProjectFiles { mut files, ignored, submodules, linked_folders } = git_project_files(folder, showIgnored).await;
+		let truncated = files.len() > MAX_FILES;
+		files.truncate(MAX_FILES);
+		let mut status = HashMap::new();
+		// Git lists files relative to the working folder, but porcelain status uses repository-relative paths.
+		let changes = run(folder, &[
+			"-c", "core.quotepath=off", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", ".",
+		]).await.unwrap_or_default();
+		let mut entries = split_z(&changes);
+		while let Some(entry) = entries.next() {
+			if entry.len() < 4 {
+				continue;
+			}
+			let (code, path) = entry.split_at(3);
+			let code = code.trim();
+			if code.contains('R') || code.contains('C') {
+				entries.next();
+			}
+			let Ok(path) = Path::new(path).strip_prefix(prefix) else {
+				continue;
+			};
+			let path = path.to_string_lossy().into_owned();
+			let letter = if code == "??" { "?" } else if code.contains('D') { "D" }
+				else if code.contains('A') { "A" } else if code.contains('R') { "R" } else { "M" };
+			// A deleted file is still worth showing in the tree.
+			if letter == "D" && submodules.contains(&path) == false && files.contains(&path) == false {
+				files.push(path.clone());
+			}
+			status.insert(path, letter.to_string());
+		}
+		Ok(Self {
+			root: folder.display().to_string(),
+			git: true,
+			files,
+			ignored,
+			submodules,
+			linked_folders,
+			status,
+			truncated,
+		})
+	}
 }
 
 /// The names inside the folder `dir`, one level only: a folder ends with "/", a file does not. A symbolic link is
@@ -992,6 +1036,28 @@ mod helper_tests {
         }
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+	#[allow(non_snake_case)]
+	#[tokio::test]
+	async fn workspaceFileListUsesFolderRelativePathsAndGitStatus() {
+		let repository = repository_with_ignored_files("hd-workspace-files");
+		let folder = repository.join("src");
+		std::fs::write(folder.join("untracked.md"), "untracked").unwrap();
+		std::fs::write(folder.join(".env"), "ignored").unwrap();
+		let list = FileList::fromGit(&folder, &repository, true).await.unwrap();
+		assert_eq!(list.root, folder.display().to_string());
+		assert_eq!(list.files, vec![".env", "a.ts", "untracked.md"]);
+		assert_eq!(list.ignored, vec![".env"]);
+		assert_eq!(list.status.get("a.ts").map(String::as_str), Some("A"));
+		assert_eq!(list.status.get("untracked.md").map(String::as_str), Some("?"));
+		assert_eq!(list.status.len(), 2);
+
+		let ignoredFolder = repository.join(".heidrun");
+		let ignoredList = FileList::fromGit(&ignoredFolder, &repository, true).await.unwrap();
+		assert_eq!(ignoredList.files, vec!["config.json"]);
+		assert_eq!(ignoredList.ignored, vec!["config.json"]);
+		let _ = std::fs::remove_dir_all(repository);
+	}
 
     #[tokio::test]
     async fn submodules_list_nested_files_respect_ignores_refresh_and_open_files() {

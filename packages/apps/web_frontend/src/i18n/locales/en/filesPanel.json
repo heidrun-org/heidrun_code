@@ -1,6 +1,6 @@
 {
   "selectWorkspace": "Select a workspace.",
-  "notRepository": "This workspace is not a Git repository.",
+  "chooseWorkspaceFolder": "Choose the workspace folder.",
   "title": "File explorer",
   "sidebarSection": "File explorer",
   "refresh": "Refresh",
@@ -31,6 +31,7 @@
   "fileMenu.chatAboutFile": "Chat about this file",
   "fileMenu.revealInFinder": "Reveal in Finder",
   "fileMenu.openWithVisualStudioCode": "Open with VS Code",
+  "fileMenu.openAsWorkspace": "Open as workspace",
   "fileMenu.openPermalink": "Open {service} permalink",
   "fileMenu.openHeadlink": "Open {service} headlink"
 }

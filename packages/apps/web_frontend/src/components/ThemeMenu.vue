@@ -33,7 +33,7 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocClick));
       <button
         v-for="o in THEME_OPTIONS"
         :key="o.id"
-        class="menu-item item"
+        class="menu-item"
         role="menuitemradio"
         :title="t('themeMenu.useTheme', { theme: t(o.labelKey) })"
         :aria-checked="settings.theme === o.id"
@@ -50,11 +50,6 @@ onBeforeUnmount(() => document.removeEventListener("mousedown", onDocClick));
 <style scoped>
 .wrap { position: relative; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; }
-.popup-menu {
-  position: absolute; right: 0; top: 38px; min-width: 170px; z-index: 30; padding: 6px; border-radius: 12px;
-  border: 1px solid var(--line-modal); background: var(--field); box-shadow: 0 18px 48px var(--shadow-soft);
-  display: flex; flex-direction: column; gap: 2px;
-}
-.item { display: flex; align-items: center; gap: 10px; height: 34px; text-align: left; }
+.popup-menu { inset-inline-end: 0; top: 38px; min-width: 170px; }
 .label { flex: 1; }
 </style>

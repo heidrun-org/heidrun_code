@@ -1,6 +1,6 @@
 {
   "selectWorkspace": "Sélectionne un workspace.",
-  "notRepository": "Ce workspace n’est pas un dépôt Git.",
+  "chooseWorkspaceFolder": "Choisissez le dossier de l’espace de travail.",
   "title": "Explorateur de fichiers",
   "sidebarSection": "Explorateur de fichiers",
   "refresh": "Rafraîchir",
@@ -31,6 +31,7 @@
   "fileMenu.chatAboutFile": "Discuter de ce fichier",
   "fileMenu.revealInFinder": "Afficher dans le Finder",
   "fileMenu.openWithVisualStudioCode": "Ouvrir avec VS Code",
+  "fileMenu.openAsWorkspace": "Ouvrir comme espace de travail",
   "fileMenu.openPermalink": "Ouvrir le lien permanent {service}",
   "fileMenu.openHeadlink": "Ouvrir le lien de branche {service}"
 }

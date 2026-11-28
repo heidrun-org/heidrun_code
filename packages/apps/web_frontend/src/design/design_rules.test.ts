@@ -114,6 +114,10 @@ describe('shared design rules (issue 749)', () => {
 		expect(() => DesignRules.contrast('unknown', '#ffffff')).toThrow();
 	});
 
+	it('uses the shared disabled appearance for menu items', () => {
+		expect(styles).toMatch(/\.menu-item:is\(:disabled, \.disabled\) \{ opacity: 0\.45; cursor: default; \}/);
+	});
+
 	for (const isLight of [false, true]) {
 		const theme = isLight ? 'light' : 'dark';
 		const palette = DesignRules.palette(styles, isLight);

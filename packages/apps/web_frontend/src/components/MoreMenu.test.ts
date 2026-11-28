@@ -78,7 +78,7 @@ describe("MoreMenu", () => {
     await wrapper.get("button").trigger("click");
     expect(wrapper.findAll('[role="separator"]')).toHaveLength(2);
     const group = wrapper.get('[role="group"]');
-    expect(group.get(".heading").text()).toBe("Skills");
+    expect(group.get('.menu-header').text()).toBe("Skills");
     expect(group.findAll('[role="menuitem"] .label').map((label) => label.text())).toEqual(["Installed skill", "Find new skills"]);
     const children = Array.from(wrapper.get('[role="menu"]').element.children).map((child) => child.getAttribute("role"));
     expect(children).toEqual(["menuitem", "menuitem", "menuitem", "menuitem", "separator", "group", "separator", "menuitem"]);

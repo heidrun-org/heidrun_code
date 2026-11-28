@@ -446,7 +446,7 @@ watch(isRenaming, (renaming) => {
       <div
         v-if="isOpeningOptionsVisible"
         :id="openingOptionsId"
-        class="workspace-opening-menu d-flex flex-column"
+        class="menu show workspace-opening-menu"
         role="group"
         :aria-label="t('workspaceStatusSummary.moreOpeningOptions')"
       >
@@ -501,17 +501,9 @@ watch(isRenaming, (renaming) => {
 .workspace-status > .popover { --popover-body-padding-y: var(--spacer-2); cursor: default; }
 .workspace-opening-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px; }
 .workspace-opening-menu {
-  position: absolute;
   inset-inline-end: var(--popover-body-padding-x, 16px);
   bottom: calc(32px + var(--popover-body-padding-y) + 6px);
   max-width: calc(100% - 2 * var(--popover-body-padding-x, 16px));
-  z-index: 30;
-  padding: 6px;
-  gap: 2px;
-  border: 1px solid var(--line-modal);
-  border-radius: 12px;
-  background: var(--field);
-  box-shadow: 0 18px 48px var(--shadow-soft);
 }
 .workspace-status > .popover .btn:not(:disabled) { cursor: pointer; }
 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

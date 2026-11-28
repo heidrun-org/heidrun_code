@@ -1,7 +1,7 @@
 # Web styling of Heidrun Code: shared design rules
 
 - Created: 21 October 2026
-- Last updated: 27 November 2026
+- Last updated: 28 November 2026
 - Status: Maintained shared design rules for agents and tools
 - Related framing: [Project instructions](../../../AGENTS.md)
 - Related rules: [Colors and scroll bars](colors_and_scroll_bars.md), [Status dot](../../architecture/status_dot.md)
@@ -14,6 +14,8 @@ These rules govern desktop colors, buttons, contrast, and status displays. Keep 
 `packages/apps/web_frontend/src/styles.css` defines the palette and shared appearances. Its first `:root` block defines the dark theme and common values; `:root[data-theme="light"]` overrides the light theme. A component uses a variable by purpose, never by resemblance to a desired color. A component may set its own layout, but cannot redefine shared button states or coding agent status appearances. Add a missing purpose to the shared palette, document the purpose here, and test its intended foreground/background pairs before using the purpose.
 
 `bootstrap_parts.scss` selects Bootstrap components and maps structural settings. The Bootstrap theme classes used by the application map all their foreground, background, border, contrast, and focus roles to the shared purpose variables; Bootstrap's generated palette does not override these choices. The shared `.btn` rules apply to native buttons and Bootstrap button groups. The existing `primary` and Bootstrap `btn-primary` classes name the same primary action appearance; `go` is an existing alias used by the merge window. New code uses `btn primary` or `btn danger`.
+
+Menus use the shared styles in `styles.css`.
 
 ## Colors by purpose
 
