@@ -29,6 +29,7 @@
 
 ---
 
+
 ## What it does
 
 You run many coding agents. Each coding agent wants a decision, a permission, or a code review, and each one waits in a different terminal. Heidrun Code puts all of them in one window, and tells you which one needs you right now.
