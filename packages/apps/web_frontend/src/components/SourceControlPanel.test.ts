@@ -21,6 +21,7 @@ import SourceControlMenu from "./SourceControlMenu.vue";
 import { git, type GitStatus } from "../stores/git";
 import { commit, discardFiles, sourceControl, stageFiles, unstageFiles } from "../stores/source_control";
 import { state } from "../stores/session";
+import { settings } from "../stores/settings";
 
 function makeStatus(): GitStatus {
   return {
@@ -70,6 +71,7 @@ describe("SourceControlPanel", () => {
     git.status = {};
     sourceControl.isBusy = false;
     sourceControl.commitProgress = null;
+    settings.sourceControlView = 'list';
     sourceControl.folded.staged = false;
     sourceControl.folded.changes = false;
     vi.clearAllMocks();
@@ -141,6 +143,69 @@ describe("SourceControlPanel", () => {
     expect(files[1].attributes("title")).toBe("/work/heidrun/CHANGELOG.md • Modified");
   });
 
+	it('switches between the flat list and File explorer order and opens or closes folders in both groups', async () => {
+		const wrapper = mountPanel();
+		try {
+			git.status.w1!.files = [
+				{
+					path: 'root.md',
+					status: '.M',
+				},
+				{
+					path: 'docs/part10.md',
+					status: 'MM',
+				},
+				{
+					path: 'docs/part2.md',
+					status: '.M',
+				},
+				{
+					path: 'docs/nested/readme.md',
+					status: 'MM',
+				},
+			];
+			const view = wrapper.findAllComponents(SourceControlMenu)
+				.find((menu) => menu.props('label') === 'View changes')!;
+			await wrapper.vm.$nextTick();
+			expect(view.props('items').find((item) => item.id === 'collapseAll')?.isDisabled).toBe(true);
+			expect(wrapper.findAll('.group .folder').map((row) => row.text())).toContain('docs/nested');
+
+			view.vm.$emit('choose', 'tree');
+			await wrapper.vm.$nextTick();
+			const [staged, changes] = wrapper.findAll('.group');
+			expect(changes.findAll('.file-main').map((row) => row.text())).toEqual([
+				'docs', 'nested', 'readme.md', 'part2.md', 'part10.md', 'root.md',
+			]);
+			expect(staged.findAll('.name').map((row) => row.text())).toEqual(['readme.md', 'part10.md']);
+			expect(wrapper.find('.group .folder').exists()).toBe(false);
+			expect(changes.get('.count').text()).toBe('4');
+
+			await staged.get('button[title="docs/nested"]').trigger('click');
+			expect(staged.findAll('.name').map((row) => row.text())).toEqual(['part10.md']);
+			expect(changes.findAll('.name')).toHaveLength(4);
+
+			view.vm.$emit('choose', 'collapseAll');
+			await wrapper.vm.$nextTick();
+			expect(staged.findAll('.name')).toHaveLength(0);
+			expect(changes.findAll('.name').map((row) => row.text())).toEqual(['root.md']);
+
+			view.vm.$emit('choose', 'expandAll');
+			await wrapper.vm.$nextTick();
+			await changes.get('.file[title$="/docs/part2.md • Modified"] button[aria-label="Stage the changes"]')
+				.trigger('click');
+			expect(stageFiles).toHaveBeenCalledWith(['docs/part2.md']);
+			expect(staged.findAll('.name')).toHaveLength(2);
+
+			view.vm.$emit('choose', 'list');
+			await wrapper.vm.$nextTick();
+			expect(changes.findAll('.name').map((row) => row.text())).toEqual([
+				'root.md', 'part10.md', 'part2.md', 'readme.md',
+			]);
+		} finally {
+			wrapper.unmount();
+		}
+	});
+
   it("shows the group Staged Changes above Changes with 0 files when no file is staged", () => {
     state.selectedWorkspaceId = "w1";
     git.status = { w1: { ...makeStatus(), files: [{ path: "CHANGELOG.md", status: ".M" }] } };
@@ -181,6 +246,36 @@ describe("SourceControlPanel", () => {
 		]);
 	});
 
+	it('opens a file context menu on right-click and runs the selected action', async () => {
+		const wrapper = mountPanel();
+		try {
+			const [staged, changed] = wrapper.findAll('.file');
+			await changed.get('.file-main').trigger('contextmenu');
+			const items = document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+			expect(Array.from(items, (item) => item.textContent?.trim())).toEqual(['Open diff', 'Open file']);
+			expect(openDiffMock).not.toHaveBeenCalled();
+			expect(openFileViewMock).not.toHaveBeenCalled();
+
+			items[1].click();
+			await wrapper.vm.$nextTick();
+			expect(openFileViewMock).toHaveBeenCalledWith('/work/heidrun/CHANGELOG.md');
+			expect(document.querySelector('[role="menuitem"]')).toBeNull();
+
+			await staged.get('.file-main').trigger('contextmenu');
+			document.querySelector<HTMLButtonElement>('[role="menuitem"]')?.click();
+			expect(openDiffMock).toHaveBeenCalledWith('w1', '/work/heidrun/docs/agents_rules/user_interface.md');
+
+			await changed.get('.file-main').trigger('contextmenu');
+			document.dispatchEvent(new KeyboardEvent('keydown', {
+				key: 'Escape',
+			}));
+			await wrapper.vm.$nextTick();
+			expect(document.querySelector('[role="menuitem"]')).toBeNull();
+		} finally {
+			wrapper.unmount();
+		}
+	});
+
   it("opens nothing else when no pane can show the diff (issue #886)", async () => {
     openDiffMock.mockClear();
     openDiffMock.mockResolvedValueOnce(false);
@@ -203,7 +298,9 @@ describe("SourceControlPanel", () => {
     const menuItemIds = wrapper
       .findAllComponents(SourceControlMenu)
       .flatMap((menu) => menu.props("items").map((item: { id: string }) => item.id));
-    expect(menuItemIds).toEqual(["pull", "push", "fetch", "commit", "commitAndPush", "amend"]);
+    expect(menuItemIds).toEqual([
+      'list', 'tree', 'expandAll', 'collapseAll', 'pull', 'push', 'fetch', 'commit', 'commitAndPush', 'amend',
+    ]);
     expect(wrapper.find('button[aria-label="View the changes"]').exists()).toBe(false);
   });
 

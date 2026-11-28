@@ -271,6 +271,8 @@ const defaults = {
   skillsLevel: "workspace" as "workspace" | "user",
   /** The window of a SKILL.md file shows the rendered Markdown (true) or the highlighted source (false). */
   skillsViewRendered: true,
+  /** Sidebar section Source control: the presentation of both change groups. */
+  sourceControlView: 'list' as 'list' | 'tree',
   /** Sidebar section File explorer: the file tree shows the files that Git ignores. */
   filesShowIgnored: false,
   /** Sidebar section File explorer: the space that each level of a folder adds at the left of a row. */
@@ -351,6 +353,7 @@ const ALLOWED_VALUES: Record<string, readonly unknown[]> = {
   rightSidebarSection: ["toHandle", "notes", "chats", "userActivity"],
   diffMode: ["unified", "split"],
   filesOutsideWorkspace: ["ask", "open", "openDefault", "never"],
+  sourceControlView: ['list', 'tree'],
   filesPanelIndent: ["small", "medium", "large"],
   filesPanelRowHeight: ["compact", "comfortable"],
   agentsActivityScope: ["all", "pane"],

@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: opening a file view pane
 
 - Created: 26 October 2026
-- Last updated: 24 November 2026
+- Last updated: 28 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md), [File view pane](file_view_pane.md), [Search in files](../sidebars/file_search.md)
@@ -36,16 +36,9 @@ Security: `files_resolve` only describes a file outside the project (`outside: t
 
 ## The pane that opens
 
-A click on a file in File explorer opens the file in a new tab in the selected workspace and focuses the new tab. The original tab keeps its pane layout ([issue #1062](https://github.com/heidrun-org/heidrun_code/issues/1062)).
+Opening a file in Heidrun Code creates a new tab with one file view pane and focuses the new tab. The original tab keeps its pane layout and any unsaved changes. The file opens in the selected workspace, or in the workspace of the action when the action specifies one, such as the menu of a diff pane.
 
-The entry "Open the file" in the menu of a diff pane opens the file in a new focused tab in the workspace of the diff pane. The diff tab keeps its pane layout.
-
-For the other actions, the file view pane opens in this way:
-
-- When the selected pane is a terminal, running or idle, a new pane opens to the right of it, in the same tab, and shows the file. The terminal stays as it was. Heidrun Code never replaces, hides, or stops a terminal.
-- When the selected pane is a file view pane, the file replaces the file of that pane. No new pane opens. When that pane holds unsaved changes of another file, a new pane opens to its right instead, so that the changes stay.
-- When no pane is selected, nothing opens, and a toast says "Select a pane first: the file opens next to it". When Herdr fails, nothing opens, and a toast shows the error of Herdr.
-- The new pane becomes the selected pane.
+When there is no workspace for the action, a notification asks the developer to select one. If Herdr fails to open the file, a notification shows the error.
 
 ## Where the code is
 

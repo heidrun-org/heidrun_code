@@ -2,10 +2,11 @@
 // The Source control sidebar section of the left sidebar, as the source control view of VS Code: the message box, the
 // commit button, the group "Staged Changes", and the group "Changes". It shows only the local Git repository.
 // - issue #305
-import { computed } from "vue";
+import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from "vue";
 import Icon from "./Icon.vue";
 import SourceControlMenu from "./SourceControlMenu.vue";
 import { currentGit, git, refreshGit } from "../stores/git";
+import { buildTree, visibleRows } from "../stores/files";
 import { DiffPanes } from "../stores/diff_panes";
 import { FileViewPanes } from "../stores/file_view_panes";
 import {
@@ -26,8 +27,143 @@ import {
 import { state } from "../stores/session";
 import { fileIconName } from "../lib/chat_files";
 import { t } from "../i18n/index";
+import { settings } from "../stores/settings";
 
 const groups = computed(() => splitFiles(currentGit.value));
+/** A Source Control row, either a folder or a file with its Git status. */
+type ChangeRow =
+  | {
+      /** The folder path relative to the repository. */
+      path: string;
+      /** The folder name. */
+      name: string;
+      /** The number of parent folders. */
+      depth: number;
+      /** Whether the folder is open. */
+      isExpanded: boolean;
+      /** Folder rows have no file. */
+      file: null;
+    }
+  | {
+      /** The file path relative to the repository. */
+      path: string;
+      /** The number of parent folders. */
+      depth: number;
+      /** The file and its Git status in this group. */
+      file: SourceControlFile;
+    };
+
+const groupNames = ['staged', 'changes'] as const;
+const collapsedFolders = reactive({
+  staged: new Set<string>(),
+  changes: new Set<string>(),
+});
+
+watch(() => state.selectedWorkspaceId, () => {
+  for (const group of groupNames) {
+    collapsedFolders[group].clear();
+  }
+});
+
+const trees = computed(() => Object.fromEntries(groupNames.map((group) => {
+  const files = new Map(groups.value[group].map((file) => [file.path, file]));
+  const folders = new Set<string>();
+  for (const file of files.values()) {
+    const parts = file.path.split('/');
+    for (let depth = 1; depth < parts.length; depth++) {
+      folders.add(parts.slice(0, depth).join('/'));
+    }
+  }
+  // File explorer receives sorted paths. Keep the same input order for names its comparison treats as equal.
+  const sortedPaths = [...files.keys()].sort();
+  return [group, {
+    files,
+    folders,
+    tree: buildTree(sortedPaths),
+  }] as const;
+})));
+
+const rows = computed(() => Object.fromEntries(groupNames.map((group) => {
+  if (settings.sourceControlView === 'list') {
+    return [group, groups.value[group].map((file): ChangeRow => ({
+      file,
+      path: file.path,
+      depth: 0,
+    }))];
+  }
+  const { files, folders, tree } = trees.value[group];
+  const expanded = new Set([...folders].filter((path) => collapsedFolders[group].has(path) === false));
+  return [group, visibleRows(tree, expanded, {}).flatMap((row): ChangeRow[] => {
+    if (row.dir) {
+      return [{
+        file: null,
+        path: row.path,
+        name: row.name,
+        depth: row.depth,
+        isExpanded: expanded.has(row.path),
+      }];
+    }
+    const file = files.get(row.path);
+    return file === undefined ? [] : [{
+      file,
+      path: row.path,
+      depth: row.depth,
+    }];
+  })];
+})));
+
+const viewItems = computed(() => [
+  {
+    id: 'list',
+    label: t('sourceControlPanel.viewMenu.list'),
+    icon: settings.sourceControlView === 'list' ? 'check2' : undefined,
+  },
+  {
+    id: 'tree',
+    label: t('sourceControlPanel.viewMenu.tree'),
+    icon: settings.sourceControlView === 'tree' ? 'check2' : undefined,
+  },
+  {
+    id: 'expandAll',
+    label: t('sourceControlPanel.viewMenu.expandAll'),
+    hasDividerBefore: true,
+    isDisabled: settings.sourceControlView === 'list',
+  },
+  {
+    id: 'collapseAll',
+    label: t('sourceControlPanel.viewMenu.collapseAll'),
+    isDisabled: settings.sourceControlView === 'list',
+  },
+]);
+
+/**
+ * Applies an item from the Source Control view menu.
+ * @param id - The selected menu item.
+ * @returns Nothing.
+ */
+function chooseView(id: string): void {
+  if (id === 'list' || id === 'tree') {
+    settings.sourceControlView = id;
+    return;
+  }
+  for (const group of groupNames) {
+    collapsedFolders[group] = new Set(id === 'collapseAll' ? trees.value[group].folders : []);
+  }
+}
+
+/**
+ * Opens or closes a single folder in a change group.
+ * @param group - The group that contains the folder.
+ * @param path - The folder path relative to the repository.
+ * @returns Nothing.
+ */
+function toggleFolder(group: SourceControlGroup, path: string): void {
+  const collapsed = collapsedFolders[group];
+  if (collapsed.delete(path) === false) {
+    collapsed.add(path);
+  }
+}
+
 const commitStep = computed(() => {
   const progress = sourceControl.commitProgress;
   return progress?.workspaceId === state.selectedWorkspaceId ? progress.step : null;
@@ -118,6 +254,89 @@ function openDiff(file: SourceControlFile) {
   }
 }
 
+/** The selected file and the position of its context menu in the window. */
+const fileMenu = shallowRef<{
+  /** The clicked file. */
+  file: SourceControlFile;
+  /** The horizontal position in pixels. */
+  left: number;
+  /** The vertical position in pixels. */
+  top: number;
+} | null>(null);
+const fileMenuElement = ref<HTMLElement>();
+let fileMenuTrigger: HTMLButtonElement | null = null;
+
+/**
+ * Opens the file menu at the pointer or at the file button for a keyboard request.
+ * @param event - The context menu event.
+ * @param file - The file whose actions to show.
+ * @returns Nothing.
+ */
+function showFileMenu(event: MouseEvent, file: SourceControlFile): void {
+  const row = event.currentTarget as HTMLElement;
+  fileMenuTrigger = row.querySelector<HTMLButtonElement>('.file-main');
+  const bounds = fileMenuTrigger?.getBoundingClientRect();
+  const isKeyboard = event.clientX === 0 && event.clientY === 0;
+  const menu = {
+    file,
+    left: isKeyboard ? bounds?.left ?? 0 : event.clientX,
+    top: isKeyboard ? bounds?.bottom ?? 0 : event.clientY,
+  };
+  fileMenu.value = menu;
+  document.addEventListener('mousedown', dismissFileMenuOutside, true);
+  document.addEventListener('keydown', dismissFileMenuOnEscape, true);
+  void nextTick(() => {
+    const element = fileMenuElement.value;
+    if (element === undefined || fileMenu.value !== menu) {
+      return;
+    }
+    const margin = 8;
+    fileMenu.value = {
+      file,
+      left: Math.max(margin, Math.min(menu.left, window.innerWidth - element.offsetWidth - margin)),
+      top: Math.max(margin, Math.min(menu.top, window.innerHeight - element.offsetHeight - margin)),
+    };
+    element.querySelector('button')?.focus();
+  });
+}
+
+function closeFileMenu(): void {
+  fileMenu.value = null;
+  fileMenuTrigger = null;
+  document.removeEventListener('mousedown', dismissFileMenuOutside, true);
+  document.removeEventListener('keydown', dismissFileMenuOnEscape, true);
+}
+
+function dismissFileMenuOutside(event: MouseEvent): void {
+  if (fileMenuElement.value?.contains(event.target as Node) !== true) {
+    closeFileMenu();
+  }
+}
+
+function dismissFileMenuOnEscape(event: KeyboardEvent): void {
+  if (event.key === 'Escape') {
+    event.stopPropagation();
+    fileMenuTrigger?.focus();
+    closeFileMenu();
+  }
+}
+
+function chooseFileAction(action: 'diff' | 'file'): void {
+  const file = fileMenu.value?.file;
+  closeFileMenu();
+  if (file === undefined) {
+    return;
+  }
+  if (action === 'diff') {
+    openDiff(file);
+  } else {
+    openFile(file);
+  }
+}
+
+watch(() => state.selectedWorkspaceId, closeFileMenu);
+onBeforeUnmount(closeFileMenu);
+
 function onCommitKeyDown(event: KeyboardEvent) {
   if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
     event.preventDefault();
@@ -158,6 +377,13 @@ function chooseMore(id: string) {
         >
           <Icon name="arrow-clockwise" />
         </button>
+        <SourceControlMenu
+          button-class="btn icon btn-sm icon-button"
+          :icon="settings.sourceControlView === 'tree' ? 'diagram-3' : 'list-ul'"
+          :label="t('sourceControlPanel.viewActions')"
+          :items="viewItems"
+          @choose="chooseView"
+        />
         <SourceControlMenu
           button-class="btn icon btn-sm icon-button"
           icon="three-dots-vertical"
@@ -212,7 +438,7 @@ function chooseMore(id: string) {
       </div>
 
       <div class="groups">
-        <template v-for="group in (['staged', 'changes'] as const)" :key="group">
+        <template v-for="group in groupNames" :key="group">
           <section class="group">
             <div class="group-header d-flex align-items-center" @click="toggleGroup(group)">
               <button
@@ -271,68 +497,106 @@ function chooseMore(id: string) {
               <span class="badge count">{{ groups[group].length }}</span>
             </div>
             <ul v-if="sourceControl.folded[group] === false" class="files">
-              <li
-                v-for="file in groups[group]"
-                :key="`${group}:${file.path}`"
-                class="file d-flex align-items-center"
-                :title="fileTitle(file)"
-              >
-                <button type="button" class="list-action file-main d-flex align-items-center gap-2 me-auto" @click="openDiff(file)">
-                  <Icon :name="fileIconName(file.name)" />
-                  <span class="name">{{ file.name }}</span>
-                  <span v-if="file.folder !== ''" class="folder">{{ file.folder }}</span>
-                </button>
-                <span class="hover-actions">
+              <template v-for="row in rows[group]" :key="`${row.file === null ? 'folder' : 'file'}:${row.path}`">
+                <li
+                  v-if="row.file === null"
+                  class="file tree-row d-flex align-items-center"
+                  :style="{ '--tree-depth': row.depth }"
+                >
                   <button
                     type="button"
-                    class="btn icon btn-sm icon-button"
-                    :aria-label="t('sourceControlPanel.openFile')"
-                    :title="t('sourceControlPanel.openFile')"
-                    @click="openFile(file)"
+                    class="list-action file-main tree-folder d-flex align-items-center me-auto"
+                    :aria-expanded="row.isExpanded"
+                    :title="row.path"
+                    @click="toggleFolder(group, row.path)"
                   >
-                    <Icon name="file-earmark-arrow-up" />
+                    <Icon :name="row.isExpanded ? 'chevron-down' : 'chevron-right'" class="tree-icon" />
+                    <Icon :name="row.isExpanded ? 'folder2-open' : 'folder2'" class="tree-icon" />
+                    <span class="tree-folder-name">{{ row.name }}</span>
                   </button>
-                  <template v-if="group === 'changes'">
+                </li>
+                <li
+                  v-else
+                  class="file d-flex align-items-center"
+                  :title="fileTitle(row.file)"
+                  @contextmenu.prevent="showFileMenu($event, row.file)"
+                  :class="{ 'tree-row tree-file': settings.sourceControlView === 'tree' }"
+                  :style="settings.sourceControlView === 'tree' ? { '--tree-depth': row.depth } : undefined"
+                >
+                  <button type="button" class="list-action file-main d-flex align-items-center gap-2 me-auto" aria-haspopup="menu" @click="openDiff(row.file)">
+                    <Icon :name="fileIconName(row.file.name)" />
+                    <span class="name">{{ row.file.name }}</span>
+                    <span v-if="settings.sourceControlView === 'list' && row.file.folder !== ''" class="folder">{{ row.file.folder }}</span>
+                  </button>
+                  <span class="hover-actions">
                     <button
                       type="button"
                       class="btn icon btn-sm icon-button"
-                      :aria-label="t('sourceControlPanel.discard')"
-                      :title="t('sourceControlPanel.discard')"
-                      :disabled="sourceControl.isBusy"
-                      @click="discardFiles([file.path])"
+                      :aria-label="t('sourceControlPanel.openFile')"
+                      :title="t('sourceControlPanel.openFile')"
+                      @click="openFile(row.file)"
                     >
-                      <Icon name="arrow-90deg-left" />
+                      <Icon name="file-earmark-arrow-up" />
                     </button>
+                    <template v-if="group === 'changes'">
+                      <button
+                        type="button"
+                        class="btn icon btn-sm icon-button"
+                        :aria-label="t('sourceControlPanel.discard')"
+                        :title="t('sourceControlPanel.discard')"
+                        :disabled="sourceControl.isBusy"
+                        @click="discardFiles([row.file.path])"
+                      >
+                        <Icon name="arrow-90deg-left" />
+                      </button>
+                      <button
+                        type="button"
+                        class="btn icon btn-sm icon-button"
+                        :aria-label="t('sourceControlPanel.stage')"
+                        :title="t('sourceControlPanel.stage')"
+                        :disabled="sourceControl.isBusy"
+                        @click="stageFiles([row.file.path])"
+                      >
+                        <Icon name="plus-lg" />
+                      </button>
+                    </template>
                     <button
+                      v-else
                       type="button"
                       class="btn icon btn-sm icon-button"
-                      :aria-label="t('sourceControlPanel.stage')"
-                      :title="t('sourceControlPanel.stage')"
+                      :aria-label="t('sourceControlPanel.unstage')"
+                      :title="t('sourceControlPanel.unstage')"
                       :disabled="sourceControl.isBusy"
-                      @click="stageFiles([file.path])"
+                      @click="unstageFiles([row.file.path])"
                     >
-                      <Icon name="plus-lg" />
+                      <Icon name="dash-lg" />
                     </button>
-                  </template>
-                  <button
-                    v-else
-                    type="button"
-                    class="btn icon btn-sm icon-button"
-                    :aria-label="t('sourceControlPanel.unstage')"
-                    :title="t('sourceControlPanel.unstage')"
-                    :disabled="sourceControl.isBusy"
-                    @click="unstageFiles([file.path])"
-                  >
-                    <Icon name="dash-lg" />
-                  </button>
-                </span>
-                <span class="letter" :class="letterClass(file.letter)">{{ file.letter }}</span>
-              </li>
+                  </span>
+                  <span class="letter" :class="letterClass(row.file.letter)">{{ row.file.letter }}</span>
+                </li>
+              </template>
             </ul>
           </section>
         </template>
 
       </div>
+      <Teleport to="body">
+        <div
+          v-if="fileMenu !== null"
+          ref="fileMenuElement"
+          class="menu show position-fixed"
+          role="menu"
+          :aria-label="fileTitle(fileMenu.file)"
+          :style="{ top: `${fileMenu.top}px`, left: `${fileMenu.left}px` }"
+        >
+          <button type="button" class="menu-item" role="menuitem" @click="chooseFileAction('diff')">
+            {{ t('sourceControlPanel.openDiff') }}
+          </button>
+          <button type="button" class="menu-item" role="menuitem" @click="chooseFileAction('file')">
+            {{ t('sourceControlPanel.openFileFromMenu') }}
+          </button>
+        </div>
+      </Teleport>
     </template>
     <div v-else class="muted">{{ t("sourceControlPanel.notRepository") }}</div>
   </div>
@@ -359,6 +623,20 @@ function chooseMore(id: string) {
 .file:hover { background: var(--hover-soft); }
 .file-main { flex: 1 1 auto; overflow: hidden; white-space: nowrap; }
 .name { flex-shrink: 0; }
+.tree-row {
+  font-size: var(--font-size);
+  --tree-icon-gap: 0.5rem;
+  --tree-icon-slot: calc(1em + var(--tree-icon-gap));
+  --tree-file-offset: 0px;
+  padding-inline-start: calc(8px + (var(--tree-depth) + 1) * var(--tree-icon-slot) + var(--tree-file-offset));
+}
+.tree-file { --tree-file-offset: var(--tree-icon-slot); }
+.tree-folder { column-gap: var(--tree-icon-gap); }
+.tree-icon { flex: 0 0 1em; }
+/* Align the visible chevron stroke with the column above it. */
+.tree-icon.bi-chevron-down { transform: translateX(calc(1px - 0.09375em)); }
+.tree-icon.bi-chevron-right { transform: translateX(calc(1px - 0.28125em)); }
+.tree-folder-name { overflow: hidden; text-overflow: ellipsis; }
 .folder { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
 .letter { width: 18px; flex-shrink: 0; text-align: center; font: 600 var(--font-size) var(--mono); }
 .letter.modified { color: var(--accent); }
