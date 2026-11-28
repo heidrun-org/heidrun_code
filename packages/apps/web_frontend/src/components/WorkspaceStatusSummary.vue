@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, useId, watch } from "vue";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { homeDir } from "@tauri-apps/api/path";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import Icon from "./Icon.vue";
-import GitWorktreesModal from "./GitWorktreesModal.vue";
+import GitWorkspacePicker from "./GitWorkspacePicker.vue";
 import InformationCardTooltip from "./InformationCardTooltip.vue";
 import InlineRename from "./InlineRename.vue";
 import ScrollingLine from "./ScrollingLine.vue";
@@ -15,7 +15,6 @@ import { settings } from "../stores/settings";
 import { currentGit, git, workspaceCwd } from "../stores/git";
 import { NewPane } from "../stores/new_pane";
 import {
-  allPanes,
   closeWorkspace,
   finishRename,
   moveWorkspace,
@@ -42,47 +41,63 @@ import { t } from "../i18n/index";
 const root = ref<HTMLElement | null>(null);
 const { isOpen, toggle, close, onFocusOut } = useStatusCard(root);
 
+const isOpeningOptionsVisible = ref(false);
+const openingOptionsId = useId();
+
+watch(isOpen, (isCardOpen) => {
+	if (isCardOpen === false) {
+		isOpeningOptionsVisible.value = false;
+	}
+});
+
 const cardStyle = {
   width: '648px',
   '--popover-max-width': 'calc(100% - 16px)',
 };
 
 const workspaceReorder = useReorder("y", (id, at) => moveWorkspace(id, at));
-const isWorktreesOpen = ref(false);
-const isWorktreesVisible = ref(false);
-let worktreesRevealTimer: ReturnType<typeof setTimeout> | undefined;
+const workspacePicker = ref<{ root: string; kind: 'worktrees' | 'submodules' }>();
+const isWorkspacePickerVisible = ref(false);
+let workspacePickerRevealTimer: ReturnType<typeof setTimeout> | undefined;
 const copiedDetail = ref<string | null>(null);
 let copiedDetailTimer: ReturnType<typeof setTimeout> | undefined;
 
-/** Starts reading worktrees and shows the window after the short anti-flicker delay. */
-function openGitWorktrees(): void {
+/** Starts reading checkouts and shows the picker after the short anti-flicker delay. */
+function openWorkspacePicker(kind: 'worktrees' | 'submodules'): void {
+  const root = currentGit.value?.root;
+  if (root === undefined) {
+    return;
+  }
   close();
-  if (worktreesRevealTimer !== undefined) clearTimeout(worktreesRevealTimer);
-  isWorktreesOpen.value = true;
-  isWorktreesVisible.value = false;
-  worktreesRevealTimer = setTimeout(() => {
-    worktreesRevealTimer = undefined;
-    isWorktreesVisible.value = true;
+  if (workspacePickerRevealTimer !== undefined) clearTimeout(workspacePickerRevealTimer);
+  workspacePicker.value = {
+    root,
+    kind,
+  };
+  isWorkspacePickerVisible.value = false;
+  workspacePickerRevealTimer = setTimeout(() => {
+    workspacePickerRevealTimer = undefined;
+    isWorkspacePickerVisible.value = true;
   }, 500);
 }
 
-/** Shows the worktree window as soon as its first read finishes. */
-function showGitWorktrees(): void {
-  if (worktreesRevealTimer !== undefined) clearTimeout(worktreesRevealTimer);
-  worktreesRevealTimer = undefined;
-  isWorktreesVisible.value = true;
+/** Shows the checkout picker as soon as its first read finishes. */
+function showWorkspacePicker(): void {
+  if (workspacePickerRevealTimer !== undefined) clearTimeout(workspacePickerRevealTimer);
+  workspacePickerRevealTimer = undefined;
+  isWorkspacePickerVisible.value = true;
 }
 
-/** Closes the worktree window and cancels its reveal timer. */
-function closeGitWorktrees(): void {
-  if (worktreesRevealTimer !== undefined) clearTimeout(worktreesRevealTimer);
-  worktreesRevealTimer = undefined;
-  isWorktreesOpen.value = false;
-  isWorktreesVisible.value = false;
+/** Closes the checkout picker and cancels its reveal timer. */
+function closeWorkspacePicker(): void {
+  if (workspacePickerRevealTimer !== undefined) clearTimeout(workspacePickerRevealTimer);
+  workspacePickerRevealTimer = undefined;
+  workspacePicker.value = undefined;
+  isWorkspacePickerVisible.value = false;
 }
 
 onBeforeUnmount(() => {
-  if (worktreesRevealTimer !== undefined) clearTimeout(worktreesRevealTimer);
+  if (workspacePickerRevealTimer !== undefined) clearTimeout(workspacePickerRevealTimer);
   if (copiedDetailTimer !== undefined) clearTimeout(copiedDetailTimer);
 });
 
@@ -150,7 +165,6 @@ const detailRows = computed(() => {
   if (workspace === null) {
     return [];
   }
-  const agentCount = allPanes.value.filter((pane) => pane.workspace_id === workspace.workspace_id && pane.agent).length;
   const repositoryAddress = webOfRemote(currentGit.value?.remote ?? null)?.base ?? null;
   return [
     {
@@ -177,8 +191,6 @@ const detailRows = computed(() => {
       copyValue: repositoryAddress,
       copyLabel: t('workspaceStatusSummary.copyRepository'),
     },
-    { field: "tabs", name: t("workspaceStatusSummary.tabs"), value: workspace.tab_count, href: null, copyValue: null, copyLabel: null },
-    { field: "agents", name: t("workspaceStatusSummary.agents"), value: agentCount, href: null, copyValue: null, copyLabel: null },
   ];
 });
 
@@ -305,7 +317,7 @@ watch(isRenaming, (renaming) => {
       role="dialog"
       :style="cardStyle"
       :aria-label="t('workspaceStatusSummary.workspaceTitle')"
-      @click.stop
+      @click.stop="isOpeningOptionsVisible = false"
       @pointerenter="startScrolling"
       @pointerleave="stopScrolling"
     >
@@ -407,32 +419,71 @@ watch(isRenaming, (renaming) => {
         </div>
         <div v-if="workspaces.length > 0" class="border-top mt-1" role="separator"></div>
         <div class="d-flex flex-column flex-shrink-0">
-          <button
-            type="button"
-            class="btn border-0 d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
-            :title="t('workspaceStatusSummary.newTitle')"
-            @click="createWorkspace"
-          >
-            <Icon name="folder-symlink" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.new") }}
-          </button>
-          <button
-            type="button"
-            class="btn border-0 d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
-            :disabled="selectedWorkspace === null || currentGit?.root === undefined"
-            :title="selectedWorkspace !== null && currentGit?.root !== undefined ? t('workspaceStatusSummary.openGitWorktreeTitle') : undefined"
-            @click="openGitWorktrees"
-          >
-            <Icon name="diagram-3" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.openGitWorktree") }}
-          </button>
+          <div class="workspace-opening-row">
+            <button
+              type="button"
+              class="btn border-0 d-flex align-items-center gap-2 h-auto text-start workspace-opening-action"
+              :title="t('workspaceStatusSummary.newTitle')"
+              @click="createWorkspace"
+            >
+              <Icon name="folder-symlink" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.openWorkspace") }}
+            </button>
+            <button
+              type="button"
+              class="btn icon"
+              :class="{ on: isOpeningOptionsVisible }"
+              :aria-expanded="isOpeningOptionsVisible"
+              :aria-controls="isOpeningOptionsVisible ? openingOptionsId : undefined"
+              :aria-label="t('workspaceStatusSummary.moreOpeningOptions')"
+              :title="t('workspaceStatusSummary.moreOpeningOptions')"
+              @click.stop="isOpeningOptionsVisible = !isOpeningOptionsVisible"
+            >
+              <Icon name="three-dots-vertical" />
+            </button>
+          </div>
         </div>
       </div>
+      <div
+        v-if="isOpeningOptionsVisible"
+        :id="openingOptionsId"
+        class="workspace-opening-menu d-flex flex-column"
+        role="group"
+        :aria-label="t('workspaceStatusSummary.moreOpeningOptions')"
+      >
+        <button
+          type="button"
+          class="menu-item d-flex align-items-center gap-2 h-auto text-start workspace-opening-action"
+          :title="t('workspaceStatusSummary.newTitle')"
+          @click="createWorkspace"
+        >
+          <Icon name="folder-symlink" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.new") }}
+        </button>
+        <button
+          type="button"
+          class="menu-item d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
+          :disabled="selectedWorkspace === null || currentGit?.root === undefined"
+          :title="selectedWorkspace !== null && currentGit?.root !== undefined ? t('workspaceStatusSummary.openGitWorktreeTitle') : undefined"
+          @click="openWorkspacePicker('worktrees')"
+        >
+          <Icon name="diagram-3" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.openGitWorktree") }}
+        </button>
+        <button
+          type="button"
+          class="menu-item d-flex align-items-center flex-shrink-0 gap-2 h-auto text-start workspace-opening-action"
+          :disabled="selectedWorkspace === null || currentGit?.root === undefined"
+          @click="openWorkspacePicker('submodules')"
+        >
+          <Icon name="folder-symlink" class="flex-shrink-0" /> {{ t("workspaceStatusSummary.openGitSubmodule") }}
+        </button>
+      </div>
     </div>
-    <GitWorktreesModal
-      v-if="isWorktreesOpen && currentGit?.root"
-      :root="currentGit.root"
-      :visible="isWorktreesVisible"
-      @close="closeGitWorktrees"
-      @loaded="showGitWorktrees"
+    <GitWorkspacePicker
+      v-if="workspacePicker !== undefined"
+      :root="workspacePicker.root"
+      :kind="workspacePicker.kind"
+      :visible="isWorkspacePickerVisible"
+      @close="closeWorkspacePicker"
+      @loaded="showWorkspacePicker"
     />
   </div>
 </template>
@@ -448,6 +499,20 @@ watch(isRenaming, (renaming) => {
 .detail-value > [data-field="folder"] { min-width: 0; }
 .btn.icon.copy-detail-button { --btn-padding-x: 6px; width: auto; }
 .workspace-status > .popover { --popover-body-padding-y: var(--spacer-2); cursor: default; }
+.workspace-opening-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px; }
+.workspace-opening-menu {
+  position: absolute;
+  inset-inline-end: var(--popover-body-padding-x, 16px);
+  bottom: calc(32px + var(--popover-body-padding-y) + 6px);
+  max-width: calc(100% - 2 * var(--popover-body-padding-x, 16px));
+  z-index: 30;
+  padding: 6px;
+  gap: 2px;
+  border: 1px solid var(--line-modal);
+  border-radius: 12px;
+  background: var(--field);
+  box-shadow: 0 18px 48px var(--shadow-soft);
+}
 .workspace-status > .popover .btn:not(:disabled) { cursor: pointer; }
 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The name takes only its width, so the recording icon of the voice input sits right after it (issue 762). */

@@ -254,6 +254,69 @@ pub async fn git_status(cwd: String) -> Option<GitStatus> {
     Some(st)
 }
 
+/// A direct Git submodule of the selected repository.
+#[allow(non_snake_case)]
+#[derive(Serialize)]
+pub struct GitSubmodule {
+	/// The path relative to the selected repository.
+	path: String,
+	/// The absolute workspace folder, when the submodule has a Git checkout.
+	folder: Option<String>,
+	/// The folder creation time in seconds since 1970, when available.
+	#[serde(rename = "created_at")]
+	createdAt: Option<i64>,
+	/// The latest commit time in seconds since 1970, when available.
+	#[serde(rename = "last_commit_at")]
+	lastCommitAt: Option<i64>,
+}
+
+impl GitSubmodule {
+	/// Reads the submodule paths from the NUL-separated output of Git's index listing.
+	pub(crate) fn paths(index: &str) -> impl Iterator<Item = &str> {
+		index.split('\0').filter_map(|entry| {
+			let (metadata, path) = entry.split_once('\t')?;
+			metadata.starts_with("160000 ").then_some(path)
+		})
+	}
+}
+
+/// Lists direct submodules of a known repository, including submodules without a checkout.
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn gitSubmodules(root: String) -> Result<Vec<GitSubmodule>, String> {
+	known_root(&root)?;
+	let index = git(&root, &["ls-files", "--stage", "-z"])
+		.await
+		.ok_or_else(|| "Could not read the repository's Git submodules.".to_string())?;
+	let repository = std::path::Path::new(&root);
+	let paths: std::collections::BTreeSet<_> = GitSubmodule::paths(&index).collect();
+	let mut submodules = Vec::new();
+	for path in paths {
+		safe_rel(path)?;
+		crate::files::not_in_git_dir(path)?;
+		let folder = repository.join(path);
+		let gitDirectory = folder.join(".git");
+		let isLocalFolder = folder.canonicalize().is_ok_and(|canonicalFolder| canonicalFolder == folder);
+		let isInitialized = isLocalFolder
+			&& gitDirectory.exists()
+			&& git(&root, &["rev-parse", "--resolve-git-dir", &gitDirectory.to_string_lossy()])
+				.await
+				.is_some();
+		let checkout = if isInitialized == true {
+			Some(worktree_details(folder.to_string_lossy().into_owned(), None).await)
+		} else {
+			None
+		};
+		submodules.push(GitSubmodule {
+			path: path.to_string(),
+			createdAt: checkout.as_ref().and_then(|details| details.created_at),
+			lastCommitAt: checkout.as_ref().and_then(|details| details.last_commit_at),
+			folder: checkout.map(|details| details.folder),
+		});
+	}
+	Ok(submodules)
+}
+
 /// Lists the current worktrees of a known repository and omits folders that no longer exist.
 #[tauri::command]
 pub async fn git_worktrees(root: String) -> Result<Vec<GitWorktree>, String> {

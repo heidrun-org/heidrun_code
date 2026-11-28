@@ -1,5 +1,5 @@
 {
-  "title": "Open workspace from the selected repo's worktrees",
+  "title": "Open workspace from this repo's worktrees",
   "close": "Close",
   "loading": "Reading the current Git worktrees…",
   "tryAgain": "Try again",
