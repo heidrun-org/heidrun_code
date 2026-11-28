@@ -9,6 +9,12 @@ Keep your agents working. Know which one needs you.
 
 This file gives the rules for working on this repository. The file `README.md` describes the application itself.
 
+## The Rules of the Repo
+
+Before every change of this repository, follow the skill [rules_of_the_repo](.agents/skills/rules_of_the_repo/SKILL.md): read the rules list, and obey each rule skill that applies to the change, with its configuration.
+
+- Rules list: .agents/rules_of_the_repo/rules_list.md
+
 ## Names of the project
 
 The whole project is called Heidrun Organization. It has two applications: Heidrun Code, the application for coding agents that this repository holds, and Heidrun Notebook, the application for project management and note taking. The identifiers are `heidrun_code` and `heidrun_notebook`.
