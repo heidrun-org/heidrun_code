@@ -495,6 +495,7 @@ pub fn run() {
             user_launchers::launcher_folder_exists,
             git::git_status,
             git::git_worktrees,
+            git::gitSubmodules,
             git::forge_rate_limit_reset,
             git::forge_gitlab_rate_limit_reset,
             forge_cache::forge_cli_cached,

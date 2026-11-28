@@ -182,6 +182,8 @@ describe('the card of the workspaces (WorkspaceStatusSummary.vue)', () => {
 			'workspace-list',
 			'workspace-row',
 			'workspace-opening-action',
+			'workspace-opening-menu',
+			'workspace-opening-row',
 			'workspace-main',
 			'workspace-branch',
 			'workspace-branch-name',

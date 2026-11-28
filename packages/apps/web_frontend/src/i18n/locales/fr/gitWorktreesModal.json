@@ -1,5 +1,5 @@
 {
-  "title": "Ouvrir un workspace depuis les worktrees du dépôt sélectionné",
+  "title": "Ouvrir un workspace depuis les worktrees de ce dépôt",
   "close": "Fermer",
   "loading": "Lecture des worktrees Git actuels…",
   "tryAgain": "Réessayer",

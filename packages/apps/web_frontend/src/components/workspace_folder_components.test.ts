@@ -39,7 +39,7 @@ import type { Ref } from 'vue';
 import { selectedWorkspace, workspaces } from '../stores/session';
 import type { WorkspaceInfo } from '../lib/types';
 import WorkspaceFolderRecovery from './WorkspaceFolderRecovery.vue';
-import GitWorktreesModal from './GitWorktreesModal.vue';
+import GitWorkspacePicker from './GitWorkspacePicker.vue';
 
 const selected = selectedWorkspace as Ref<WorkspaceInfo | null>;
 const workspaceList = workspaces as Ref<WorkspaceInfo[]>;
@@ -98,10 +98,81 @@ describe('workspace folder selection (#724)', () => {
 				last_commit_at: null,
 			},
 		]);
-		const wrapper = mount(GitWorktreesModal, {
+		const wrapper = mount(GitWorkspacePicker, {
 			props: {
 				root: '/main',
 				visible: true,
+				kind: 'worktrees',
+			},
+		});
+		await flushPromises();
+		await wrapper.get('.open-worktree').trigger('click');
+		expect(mocks.selectWorkspace).toHaveBeenCalledWith('w1');
+		expect(mocks.openFolderAsWorkspace).not.toHaveBeenCalled();
+		wrapper.unmount();
+	});
+});
+
+describe('Git submodule workspace selection', () => {
+	it('opens a checked-out submodule and explains why an uninitialized submodule is disabled', async () => {
+		mocks.invoke.mockResolvedValue([
+			{
+				path: 'modules/shared tools',
+				folder: '/main/modules/shared tools',
+				created_at: null,
+				last_commit_at: null,
+			},
+			{
+				path: 'modules/missing',
+				folder: null,
+				created_at: null,
+				last_commit_at: null,
+			},
+		]);
+		const wrapper = mount(GitWorkspacePicker, {
+			props: {
+				root: '/main',
+				visible: true,
+				kind: 'submodules',
+			},
+		});
+		await flushPromises();
+		expect(mocks.invoke).toHaveBeenCalledWith('gitSubmodules', {
+			root: '/main',
+		});
+		expect(wrapper.get('select').findAll('option')).toHaveLength(3);
+		expect(wrapper.findAll('.row-action')).toHaveLength(1);
+		await wrapper.get('button.refresh').trigger('click');
+		await flushPromises();
+		expect(mocks.invoke).toHaveBeenCalledTimes(2);
+		const [initialized, uninitialized] = wrapper.findAll<HTMLButtonElement>('.open-worktree');
+		expect(initialized.get('.folder').text()).toBe('modules/shared tools');
+		expect(uninitialized.get('.folder').text()).toBe('modules/missing');
+		expect(uninitialized.element.disabled).toBe(true);
+		expect(wrapper.get('.submodule-note').text()).toBe('workspaceStatusSummary.gitSubmoduleUnavailable');
+		await uninitialized.trigger('click');
+		expect(mocks.openFolderAsWorkspace).not.toHaveBeenCalled();
+		await initialized.trigger('click');
+		expect(wrapper.emitted('close')).toHaveLength(1);
+		expect(mocks.openFolderAsWorkspace).toHaveBeenCalledWith('/main/modules/shared tools', 'shared tools');
+		wrapper.unmount();
+	});
+
+	it('selects an existing workspace for the submodule folder', async () => {
+		selected.value!.workspace_folder = '/main/modules/shared';
+		mocks.invoke.mockResolvedValue([
+			{
+				path: 'modules/shared',
+				folder: '/main/modules/shared',
+				created_at: null,
+				last_commit_at: null,
+			},
+		]);
+		const wrapper = mount(GitWorkspacePicker, {
+			props: {
+				root: '/main',
+				visible: true,
+				kind: 'submodules',
 			},
 		});
 		await flushPromises();

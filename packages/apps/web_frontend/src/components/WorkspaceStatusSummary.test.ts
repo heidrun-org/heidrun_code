@@ -291,17 +291,6 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     expect(writeText).toHaveBeenCalledWith("dev_jerome");
   });
 
-  it("shows the folder, the Git branch, the number of tabs, and the number of agents", async () => {
-    const snapshot = makeSnapshot([{ pane_id: "p9", workspace_id: "w1", tab_id: "t1", agent: "codex", agent_status: "idle" }]);
-    const { wrapper, git } = await mountSection(snapshot);
-    git.status = { w1: { root: "/work/heidrun", branch: "dev_jerome" } as never };
-    await wrapper.get(".workspace-status").trigger("click");
-    expect(wrapper.get("[data-field=folder]").text()).toBe("/work/heidrun");
-    expect(wrapper.get("[data-field=branch]").text()).toBe("dev_jerome");
-    expect(wrapper.get("[data-field=tabs]").text()).toBe("2");
-    expect(wrapper.get("[data-field=agents]").text()).toBe("2");
-  });
-
   it("shows the repository as a link, after the Git branch, that opens in the web browser", async () => {
     const { wrapper, git } = await mountSection();
     git.status = {
@@ -310,7 +299,7 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     await wrapper.get(".workspace-status").trigger("click");
 
     const fields = wrapper.findAll(".detail-row [data-field]").map((element) => element.attributes("data-field"));
-    expect(fields).toEqual(["folder", "branch", "repository", "tabs", "agents"]);
+    expect(fields).toEqual(["folder", "branch", "repository"]);
     const link = wrapper.get("a[data-field=repository]");
     expect(link.text()).toBe("https://github.com/heidrun-org/heidrun");
     expect(link.attributes("href")).toBe("https://github.com/heidrun-org/heidrun");
@@ -353,7 +342,6 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     await wrapper.get(".workspace-status").trigger("click");
     expect(wrapper.get("[data-field=folder]").text()).toBe("No folder");
     expect(wrapper.get("[data-field=branch]").text()).toBe("No Git branch");
-    expect(wrapper.get("[data-field=agents]").text()).toBe("0");
   });
 
   it("follows the selected workspace while the card is open", async () => {
@@ -362,7 +350,6 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     session.state.selectedWorkspaceId = "w2";
     await wrapper.vm.$nextTick();
     expect(wrapper.get("[data-field=folder]").text()).toBe("/work/teamwright");
-    expect(wrapper.get("[data-field=tabs]").text()).toBe("1");
   });
 
   it("shows no details when Herdr has no workspace", async () => {
@@ -370,9 +357,11 @@ describe("WorkspaceStatusSummary details of the selected workspace", () => {
     session.state.selectedWorkspaceId = null;
     await wrapper.get(".workspace-status").trigger("click");
     expect(wrapper.find("[data-field=details]").exists()).toBe(false);
-    const worktreeButton = wrapper.get('.workspace-opening-action:last-child');
-    expect(worktreeButton.attributes("disabled")).toBeDefined();
-    expect(worktreeButton.attributes("title")).toBeUndefined();
+    await wrapper.get('[aria-label="More workspace opening options"]').trigger('click');
+    for (const repositoryAction of wrapper.get('[role=group][aria-label="More workspace opening options"]').findAll('button').slice(1)) {
+      expect(repositoryAction.attributes('disabled')).toBeDefined();
+      expect(repositoryAction.attributes('title')).toBeUndefined();
+    }
     const sourceText = Fs.readFileSync(Path.resolve(import.meta.dirname, "WorkspaceStatusSummary.vue"), "utf8");
     expect(sourceText).toMatch(/\.workspace-status > \.popover \{[^}]*cursor: default;/);
     expect(sourceText).toContain(".workspace-status > .popover .btn:not(:disabled) { cursor: pointer; }");
@@ -410,12 +399,10 @@ describe("WorkspaceStatusSummary card width and folder path", () => {
     expect(folder.classes()).not.toContain("text-break");
   });
 
-  it("keeps the other details as they were", async () => {
+  it("keeps the Git branch from scrolling", async () => {
     const { wrapper } = await mountSection();
     await wrapper.get(".workspace-status").trigger("click");
-    for (const field of ["branch", "tabs", "agents"]) {
-      expect(wrapper.get(`[data-field=${field}]`).classes()).not.toContain("scrolling-line");
-    }
+    expect(wrapper.get("[data-field=branch]").classes()).not.toContain("scrolling-line");
   });
 
   it("scrolls a folder path that does not fit while the pointer is over the card, and stops when the pointer leaves", async () => {
@@ -547,20 +534,40 @@ describe("WorkspaceStatusSummary list", () => {
 });
 
 describe("WorkspaceStatusSummary new workspace", () => {
-  it("has the folder and Git worktree entries at the end of the card, after one separator line", async () => {
+  it("shows one primary action and reveals three opening options with More", async () => {
     const { wrapper } = await mountSection();
     await wrapper.get(".workspace-status").trigger("click");
     const body = wrapper.get(".popover-body").element;
     const separators = wrapper.findAll(".popover-body > [role=separator]");
     expect(separators).toHaveLength(1);
     expect(separators[0].element.nextElementSibling).toBe(body.lastElementChild);
-    const entries = wrapper.findAll('.workspace-opening-action');
+    expect(wrapper.findAll('.workspace-opening-action').map((entry) => entry.text())).toEqual(['Open workspace']);
+    const moreButton = wrapper.get('button[aria-label="More workspace opening options"]');
+    expect(moreButton.attributes('aria-expanded')).toBe('false');
+    await moreButton.trigger('click');
+    expect(moreButton.attributes('aria-expanded')).toBe('true');
+    const entries = wrapper.get('[role=group][aria-label="More workspace opening options"]').findAll('button');
     expect(entries.map((entry) => entry.text())).toEqual([
       "Open workspace from folder",
-      "Open workspace from this repo worktree",
+      "Open workspace from this repo's worktrees",
+      "Open workspace from this repo's submodules",
     ]);
     expect(entries.every((entry) => !entry.text().includes("…"))).toBe(true);
     expect(entries[0].attributes("title")).toBe("Open a folder as a workspace");
+  });
+
+  it('opens the folder picker from More and collapses More when the card reopens', async () => {
+		vi.mocked(openDialog).mockResolvedValueOnce(null);
+		const { wrapper } = await mountSection();
+		await wrapper.get('.workspace-status').trigger('click');
+		await wrapper.get('button[aria-label="More workspace opening options"]').trigger('click');
+		expect(openDialog).not.toHaveBeenCalled();
+		await wrapper.get('[role=group][aria-label="More workspace opening options"] button').trigger('click');
+		await flushPromises();
+		expect(openDialog).toHaveBeenCalledOnce();
+		expect(wrapper.find('.popover').exists()).toBe(false);
+		await wrapper.get('.workspace-status').trigger('click');
+		expect(wrapper.find('[role=group][aria-label="More workspace opening options"]').exists()).toBe(false);
   });
 
   it("asks for the folder of the new workspace, and closes the card", async () => {
@@ -641,12 +648,12 @@ describe("WorkspaceStatusSummary new workspace", () => {
     expect(api.newWorkspace).not.toHaveBeenCalled();
   });
 
-  it("offers both workspace entries without a separator line when Herdr has no workspace", async () => {
+  it("offers the primary action without a separator line when Herdr has no workspace", async () => {
     const snapshot = { ...makeSnapshot(), workspaces: [], panes: [] } as unknown as SessionSnapshot;
     const { wrapper } = await mountSection(snapshot);
     await wrapper.get(".workspace-status").trigger("click");
     expect(wrapper.findAll(".workspace-row")).toHaveLength(0);
-    expect(wrapper.findAll('.workspace-opening-action')).toHaveLength(2);
+    expect(wrapper.findAll('.workspace-opening-action')).toHaveLength(1);
     expect(wrapper.findAll("[role=separator]")).toHaveLength(0);
   });
 });

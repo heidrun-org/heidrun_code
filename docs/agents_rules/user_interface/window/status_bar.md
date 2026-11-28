@@ -1,7 +1,7 @@
 # User interface of Heidrun Code: status bar
 
 - Created: 13 October 2026
-- Last updated: 23 October 2026
+- Last updated: 28 November 2026
 - Status: Maintained rules for agents and tools
 - Related framing: [Project instructions](../../../../AGENTS.md)
 - Related rules: [Glossary of Heidrun Code](../../glossary/index.md)

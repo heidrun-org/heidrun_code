@@ -197,11 +197,9 @@ async fn git_project_files(root: &Path, show_ignored: bool) -> ProjectFiles {
     while let Some((repository, prefix)) = pending.pop() {
         let (listed, ignored_entries) = git_listed_files(&repository, show_ignored).await;
         let index = run(&repository, &["ls-files", "--stage", "-z"]).await.unwrap_or_default();
-        let links: std::collections::HashSet<String> = split_z(&index)
-            .filter_map(|entry| {
-                let (metadata, path) = entry.split_once('\t')?;
-                metadata.starts_with("160000 ").then(|| path.to_string())
-            })
+        let index = String::from_utf8_lossy(&index);
+        let links: std::collections::HashSet<String> = crate::git::GitSubmodule::paths(&index)
+            .map(str::to_owned)
             .collect();
         let mut linked_here = std::collections::HashSet::new();
         for path in listed {
@@ -1019,11 +1017,16 @@ mod helper_tests {
         assert!(ignored.is_empty());
         let root = parent.display().to_string();
         remember_root(&root);
+        let initialized = crate::git::gitSubmodules(root.clone()).await.unwrap();
+        let initialized = serde_json::to_value(initialized).unwrap();
+        assert_eq!(initialized[0]["path"], "modules/example");
+        assert_eq!(initialized[0]["folder"], serde_json::json!(module));
+        assert!(initialized[0]["last_commit_at"].is_i64());
         assert_eq!(file_read(root.clone(), "modules/example/src/a.ts".into()).unwrap().text, "x");
         let ProjectFiles { files: shown, ignored, .. } = git_project_files(&parent, true).await;
         assert!(shown.contains(&"modules/example/.env".to_string()));
         assert!(ignored.contains(&"modules/example/.heidrun/".to_string()));
-        assert_eq!(folder_children(root, "modules/example/.heidrun/nested".into()).unwrap(), vec!["hidden.txt"]);
+        assert_eq!(folder_children(root.clone(), "modules/example/.heidrun/nested".into()).unwrap(), vec!["hidden.txt"]);
         assert!(shown.iter().all(|path| !Path::new(path).components().any(|part| part.as_os_str() == ".git")));
         std::fs::write(module.join("src/new.txt"), "new").unwrap();
         let refreshed = git_project_files(&parent, false).await.files;
@@ -1031,6 +1034,13 @@ mod helper_tests {
         // An uninitialized submodule must not list the parent repository as its own contents.
         std::fs::remove_dir_all(&module).unwrap();
         std::fs::create_dir(&module).unwrap();
+        let unavailable = crate::git::gitSubmodules(root).await.unwrap();
+        assert_eq!(serde_json::to_value(unavailable).unwrap(), serde_json::json!([{
+            "path": "modules/example",
+            "folder": null,
+            "created_at": null,
+            "last_commit_at": null,
+        }]));
         let ProjectFiles { files: uninitialized, submodules, .. } = git_project_files(&parent, false).await;
         assert_eq!(submodules, vec!["modules/example"]);
         assert!(uninitialized.iter().all(|path| !path.starts_with("modules/example/")));
